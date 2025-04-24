@@ -1,0 +1,15 @@
+{% extends "layout.html" %}
+{% block title %}Facilities{% endblock %}
+
+{% block content %}
+<h2 class="text-2xl font-semibold mb-4">All Facilities</h2>
+<div class="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-6">
+  {% for fac in facilities %}
+    <a href="{{ url_for('dashboard.facility_profile', facility_id=fac.id) }}"
+       class="block p-4 border rounded shadow-sm bg-white hover:bg-gray-50 transition">
+      <h3 class="text-lg font-semibold text-blue-700">{{ fac.name }}</h3>
+      <p class="text-sm text-gray-600">{{ fac.location }}</p>
+    </a>
+  {% endfor %}
+</div>
+{% endblock %}

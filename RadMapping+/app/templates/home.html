@@ -32,8 +32,36 @@
   <h4 class="text-lg font-semibold mb-2">Current Time</h4>
   <div id="timezone-times" class="flex flex-wrap gap-3 text-sm text-gray-700">
     {% for zone in ["EST", "CST", "PST", "UTC"] %}
-      <div class="bg-gray-100 border rounded px-3 py-1 shadow-sm">
+      <div class="bg-gray-100 border rounded px-3 py-1 shadow-sm relative timezone-tile"
+           onmouseenter="showTimezonePopup(this)"
+           onmouseleave="hideTimezonePopup(this)">
         {{ zone }}: <span id="tz-{{ zone|lower }}">...</span>
+        <div class="timezone-popup absolute z-10 left-0 mt-1 bg-white border p-3 rounded shadow-md text-left w-72 opacity-0 transition-opacity duration-150 pointer-events-auto">
+
+          <h5 class="font-medium mb-2">Doctors in {{ zone }}</h5>
+          {% set tz_docs = doctors_by_timezone.get(zone, []) %}
+          {% if tz_docs %}
+            <ul class="space-y-1 max-h-60 overflow-y-auto">
+              {% for doc in tz_docs %}
+              <li class="text-sm">
+                <a href="{{ url_for('dashboard.doctor_profile', rad_id=doc.id) }}" target="_blank" class="hover:underline text-blue-700 font-medium">
+                  {{ doc.name }}
+                </a>
+              
+                {% if doc.id in doctors_currently_on_shift_ids %}
+                  <span class="text-xs bg-blue-100 text-blue-800 px-1 rounded">On shift now</span>
+                {% elif doc.id in doctors_on_shift_ids %}
+                  <span class="text-xs bg-green-100 text-green-800 px-1 rounded">Scheduled Today</span>
+                {% endif %}
+              </li>
+              
+            {% endfor %}
+            
+            </ul>
+          {% else %}
+            <p class="text-sm italic text-gray-500">No doctors in this timezone.</p>
+          {% endif %}
+        </div>
       </div>
     {% endfor %}
   </div>
@@ -48,18 +76,21 @@
         {% if doctors_by_hour[hour] %}
           <ul class="space-y-2">
             {% for doc in doctors_by_hour[hour] %}
-              <li class="relative border p-2 rounded bg-gray-50 hover:bg-gray-100 doctor-tile"
-                  onmouseenter="showPopup(this)"
-                  onmouseleave="hidePopup(this)">
-                <span class="text-blue-700 font-semibold">{{ doc.name }}</span>
-                <div class="doctor-popup absolute z-10 left-0 mt-1 bg-white border p-3 rounded shadow-md text-left w-[18rem] pointer-events-none opacity-0 transition-opacity duration-150">
-                  <p class="text-sm font-medium">Email: <span class="text-gray-700">{{ doc.email }}</span></p>
-                  <p class="text-sm font-medium">Modalities: <span class="text-gray-700">{{ doc.modalities or 'N/A' }}</span></p>
-                  <p class="text-sm font-medium">PACS: <span class="text-gray-700">{{ doc.pacs or 'N/A' }}</span></p>
-                  <p class="text-sm font-medium">Today's Shift: {{ doc.start_time | ampm }} – {{ doc.end_time | ampm }}</p>
-                  <p class="text-sm font-medium">Timezone: <span class="text-gray-700">{{ doc.timezone or '—' }}</span></p>
-                </div>
-              </li>
+            <a href="{{ url_for('dashboard.doctor_profile', rad_id=doc.id) }}" target="_blank"
+            class="block relative border p-2 rounded bg-gray-50 hover:bg-gray-100 doctor-tile"
+            onmouseenter="showPopup(this)" onmouseleave="hidePopup(this)">
+           
+           <span class="text-blue-700 font-semibold">{{ doc.name }}</span>
+           
+           <div class="doctor-popup absolute z-10 left-0 mt-1 bg-white border p-3 rounded shadow-md text-left w-[18rem] pointer-events-none opacity-0 transition-opacity duration-150">
+             <p class="text-sm font-medium">Email: <span class="text-gray-700">{{ doc.email }}</span></p>
+             <p class="text-sm font-medium">Modalities: <span class="text-gray-700">{{ doc.modalities or 'N/A' }}</span></p>
+             <p class="text-sm font-medium">PACS: <span class="text-gray-700">{{ doc.pacs or 'N/A' }}</span></p>
+             <p class="text-sm font-medium">Today's Shift: {{ doc.start_time | ampm }} – {{ doc.end_time | ampm }}</p>
+             <p class="text-sm font-medium">Timezone: <span class="text-gray-700">{{ doc.timezone or '—' }}</span></p>
+           </div>
+         </a>
+         
             {% endfor %}
           </ul>
         {% else %}
@@ -71,6 +102,21 @@
 </div>
 
 <script>
+  function showTimezonePopup(parent) {
+  const popup = parent.querySelector('.timezone-popup');
+  if (popup) {
+    popup.classList.remove('opacity-0');
+    popup.classList.add('opacity-100');
+  }
+}
+
+function hideTimezonePopup(parent) {
+  const popup = parent.querySelector('.timezone-popup');
+  if (popup) {
+    popup.classList.remove('opacity-100');
+    popup.classList.add('opacity-0');
+  }
+}
   function showPopup(parent) {
     const popup = parent.querySelector('.doctor-popup');
     if (popup) {

@@ -64,14 +64,47 @@ def home():
             except Exception as e:
                 print("Shift hour error:", e)
 
-    
+
+    # Get all doctors
+    all_doctors_res = supabase.table("radiologists").select("*").execute()
+    all_doctors = all_doctors_res.data
+
+    # Create timezone dictionary for all doctors
+    doctors_by_timezone = defaultdict(list)
+    for doctor in all_doctors:
+        timezone = doctor.get("timezone", "Unknown")
+        if timezone:
+            doctors_by_timezone[timezone].append(doctor)
+
+    # Create sets for doctors on shift today and currently on shift
+    doctors_on_shift_ids = {doc["id"] for doc in doctors_on_shift}
+    doctors_currently_on_shift_ids = set()
+
+    # Get current hour
+    current_hour = datetime.now().hour
+
+    # Check which doctors are currently on shift
+    for doc in doctors_on_shift:
+        try:
+            start_hour = int(doc["start_time"].split(":")[0])
+            end_hour = int(doc["end_time"].split(":")[0])
+            
+            # Check if current hour falls within shift hours
+            if start_hour <= current_hour < end_hour:
+                doctors_currently_on_shift_ids.add(doc["id"])
+        except Exception as e:
+            print("Error checking current shift:", e)
+
     return render_template("home.html",
         user=user,
         today=today,
         prev_date=prev_date,
         next_date=next_date,
         doctors_on_shift=doctors_on_shift,
-        doctors_by_hour=doctors_by_hour
+        doctors_by_hour=doctors_by_hour,
+        doctors_by_timezone=doctors_by_timezone,
+        doctors_on_shift_ids=doctors_on_shift_ids,
+        doctors_currently_on_shift_ids=doctors_currently_on_shift_ids  
     )
 
 @dashboard_bp.route('/admin')
@@ -232,3 +265,28 @@ def bulk_update_schedule(rad_id):
 
     return redirect(url_for("dashboard.doctor_profile", rad_id=rad_id))
 
+@dashboard_bp.route('/facilities')
+@login_required
+def facilities():
+    res = supabase.table("facilities").select("*").order("name").execute()
+    facilities = res.data
+    return render_template("facility_list.html", facilities=facilities)
+
+@dashboard_bp.route('/facilities/<string:facility_id>')
+@login_required
+def facility_profile(facility_id):
+    fac = supabase.table("facilities").select("*").eq("id", facility_id).single().execute().data
+
+    assignment_res = supabase.table("doctor_facility_assignments") \
+        .select("*, radiologists(*)") \
+        .eq("facility_id", facility_id).execute()
+
+    from pprint import pprint
+    pprint(assignment_res.data)
+    
+    return render_template("facility_profile.html",
+        facility=fac,
+        doctor_assignments=assignment_res.data
+
+
+    )

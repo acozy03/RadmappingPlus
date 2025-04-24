@@ -1,0 +1,59 @@
+{% extends "layout.html" %}
+{% block title %}{{ facility.name }}{% endblock %}
+
+{% block content %}
+<h2 class="text-2xl font-semibold mb-4">{{ facility.name }}</h2>
+<div class="grid grid-cols-1 sm:grid-cols-2 gap-4 text-sm">
+  <p><strong>Location:</strong> {{ facility.location }}</p>
+  <p><strong>PACS:</strong> {{ facility.pacs }}</p>
+  <p><strong>TAT Definition:</strong> {{ facility.tat_definition }}</p>
+  <p><strong>Modalities:</strong> {{ facility.modalities_assignment_period }}</p>
+  <p><strong>Status:</strong>
+    {% if facility.active_status %}
+      <span class="text-green-600 font-medium">Active</span>
+    {% else %}
+      <span class="text-red-600 font-medium">Inactive</span>
+    {% endif %}
+  </p>
+</div>
+
+<div class="mt-8">
+    <h3 class="text-lg font-semibold mb-4">Assigned Radiologists</h3>
+    {% if doctor_assignments %}
+    <div class="overflow-x-auto">
+      <table class="min-w-full bg-white border border-gray-200 text-sm">
+        <thead class="bg-gray-100">
+          <tr class="text-left">
+            <th class="px-4 py-2 border-b">Name</th>
+            <th class="px-4 py-2 border-b">Can Read</th>
+            <th class="px-4 py-2 border-b">Does Stats</th>
+            <th class="px-4 py-2 border-b">Does Routines</th>
+            <th class="px-4 py-2 border-b">Stipulations</th>
+            <th class="px-4 py-2 border-b">Notes</th>
+          </tr>
+        </thead>
+        <tbody>
+          {% for assignment in doctor_assignments %}
+          <tr class="hover:bg-gray-50">
+            <td class="px-4 py-2 border-b">
+              <a href="{{ url_for('dashboard.doctor_profile', rad_id=assignment.radiologists.id) }}"
+                 class="text-blue-700 hover:underline">
+                {{ assignment.radiologists.name }}
+              </a>
+            </td>
+            <td class="px-4 py-2 border-b">{{ "✅" if assignment.can_read else "❌" }}</td>
+            <td class="px-4 py-2 border-b">{{ "✅" if assignment.does_stats else "❌" }}</td>
+            <td class="px-4 py-2 border-b">{{ "✅" if assignment.does_routines else "❌" }}</td>
+            <td class="px-4 py-2 border-b">{{ assignment.stipulations or "—" }}</td>
+            <td class="px-4 py-2 border-b">{{ assignment.notes or "—" }}</td>
+          </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
+  {% else %}
+    <p class="text-gray-500 italic">No doctors assigned.</p>
+  {% endif %}
+  
+  </div>
+  {% endblock %}
