@@ -161,6 +161,11 @@ def doctor_profile(rad_id):
     certifications = certs_res.data
     print(certifications)
 
+    facility_res = supabase.table("doctor_facility_assignments") \
+    .select("*, facilities(*)") \
+    .eq("radiologist_id", rad_id).execute()
+
+    assigned_facilities = facility_res.data
 
     return render_template("doctor_profile.html",
         doctor=doctor,
@@ -175,7 +180,8 @@ def doctor_profile(rad_id):
         next_year=next_year,
         next_month=next_month,
         today_str=today_str,
-        certifications=certifications
+        certifications=certifications,
+        assigned_facilities=assigned_facilities
     )
 
 @dashboard_bp.route('/doctors/<string:rad_id>/update_schedule', methods=["POST"])

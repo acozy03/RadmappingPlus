@@ -45,6 +45,12 @@
 </div>
 {% endif %}
 
+{% if assigned_facilities %}
+<div class="mt-6">
+  <h3 class="text-xl font-semibold mb-2">Assigned Facilities</h3>
+  <button onclick="openFacilityModal()" class="text-blue-600 hover:underline">View Facilities</button>
+</div>
+{% endif %}
 
 {% if session.user.role == 'admin' %}
 <div class="mt-10">
@@ -285,5 +291,59 @@ document.addEventListener("DOMContentLoaded", attachDayListeners);
   }
   </script>
   
+  <div id="facilityModal" class="fixed inset-0 z-50 hidden bg-black bg-opacity-50 flex items-center justify-center">
+    <div class="bg-white rounded-lg shadow-lg w-[90%] max-w-3xl max-h-[80vh] overflow-y-auto p-6 relative">
+      <button onclick="closeFacilityModal()" class="absolute top-2 right-2 text-2xl font-bold text-gray-500 hover:text-black">×</button>
+      <h3 class="text-xl font-semibold mb-4">Facilities for {{ doctor.name }}</h3>
+  
+      <input type="text" placeholder="Search facilities..." oninput="filterFacilities(this.value)"
+             class="w-full mb-4 px-3 py-2 border rounded text-sm">
+  
+      <ul id="facilityList" class="space-y-3 text-sm">
+        {% for assignment in assigned_facilities %}
+        <li class="border rounded p-3 bg-gray-50 facility-item">
+          <a href="{{ url_for('dashboard.facility_profile', facility_id=assignment.facilities.id) }}"
+            target="_blank"
+            class="font-medium text-blue-800 hover:underline">
+            {{ assignment.facilities.name }}
+          </a>
+          <div class="text-sm text-gray-700">{{ assignment.facilities.location }}</div>
+          <div class="text-sm mt-1">
+            <strong>Permissions:</strong>
+            Can Read: {{ "✅" if assignment.can_read else "❌" }},
+            Stats: {{ "✅" if assignment.does_stats else "❌" }},
+            Routines: {{ "✅" if assignment.does_routines else "❌" }}
+          </div>
+          {% if assignment.stipulations or assignment.notes %}
+          <div class="text-xs text-gray-500 mt-1 italic">
+            {{ assignment.stipulations or "" }} {{ assignment.notes or "" }}
+          </div>
+          {% endif %}
+        </li>
+        {% endfor %}
+      </ul>
+    </div>
+  </div>
+  
 
+  <script>
+    function openFacilityModal() {
+      document.getElementById('facilityModal').classList.remove('hidden');
+    }
+    
+    function closeFacilityModal() {
+      document.getElementById('facilityModal').classList.add('hidden');
+    }
+    
+    function filterFacilities(query) {
+      const items = document.querySelectorAll('.facility-item');
+      const q = query.toLowerCase();
+    
+      items.forEach(item => {
+        const text = item.innerText.toLowerCase();
+        item.style.display = text.includes(q) ? '' : 'none';
+      });
+    }
+    </script>
+    
 {% endblock %}
