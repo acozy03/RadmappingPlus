@@ -1,0 +1,71 @@
+# Byte-compiled / cache files
+__pycache__/
+*.py[cod]
+*.pyo
+*.pyd
+*.pyc
+*.pkl
+*.joblib
+
+# Environments
+.env
+.venv/
+venv/
+ENV/
+env/
+*.env
+
+# Flask
+instance/
+*.db
+*.sqlite3
+
+# Supabase
+.supabase/
+.supabase/config.toml
+supabase/.temp/
+supabase/migrations/
+
+# LlamaIndex
+index_store/
+vector_store/
+*.json
+*.jsonl
+*.npy
+
+# Logs
+*.log
+logs/
+debug.log
+
+# IDEs / Editors
+.vscode/
+.idea/
+.DS_Store
+*.swp
+
+# Node (if you're using npm for frontend tooling)
+node_modules/
+dist/
+build/
+
+# Output / Results / Reports
+results/
+read_data/
+todo_data/
+__results__/
+
+# Compiled frontend assets (optional)
+static/js/bundle.js
+static/css/
+*.map
+
+# Testing
+.coverage
+*.pytest_cache/
+htmlcov/
+
+# Mac & Windows
+Thumbs.db
+ehthumbs.db
+Desktop.ini

@@ -1,0 +1,69 @@
+{% extends "layout.html" %}
+
+{% block title %}Doctor Directory{% endblock %}
+
+{% block content %}
+<h2 class="text-2xl font-semibold mb-6 border-b pb-2">Doctor Directory</h2>
+
+<!-- Search Box -->
+<input type="text"
+       id="searchBox"
+       placeholder="Search by name or email..."
+       class="w-full mb-6 p-3 border rounded text-sm"
+       onkeyup="filterDoctors()" />
+
+<!-- Doctor List -->
+<ul id="doctorList" class="space-y-4">
+  {% for doc in doctors %}
+  <li class="relative flex items-center justify-between p-4 bg-gray-50 rounded hover:bg-gray-100 cursor-pointer doctor-item"
+      onclick="window.location.href='/dashboard/doctors/{{ doc.id }}'"
+      onmouseenter="showPopup(this)"
+      onmouseleave="hidePopup(this)">
+    <div>
+      <p class="text-lg font-medium name">{{ doc.name }}</p>
+      <p class="text-sm text-gray-500 email">{{ doc.email }}</p>
+    </div>
+    <span class="text-blue-600 font-semibold">Details →</span>
+
+    <!-- Hover Popup -->
+    <div class="doctor-popup absolute left-0 top-full mt-2 w-[20rem] bg-white border p-3 rounded shadow-md text-left pointer-events-none opacity-0 transition-opacity duration-150 z-50">
+      <p class="text-sm font-medium">Timezone: <span class="text-gray-700">{{ doc.timezone }}</span></p>
+      <p class="text-sm font-medium">Modalities: <span class="text-gray-700">{{ doc.modalities or 'N/A' }}</span></p>
+      <p class="text-sm font-medium">PACS: <span class="text-gray-700">{{ doc.pacs or 'N/A' }}</span></p>
+      <p class="text-sm font-medium">Schedule: {{ doc.schedule_info_est or "N/A" }}</p>
+    </div>
+  </li>
+  {% endfor %}
+</ul>
+
+<!-- Scripts -->
+<script>
+  function filterDoctors() {
+    const input = document.getElementById("searchBox").value.toLowerCase();
+    const doctors = document.querySelectorAll(".doctor-item");
+
+    doctors.forEach(doc => {
+      const name = doc.querySelector(".name").textContent.toLowerCase();
+      const email = doc.querySelector(".email").textContent.toLowerCase();
+      const match = name.includes(input) || email.includes(input);
+      doc.style.display = match ? "flex" : "none";
+    });
+  }
+
+  function showPopup(parent) {
+    const popup = parent.querySelector('.doctor-popup');
+    if (popup) {
+      popup.classList.remove('opacity-0');
+      popup.classList.add('opacity-100');
+    }
+  }
+
+  function hidePopup(parent) {
+    const popup = parent.querySelector('.doctor-popup');
+    if (popup) {
+      popup.classList.remove('opacity-100');
+      popup.classList.add('opacity-0');
+    }
+  }
+</script>
+{% endblock %}

@@ -1,0 +1,255 @@
+{% extends "layout.html" %}
+{% block title %}Doctor Profile{% endblock %}
+
+{% block content %}
+<h2 class="text-2xl font-semibold mb-4">{{ doctor.name }}</h2>
+
+<div class="grid grid-cols-1 sm:grid-cols-2 gap-4 text-sm">
+  <div>
+    <p><strong>Email:</strong> {{ doctor.email }}</p>
+    <p><strong>PACS:</strong> {{ doctor.pacs }}</p>
+    <p><strong>Phone:</strong> {{ doctor.phone }}</p>
+    <p><strong>Primary Method:</strong> {{ doctor.primary_contact_method }}</p>
+    <p><strong>Modalities:</strong> {{ doctor.modalities or "—" }}</p>
+    <p><strong>Schedule (EST):</strong> {{ doctor.schedule_info_est or "—" }}</p>
+    <p><strong>Timezone (EST):</strong> {{ doctor.timezone or "—" }}</p>
+  </div>
+  <div>
+    <p><strong>Status:</strong>
+      {% if doctor.active_status %}
+        <span class="text-green-600 font-medium">Active</span>
+      {% else %}
+        <span class="text-red-600 font-medium">Inactive</span>
+      {% endif %}
+    </p>
+    <p><strong>Credentialing Contact:</strong> {{ doctor.credentialing_contact or "—" }}</p>
+
+    <p><strong>RAD Guidelines:</strong></p>
+    <div class="bg-gray-50 p-3 rounded border mt-1 text-sm text-gray-700 whitespace-pre-wrap">
+      {{ doctor.rad_guidelines or "No guidelines provided." }}
+    </div>
+  </div>
+</div>
+
+{% if doctor.additional_info %}
+<div class="mt-6">
+  <h3 class="font-semibold mb-2">Additional Info</h3>
+  <p class="text-gray-700">{{ doctor.additional_info }}</p>
+</div>
+{% endif %}
+
+{% if certifications %}
+<div class="mt-10">
+  <h3 class="text-xl font-semibold mb-2">Certifications</h3>
+  <ul class="space-y-2 text-sm">
+    {% for cert in certifications %}
+    <li class="border rounded p-3 bg-gray-50 flex justify-between items-center">
+      <div>
+        <p><strong>{{ cert.state }}</strong> — expires <span class="text-gray-700">{{ cert.expiration_date }}</span></p>
+      </div>
+      {% if cert.status == "Active" %}
+        <span class="text-green-600 font-medium">✅ Active</span>
+      {% else %}
+        <span class="text-red-500 font-medium">❌ {{ cert.status | capitalize }}</span>
+      {% endif %}
+    </li>
+    {% endfor %}
+  </ul>
+</div>
+{% endif %}
+
+
+{% if session.user.role == 'admin' %}
+<div class="mt-10">
+  <div class="flex justify-between items-center mb-4">
+    <h3 class="text-xl font-semibold">Edit Schedule: {{ now.strftime('%B %Y') }}</h3>
+    <div>
+      <button onclick="toggleMultiSelect()" class="text-sm text-blue-600 hover:underline mr-4" id="multiToggle">Enable Multi-Select</button>
+      <a href="{{ url_for('dashboard.doctor_profile', rad_id=doctor.id, year=prev_year, month=prev_month) }}" class="text-blue-600 hover:underline mr-4">← Prev</a>
+      <a href="{{ url_for('dashboard.doctor_profile', rad_id=doctor.id, year=next_year, month=next_month) }}" class="text-blue-600 hover:underline">Next →</a>
+    </div>
+  </div>
+
+  <form method="POST" action="{{ url_for('dashboard.bulk_update_schedule', rad_id=doctor.id) }}" class="bg-gray-100 p-4 rounded border mb-6 hidden" id="bulkForm">
+    <h4 class="text-md font-medium mb-2">Bulk Edit Shift</h4>
+    <input type="hidden" name="dates" id="bulkDates">
+    <label class="block mb-2">Start Time
+      <select name="start_time" class="input w-full text-base px-3 py-2 border">
+        {% for hour in range(0, 24) %}
+          {% set formatted = "%02d:00"|format(hour) %}
+          {% set hour_val = formatted.split(':')[0]|int %}
+          <option value="{{ formatted }}">{{ '%02d:00 %s' % ((hour_val - 1) % 12 + 1, 'AM' if hour_val < 12 else 'PM') }}</option>
+        {% endfor %}
+      </select>
+    </label>
+    <label class="block mb-2">End Time
+      <select name="end_time" class="input w-full text-base px-3 py-2 border">
+        {% for hour in range(0, 24) %}
+          {% set formatted = "%02d:00"|format(hour) %}
+          {% set hour_val = formatted.split(':')[0]|int %}
+          <option value="{{ formatted }}">{{ '%02d:00 %s' % ((hour_val - 1) % 12 + 1, 'AM' if hour_val < 12 else 'PM') }}</option>
+        {% endfor %}
+      </select>
+    </label>
+    <label class="block mb-2">Notes
+        <textarea name="schedule_details" rows="3" class="input w-full text-base px-3 py-2 border"></textarea>
+    </label>
+    <button type="submit" class="bg-blue-600 text-white px-4 py-2 rounded text-base font-semibold">Apply to Selected Days</button>
+  </form>
+</div>
+
+<script>
+let multiSelectMode = false;
+let selectedDates = new Set();
+let isMouseDown = false;
+let draggedThisCycle = new Set();
+
+function toggleMultiSelect() {
+  multiSelectMode = !multiSelectMode;
+  document.getElementById("multiToggle").textContent = multiSelectMode ? "Disable Multi-Select" : "Enable Multi-Select";
+  document.getElementById("bulkForm").classList.toggle("hidden", !multiSelectMode);
+  selectedDates.clear();
+  draggedThisCycle.clear();
+  document.querySelectorAll(".day-tile").forEach(tile => {
+  // Only remove highlight if it's not today's tile
+  if (!tile.classList.contains("today-highlight")) {
+    tile.classList.remove("bg-blue-100", "border-blue-500");
+  } else {
+    tile.classList.remove("border-blue-500"); // clean up just in case
+  }
+
+  const form = document.getElementById("form-" + tile.dataset.date);
+  if (form) form.classList.add("hidden");
+});
+
+  attachDayListeners();
+}
+
+function attachDayListeners() {
+  document.querySelectorAll(".day-tile").forEach(tile => {
+    const date = tile.dataset.date;
+    tile.onmousedown = (e) => {
+      if (multiSelectMode) {
+        isMouseDown = true;
+        draggedThisCycle.clear();
+        toggleDay(tile, date);
+        e.preventDefault();
+      }
+    };
+    tile.onmouseover = (e) => {
+      if (multiSelectMode && isMouseDown && !draggedThisCycle.has(date)) {
+        toggleDay(tile, date);
+        draggedThisCycle.add(date);
+      }
+    };
+    tile.onmouseup = () => {
+      if (multiSelectMode) isMouseDown = false;
+    };
+    tile.onclick = () => {
+      if (!multiSelectMode) {
+        document.querySelectorAll('.edit-form').forEach(f => f.classList.add('hidden'));
+        const form = document.getElementById('form-' + date);
+        if (form) form.classList.remove('hidden');
+      }
+    }
+  });
+  document.onmouseup = () => isMouseDown = false;
+}
+
+function toggleDay(tile, date) {
+  if (selectedDates.has(date)) {
+    selectedDates.delete(date);
+    tile.classList.remove("bg-blue-100", "border-blue-500");
+  } else {
+    selectedDates.add(date);
+    tile.classList.add("bg-blue-100", "border-blue-500");
+  }
+  document.getElementById("bulkDates").value = Array.from(selectedDates).join(",");
+}
+
+function closeForm(date) {
+  const form = document.getElementById("form-" + date);
+  if (form) form.classList.add("hidden");
+}
+
+document.addEventListener("DOMContentLoaded", attachDayListeners);
+</script>
+{% endif %}
+
+<div class="mt-10">
+    <!-- Weekday initials -->
+    <div class="grid grid-cols-7 gap-4 mb-2 text-sm font-semibold text-gray-600">
+      {% for day in ["M", "T", "W", "Th", "F", "Sa", "Su"] %}
+        <div class="text-center">{{ day }}</div>
+      {% endfor %}
+    </div>
+  
+    <!-- Calendar grid -->
+    <div class="grid grid-cols-7 gap-4 text-base">
+      {% set first_day = now.replace(day=1).weekday() %}
+      {% for _ in range(first_day) %}
+        <div></div>
+      {% endfor %}
+  
+
+    {% for day in range(1, days_in_month + 1) %}
+      {% set day_str = "%04d-%02d-%02d"|format(year, month, day) %}
+      {% set entry = calendar.get(day_str) %}
+      {% set is_today = (day_str == today_str) %}
+      <div class="relative border p-4 rounded hover:bg-gray-100 min-h-[8rem] cursor-pointer day-tile {{ 'bg-blue-100 font-semibold border-blue-300 today-highlight' if is_today else '' }}" data-date="{{ day_str }}">
+        <div class="font-bold text-lg">{{ day }}</div>
+        {% if entry %}
+          <div class="text-sm text-gray-700">
+            {{ entry.start_time | ampm }} – {{ entry.end_time | ampm }}
+          </div>
+        {% else %}
+          <div class="text-sm text-gray-400 italic">No shift</div>
+        {% endif %}
+
+        {% if session.user.role == 'admin' %}
+        <form method="POST"
+        action="{{ url_for('dashboard.update_schedule', rad_id=doctor.id) }}"
+        class="absolute left-1/2 transform -translate-x-1/2 bg-white z-10 shadow p-3 rounded text-base mt-2 border border-gray-300 w-[30rem] hidden edit-form"
+        id="form-{{ day_str }}">
+
+          <div class="flex justify-between mb-2">
+            <span class="text-base font-medium">Edit {{ day_str }}</span>
+            <button type="button" onclick="closeForm('{{ day_str }}'); event.stopPropagation();"
+                class="text-gray-500 hover:text-black text-3xl leading-none font-bold">×</button>
+          </div>
+
+          <input type="hidden" name="date" value="{{ day_str }}">
+
+          <label class="block mb-1 text-base font-medium">Start Time
+            <select name="start_time" class="input w-full text-base px-3 py-2 border">
+              {% for hour in range(0, 24) %}
+                {% set formatted = "%02d:00"|format(hour) %}
+                <option value="{{ formatted }}" {% if entry.start_time and entry.start_time[:5] == formatted %}selected{% endif %}>{{ '%02d:00 %s' % ((hour - 1) % 12 + 1, 'AM' if hour < 12 else 'PM') }}</option>
+              {% endfor %}
+            </select>
+          </label>
+
+          <label class="block mb-1 text-base font-medium">End Time
+            <select name="end_time" class="input w-full text-base px-3 py-2 border">
+              {% for hour in range(0, 24) %}
+                {% set formatted = "%02d:00"|format(hour) %}
+                <option value="{{ formatted }}" {% if entry.end_time and entry.end_time[:5] == formatted %}selected{% endif %}>{{ '%02d:00 %s' % ((hour - 1) % 12 + 1, 'AM' if hour < 12 else 'PM') }}</option>
+              {% endfor %}
+            </select>
+          </label>
+
+          <label class="block mb-2 text-base font-medium">Notes
+            <textarea name="schedule_details" rows="3" class="input w-full text-base px-3 py-2 border">{{ entry.schedule_details or '' }}</textarea>
+          </label>
+
+          <div class="flex justify-between items-center mt-2">
+            <button type="submit" class="bg-blue-600 text-white px-4 py-2 rounded text-base font-semibold">Save</button>
+            <a href="{{ url_for('dashboard.delete_schedule', rad_id=doctor.id, date=day_str) }}" class="text-red-500 text-xs">Delete</a>
+          </div>
+        </form>
+        {% endif %}
+      </div>
+    {% endfor %}
+  </div>
+</div>
+{% endblock %}

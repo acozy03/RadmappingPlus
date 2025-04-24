@@ -1,0 +1,110 @@
+{% extends "layout.html" %}
+{% block title %}Daily Schedule{% endblock %}
+
+{% block content %}
+<div class="flex items-center justify-between mb-4">
+  <h3 class="text-2xl font-semibold">{{ today }}</h3>
+  <div class="space-x-4">
+    <a href="{{ url_for('dashboard.home') }}?date={{ prev_date }}" class="text-blue-600 hover:underline">← Previous Day</a>
+    <a href="{{ url_for('dashboard.home') }}?date={{ next_date }}" class="text-blue-600 hover:underline">Next Day →</a>
+  </div>
+</div>
+
+<div class="mb-6">
+    <h4 class="text-lg font-semibold mb-2">Current Time</h4>
+    <div id="timezone-times" class="flex flex-wrap gap-3 text-sm text-gray-700">
+      <div class="bg-gray-100 border rounded px-3 py-1 shadow-sm">Loading...</div>
+    </div>
+  </div>
+  
+
+<!-- Top horizontal scrollbar only -->
+<div class="overflow-x-auto border-t border-b pb-4 mb-4">
+  <div class="min-w-[1500px] grid grid-rows-1 grid-flow-col auto-cols-[14.5rem] gap-4 h-[calc(100vh-15rem)]">
+    {% for hour in range(0, 24) %}
+      {% set ampm_label = '%02d:00 %s' % (((hour - 1) % 12 + 1), 'AM' if hour < 12 else 'PM') %}
+      <div id="hour-{{ hour }}" class="bg-white border rounded shadow p-4 flex flex-col">
+        <h4 class="text-md font-semibold text-blue-800 border-b pb-1 mb-2">{{ ampm_label }}</h4>
+        {% if doctors_by_hour[hour] %}
+          <ul class="space-y-2">
+            {% for doc in doctors_by_hour[hour] %}
+              <li class="relative border p-2 rounded bg-gray-50 hover:bg-gray-100 doctor-tile"
+                  onmouseenter="showPopup(this)"
+                  onmouseleave="hidePopup(this)">
+                <span class="text-blue-700 font-semibold">{{ doc.name }}</span>
+                <div class="doctor-popup absolute z-10 left-0 mt-1 bg-white border p-3 rounded shadow-md text-left w-[18rem] pointer-events-none opacity-0 transition-opacity duration-150">
+                    <p class="text-sm font-medium">Email: <span class="text-gray-700">{{ doc.email }}</span></p>
+                    <p class="text-sm font-medium">Modalities: <span class="text-gray-700">{{ doc.modalities or 'N/A' }}</span></p>
+                    <p class="text-sm font-medium">PACS: <span class="text-gray-700">{{ doc.pacs or 'N/A' }}</span></p>
+                    <p class="text-sm font-medium">Today's Shift: {{ doc.start_time | ampm }} – {{ doc.end_time | ampm }}</p>
+                    <p class="text-sm font-medium">Timezone: <span class="text-gray-700">{{ doc.timezone or '—' }}</span></p>
+                </div>
+              </li>
+            {% endfor %}
+          </ul>
+        {% else %}
+          <p class="text-sm italic text-gray-400">No doctors on shift.</p>
+        {% endif %}
+      </div>
+    {% endfor %}
+  </div>
+</div>
+
+<script>
+  function showPopup(parent) {
+    const popup = parent.querySelector('.doctor-popup');
+    if (popup) {
+      popup.classList.remove('opacity-0');
+      popup.classList.add('opacity-100');
+    }
+  }
+
+  function hidePopup(parent) {
+    const popup = parent.querySelector('.doctor-popup');
+    if (popup) {
+      popup.classList.remove('opacity-100');
+      popup.classList.add('opacity-0');
+    }
+  }
+
+  function updateTimezoneClocks() {
+    const zones = [
+      { label: "EST", tz: "America/New_York" },
+      { label: "CST", tz: "America/Chicago" },
+      { label: "PST", tz: "America/Los_Angeles" },
+      { label: "UTC", tz: "UTC" }
+    ];
+
+    const now = new Date();
+    const list = document.getElementById("timezone-times");
+    list.innerHTML = "";
+
+    zones.forEach(zone => {
+      const formatter = new Intl.DateTimeFormat('en-US', {
+        hour: 'numeric',
+        minute: '2-digit',
+        hour12: true,
+        timeZone: zone.tz
+      });
+
+      const timeStr = formatter.format(now);
+      const item = document.createElement("div");
+      item.className = "bg-gray-100 border rounded px-3 py-1 shadow-sm";
+      item.textContent = `${zone.label}: ${timeStr}`;
+      list.appendChild(item);
+    });
+  }
+
+  document.addEventListener("DOMContentLoaded", () => {
+    const now = new Date();
+    const currentHour = now.getHours();
+    const el = document.getElementById(`hour-${currentHour}`);
+    if (el) {
+        el.scrollIntoView({ behavior: "auto", inline: "start", block: "nearest" });
+    }
+
+    updateTimezoneClocks();
+    setInterval(updateTimezoneClocks, 60_000); // update every minute
+  });
+</script>
+{% endblock %}
