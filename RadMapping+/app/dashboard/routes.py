@@ -64,6 +64,7 @@ def home():
             except Exception as e:
                 print("Shift hour error:", e)
 
+    
     return render_template("home.html",
         user=user,
         today=today,

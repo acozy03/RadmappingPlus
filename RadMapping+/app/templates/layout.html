@@ -11,16 +11,13 @@
     {% if session.user %}
     <!-- ✅ NAVIGATION HEADER -->
     <nav class="bg-white shadow">
-      <div class="max-w-5xl mx-auto px-4 py-3 flex justify-between items-center">
+      <div class="max-w-8xl mx-auto px-9 py-3 flex justify-between items-center">
         <div class="text-xl font-bold text-blue-600">
           Radmapping+
         </div>
-        <div class="space-x-4 text-sm">
+        <div class="space-x-4 text-l">
           <a href="/dashboard/home" class="text-gray-700 hover:text-blue-600">Daily Schedule</a>
           <a href="/dashboard/doctors" class="text-gray-700 hover:text-blue-600">Doctors</a>
-          {% if session.user.role == 'admin' %}
-            <a href="/dashboard/admin" class="text-gray-700 hover:text-blue-600">Admin</a>
-          {% endif %}
           <a href="/auth/logout" class="text-red-500 hover:text-red-700">Logout</a>
         </div>
       </div>
@@ -29,7 +26,7 @@
   
 
   <!-- ✅ MAIN CONTENT -->
-  <div class="max-w-5xl mx-auto mt-8 p-6 bg-white rounded shadow">
+  <div class="max-w-9.5xl mx-auto mt-8 p-6 bg-white rounded shadow">
     {% block content %}{% endblock %}
   </div>
 
