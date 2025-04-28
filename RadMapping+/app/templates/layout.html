@@ -16,12 +16,12 @@
           RadMapping+
         </div>
         <div class="space-x-4 text-l">
-          <a href="/dashboard/home" class="text-gray-700 hover:text-blue-600">Daily Schedule</a>
-          <a href="/dashboard/doctors" class="text-gray-700 hover:text-blue-600">Doctors</a>
-          <a href="/dashboard/facilities" class="text-gray-700 hover:text-blue-600">Facilities</a>
-          <a href="/dashboard/vacations" class="text-gray-700 hover:text-blue-600">Vacations</a>
-          <a href="/dashboard/certifications" class="text-gray-700 hover:text-blue-600">Certifications</a>
-          <a href="/auth/logout" class="text-red-500 hover:text-red-700">Logout</a>
+          <a href="{{ url_for('dashboard.home') }}" class="text-gray-700 hover:text-blue-600">Daily Schedule</a>
+          <a href="{{ url_for('dashboard.schedule') }}" class="text-gray-700 hover:text-blue-600">Monthly Schedule</a>
+          <a href="{{ url_for('dashboard.doctor_list') }}" class="text-gray-700 hover:text-blue-600">Doctors</a>
+          <a href="{{ url_for('dashboard.facilities') }}" class="text-gray-700 hover:text-blue-600">Facilities</a>
+          <a href="{{ url_for('dashboard.licenses_page') }}" class="text-gray-700 hover:text-blue-600">Licenses</a>
+          <a href="{{ url_for('auth.logout') }}" class="text-red-500 hover:text-red-700">Logout</a>
         </div>
       </div>
     </nav>
@@ -32,6 +32,10 @@
   <div class="max-w-9.5xl mx-auto mt-8 p-6 bg-white rounded shadow">
     {% block content %}{% endblock %}
   </div>
+
+  {% if session.user %}
+    {% include 'chatbot.html' %}
+  {% endif %}
 
 </body>
 </html>

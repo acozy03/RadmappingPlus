@@ -1,0 +1,80 @@
+{% extends "layout.html" %}
+{% block title %}Licenses{% endblock %}
+
+{% block content %}
+<h2 class="text-2xl font-semibold mb-4">Licenses</h2>
+
+<div class="mb-4">
+  <input
+    type="text"
+    id="licenseSearch"
+    placeholder="Search licenses..."
+    class="w-full p-2 border rounded"
+    onkeyup="filterLicenses()" />
+</div>
+
+<!-- Licenses Table -->
+<div class="bg-white p-4 rounded-lg shadow">
+  <h3 class="text-lg font-semibold mb-2">All Licenses</h3>
+  <div class="overflow-x-auto">
+    <table id="licensesTable" class="min-w-full border text-sm">
+      <thead class="bg-gray-100">
+        <tr>
+          <th class="px-6 py-3 border">Doctor</th>
+          <th class="px-6 py-3 border">State</th>
+          <th class="px-6 py-3 border">Specialty</th>
+          <th class="px-6 py-3 border">Status</th>
+          <th class="px-6 py-3 border">Tags</th>
+          <th class="px-6 py-3 border">Expiration</th>
+          <th class="px-6 py-3 border">Actions</th>
+        </tr>
+      </thead>
+      <tbody>
+        {% for cert in certifications %}
+        <tr class="hover:bg-gray-50">
+          <td class="px-6 py-4 border">{{ cert.radiologists.name }}</td>
+          <td class="px-6 py-4 border">{{ cert.state }}</td>
+          <td class="px-6 py-4 border">{{ cert.specialty }}</td>
+          <td class="px-6 py-4 border">{{ cert.status }}</td>
+          <td class="px-6 py-4 border">{{ cert.tags }}</td>
+          <td class="px-6 py-4 border">{{ cert.expiration_date }}</td>
+          <td class="px-6 py-4 border">
+            <form method="POST" action="{{ url_for('dashboard.delete_certification', rad_id=cert.radiologist_id, cert_id=cert.id) }}" class="inline">
+              <button type="submit" class="text-red-600 hover:text-red-800">Delete</button>
+            </form>
+          </td>
+        </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+</div>
+
+<script>
+function filterLicenses() {
+  const searchInput = document.getElementById('licenseSearch');
+  const filter = searchInput.value.toLowerCase();
+  const table = document.getElementById('licensesTable');
+  const rows = table.getElementsByTagName('tr');
+
+  for (let i = 1; i < rows.length; i++) {
+    const row = rows[i];
+    const cells = row.getElementsByTagName('td');
+    let shouldShow = false;
+
+    for (let j = 0; j < cells.length; j++) {
+      const cell = cells[j];
+      if (cell) {
+        const text = cell.textContent || cell.innerText;
+        if (text.toLowerCase().indexOf(filter) > -1) {
+          shouldShow = true;
+          break;
+        }
+      }
+    }
+
+    row.style.display = shouldShow ? '' : 'none';
+  }
+}
+</script>
+{% endblock %} 

@@ -1,0 +1,140 @@
+<!-- Chatbot Component -->
+<div id="chatbot" class="fixed bottom-4 right-4 z-50">
+  <!-- Chat Button -->
+  <button id="chatButton" 
+          class="bg-blue-600 text-white rounded-full p-4 shadow-lg hover:bg-blue-700 transition-colors"
+          onclick="toggleChat()">
+    <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+      <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 10h.01M12 10h.01M16 10h.01M9 16H5a2 2 0 01-2-2V6a2 2 0 012-2h14a2 2 0 012 2v8a2 2 0 01-2 2h-5l-5 5v-5z" />
+    </svg>
+  </button>
+
+  <!-- Chat Window -->
+  <div id="chatWindow" 
+       class="hidden fixed bottom-20 right-4 w-96 h-[500px] bg-white rounded-lg shadow-xl flex flex-col">
+    <!-- Chat Header -->
+    <div class="bg-blue-600 text-white p-4 rounded-t-lg flex justify-between items-center">
+      <h3 class="font-semibold">Database Assistant</h3>
+      <button onclick="toggleChat()" class="text-white hover:text-gray-200">
+        <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12" />
+        </svg>
+      </button>
+    </div>
+
+    <!-- Chat Messages -->
+    <div id="chatMessages" class="flex-1 overflow-y-auto p-4 space-y-4">
+      <div class="bg-gray-100 rounded-lg p-3 max-w-[80%]">
+        <p class="text-sm">Hello! I can help you query the database. What would you like to know?</p>
+      </div>
+    </div>
+
+    <!-- Chat Input -->
+    <div class="border-t p-4">
+      <form id="chatForm" class="flex gap-2" onsubmit="sendMessage(event)">
+        <input type="text" 
+               id="chatInput" 
+               placeholder="Type your question..." 
+               class="flex-1 border rounded-lg px-4 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500"
+               required />
+        <button type="submit" 
+                class="bg-blue-600 text-white px-4 py-2 rounded-lg hover:bg-blue-700 transition-colors">
+          Send
+        </button>
+      </form>
+    </div>
+  </div>
+</div>
+
+<script>
+let isChatOpen = false;
+
+function toggleChat() {
+  const chatWindow = document.getElementById('chatWindow');
+  isChatOpen = !isChatOpen;
+  chatWindow.classList.toggle('hidden');
+}
+
+async function sendMessage(event) {
+  event.preventDefault();
+  
+  const input = document.getElementById('chatInput');
+  const question = input.value.trim();
+  if (!question) return;
+
+  // Add user message to chat
+  addMessage(question, 'user');
+  input.value = '';
+
+  try {
+    // Show loading state
+    addMessage('Thinking...', 'assistant', true);
+
+    // Send question to backend
+    const response = await fetch('/dashboard/chat', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify({ question }),
+    });
+
+    const data = await response.json();
+
+    // Remove loading message
+    removeLoadingMessage();
+
+    if (data.error) {
+      addMessage(`Error: ${data.error}`, 'assistant');
+    } else {
+      // Add assistant's response
+      addMessage(data.answer, 'assistant');
+      
+      // If there's a SQL query, show it in a code block
+      if (data.sql_query) {
+        addMessage(`SQL Query: \`\`\`sql\n${data.sql_query}\n\`\`\``, 'assistant');
+      }
+    }
+  } catch (error) {
+    removeLoadingMessage();
+    addMessage('Sorry, there was an error processing your question.', 'assistant');
+  }
+}
+
+function addMessage(text, sender, isLoading = false) {
+  const messagesDiv = document.getElementById('chatMessages');
+  const messageDiv = document.createElement('div');
+  messageDiv.className = `flex ${sender === 'user' ? 'justify-end' : 'justify-start'}`;
+  
+  const messageContent = document.createElement('div');
+  messageContent.className = `rounded-lg p-3 max-w-[80%] ${
+    sender === 'user' 
+      ? 'bg-blue-600 text-white' 
+      : 'bg-gray-100 text-gray-800'
+  }`;
+  
+  if (isLoading) {
+    messageContent.id = 'loadingMessage';
+    messageContent.innerHTML = `
+      <div class="flex items-center space-x-2">
+        <div class="w-2 h-2 bg-gray-400 rounded-full animate-bounce"></div>
+        <div class="w-2 h-2 bg-gray-400 rounded-full animate-bounce" style="animation-delay: 0.2s"></div>
+        <div class="w-2 h-2 bg-gray-400 rounded-full animate-bounce" style="animation-delay: 0.4s"></div>
+      </div>
+    `;
+  } else {
+    messageContent.textContent = text;
+  }
+  
+  messageDiv.appendChild(messageContent);
+  messagesDiv.appendChild(messageDiv);
+  messagesDiv.scrollTop = messagesDiv.scrollHeight;
+}
+
+function removeLoadingMessage() {
+  const loadingMessage = document.getElementById('loadingMessage');
+  if (loadingMessage) {
+    loadingMessage.parentElement.remove();
+  }
+}
+</script> 

@@ -80,8 +80,8 @@
 
 
 <div class="mt-10">
-  <h3 class="text-xl font-semibold mb-2">Certifications</h3>
-  <button onclick="openCertModal()" class="text-blue-600 hover:underline">View Certifications</button>
+  <h3 class="text-xl font-semibold mb-2">Licenses</h3>
+  <button onclick="openCertModal()" class="text-blue-600 hover:underline">View Licenses</button>
 </div>
 
 {% if assigned_facilities %}
@@ -288,64 +288,65 @@ document.addEventListener("DOMContentLoaded", attachDayListeners);
 <div id="certModal" class="fixed inset-0 z-50 hidden bg-black bg-opacity-50 flex items-center justify-center">
   <div class="bg-white rounded-lg shadow-lg w-[90%] max-w-3xl max-h-[80vh] overflow-y-auto p-6 relative">
     <button onclick="closeCertModal()" class="absolute top-2 right-2 text-2xl font-bold text-gray-500 hover:text-black">×</button>
-    <h3 class="text-xl font-semibold mb-4">Certifications for {{ doctor.name }}</h3>
+    <h3 class="text-xl font-semibold mb-4">Licenses for {{ doctor.name }}</h3>
 
-    <input type="text" placeholder="Search certifications..." oninput="filterCerts(this.value)"
-           class="w-full mb-4 px-3 py-2 border rounded text-sm">
+    <div class="mb-4">
+      <input type="text" placeholder="Search licenses..." oninput="filterCerts(this.value)"
+             class="w-full mb-4 px-3 py-2 border rounded text-sm">
+    </div>
 
-           <ul id="certList" class="space-y-3 text-sm">
-            {% for cert in certifications %}
-            <li class="border rounded p-3 bg-gray-50 flex justify-between items-center cert-item">
-              <div>
-                <p><strong>{{ cert.state }}</strong> — expires <span class="text-gray-700">{{ cert.expiration_date }}</span></p>
-                <p class="text-xs text-gray-500">{{ cert.status | capitalize }}</p>
-              </div>
-          
-              <form method="POST" action="{{ url_for('dashboard.delete_certification', cert_id=cert.id, rad_id=doctor.id) }}" class="ml-4">
-                <button type="submit" class="text-red-500 hover:text-red-700 text-xs" onclick="return confirm('Are you sure you want to delete this certification?')">Delete</button>
+    <ul id="certList" class="space-y-3 text-sm">
+     {% for cert in certifications %}
+     <li class="border rounded p-3 bg-gray-50 flex justify-between items-center cert-item">
+       <div>
+         <p><strong>{{ cert.state }}</strong> — expires <span class="text-gray-700">{{ cert.expiration_date }}</span></p>
+         <p class="text-xs text-gray-500">{{ cert.status | capitalize }}</p>
+       </div>
+   
+       <form method="POST" action="{{ url_for('dashboard.delete_certification', cert_id=cert.id, rad_id=doctor.id) }}" class="ml-4">
+         <button type="submit" class="text-red-600 hover:text-red-800">Delete</button>
+       </form>
+     </li>
+     {% endfor %}
+   </ul>          
+ 
 
-              </form>
-            </li>
-            {% endfor %}
-          </ul>          
-        
-
-    <form method="POST" action="{{ url_for('dashboard.add_certification', rad_id=doctor.id) }}" class="mt-6 border-t pt-4">
-      <h4 class="text-md font-semibold mb-2">Add New Certification</h4>
+  <form method="POST" action="{{ url_for('dashboard.add_certification', rad_id=doctor.id) }}" class="mt-6 border-t pt-4">
+    <h4 class="text-md font-semibold mb-2">Add New Certification</h4>
+  
+    <label class="block mb-2">
+      <span class="font-semibold">State</span>
+      <input type="text" name="state" required class="w-full border rounded px-3 py-2 text-sm">
+    </label>
+  
+    <label class="block mb-2">
+      <span class="font-semibold">Expiration Date</span>
+      <input type="date" name="expiration_date" required class="w-full border rounded px-3 py-2 text-sm">
+    </label>
+  
+    <label class="block mb-2">
+      <span class="font-semibold">Status</span>
+      <select name="status" class="w-full border rounded px-3 py-2 text-sm">
+        <option value="Active">Active</option>
+        <option value="Expired">Expired</option>
+      </select>
+    </label>
+    <label class="block mb-2">
+      <span class="font-semibold">Specialty</span>
+      <input type="text" name="specialty" class="w-full border rounded px-3 py-2 text-sm">
+    </label>
     
-      <label class="block mb-2">
-        <span class="font-semibold">State</span>
-        <input type="text" name="state" required class="w-full border rounded px-3 py-2 text-sm">
-      </label>
+    <label class="block mb-2">
+      <span class="font-semibold">Tags (comma separated)</span>
+      <input type="text" name="tags" class="w-full border rounded px-3 py-2 text-sm">
+    </label>
     
-      <label class="block mb-2">
-        <span class="font-semibold">Expiration Date</span>
-        <input type="date" name="expiration_date" required class="w-full border rounded px-3 py-2 text-sm">
-      </label>
-    
-      <label class="block mb-2">
-        <span class="font-semibold">Status</span>
-        <select name="status" class="w-full border rounded px-3 py-2 text-sm">
-          <option value="Active">Active</option>
-          <option value="Expired">Expired</option>
-        </select>
-      </label>
-      <label class="block mb-2">
-        <span class="font-semibold">Specialty</span>
-        <input type="text" name="specialty" class="w-full border rounded px-3 py-2 text-sm">
-      </label>
-      
-      <label class="block mb-2">
-        <span class="font-semibold">Tags (comma separated)</span>
-        <input type="text" name="tags" class="w-full border rounded px-3 py-2 text-sm">
-      </label>
-      
-      <button type="submit" class="bg-blue-600 text-white px-4 py-2 rounded text-sm font-semibold mt-2">
-        Add Certification
-      </button>
-    </form>
-    
-  </div>
+    <button type="submit" class="bg-blue-600 text-white px-4 py-2 rounded text-sm font-semibold mt-2">
+      Add Certification
+    </button>
+  </form>
+  
+</div>
 </div>
 
 <script>

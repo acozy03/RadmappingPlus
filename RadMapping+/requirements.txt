@@ -1,3 +1,5 @@
 flask
-supabase
 python-dotenv
+supabase
+llama-index
+openai
