@@ -4,6 +4,15 @@
 {% block content %}
 <h2 class="text-2xl font-semibold mb-4">Certifications</h2>
 
+<!-- Search Box -->
+<div class="mb-6">
+  <input type="text" 
+         id="certificationSearch" 
+         placeholder="Search certifications..." 
+         class="w-full p-3 border rounded text-sm"
+         onkeyup="filterCertifications()" />
+</div>
+
 <!-- Certifications Table -->
 <div class="mb-8">
   <h3 class="text-lg font-semibold mb-2">All Certifications</h3>
@@ -23,14 +32,14 @@
       </thead>
       <tbody>
         {% for cert in certifications %}
-        <tr class="hover:bg-gray-50">
-          <td class="px-4 py-2 border">{{ cert.radiologists.name if cert.radiologists else '—' }}</td>
-          <td class="px-4 py-2 border">{{ cert.state }}</td>
-          <td class="px-4 py-2 border">{{ cert.specialty or '—' }}</td>
-          <td class="px-4 py-2 border">{{ cert.tags or '—' }}</td>
-          <td class="px-4 py-2 border">{{ cert.status or '—' }}</td>
-          <td class="px-4 py-2 border">{{ cert.expiration_date }}</td>
-          <td class="px-4 py-2 border">
+        <tr class="hover:bg-gray-50 certification-row">
+          <td class="px-4 py-2 border doctor-cell">{{ cert.radiologists.name if cert.radiologists else '—' }}</td>
+          <td class="px-4 py-2 border state-cell">{{ cert.state }}</td>
+          <td class="px-4 py-2 border specialty-cell">{{ cert.specialty or '—' }}</td>
+          <td class="px-4 py-2 border tags-cell">{{ cert.tags or '—' }}</td>
+          <td class="px-4 py-2 border status-cell">{{ cert.status or '—' }}</td>
+          <td class="px-4 py-2 border exp-cell">{{ cert.expiration_date }}</td>
+          <td class="px-4 py-2 border valid-cell">
             {% if cert.expiration_date %}
               {% set exp_date = cert.expiration_date|string %}
               {% set today = now.strftime('%Y-%m-%d') %}
@@ -58,4 +67,32 @@
     </table>
   </div>
 </div>
+
+<script>
+function filterCertifications() {
+  const searchInput = document.getElementById('certificationSearch');
+  const searchText = searchInput.value.toLowerCase();
+  const rows = document.querySelectorAll('.certification-row');
+
+  rows.forEach(row => {
+    const doctor = row.querySelector('.doctor-cell').textContent.toLowerCase();
+    const state = row.querySelector('.state-cell').textContent.toLowerCase();
+    const specialty = row.querySelector('.specialty-cell').textContent.toLowerCase();
+    const tags = row.querySelector('.tags-cell').textContent.toLowerCase();
+    const status = row.querySelector('.status-cell').textContent.toLowerCase();
+    const exp = row.querySelector('.exp-cell').textContent.toLowerCase();
+    const valid = row.querySelector('.valid-cell').textContent.toLowerCase();
+
+    const match = doctor.includes(searchText) || 
+                 state.includes(searchText) || 
+                 specialty.includes(searchText) || 
+                 tags.includes(searchText) || 
+                 status.includes(searchText) || 
+                 exp.includes(searchText) || 
+                 valid.includes(searchText);
+
+    row.style.display = match ? '' : 'none';
+  });
+}
+</script>
 {% endblock %} 
