@@ -390,38 +390,37 @@ def delete_assignment(assignment_id):
     supabase.table('assignments').delete().eq('id', assignment_id).execute()
     return redirect(request.referrer or url_for('dashboard.home'))
 
-@dashboard_bp.route('/license', methods=["GET", "POST"])
+@dashboard_bp.route('/certifications', methods=["GET", "POST"])
 @login_required
-def license_page():
+def certifications_page():
     # Fetch all radiologists for the doctor dropdown
     rads_res = supabase.table("radiologists").select("id, name").order("name").execute()
     radiologists = rads_res.data or []
 
-    # Handle Add License form submission
+    # Handle Add Certification form submission
     if request.method == "POST":
         doctor_id = request.form.get("doctor")
         state = request.form.get("state")
         expiration_date = request.form.get("exp")
+        specialty = request.form.get("specialty")
+        tags = request.form.get("tags")
+        status = request.form.get("status")
         if doctor_id and state and expiration_date:
             supabase.table("certifications").insert({
                 "id": str(uuid.uuid4()),
                 "radiologist_id": doctor_id,
                 "state": state,
-                "expiration_date": expiration_date
+                "expiration_date": expiration_date,
+                "specialty": specialty,
+                "tags": tags,
+                "status": status
             }).execute()
-        return redirect(url_for("dashboard.license_page"))
+        return redirect(url_for("dashboard.certifications_page"))
 
-    # Handle search/query (filtering)
-    query = request.args.get("query", "").lower()
+    # Fetch all certifications with radiologist names
     certs_res = supabase.table("certifications").select("*, radiologists(name)").order("expiration_date", desc=False).execute()
     certifications = certs_res.data or []
-    if query:
-        certifications = [c for c in certifications if
-            (c.get("radiologists", {}).get("name", "").lower().find(query) != -1) or
-            (c.get("state", "").lower().find(query) != -1) or
-            (c.get("expiration_date", "").lower().find(query) != -1)
-        ]
-    return render_template("license.html", certifications=certifications, radiologists=radiologists, query=query)
+    return render_template("certifications.html", certifications=certifications, radiologists=radiologists)
 
 @dashboard_bp.route('/vacations', methods=["GET", "POST"])
 @login_required

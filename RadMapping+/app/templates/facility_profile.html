@@ -2,58 +2,159 @@
 {% block title %}{{ facility.name }}{% endblock %}
 
 {% block content %}
-<h2 class="text-2xl font-semibold mb-4">{{ facility.name }}</h2>
-<div class="grid grid-cols-1 sm:grid-cols-2 gap-4 text-sm">
-  <p><strong>Location:</strong> {{ facility.location }}</p>
-  <p><strong>PACS:</strong> {{ facility.pacs }}</p>
-  <p><strong>TAT Definition:</strong> {{ facility.tat_definition }}</p>
-  <p><strong>Modalities:</strong> {{ facility.modalities_assignment_period }}</p>
-  <p><strong>Status:</strong>
-    {% if facility.active_status %}
-      <span class="text-green-600 font-medium">Active</span>
-    {% else %}
-      <span class="text-red-600 font-medium">Inactive</span>
+<div x-data="{ editing: false }" class="grid grid-cols-1 sm:grid-cols-2 gap-4 text-sm mb-6">
+  <div class="flex justify-between items-center col-span-2">
+    <h2 class="text-2xl font-semibold">{{ facility.name }}</h2>
+    {% if session.user.role == 'admin' %}
+      <button @click="editing = !editing" class="text-blue-600 text-sm hover:underline">
+        <span x-show="!editing">Edit Info</span>
+        <span x-show="editing">Cancel Edit</span>
+      </button>
     {% endif %}
-  </p>
+  </div>
+
+  <form method="POST" action="{{ url_for('dashboard.update_facility', facility_id=facility.id) }}" class="grid grid-cols-1 sm:grid-cols-2 gap-4 col-span-2" x-show="editing">
+    <label class="block">
+      <span class="font-semibold">Location</span>
+      <input type="text" name="location" value="{{ facility.location or '' }}" class="input w-full border rounded px-3 py-2 text-sm" />
+    </label>
+
+    <label class="block">
+      <span class="font-semibold">PACS</span>
+      <input type="text" name="pacs" value="{{ facility.pacs or '' }}" class="input w-full border rounded px-3 py-2 text-sm" />
+    </label>
+
+    <label class="block">
+      <span class="font-semibold">TAT Definition</span>
+      <input type="text" name="tat_definition" value="{{ facility.tat_definition or '' }}" class="input w-full border rounded px-3 py-2 text-sm" />
+    </label>
+
+    <label class="block">
+      <span class="font-semibold">Modalities Assignment Period</span>
+      <input type="text" name="modalities_assignment_period" value="{{ facility.modalities_assignment_period or '' }}" class="input w-full border rounded px-3 py-2 text-sm" />
+    </label>
+    
+    <label class="flex items-center space-x-2 mt-4">
+      <input type="checkbox" name="active_status" value="true" {% if facility.active_status %}checked{% endif %} class="form-checkbox h-5 w-5 text-blue-600">
+      <span class="text-sm font-medium">Active</span>
+    </label>
+    
+    <div class="col-span-2">
+      <button type="submit" class="bg-blue-600 text-white px-4 py-2 rounded text-sm font-semibold mt-2">
+        Save Changes
+      </button>
+    </div>
+  </form>
+
+  <div x-show="!editing" class="grid grid-cols-1 sm:grid-cols-2 gap-4 col-span-2">
+    <p><strong>Location:</strong> {{ facility.location }}</p>
+    <p><strong>PACS:</strong> {{ facility.pacs }}</p>
+    <p><strong>TAT Definition:</strong> {{ facility.tat_definition }}</p>
+    <p><strong>Modalities:</strong> {{ facility.modalities_assignment_period }}</p>
+    <p><strong>Status:</strong>
+      {% if facility.active_status %}
+        <span class="text-green-600 font-medium">Active</span>
+      {% else %}
+        <span class="text-red-600 font-medium">Inactive</span>
+      {% endif %}
+    </p>
+  </div>
 </div>
 
 <div class="mt-8">
-    <h3 class="text-lg font-semibold mb-4">Assigned Radiologists</h3>
-    {% if doctor_assignments %}
-    <div class="overflow-x-auto">
-      <table class="min-w-full bg-white border border-gray-200 text-sm">
-        <thead class="bg-gray-100">
-          <tr class="text-left">
-            <th class="px-4 py-2 border-b">Name</th>
-            <th class="px-4 py-2 border-b">Can Read</th>
-            <th class="px-4 py-2 border-b">Does Stats</th>
-            <th class="px-4 py-2 border-b">Does Routines</th>
-            <th class="px-4 py-2 border-b">Stipulations</th>
-            <th class="px-4 py-2 border-b">Notes</th>
-          </tr>
-        </thead>
-        <tbody>
-          {% for assignment in doctor_assignments %}
-          <tr class="hover:bg-gray-50">
-            <td class="px-4 py-2 border-b">
-              <a href="{{ url_for('dashboard.doctor_profile', rad_id=assignment.radiologists.id) }}"
-                 class="text-blue-700 hover:underline">
-                {{ assignment.radiologists.name }}
-              </a>
-            </td>
-            <td class="px-4 py-2 border-b">{{ "✅" if assignment.can_read else "❌" }}</td>
-            <td class="px-4 py-2 border-b">{{ "✅" if assignment.does_stats else "❌" }}</td>
-            <td class="px-4 py-2 border-b">{{ "✅" if assignment.does_routines else "❌" }}</td>
-            <td class="px-4 py-2 border-b">{{ assignment.stipulations or "—" }}</td>
-            <td class="px-4 py-2 border-b">{{ assignment.notes or "—" }}</td>
-          </tr>
-          {% endfor %}
-        </tbody>
-      </table>
-    </div>
+  <div class="flex justify-between items-center mb-4">
+    <h3 class="text-lg font-semibold">Assigned Radiologists</h3>
+    {% if session.user.role == 'admin' %}
+      <button onclick="openRadiologistModal()" class="text-blue-600 text-sm hover:underline">Edit Assignments</button>
+    {% endif %}
+  </div>
+  {% if doctor_assignments %}
+  <div class="overflow-x-auto">
+    <table class="min-w-full bg-white border border-gray-200 text-sm">
+      <thead class="bg-gray-100">
+        <tr class="text-left">
+          <th class="px-4 py-2 border-b">Name</th>
+          <th class="px-4 py-2 border-b">Can Read</th>
+          <th class="px-4 py-2 border-b">Does Stats</th>
+          <th class="px-4 py-2 border-b">Does Routines</th>
+          <th class="px-4 py-2 border-b">Stipulations</th>
+          <th class="px-4 py-2 border-b">Notes</th>
+        </tr>
+      </thead>
+      <tbody>
+        {% for assignment in doctor_assignments %}
+        <tr class="hover:bg-gray-50">
+          <td class="px-4 py-2 border-b">
+            <a href="{{ url_for('dashboard.doctor_profile', rad_id=assignment.radiologists.id) }}"
+               class="text-blue-700 hover:underline">
+              {{ assignment.radiologists.name }}
+            </a>
+          </td>
+          <td class="px-4 py-2 border-b">{{ "✅" if assignment.can_read else "❌" }}</td>
+          <td class="px-4 py-2 border-b">{{ "✅" if assignment.does_stats else "❌" }}</td>
+          <td class="px-4 py-2 border-b">{{ "✅" if assignment.does_routines else "❌" }}</td>
+          <td class="px-4 py-2 border-b">{{ assignment.stipulations or "—" }}</td>
+          <td class="px-4 py-2 border-b">{{ assignment.notes or "—" }}</td>
+        </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
   {% else %}
     <p class="text-gray-500 italic">No doctors assigned.</p>
   {% endif %}
-  
+</div>
+
+<!-- Radiologist Assignment Modal -->
+<div id="radiologistModal" class="fixed inset-0 z-50 hidden bg-black bg-opacity-50 flex items-center justify-center">
+  <div class="bg-white rounded-lg shadow-lg w-[90%] max-w-3xl max-h-[80vh] overflow-y-auto p-6 relative">
+    <button onclick="closeRadiologistModal()" class="absolute top-2 right-2 text-2xl font-bold text-gray-500 hover:text-black">×</button>
+    <h3 class="text-xl font-semibold mb-4">Radiologist Assignments for {{ facility.name }}</h3>
+
+    <input type="text" placeholder="Search radiologists..." oninput="filterRadiologists(this.value)"
+           class="w-full mb-4 px-3 py-2 border rounded text-sm">
+    
+    <ul id="radiologistList" class="space-y-3 text-sm">
+      {% for assignment in doctor_assignments %}
+      <form method="POST" action="{{ url_for('dashboard.update_assignment', assignment_id=assignment.id) }}">
+        <li class="border rounded p-3 bg-gray-50 radiologist-item">
+          <div class="flex items-center justify-between">
+            <div class="text-gray-700 font-medium">{{ assignment.radiologists.name }}</div>
+            <div class="flex items-center gap-2">
+              <label><input type="checkbox" name="can_read" {% if assignment.can_read %}checked{% endif %}> Read</label>
+              <label><input type="checkbox" name="does_stats" {% if assignment.does_stats %}checked{% endif %}> Stats</label>
+              <label><input type="checkbox" name="does_routines" {% if assignment.does_routines %}checked{% endif %}> Routine</label>
+            </div>
+          </div>
+    
+          <textarea name="stipulations" class="w-full border rounded mt-2" placeholder="Stipulations">{{ assignment.stipulations }}</textarea>
+          <textarea name="notes" class="w-full border rounded mt-2" placeholder="Notes">{{ assignment.notes }}</textarea>
+    
+          <button type="submit" class="bg-blue-600 text-white text-sm px-3 py-1 rounded mt-2">Save Changes</button>
+        </li>
+      </form>
+      {% endfor %}
+    </ul>
   </div>
-  {% endblock %}
+</div>
+
+<script>
+  function openRadiologistModal() {
+    document.getElementById('radiologistModal').classList.remove('hidden');
+  }
+  
+  function closeRadiologistModal() {
+    document.getElementById('radiologistModal').classList.add('hidden');
+  }
+  
+  function filterRadiologists(query) {
+    const items = document.querySelectorAll('.radiologist-item');
+    const q = query.toLowerCase();
+  
+    items.forEach(item => {
+      const text = item.innerText.toLowerCase();
+      item.style.display = text.includes(q) ? '' : 'none';
+    });
+  }
+</script>
+{% endblock %}
