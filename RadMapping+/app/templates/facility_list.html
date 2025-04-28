@@ -1,53 +1,76 @@
 {% extends "layout.html" %}
-{% block title %}Facilities{% endblock %}
+{% block title %}All Facilities{% endblock %}
 
 {% block content %}
 
-<h2 class="text-2xl font-semibold mb-4">All Facilities</h2>
-<div class="mb-6">
-    <input type="text" id="facilitySearch" oninput="filterFacilities(this.value)"
-           placeholder="Search facilities..."
-           class="w-full px-4 py-2 border rounded shadow-sm text-sm focus:outline-none focus:ring focus:border-blue-300">
-  </div>
-  
+<h2 class="text-2xl font-semibold mb-6 border-b pb-2">Facilities</h2>
 
-<div id="facilityGrid" class="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-6">
-    {% for fac in facilities %}
-    <div class="facility-card group border rounded bg-white hover:bg-gray-50 p-4 relative">
-        <a href="{{ url_for('dashboard.facility_profile', facility_id=fac.id) }}">
-          <h3 class="text-lg font-semibold text-blue-700">{{ fac.name }}</h3>
-          <p class="text-sm text-gray-600">{{ fac.location }}</p>
-        </a>
-      
-        <!-- Tooltip -->
-        <div class="absolute left-0 top-full mt-2 w-64 bg-white border rounded shadow p-3 text-sm z-10 hidden group-hover:block">
-          <p><strong>PACS:</strong> {{ fac.pacs or '—' }}</p>
-          <p><strong>Modalities:</strong> {{ fac.modalities_assignment_period or '—' }}</p>
-          <p><strong>TAT:</strong> {{ fac.tat_definition or '—' }}</p>
-          <p><strong>Status:</strong>
-            {% if fac.active_status %}
-              <span class="text-green-600 font-medium">Active</span>
-            {% else %}
-              <span class="text-red-600 font-medium">Inactive</span>
-            {% endif %}
-          </p>
-        </div>
-      </div>
-      
-    {% endfor %}
-  </div>
-  
+<!-- Search Box -->
+<input type="text"
+       id="facilitySearch"
+       placeholder="Search by name or location..."
+       class="w-full mb-6 p-3 border rounded text-sm"
+       onkeyup="filterFacilities()" />
 
+<!-- Facility List -->
+<ul id="facilityList" class="space-y-4">
+  {% for fac in facilities %}
+  <li class="relative flex items-center justify-between p-4 bg-gray-50 rounded hover:bg-gray-100 cursor-pointer facility-item"
+      onclick="window.location.href='{{ url_for('dashboard.facility_profile', facility_id=fac.id) }}'"
+      onmouseenter="showPopup(this)""
+      onmouseleave="hidePopup(this)">
+    <div>
+      <p class="text-lg font-medium name">{{ fac.name }}</p>
+      <p class="text-sm text-gray-500 location">{{ fac.location }}</p>
+    </div>
+    <span class="text-blue-600 font-semibold">Details →</span>
+
+    <!-- Hover Popup -->
+    <div class="facility-popup absolute left-0 top-full mt-2 w-[20rem] bg-white border p-3 rounded shadow-md text-left pointer-events-none opacity-0 transition-opacity duration-150 z-50">
+      <p class="text-sm font-medium">PACS: <span class="text-gray-700">{{ fac.pacs or 'N/A' }}</span></p>
+      <p class="text-sm font-medium">Modalities: <span class="text-gray-700">{{ fac.modalities_assignment_period or 'N/A' }}</span></p>
+      <p class="text-sm font-medium">TAT: <span class="text-gray-700">{{ fac.tat_definition or 'N/A' }}</span></p>
+      <p class="text-sm font-medium">Status:
+        {% if fac.active_status %}
+          <span class="text-green-600">Active</span>
+        {% else %}
+          <span class="text-red-600">Inactive</span>
+        {% endif %}
+      </p>
+    </div>
+  </li>
+  {% endfor %}
+</ul>
+
+<!-- Scripts -->
 <script>
-    function filterFacilities(query) {
-      const items = document.querySelectorAll('.facility-card');
-      const q = query.toLowerCase();
-    
-      items.forEach(item => {
-        const text = item.innerText.toLowerCase();
-        item.style.display = text.includes(q) ? '' : 'none';
-      });
+  function filterFacilities() {
+    const input = document.getElementById("facilitySearch").value.toLowerCase();
+    const facilities = document.querySelectorAll(".facility-item");
+
+    facilities.forEach(fac => {
+      const name = fac.querySelector(".name").textContent.toLowerCase();
+      const location = fac.querySelector(".location").textContent.toLowerCase();
+      const match = name.includes(input) || location.includes(input);
+      fac.style.display = match ? "flex" : "none";
+    });
+  }
+
+  function showPopup(parent) {
+    const popup = parent.querySelector('.facility-popup');
+    if (popup) {
+      popup.classList.remove('opacity-0');
+      popup.classList.add('opacity-100');
     }
-    </script>
-    
+  }
+
+  function hidePopup(parent) {
+    const popup = parent.querySelector('.facility-popup');
+    if (popup) {
+      popup.classList.remove('opacity-100');
+      popup.classList.add('opacity-0');
+    }
+  }
+</script>
+
 {% endblock %}

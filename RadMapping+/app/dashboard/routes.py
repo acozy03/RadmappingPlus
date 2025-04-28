@@ -340,6 +340,19 @@ def add_certification(rad_id):
 
 
 
+@dashboard_bp.route('/dashboard/facility/<facility_id>/update', methods=['POST'])
+@login_required
+def update_facility(facility_id):
+    form = request.form
+    supabase.table('facilities').update({
+        'location': form.get('location'),
+        'pacs': form.get('pacs'),
+        'tat_definition': form.get('tat_definition'),
+        'modalities_assignment_period': form.get('modalities_assignment_period'),
+        'active_status': form.get('active_status') == 'true',
+    }).eq('id', facility_id).execute()
+    return redirect(url_for('dashboard.facility_profile', facility_id=facility_id))
+
 
 @dashboard_bp.route('/doctors/<string:rad_id>/certifications/<string:cert_id>/delete', methods=["POST"])
 @login_required
@@ -371,3 +384,73 @@ def update_assignment(assignment_id):
 
     return redirect(request.referrer or url_for('dashboard.doctor_profile'))
 
+@dashboard_bp.route('/dashboard/assignments/<assignment_id>/delete')
+@login_required
+def delete_assignment(assignment_id):
+    supabase.table('assignments').delete().eq('id', assignment_id).execute()
+    return redirect(request.referrer or url_for('dashboard.home'))
+
+@dashboard_bp.route('/license', methods=["GET", "POST"])
+@login_required
+def license_page():
+    # Fetch all radiologists for the doctor dropdown
+    rads_res = supabase.table("radiologists").select("id, name").order("name").execute()
+    radiologists = rads_res.data or []
+
+    # Handle Add License form submission
+    if request.method == "POST":
+        doctor_id = request.form.get("doctor")
+        state = request.form.get("state")
+        expiration_date = request.form.get("exp")
+        if doctor_id and state and expiration_date:
+            supabase.table("certifications").insert({
+                "id": str(uuid.uuid4()),
+                "radiologist_id": doctor_id,
+                "state": state,
+                "expiration_date": expiration_date
+            }).execute()
+        return redirect(url_for("dashboard.license_page"))
+
+    # Handle search/query (filtering)
+    query = request.args.get("query", "").lower()
+    certs_res = supabase.table("certifications").select("*, radiologists(name)").order("expiration_date", desc=False).execute()
+    certifications = certs_res.data or []
+    if query:
+        certifications = [c for c in certifications if
+            (c.get("radiologists", {}).get("name", "").lower().find(query) != -1) or
+            (c.get("state", "").lower().find(query) != -1) or
+            (c.get("expiration_date", "").lower().find(query) != -1)
+        ]
+    return render_template("license.html", certifications=certifications, radiologists=radiologists, query=query)
+
+@dashboard_bp.route('/vacations', methods=["GET", "POST"])
+@login_required
+def vacations_page():
+    # Fetch all radiologists for the doctor dropdown
+    rads_res = supabase.table("radiologists").select("id, name").order("name").execute()
+    radiologists = rads_res.data or []
+
+    # Handle Add Vacation form submission
+    if request.method == "POST":
+        if request.form.get("delete_id"):
+            # Handle delete
+            supabase.table("vacations").delete().eq("id", request.form.get("delete_id")).execute()
+        else:
+            doctor_id = request.form.get("doctor")
+            start_date = request.form.get("start_date")
+            end_date = request.form.get("end_date")
+            comments = request.form.get("comments")
+            if doctor_id and start_date and end_date:
+                supabase.table("vacations").insert({
+                    "id": str(uuid.uuid4()),
+                    "radiologist_id": doctor_id,
+                    "start_date": start_date,
+                    "end_date": end_date,
+                    "comments": comments
+                }).execute()
+        return redirect(url_for("dashboard.vacations_page"))
+
+    # Fetch all vacations, join with radiologists for doctor name
+    vacs_res = supabase.table("vacations").select("*, radiologists(name)").order("start_date", desc=False).execute()
+    vacations = vacs_res.data or []
+    return render_template("vacations.html", vacations=vacations, radiologists=radiologists)

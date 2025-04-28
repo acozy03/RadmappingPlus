@@ -1,0 +1,62 @@
+{% extends "layout.html" %}
+{% block title %}Vacations{% endblock %}
+
+{% block content %}
+<h2 class="text-2xl font-semibold mb-4">Vacations</h2>
+
+<!-- Add Vacation Form -->
+<div class="mb-8">
+  <h3 class="text-lg font-semibold mb-2">Add Vacation</h3>
+  <form method="POST" class="space-y-3 max-w-xl mb-8">
+    <select name="doctor" required class="w-full p-3 border rounded text-sm">
+      <option value="">Select Doctor</option>
+      {% for doc in radiologists %}
+        <option value="{{ doc.id }}">{{ doc.name }}</option>
+      {% endfor %}
+    </select>
+    <div class="flex gap-4">
+      <input type="date" name="start_date" required class="w-full p-3 border rounded text-sm" placeholder="Start Date" />
+      <input type="date" name="end_date" required class="w-full p-3 border rounded text-sm" placeholder="End Date" />
+    </div>
+    <input type="text" name="comments" placeholder="Comments" class="w-full p-3 border rounded text-sm" />
+    <button type="submit" class="w-full bg-blue-600 text-white py-2 rounded font-semibold">Add Vacation</button>
+  </form>
+</div>
+
+<div class="mb-8">
+  <h3 class="text-lg font-semibold mb-2">All Vacations</h3>
+  <div class="overflow-x-auto">
+    <table class="min-w-full border text-sm">
+      <thead class="bg-gray-100">
+        <tr>
+          <th class="px-4 py-2 border">Doctor</th>
+          <th class="px-4 py-2 border">Start Date</th>
+          <th class="px-4 py-2 border">End Date</th>
+          <th class="px-4 py-2 border">Comments</th>
+          <th class="px-4 py-2 border">Actions</th>
+        </tr>
+      </thead>
+      <tbody>
+        {% for vac in vacations %}
+        <tr class="hover:bg-gray-50">
+          <td class="px-4 py-2 border">{{ vac.radiologists.name if vac.radiologists else '—' }}</td>
+          <td class="px-4 py-2 border">{{ vac.start_date }}</td>
+          <td class="px-4 py-2 border">{{ vac.end_date }}</td>
+          <td class="px-4 py-2 border">{{ vac.comments or '' }}</td>
+          <td class="px-4 py-2 border">
+            <form method="POST" style="display:inline">
+              <input type="hidden" name="delete_id" value="{{ vac.id }}" />
+              <button type="submit" class="text-red-500 hover:text-red-700 font-semibold px-2 py-1 rounded">Delete</button>
+            </form>
+          </td>
+        </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+</div>
+
+<div class="mt-8 text-gray-500 text-center">
+  <p class="italic">To add or edit vacations, please contact an administrator.</p>
+</div>
+{% endblock %} 
