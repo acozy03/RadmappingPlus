@@ -556,7 +556,10 @@ def bulk_schedule():
     print(f"End Time: {end_time}")
     print(f"Notes: {notes}")
 
-    if not all([doctor_id, start_date, end_date, start_time, end_time]):
+    # Check if it's a special case (OFF, VACATION, REACH AS NEEDED)
+    is_special_case = notes in ['OFF', 'VACATION', 'REACH AS NEEDED']
+
+    if not all([doctor_id, start_date, end_date]) or (not is_special_case and not all([start_time, end_time])):
         return "Missing data", 400
 
     # Convert dates to datetime objects
@@ -577,8 +580,8 @@ def bulk_schedule():
         payload = {
             "radiologist_id": doctor_id,
             "date": date_str,
-            "start_time": start_time,
-            "end_time": end_time,
+            "start_time": start_time if not is_special_case else None,
+            "end_time": end_time if not is_special_case else None,
             "schedule_details": notes
         }
 
@@ -620,7 +623,10 @@ def pattern_schedule():
     print(f"Days: {days}")
     print(f"Notes: {notes}")
 
-    if not all([doctor_id, start_date, end_date, start_time, end_time, days]):
+    # Check if it's a special case (OFF, VACATION, REACH AS NEEDED)
+    is_special_case = notes in ['OFF', 'VACATION', 'REACH AS NEEDED']
+
+    if not all([doctor_id, start_date, end_date, days]) or (not is_special_case and not all([start_time, end_time])):
         return "Missing data", 400
 
     # Convert dates to datetime objects
@@ -643,8 +649,8 @@ def pattern_schedule():
             payload = {
                 "radiologist_id": doctor_id,
                 "date": date_str,
-                "start_time": start_time,
-                "end_time": end_time,
+                "start_time": start_time if not is_special_case else None,
+                "end_time": end_time if not is_special_case else None,
                 "schedule_details": notes
             }
 

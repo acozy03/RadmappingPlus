@@ -62,10 +62,10 @@
                 {% set cell_class = 'bg-red-400' %}
               {% elif 'VACATION' in details_upper %}
                 {% set cell_class = 'bg-red-400' %}
+              {% elif 'REACH AS NEEDED' in details_upper %}
+                {% set cell_class = 'bg-gray-200' %}
               {% elif 'ONSITE' in details.lower() %}
                 {% set cell_class = 'bg-orange-100' %}
-              {% elif 'REACH AS NEEDED' in details_upper %}
-                {% set cell_class = 'bg-yellow-100' %}
               {% elif 'ROUTINE' in details_upper %}
                 {% set cell_class = 'bg-green-100' %}
               {% endif %}
@@ -87,7 +87,9 @@
                     {% if is_off %}
                       <span class="text-black">OFF</span>
                     {% elif is_vac %}
-                      <span class="text-black">Vacation</span>
+                      <span class="text-black">VACATION</span>
+                    {% elif schedule.schedule_details and schedule.schedule_details.strip().upper() == 'REACH AS NEEDED' %}
+                      <span class="text-black">REACH AS NEEDED</span>
                     {% else %}
                       {{ schedule.start_time|ampm }} - {{ schedule.end_time|ampm }}
                     {% endif %}
@@ -132,7 +134,8 @@
         <select id="modalNoTime" class="p-2 border rounded w-full">
           <option value="">-- Time Required --</option>
           <option value="OFF">OFF</option>
-          <option value="Vacation">Vacation</option>
+          <option value="VACATION">VACATION</option>
+          <option value="REACH AS NEEDED">REACH AS NEEDED</option>
         </select>
         <div class="flex gap-2">
           <input type="time" name="start_time" id="modalStartTime" required class="flex-1 p-2 border rounded" />
@@ -179,11 +182,17 @@
             <input type="date" name="start_date" required class="flex-1 p-2 border rounded" />
             <input type="date" name="end_date" required class="flex-1 p-2 border rounded" />
           </div>
-          <div class="flex gap-2">
-            <input type="time" name="start_time" required class="flex-1 p-2 border rounded" />
-            <input type="time" name="end_time" required class="flex-1 p-2 border rounded" />
+          <select id="bulkNoTime" class="w-full p-2 border rounded" onchange="handleBulkNoTimeChange()">
+            <option value="">-- Time Required --</option>
+            <option value="OFF">OFF</option>
+            <option value="VACATION">VACATION</option>
+            <option value="REACH AS NEEDED">REACH AS NEEDED</option>
+          </select>
+          <div class="flex gap-2" id="bulkTimeInputs">
+            <input type="time" name="start_time" id="bulkStartTime" required class="flex-1 p-2 border rounded" />
+            <input type="time" name="end_time" id="bulkEndTime" required class="flex-1 p-2 border rounded" />
           </div>
-          <textarea name="schedule_details" placeholder="Schedule details..." class="w-full p-2 border rounded"></textarea>
+          <textarea name="schedule_details" id="bulkDetails" placeholder="Schedule details..." class="w-full p-2 border rounded"></textarea>
           <button type="submit" class="w-full bg-blue-600 text-white py-2 rounded">Apply Schedule</button>
         </form>
       </div>
@@ -202,9 +211,15 @@
             <input type="date" name="start_date" required class="flex-1 p-2 border rounded" />
             <input type="date" name="end_date" required class="flex-1 p-2 border rounded" />
           </div>
-          <div class="flex gap-2">
-            <input type="time" name="start_time" required class="flex-1 p-2 border rounded" />
-            <input type="time" name="end_time" required class="flex-1 p-2 border rounded" />
+          <select id="patternNoTime" class="w-full p-2 border rounded" onchange="handlePatternNoTimeChange()">
+            <option value="">-- Time Required --</option>
+            <option value="OFF">OFF</option>
+            <option value="VACATION">VACATION</option>
+            <option value="REACH AS NEEDED">REACH AS NEEDED</option>
+          </select>
+          <div class="flex gap-2" id="patternTimeInputs">
+            <input type="time" name="start_time" id="patternStartTime" required class="flex-1 p-2 border rounded" />
+            <input type="time" name="end_time" id="patternEndTime" required class="flex-1 p-2 border rounded" />
           </div>
           <div class="flex flex-wrap gap-2">
             <label class="flex items-center gap-1">
@@ -236,7 +251,7 @@
               <span>Sun</span>
             </label>
           </div>
-          <textarea name="schedule_details" placeholder="Schedule details..." class="w-full p-2 border rounded"></textarea>
+          <textarea name="schedule_details" id="patternDetails" placeholder="Schedule details..." class="w-full p-2 border rounded"></textarea>
           <button type="submit" class="w-full bg-blue-600 text-white py-2 rounded">Apply Pattern</button>
         </form>
       </div>
@@ -291,7 +306,7 @@ function openScheduleModal(doctorId, date, startTime, endTime, details) {
     document.getElementById('modalSaveBtn').textContent = 'Save';
   }
   // Pre-fill No Time dropdown
-  const noTime = (details && (details.trim().toUpperCase() === 'OFF' || details.trim().toUpperCase() === 'VACATION')) ? details.trim() : '';
+  const noTime = (details && (details.trim().toUpperCase() === 'OFF' || details.trim().toUpperCase() === 'VACATION' || details.trim().toUpperCase() === 'REACH AS NEEDED')) ? details.trim() : '';
   document.getElementById('modalNoTime').value = noTime;
   handleNoTimeChange();
 }
@@ -360,7 +375,7 @@ function handleNoTimeChange() {
   const noTime = document.getElementById('modalNoTime').value;
   const start = document.getElementById('modalStartTime');
   const end = document.getElementById('modalEndTime');
-  if (noTime === 'OFF' || noTime === 'Vacation') {
+  if (noTime === 'OFF' || noTime === 'VACATION' || noTime === 'REACH AS NEEDED') {
     start.value = '';
     end.value = '';
     start.disabled = true;
@@ -373,11 +388,63 @@ function handleNoTimeChange() {
     end.disabled = false;
     start.setAttribute('required', 'required');
     end.setAttribute('required', 'required');
-    if (document.getElementById('modalDetails').value === 'OFF' || document.getElementById('modalDetails').value === 'Vacation') {
+    if (document.getElementById('modalDetails').value === 'OFF' || 
+        document.getElementById('modalDetails').value === 'VACATION' || 
+        document.getElementById('modalDetails').value === 'REACH AS NEEDED') {
       document.getElementById('modalDetails').value = '';
     }
   }
 }
 document.getElementById('modalNoTime').addEventListener('change', handleNoTimeChange);
+
+function handleBulkNoTimeChange() {
+  const noTime = document.getElementById('bulkNoTime').value;
+  const start = document.getElementById('bulkStartTime');
+  const end = document.getElementById('bulkEndTime');
+  const details = document.getElementById('bulkDetails');
+  
+  if (noTime === 'OFF' || noTime === 'VACATION' || noTime === 'REACH AS NEEDED') {
+    start.value = '';
+    end.value = '';
+    start.disabled = true;
+    end.disabled = true;
+    start.removeAttribute('required');
+    end.removeAttribute('required');
+    details.value = noTime;
+  } else {
+    start.disabled = false;
+    end.disabled = false;
+    start.setAttribute('required', 'required');
+    end.setAttribute('required', 'required');
+    if (details.value === 'OFF' || details.value === 'VACATION' || details.value === 'REACH AS NEEDED') {
+      details.value = '';
+    }
+  }
+}
+
+function handlePatternNoTimeChange() {
+  const noTime = document.getElementById('patternNoTime').value;
+  const start = document.getElementById('patternStartTime');
+  const end = document.getElementById('patternEndTime');
+  const details = document.getElementById('patternDetails');
+  
+  if (noTime === 'OFF' || noTime === 'VACATION' || noTime === 'REACH AS NEEDED') {
+    start.value = '';
+    end.value = '';
+    start.disabled = true;
+    end.disabled = true;
+    start.removeAttribute('required');
+    end.removeAttribute('required');
+    details.value = noTime;
+  } else {
+    start.disabled = false;
+    end.disabled = false;
+    start.setAttribute('required', 'required');
+    end.setAttribute('required', 'required');
+    if (details.value === 'OFF' || details.value === 'VACATION' || details.value === 'REACH AS NEEDED') {
+      details.value = '';
+    }
+  }
+}
 </script>
 {% endblock %} 
