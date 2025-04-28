@@ -321,27 +321,23 @@ def update_doctor(rad_id):
 
 
 
-@dashboard_bp.route('/doctors/<string:rad_id>/add_certification', methods=["POST"])
+@dashboard_bp.route('/dashboard/doctors/<rad_id>/add_certification', methods=['POST'])
 @login_required
 def add_certification(rad_id):
-    if session["user"]["role"] != "admin":
-        return "Unauthorized", 403
-
-    state = request.form.get("state")
-    expiration_date = request.form.get("expiration_date")
-    status = request.form.get("status", "Active")
-
     data = {
-        "id": str(uuid.uuid4()),  # 🛠️ generate a new UUID
+        "id": str(uuid.uuid4()),
         "radiologist_id": rad_id,
-        "state": state,
-        "expiration_date": expiration_date,
-        "status": status
+        "state": request.form['state'],
+        "expiration_date": request.form['expiration_date'],
+        "status": request.form['status'],
+        # 🆕 add these two:
+        "specialty": request.form.get('specialty', ''),
+        "tags": request.form.get('tags', ''),
     }
-
     supabase.table("certifications").insert(data).execute()
 
     return redirect(url_for('dashboard.doctor_profile', rad_id=rad_id))
+
 
 
 
@@ -354,3 +350,24 @@ def delete_certification(rad_id, cert_id):
     supabase.table("certifications").delete().eq("id", cert_id).execute()
 
     return redirect(url_for('dashboard.doctor_profile', rad_id=rad_id))
+
+@dashboard_bp.route('/dashboard/assignments/<assignment_id>/update', methods=['POST'])
+@login_required
+def update_assignment(assignment_id):
+    # Always map explicitly:
+    can_read = 'can_read' in request.form  # True if checkbox was checked, False if missing
+    does_stats = 'does_stats' in request.form
+    does_routines = 'does_routines' in request.form
+    stipulations = request.form.get('stipulations', '')
+    notes = request.form.get('notes', '')
+
+    supabase.table("doctor_facility_assignments").update({
+        "can_read": can_read,
+        "does_stats": does_stats,
+        "does_routines": does_routines,
+        "stipulations": stipulations,
+        "notes": notes,
+    }).eq("id", assignment_id).execute()
+
+    return redirect(request.referrer or url_for('dashboard.doctor_profile'))
+

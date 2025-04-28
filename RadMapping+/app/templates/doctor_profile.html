@@ -330,7 +330,16 @@ document.addEventListener("DOMContentLoaded", attachDayListeners);
           <option value="Expired">Expired</option>
         </select>
       </label>
-    
+      <label class="block mb-2">
+        <span class="font-semibold">Specialty</span>
+        <input type="text" name="specialty" class="w-full border rounded px-3 py-2 text-sm">
+      </label>
+      
+      <label class="block mb-2">
+        <span class="font-semibold">Tags (comma separated)</span>
+        <input type="text" name="tags" class="w-full border rounded px-3 py-2 text-sm">
+      </label>
+      
       <button type="submit" class="bg-blue-600 text-white px-4 py-2 rounded text-sm font-semibold mt-2">
         Add Certification
       </button>
@@ -366,30 +375,32 @@ document.addEventListener("DOMContentLoaded", attachDayListeners);
   
       <input type="text" placeholder="Search facilities..." oninput="filterFacilities(this.value)"
              class="w-full mb-4 px-3 py-2 border rounded text-sm">
-  
-      <ul id="facilityList" class="space-y-3 text-sm">
-        {% for assignment in assigned_facilities %}
-        <li class="border rounded p-3 bg-gray-50 facility-item">
-          <a href="{{ url_for('dashboard.facility_profile', facility_id=assignment.facilities.id) }}"
-            target="_blank"
-            class="font-medium text-blue-800 hover:underline">
-            {{ assignment.facilities.name }}
-          </a>
-          <div class="text-sm text-gray-700">{{ assignment.facilities.location }}</div>
-          <div class="text-sm mt-1">
-            <strong>Permissions:</strong>
-            Can Read: {{ "✅" if assignment.can_read else "❌" }},
-            Stats: {{ "✅" if assignment.does_stats else "❌" }},
-            Routines: {{ "✅" if assignment.does_routines else "❌" }}
-          </div> 
-          {% if assignment.stipulations or assignment.notes %}
-          <div class="text-xs text-gray-500 mt-1 italic">
-            {{ assignment.stipulations or "" }} {{ assignment.notes or "" }}
-          </div>
-          {% endif %}
-        </li>
-        {% endfor %}
-      </ul>
+      
+      
+             <ul id="facilityList" class="space-y-3 text-sm">
+              {% for assignment in assigned_facilities %}
+              <form method="POST" action="{{ url_for('dashboard.update_assignment', assignment_id=assignment.id) }}">
+                <li class="border rounded p-3 bg-gray-50 facility-item">
+                  <div class="flex items-center justify-between">
+                    <div class="text-gray-700 font-medium">{{ assignment.facilities.name }}</div>
+                    <div class="flex items-center gap-2">
+                      <label><input type="checkbox" name="can_read" {% if assignment.can_read %}checked{% endif %}> Read</label>
+                      <label><input type="checkbox" name="does_stats" {% if assignment.does_stats %}checked{% endif %}> Stats</label>
+                      <label><input type="checkbox" name="does_routines" {% if assignment.does_routines %}checked{% endif %}> Routine</label>
+                    </div>
+                  </div>
+            
+                  <textarea name="stipulations" class="w-full border rounded mt-2" placeholder="Stipulations">{{ assignment.stipulations }}</textarea>
+                  <textarea name="notes" class="w-full border rounded mt-2" placeholder="Notes">{{ assignment.notes }}</textarea>
+            
+                  <button type="submit" class="bg-blue-600 text-white text-sm px-3 py-1 rounded mt-2">Save Changes</button>
+                </li>
+              </form>
+              {% endfor %}
+            </ul>
+            
+            
+            
     </div>
   </div>
   
