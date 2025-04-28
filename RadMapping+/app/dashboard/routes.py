@@ -6,6 +6,7 @@ import calendar
 from calendar import monthrange
 from datetime import datetime
 from collections import defaultdict
+import uuid  
 dashboard_bp = Blueprint('dashboard', __name__)
 
 def login_required(view_func):
@@ -318,6 +319,8 @@ def update_doctor(rad_id):
     return redirect(url_for("dashboard.doctor_profile", rad_id=rad_id))
 
 
+
+
 @dashboard_bp.route('/doctors/<string:rad_id>/add_certification', methods=["POST"])
 @login_required
 def add_certification(rad_id):
@@ -326,9 +329,10 @@ def add_certification(rad_id):
 
     state = request.form.get("state")
     expiration_date = request.form.get("expiration_date")
-    status = request.form.get("status")
+    status = request.form.get("status", "Active")
 
     data = {
+        "id": str(uuid.uuid4()),  # 🛠️ generate a new UUID
         "radiologist_id": rad_id,
         "state": state,
         "expiration_date": expiration_date,
@@ -337,4 +341,16 @@ def add_certification(rad_id):
 
     supabase.table("certifications").insert(data).execute()
 
-    return redirect(url_for("dashboard.doctor_profile", rad_id=rad_id))
+    return redirect(url_for('dashboard.doctor_profile', rad_id=rad_id))
+
+
+
+@dashboard_bp.route('/doctors/<string:rad_id>/certifications/<string:cert_id>/delete', methods=["POST"])
+@login_required
+def delete_certification(rad_id, cert_id):
+    if session["user"]["role"] != "admin":
+        return "Unauthorized", 403
+
+    supabase.table("certifications").delete().eq("id", cert_id).execute()
+
+    return redirect(url_for('dashboard.doctor_profile', rad_id=rad_id))
