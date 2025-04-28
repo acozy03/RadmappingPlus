@@ -296,3 +296,45 @@ def facility_profile(facility_id):
 
 
     )
+
+@dashboard_bp.route('/doctors/<string:rad_id>/update', methods=["POST"])
+@login_required
+def update_doctor(rad_id):
+    if session["user"]["role"] != "admin":
+        return "Unauthorized", 403
+
+    data = {
+        "email": request.form.get("email"),
+        "phone": request.form.get("phone"),
+        "pacs": request.form.get("pacs"),
+        "modalities": request.form.get("modalities"),
+        "primary_contact_method": request.form.get("primary_contact_method"),
+        "timezone": request.form.get("timezone"),
+        "active_status": True if request.form.get("active_status") == "true" else False
+    }
+
+    supabase.table("radiologists").update(data).eq("id", rad_id).execute()
+
+    return redirect(url_for("dashboard.doctor_profile", rad_id=rad_id))
+
+
+@dashboard_bp.route('/doctors/<string:rad_id>/add_certification', methods=["POST"])
+@login_required
+def add_certification(rad_id):
+    if session["user"]["role"] != "admin":
+        return "Unauthorized", 403
+
+    state = request.form.get("state")
+    expiration_date = request.form.get("expiration_date")
+    status = request.form.get("status")
+
+    data = {
+        "radiologist_id": rad_id,
+        "state": state,
+        "expiration_date": expiration_date,
+        "status": status
+    }
+
+    supabase.table("certifications").insert(data).execute()
+
+    return redirect(url_for("dashboard.doctor_profile", rad_id=rad_id))

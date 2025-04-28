@@ -4,32 +4,72 @@
 {% block content %}
 <h2 class="text-2xl font-semibold mb-4">{{ doctor.name }}</h2>
 
-<div class="grid grid-cols-1 sm:grid-cols-2 gap-4 text-sm">
-  <div>
+<div x-data="{ editing: false }" class="grid grid-cols-1 sm:grid-cols-2 gap-4 text-sm mb-6">
+  
+  <div class="flex justify-between items-center col-span-2">
+    <h2 class="text-2xl font-semibold">{{ doctor.name }}</h2>
+    {% if session.user.role == 'admin' %}
+      <button @click="editing = !editing" class="text-blue-600 text-sm hover:underline">
+        <span x-show="!editing">Edit Info</span>
+        <span x-show="editing">Cancel Edit</span>
+      </button>
+    {% endif %}
+  </div>
+
+  <form method="POST" action="{{ url_for('dashboard.update_doctor', rad_id=doctor.id) }}" class="grid grid-cols-1 sm:grid-cols-2 gap-4 col-span-2" x-show="editing">
+    <label class="block">
+      <span class="font-semibold">Email</span>
+      <input type="email" name="email" value="{{ doctor.email or '' }}" class="input w-full border rounded px-3 py-2 text-sm" />
+    </label>
+
+    <label class="block">
+      <span class="font-semibold">Phone</span>
+      <input type="text" name="phone" value="{{ doctor.phone or '' }}" class="input w-full border rounded px-3 py-2 text-sm" />
+    </label>
+
+    <label class="block">
+      <span class="font-semibold">PACS</span>
+      <input type="text" name="pacs" value="{{ doctor.pacs or '' }}" class="input w-full border rounded px-3 py-2 text-sm" />
+    </label>
+
+    <label class="block">
+      <span class="font-semibold">Primary Contact Method</span>
+      <input type="text" name="primary_contact_method" value="{{ doctor.primary_contact_method or '' }}" class="input w-full border rounded px-3 py-2 text-sm" />
+    </label>
+
+    <label class="block">
+      <span class="font-semibold">Modalities</span>
+      <input type="text" name="modalities" value="{{ doctor.modalities or '' }}" class="input w-full border rounded px-3 py-2 text-sm" />
+    </label>
+
+    <label class="block">
+      <span class="font-semibold">Timezone</span>
+      <input type="text" name="timezone" value="{{ doctor.timezone or '' }}" class="input w-full border rounded px-3 py-2 text-sm" />
+    </label>
+    
+    <label class="flex items-center space-x-2 mt-4">
+      <input type="checkbox" name="active_status" value="true" {% if doctor.active_status %}checked{% endif %} class="form-checkbox h-5 w-5 text-blue-600">
+      <span class="text-sm font-medium">Active</span>
+    </label>
+    
+    <div class="col-span-2">
+      <button type="submit" class="bg-blue-600 text-white px-4 py-2 rounded text-sm font-semibold mt-2">
+        Save Changes
+      </button>
+    </div>
+  </form>
+
+  <div x-show="!editing" class="grid grid-cols-1 sm:grid-cols-2 gap-4 col-span-2">
     <p><strong>Email:</strong> {{ doctor.email }}</p>
-    <p><strong>PACS:</strong> {{ doctor.pacs }}</p>
     <p><strong>Phone:</strong> {{ doctor.phone }}</p>
+    <p><strong>PACS:</strong> {{ doctor.pacs }}</p>
     <p><strong>Primary Method:</strong> {{ doctor.primary_contact_method }}</p>
     <p><strong>Modalities:</strong> {{ doctor.modalities or "—" }}</p>
-    <p><strong>Schedule (EST):</strong> {{ doctor.schedule_info_est or "—" }}</p>
     <p><strong>Timezone (EST):</strong> {{ doctor.timezone or "—" }}</p>
   </div>
-  <div>
-    <p><strong>Status:</strong>
-      {% if doctor.active_status %}
-        <span class="text-green-600 font-medium">Active</span>
-      {% else %}
-        <span class="text-red-600 font-medium">Inactive</span>
-      {% endif %}
-    </p>
-    <p><strong>Credentialing Contact:</strong> {{ doctor.credentialing_contact or "—" }}</p>
 
-    <p><strong>RAD Guidelines:</strong></p>
-    <div class="bg-gray-50 p-3 rounded border mt-1 text-sm text-gray-700 whitespace-pre-wrap">
-      {{ doctor.rad_guidelines or "No guidelines provided." }}
-    </div>
-  </div>
 </div>
+
 
 {% if doctor.additional_info %}
 <div class="mt-6">
@@ -268,6 +308,33 @@ document.addEventListener("DOMContentLoaded", attachDayListeners);
       </li>
       {% endfor %}
     </ul>
+
+    <form method="POST" action="{{ url_for('dashboard.add_certification', rad_id=doctor.id) }}" class="mt-6 border-t pt-4">
+      <h4 class="text-md font-semibold mb-2">Add New Certification</h4>
+    
+      <label class="block mb-2">
+        <span class="font-semibold">State</span>
+        <input type="text" name="state" required class="w-full border rounded px-3 py-2 text-sm">
+      </label>
+    
+      <label class="block mb-2">
+        <span class="font-semibold">Expiration Date</span>
+        <input type="date" name="expiration_date" required class="w-full border rounded px-3 py-2 text-sm">
+      </label>
+    
+      <label class="block mb-2">
+        <span class="font-semibold">Status</span>
+        <select name="status" class="w-full border rounded px-3 py-2 text-sm">
+          <option value="Active">Active</option>
+          <option value="Expired">Expired</option>
+        </select>
+      </label>
+    
+      <button type="submit" class="bg-blue-600 text-white px-4 py-2 rounded text-sm font-semibold mt-2">
+        Add Certification
+      </button>
+    </form>
+    
   </div>
 </div>
 
@@ -313,7 +380,7 @@ document.addEventListener("DOMContentLoaded", attachDayListeners);
             Can Read: {{ "✅" if assignment.can_read else "❌" }},
             Stats: {{ "✅" if assignment.does_stats else "❌" }},
             Routines: {{ "✅" if assignment.does_routines else "❌" }}
-          </div>
+          </div> 
           {% if assignment.stipulations or assignment.notes %}
           <div class="text-xs text-gray-500 mt-1 italic">
             {{ assignment.stipulations or "" }} {{ assignment.notes or "" }}
