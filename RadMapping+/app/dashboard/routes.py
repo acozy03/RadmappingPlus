@@ -6,6 +6,8 @@ from calendar import monthrange
 from collections import defaultdict
 import uuid  
 import calendar as pycalendar
+import pytz
+
 dashboard_bp = Blueprint('dashboard', __name__)
 
 def login_required(view_func):
@@ -23,6 +25,17 @@ def home():
     from datetime import datetime, timedelta
 
     user = session.get("user")
+
+    # Get selected timezone from query params or default to EST
+    selected_timezone = request.args.get("timezone", "EST")
+    
+    # Calculate timezone offset
+    timezone_offset = {
+        'EST': 0,
+        'CST': 1,
+        'PST': 3,
+        'UTC': 5
+    }.get(selected_timezone, 0)
 
     # Allow optional date navigation
     date_str = request.args.get("date")
@@ -64,7 +77,6 @@ def home():
             except Exception as e:
                 print("Shift hour error:", e)
 
-
     # Get all doctors
     all_doctors_res = supabase.table("radiologists").select("*").execute()
     all_doctors = all_doctors_res.data
@@ -104,7 +116,9 @@ def home():
         doctors_by_hour=doctors_by_hour,
         doctors_by_timezone=doctors_by_timezone,
         doctors_on_shift_ids=doctors_on_shift_ids,
-        doctors_currently_on_shift_ids=doctors_currently_on_shift_ids  
+        doctors_currently_on_shift_ids=doctors_currently_on_shift_ids,
+        selected_timezone=selected_timezone,
+        timezone_offset=timezone_offset
     )
 
 @dashboard_bp.route('/admin')
@@ -667,3 +681,90 @@ def pattern_schedule():
         current += timedelta(days=1)
 
     return redirect(url_for("dashboard.schedule"))
+
+@dashboard_bp.route('/info')
+@login_required
+def info():
+    return render_template("info.html")
+
+@dashboard_bp.route('/vacations')
+@login_required
+def vacations_page():
+    # Fetch all doctors
+    doctors_res = supabase.table("radiologists").select("*").order("name").execute()
+    doctors = doctors_res.data
+
+    # Fetch all vacations
+    vacations_res = supabase.table("vacations").select("*, radiologists(*)").execute()
+    vacations = vacations_res.data
+
+    return render_template("vacations.html", doctors=doctors, vacations=vacations)
+
+@dashboard_bp.route('/vacations/add', methods=['POST'])
+@login_required
+@admin_required
+def add_vacation():
+    data = {
+        "id": str(uuid.uuid4()),
+        "radiologist_id": request.form.get("doctor_id"),
+        "start_date": request.form.get("start_date"),
+        "end_date": request.form.get("end_date"),
+        "status": request.form.get("status"),
+        "notes": request.form.get("notes")
+    }
+    supabase.table("vacations").insert(data).execute()
+    return redirect(url_for("dashboard.vacations_page"))
+
+@dashboard_bp.route('/vacations/update', methods=['POST'])
+@login_required
+@admin_required
+def update_vacation():
+    vacation_id = request.form.get("vacation_id")
+    data = {
+        "radiologist_id": request.form.get("doctor_id"),
+        "start_date": request.form.get("start_date"),
+        "end_date": request.form.get("end_date"),
+        "status": request.form.get("status"),
+        "notes": request.form.get("notes")
+    }
+    supabase.table("vacations").update(data).eq("id", vacation_id).execute()
+    return redirect(url_for("dashboard.vacations_page"))
+
+@dashboard_bp.route('/vacations/delete', methods=['POST'])
+@login_required
+@admin_required
+def delete_vacation():
+    vacation_id = request.json.get("vacation_id")
+    supabase.table("vacations").delete().eq("id", vacation_id).execute()
+    return jsonify({"status": "success"})
+
+@dashboard_bp.route('/landing')
+@login_required
+def landing():
+    return render_template("landing.html")
+
+# Add timezone conversion filter
+@dashboard_bp.app_template_filter('convert_timezone')
+def convert_timezone(time_str, target_tz):
+    if not time_str:
+        return ""
+    try:
+        # Parse the time string
+        hour, minute = map(int, time_str.split(":"))
+        # Create a datetime object for today with the given time
+        dt = datetime.now().replace(hour=hour, minute=minute)
+        
+        # Convert to target timezone
+        target_timezone = pytz.timezone(
+            "America/New_York" if target_tz == "EST" else
+            "America/Chicago" if target_tz == "CST" else
+            "America/Los_Angeles" if target_tz == "PST" else
+            "UTC"
+        )
+        
+        # Convert the time
+        converted_time = dt.astimezone(target_timezone)
+        return converted_time.strftime("%I:%M %p")
+    except Exception as e:
+        print(f"Error converting timezone: {e}")
+        return time_str
