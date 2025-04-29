@@ -1,0 +1,111 @@
+{% extends "layout.html" %}
+{% block title %}Doctor Specialties{% endblock %}
+
+{% block content %}
+<div class="max-w-7xl mx-auto">
+    <!-- Header -->
+    <div class="mb-8">
+        <h1 class="text-3xl font-bold text-blue-800 mb-2">Doctor Specialties</h1>
+        <p class="text-gray-600">Overview of radiologist specialties and capabilities.</p>
+    </div>
+
+    <!-- Search and Filter -->
+    <div class="mb-6 flex flex-col sm:flex-row gap-4">
+        <div class="flex-1">
+            <input type="text" 
+                   id="specialtySearch" 
+                   placeholder="Search doctors or specialties..." 
+                   class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent">
+        </div>
+        <div class="flex gap-2">
+            <button id="showAllBtn" class="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors">
+                Show All
+            </button>
+            <button id="showAvailableBtn" class="px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 transition-colors">
+                Show Available
+            </button>
+        </div>
+    </div>
+
+    <!-- Specialties Grid -->
+    <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+        {% for specialty in specialties %}
+        <div class="bg-white rounded-lg shadow-lg overflow-hidden">
+            <div class="p-6">
+                <h2 class="text-xl font-semibold text-blue-800 mb-4">{{ specialty.name }}</h2>
+                <div class="space-y-4">
+                    <!-- Available Doctors -->
+                    <div>
+                        <h3 class="text-sm font-medium text-gray-500 mb-2">Available Doctors</h3>
+                        <ul class="space-y-2">
+                            {% for doctor in specialty.available_doctors %}
+                            <li class="flex items-center justify-between">
+                                <span class="text-gray-700">{{ doctor.name }}</span>
+                                <span class="text-green-600 text-sm">Available</span>
+                            </li>
+                            {% endfor %}
+                        </ul>
+                    </div>
+                    
+                    <!-- Unavailable Doctors -->
+                    {% if specialty.unavailable_doctors %}
+                    <div>
+                        <h3 class="text-sm font-medium text-gray-500 mb-2">Not Available</h3>
+                        <ul class="space-y-2">
+                            {% for doctor in specialty.unavailable_doctors %}
+                            <li class="flex items-center justify-between">
+                                <span class="text-gray-700">{{ doctor.name }}</span>
+                                <span class="text-red-600 text-sm">Not Available</span>
+                            </li>
+                            {% endfor %}
+                        </ul>
+                    </div>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+        {% endfor %}
+    </div>
+</div>
+
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    const searchInput = document.getElementById('specialtySearch');
+    const showAllBtn = document.getElementById('showAllBtn');
+    const showAvailableBtn = document.getElementById('showAvailableBtn');
+    const specialtyCards = document.querySelectorAll('.bg-white.rounded-lg');
+
+    function filterSpecialties() {
+        const searchTerm = searchInput.value.toLowerCase();
+        
+        specialtyCards.forEach(card => {
+            const specialtyName = card.querySelector('h2').textContent.toLowerCase();
+            const doctorNames = Array.from(card.querySelectorAll('li span:first-child'))
+                .map(span => span.textContent.toLowerCase());
+            
+            const matchesSearch = specialtyName.includes(searchTerm) || 
+                                doctorNames.some(name => name.includes(searchTerm));
+            
+            card.style.display = matchesSearch ? 'block' : 'none';
+        });
+    }
+
+    function showAll() {
+        specialtyCards.forEach(card => {
+            card.style.display = 'block';
+        });
+    }
+
+    function showAvailable() {
+        specialtyCards.forEach(card => {
+            const hasAvailableDoctors = card.querySelector('.text-green-600') !== null;
+            card.style.display = hasAvailableDoctors ? 'block' : 'none';
+        });
+    }
+
+    searchInput.addEventListener('input', filterSpecialties);
+    showAllBtn.addEventListener('click', showAll);
+    showAvailableBtn.addEventListener('click', showAvailable);
+});
+</script>
+{% endblock %} 

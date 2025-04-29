@@ -743,6 +743,11 @@ def delete_vacation():
 def landing():
     return render_template("landing.html")
 
+@dashboard_bp.route('/contacts')
+@login_required
+def contacts():
+    return render_template("contacts.html")
+
 # Add timezone conversion filter
 @dashboard_bp.app_template_filter('convert_timezone')
 def convert_timezone(time_str, target_tz):
@@ -768,3 +773,54 @@ def convert_timezone(time_str, target_tz):
     except Exception as e:
         print(f"Error converting timezone: {e}")
         return time_str
+
+@dashboard_bp.route('/specialties')
+@login_required
+def specialties():
+    # List of all specialties
+    specialties_list = [
+        "CTA Perfusion",
+        "CTA Thoracic",
+        "CTA Bilat",
+        "MRCP",
+        "Nuclear Med",
+        "CT Cardiac Scores",
+        "Ultrasound OB",
+        "Ultrasound BPP",
+        "Ultrasound Arterial",
+        "Breast Ultrasound",
+        "CTA Carotid",
+        "Cholangiogram",
+        "Elastography",
+        "Enterorrhaphy",
+        "MRA",
+        "TBI (Traumatic Brain Injury)",
+        "TMJ MRI",
+        "Venous Insufficiency Ultrasound",
+        "3D Whole Breast Ultrasound",
+        "Brachial Plexus"
+    ]
+
+    # Get all doctors
+    doctors_res = supabase.table("radiologists").select("*").execute()
+    doctors = doctors_res.data
+
+    # Create specialties data structure
+    specialties_data = []
+    for specialty in specialties_list:
+        specialty_data = {
+            "name": specialty,
+            "available_doctors": [],
+            "unavailable_doctors": []
+        }
+        
+        # For now, randomly assign availability (you'll need to replace this with actual data)
+        for doctor in doctors:
+            if doctor.get("specialties", {}).get(specialty, False):
+                specialty_data["available_doctors"].append({"name": doctor["name"]})
+            else:
+                specialty_data["unavailable_doctors"].append({"name": doctor["name"]})
+        
+        specialties_data.append(specialty_data)
+
+    return render_template("specialties.html", specialties=specialties_data)
