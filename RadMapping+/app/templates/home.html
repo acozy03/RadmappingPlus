@@ -103,20 +103,21 @@
 
 <script>
   function showTimezonePopup(parent) {
-  const popup = parent.querySelector('.timezone-popup');
-  if (popup) {
-    popup.classList.remove('opacity-0');
-    popup.classList.add('opacity-100');
+    const popup = parent.querySelector('.timezone-popup');
+    if (popup) {
+      popup.classList.remove('opacity-0');
+      popup.classList.add('opacity-100');
+    }
   }
-}
 
-function hideTimezonePopup(parent) {
-  const popup = parent.querySelector('.timezone-popup');
-  if (popup) {
-    popup.classList.remove('opacity-100');
-    popup.classList.add('opacity-0');
+  function hideTimezonePopup(parent) {
+    const popup = parent.querySelector('.timezone-popup');
+    if (popup) {
+      popup.classList.remove('opacity-100');
+      popup.classList.add('opacity-0');
+    }
   }
-}
+
   function showPopup(parent) {
     const popup = parent.querySelector('.doctor-popup');
     if (popup) {
@@ -157,13 +158,6 @@ function hideTimezonePopup(parent) {
   }
 
   document.addEventListener("DOMContentLoaded", () => {
-    const now = new Date();
-    const currentHour = now.getHours();
-    const el = document.getElementById(`hour-${currentHour}`);
-    if (el) {
-        el.scrollIntoView({ behavior: "auto", inline: "start", block: "nearest" });
-    }
-
     updateTimezoneClocks();
     setInterval(updateTimezoneClocks, 60_000); // update every minute
   });
