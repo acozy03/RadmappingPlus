@@ -746,7 +746,25 @@ def landing():
 @dashboard_bp.route('/contacts')
 @login_required
 def contacts():
-    return render_template("contacts.html")
+    # Fetch contacts from the database
+    response = supabase.table("contacts").select("*").order("department").execute()
+    contacts = response.data
+    return render_template("contacts.html", contacts=contacts)
+
+@dashboard_bp.route('/contacts/add', methods=['POST'])
+@login_required
+@admin_required
+def add_contact():
+    data = {
+        "name": request.form.get("name"),
+        "department": request.form.get("department"),
+        "contact_number": request.form.get("contact_number"),
+        "backup_number": request.form.get("backup_number"),
+        "email": request.form.get("email"),
+        "additional_info": request.form.get("additional_info")
+    }
+    supabase.table("contacts").insert(data).execute()
+    return redirect(url_for("dashboard.contacts"))
 
 # Add timezone conversion filter
 @dashboard_bp.app_template_filter('convert_timezone')

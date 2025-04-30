@@ -30,11 +30,11 @@ def create_app():
     app.register_blueprint(auth_bp, url_prefix='/auth')
     app.register_blueprint(dashboard_bp, url_prefix='/dashboard')
 
-    # Redirect root URL to login or dashboard
+    # Redirect root URL to login or landing page
     @app.route('/')
     def index():
         if "user" in session:
-            return redirect(url_for("dashboard.home"))
+            return redirect(url_for("dashboard.landing"))
         return redirect(url_for("auth.login"))
 
     return app

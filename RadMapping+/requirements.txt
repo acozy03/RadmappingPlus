@@ -3,3 +3,4 @@ python-dotenv
 supabase
 llama-index
 openai
+pytz

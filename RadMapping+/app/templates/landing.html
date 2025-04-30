@@ -1,0 +1,119 @@
+{% extends "layout.html" %}
+{% block title %}Welcome to RadMapping+{% endblock %}
+
+{% block content %}
+<div class="max-w-7xl mx-auto">
+    <!-- Welcome Header -->
+    <div class="text-center mb-12">
+        <h1 class="text-4xl font-bold text-blue-800 mb-4">Welcome to RadMapping+</h1>
+        <p class="text-xl text-gray-600">Your comprehensive radiology department management system</p>
+    </div>
+
+    <!-- Quick Access Grid -->
+    <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 mb-12">
+        <!-- Daily Operations -->
+        <div class="bg-white rounded-lg shadow-lg p-6">
+            <h2 class="text-xl font-semibold text-blue-800 mb-4">Daily Operations</h2>
+            <div class="space-y-3">
+                <a href="{{ url_for('dashboard.home') }}" class="block p-3 bg-blue-50 rounded-lg hover:bg-blue-100 transition-colors duration-200">
+                    <div class="flex items-center">
+                        <i class="fas fa-calendar-day text-blue-600 text-xl mr-3"></i>
+                        <div>
+                            <h3 class="font-medium text-gray-900">Daily Schedule</h3>
+                            <p class="text-sm text-gray-600">View and manage today's radiologist assignments</p>
+                        </div>
+                    </div>
+                </a>
+                <a href="{{ url_for('dashboard.schedule') }}" class="block p-3 bg-blue-50 rounded-lg hover:bg-blue-100 transition-colors duration-200">
+                    <div class="flex items-center">
+                        <i class="fas fa-calendar-alt text-blue-600 text-xl mr-3"></i>
+                        <div>
+                            <h3 class="font-medium text-gray-900">Monthly Schedule</h3>
+                            <p class="text-sm text-gray-600">Plan and view monthly radiologist schedules</p>
+                        </div>
+                    </div>
+                </a>
+            </div>
+        </div>
+
+        <!-- Staff Management -->
+        <div class="bg-white rounded-lg shadow-lg p-6">
+            <h2 class="text-xl font-semibold text-blue-800 mb-4">Staff Management</h2>
+            <div class="space-y-3">
+                <a href="{{ url_for('dashboard.doctor_list') }}" class="block p-3 bg-blue-50 rounded-lg hover:bg-blue-100 transition-colors duration-200">
+                    <div class="flex items-center">
+                        <i class="fas fa-user-md text-blue-600 text-xl mr-3"></i>
+                        <div>
+                            <h3 class="font-medium text-gray-900">Doctor Directory</h3>
+                            <p class="text-sm text-gray-600">Access radiologist profiles and information</p>
+                        </div>
+                    </div>
+                </a>
+                <a href="{{ url_for('dashboard.licenses_page') }}" class="block p-3 bg-blue-50 rounded-lg hover:bg-blue-100 transition-colors duration-200">
+                    <div class="flex items-center">
+                        <i class="fas fa-id-card text-blue-600 text-xl mr-3"></i>
+                        <div>
+                            <h3 class="font-medium text-gray-900">License Management</h3>
+                            <p class="text-sm text-gray-600">Track and manage radiologist certifications</p>
+                        </div>
+                    </div>
+                </a>
+            </div>
+        </div>
+
+        <!-- Time Off Management -->
+        <div class="bg-white rounded-lg shadow-lg p-6">
+            <h2 class="text-xl font-semibold text-blue-800 mb-4">Time Off Management</h2>
+            <div class="space-y-3">
+                <a href="{{ url_for('dashboard.vacations_page') }}" class="block p-3 bg-blue-50 rounded-lg hover:bg-blue-100 transition-colors duration-200">
+                    <div class="flex items-center">
+                        <i class="fas fa-umbrella-beach text-blue-600 text-xl mr-3"></i>
+                        <div>
+                            <h3 class="font-medium text-gray-900">Vacations</h3>
+                            <p class="text-sm text-gray-600">Manage radiologist time off and coverage</p>
+                        </div>
+                    </div>
+                </a>
+                <a href="{{ url_for('dashboard.info') }}" class="block p-3 bg-blue-50 rounded-lg hover:bg-blue-100 transition-colors duration-200">
+                    <div class="flex items-center">
+                        <i class="fas fa-info-circle text-blue-600 text-xl mr-3"></i>
+                        <div>
+                            <h3 class="font-medium text-gray-900">Department Info</h3>
+                            <p class="text-sm text-gray-600">Access department guidelines and information</p>
+                        </div>
+                    </div>
+                </a>
+            </div>
+        </div>
+    </div>
+
+    <!-- Recent Activity -->
+    <div class="bg-white rounded-lg shadow-lg p-6">
+        <h2 class="text-xl font-semibold text-blue-800 mb-4">Recent Activity</h2>
+        <div class="space-y-4">
+            {% if session.user.role == 'admin' %}
+            <div class="flex items-center justify-between p-3 bg-gray-50 rounded-lg">
+                <div class="flex items-center">
+                    <i class="fas fa-clock text-gray-400 text-xl mr-3"></i>
+                    <div>
+                        <h3 class="font-medium text-gray-900">Quick Actions</h3>
+                        <p class="text-sm text-gray-600">Manage schedules, licenses, and department settings</p>
+                    </div>
+                </div>
+                <a href="{{ url_for('dashboard.admin') }}" class="text-blue-600 hover:text-blue-800">Go to Admin →</a>
+            </div>
+            {% endif %}
+            <div class="flex items-center justify-between p-3 bg-gray-50 rounded-lg">
+                <div class="flex items-center">
+                    <i class="fas fa-calendar-check text-gray-400 text-xl mr-3"></i>
+                    <div>
+                        <h3 class="font-medium text-gray-900">Today's Schedule</h3>
+                        <p class="text-sm text-gray-600">View and manage today's radiologist assignments</p>
+                    </div>
+                </div>
+                <a href="{{ url_for('dashboard.home') }}" class="text-blue-600 hover:text-blue-800">View Schedule →</a>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %} 
