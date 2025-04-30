@@ -451,8 +451,30 @@ def licenses_page():
     # Fetch all licenses with radiologist names
     certs_res = supabase.table("certifications").select("*, radiologists(name)").order("expiration_date", desc=False).execute()
     certifications = certs_res.data or []
-    return render_template("licenses.html", certifications=certifications, radiologists=radiologists)
+    
+    # Get current date for expiration checking
+    now = datetime.now()
+    
+    return render_template("licenses.html", 
+                         certifications=certifications, 
+                         radiologists=radiologists,
+                         now=now)
 
+@dashboard_bp.route('/licenses/<string:license_id>/update', methods=['POST'])
+@login_required
+@admin_required
+def update_license(license_id):
+    data = {
+        "radiologist_id": request.form.get("radiologist_id"),
+        "state": request.form.get("state"),
+        "specialty": request.form.get("specialty"),
+        "status": request.form.get("status"),
+        "tags": request.form.get("tags"),
+        "expiration_date": request.form.get("expiration_date")
+    }
+    
+    supabase.table("certifications").update(data).eq("id", license_id).execute()
+    return redirect(url_for("dashboard.licenses_page"))
 
 @dashboard_bp.route('/chat', methods=['POST'])
 @login_required
@@ -879,7 +901,11 @@ def contacts():
     # Fetch contacts from the database
     response = supabase.table("vesta_contacts").select("*").order("department").execute()
     contacts = response.data
-    return render_template("contacts.html", contacts=contacts)
+
+    # Get unique departments from contacts
+    departments = sorted(set(contact["department"] for contact in contacts))
+    
+    return render_template("contacts.html", contacts=contacts, departments=departments)
 
 @dashboard_bp.route('/contacts/add', methods=['POST'])
 @login_required
@@ -951,53 +977,87 @@ def convert_timezone(time_str, target_tz):
 @dashboard_bp.route('/specialties')
 @login_required
 def specialties():
-    # List of all specialties
-    specialties_list = [
-        "CTA Perfusion",
-        "CTA Thoracic",
-        "CTA Bilat",
-        "MRCP",
-        "Nuclear Med",
-        "CT Cardiac Scores",
-        "Ultrasound OB",
-        "Ultrasound BPP",
-        "Ultrasound Arterial",
-        "Breast Ultrasound",
-        "CTA Carotid",
-        "Cholangiogram",
-        "Elastography",
-        "Enterorrhaphy",
-        "MRA",
-        "TBI (Traumatic Brain Injury)",
-        "TMJ MRI",
-        "Venous Insufficiency Ultrasound",
-        "3D Whole Breast Ultrasound",
-        "Brachial Plexus"
-    ]
+    # Get all specialties with their descriptions
+    specialties_res = supabase.table("specialty_studies").select("*").order("name").execute()
+    specialties = specialties_res.data
 
     # Get all doctors
-    doctors_res = supabase.table("radiologists").select("*").execute()
+    doctors_res = supabase.table("radiologists").select("*").order("name").execute()
     doctors = doctors_res.data
 
-    # Create specialties data structure
-    specialties_data = []
-    for specialty in specialties_list:
-        specialty_data = {
-            "name": specialty,
-            "available_doctors": [],
-            "unavailable_doctors": []
-        }
-        
-        # For now, randomly assign availability (you'll need to replace this with actual data)
-        for doctor in doctors:
-            if doctor.get("specialties", {}).get(specialty, False):
-                specialty_data["available_doctors"].append({"name": doctor["name"]})
-            else:
-                specialty_data["unavailable_doctors"].append({"name": doctor["name"]})
-        
-        specialties_data.append(specialty_data)
+    # Get all specialty permissions
+    permissions_res = supabase.table("specialty_permissions") \
+        .select("*, radiologists(id, name), specialty_studies(id, name)") \
+        .execute()
+    permissions = permissions_res.data
 
-    return render_template("specialties.html", specialties=specialties_data)
+    # Create a mapping for easy lookup of permissions
+    permission_map = {}
+    for perm in permissions:
+        rad_id = perm["radiologist_id"]
+        spec_id = perm["specialty_id"]
+        if rad_id not in permission_map:
+            permission_map[rad_id] = {}
+        permission_map[rad_id][spec_id] = perm["can_read"]
+
+    return render_template("specialties.html",
+        specialties=specialties,
+        doctors=doctors,
+        permission_map=permission_map
+    )
+
+@dashboard_bp.route('/specialties/add', methods=['POST'])
+@login_required
+@admin_required
+def add_specialty():
+    data = {
+        "id": str(uuid.uuid4()),
+        "name": request.form.get("name"),
+        "description": request.form.get("description")
+    }
+    supabase.table("specialty_studies").insert(data).execute()
+    return redirect(url_for("dashboard.specialties"))
+
+@dashboard_bp.route('/specialties/<string:specialty_id>/delete', methods=['POST'])
+@login_required
+@admin_required
+def delete_specialty(specialty_id):
+    # First delete all permissions for this specialty
+    supabase.table("specialty_permissions").delete().eq("specialty_id", specialty_id).execute()
+    # Then delete the specialty itself
+    supabase.table("specialty_studies").delete().eq("id", specialty_id).execute()
+    return redirect(url_for("dashboard.specialties"))
+
+@dashboard_bp.route('/specialties/permissions/update', methods=['POST'])
+@login_required
+@admin_required
+def update_specialty_permission():
+    radiologist_id = request.form.get("radiologist_id")
+    specialty_id = request.form.get("specialty_id")
+    can_read = request.form.get("can_read") == "true"
+    
+    # Check if permission already exists
+    existing = supabase.table("specialty_permissions") \
+        .select("id") \
+        .eq("radiologist_id", radiologist_id) \
+        .eq("specialty_id", specialty_id) \
+        .execute()
+
+    if existing.data:
+        # Update existing permission
+        supabase.table("specialty_permissions").update({
+            "can_read": can_read
+        }).eq("id", existing.data[0]["id"]).execute()
+    else:
+        # Create new permission
+        supabase.table("specialty_permissions").insert({
+            "id": str(uuid.uuid4()),
+            "radiologist_id": radiologist_id,
+            "specialty_id": specialty_id,
+            "can_read": can_read
+        }).execute()
+
+    return jsonify({"status": "success"})
 
 @dashboard_bp.route('/doctors/<string:rad_id>/add_facility', methods=['POST'])
 @login_required

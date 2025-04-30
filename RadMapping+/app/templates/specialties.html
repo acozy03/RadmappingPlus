@@ -1,111 +1,274 @@
 {% extends "layout.html" %}
-{% block title %}Doctor Specialties{% endblock %}
+{% block title %}Specialties{% endblock %}
 
 {% block content %}
-<div class="max-w-7xl mx-auto">
-    <!-- Header -->
-    <div class="mb-8">
-        <h1 class="text-3xl font-bold text-blue-800 mb-2">Doctor Specialties</h1>
-        <p class="text-gray-600">Overview of radiologist specialties and capabilities.</p>
-    </div>
+<div class="container mx-auto px-4 py-8">
+  <div class="flex justify-between items-center mb-6">
+    <h1 class="text-2xl font-bold">Specialty Studies Management</h1>
+    {% if session.user.role == 'admin' %}
+    <button onclick="openAddSpecialtyModal()" class="bg-blue-600 text-white px-4 py-2 rounded text-sm font-medium">
+      Add New Specialty
+    </button>
+    {% endif %}
+  </div>
 
-    <!-- Search and Filter -->
-    <div class="mb-6 flex flex-col sm:flex-row gap-4">
-        <div class="flex-1">
-            <input type="text" 
-                   id="specialtySearch" 
-                   placeholder="Search doctors or specialties..." 
-                   class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent">
-        </div>
-        <div class="flex gap-2">
-            <button id="showAllBtn" class="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors">
-                Show All
-            </button>
-            <button id="showAvailableBtn" class="px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 transition-colors">
-                Show Available
-            </button>
-        </div>
+  <!-- Search and filter controls -->
+  <div class="mb-6 flex gap-4">
+    <div class="flex-1">
+      <input type="text" id="doctorSearch" placeholder="Search doctors..." 
+             class="w-full px-4 py-2 border rounded text-sm"
+             oninput="filterTable()">
     </div>
+    <div class="flex-1">
+      <input type="text" id="specialtySearch" placeholder="Search specialties..." 
+             class="w-full px-4 py-2 border rounded text-sm"
+             oninput="filterTable()">
+    </div>
+  </div>
 
-    <!-- Specialties Grid -->
-    <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+  <!-- Collapsible Specialties List -->
+  <div class="mb-8" x-data="{ expanded: false }">
+    <button 
+      @click="expanded = !expanded" 
+      class="w-full flex items-center justify-between p-4 bg-white border rounded-lg shadow-sm hover:bg-gray-50"
+    >
+      <div class="flex items-center">
+        <h2 class="text-lg font-semibold">Available Specialties</h2>
+        <span class="ml-2 text-sm text-gray-500">({{ specialties|length }} total)</span>
+      </div>
+      <svg 
+        class="w-5 h-5 transform transition-transform duration-200" 
+        :class="{ 'rotate-180': expanded }"
+        fill="none" 
+        stroke="currentColor" 
+        viewBox="0 0 24 24"
+      >
+        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"/>
+      </svg>
+    </button>
+    
+    <div 
+      x-show="expanded" 
+      x-transition:enter="transition ease-out duration-200"
+      x-transition:enter-start="opacity-0 transform -translate-y-2"
+      x-transition:enter-end="opacity-100 transform translate-y-0"
+      x-transition:leave="transition ease-in duration-200"
+      x-transition:leave-start="opacity-100 transform translate-y-0"
+      x-transition:leave-end="opacity-0 transform -translate-y-2"
+      class="mt-4"
+    >
+      <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
         {% for specialty in specialties %}
-        <div class="bg-white rounded-lg shadow-lg overflow-hidden">
-            <div class="p-6">
-                <h2 class="text-xl font-semibold text-blue-800 mb-4">{{ specialty.name }}</h2>
-                <div class="space-y-4">
-                    <!-- Available Doctors -->
-                    <div>
-                        <h3 class="text-sm font-medium text-gray-500 mb-2">Available Doctors</h3>
-                        <ul class="space-y-2">
-                            {% for doctor in specialty.available_doctors %}
-                            <li class="flex items-center justify-between">
-                                <span class="text-gray-700">{{ doctor.name }}</span>
-                                <span class="text-green-600 text-sm">Available</span>
-                            </li>
-                            {% endfor %}
-                        </ul>
-                    </div>
-                    
-                    <!-- Unavailable Doctors -->
-                    {% if specialty.unavailable_doctors %}
-                    <div>
-                        <h3 class="text-sm font-medium text-gray-500 mb-2">Not Available</h3>
-                        <ul class="space-y-2">
-                            {% for doctor in specialty.unavailable_doctors %}
-                            <li class="flex items-center justify-between">
-                                <span class="text-gray-700">{{ doctor.name }}</span>
-                                <span class="text-red-600 text-sm">Not Available</span>
-                            </li>
-                            {% endfor %}
-                        </ul>
-                    </div>
-                    {% endif %}
-                </div>
+        <div class="specialty-card bg-white rounded-lg shadow p-4 border">
+          <div class="flex items-start justify-between">
+            <div>
+              <h3 class="text-lg font-semibold">{{ specialty.name }}</h3>
+              {% if specialty.description %}
+              <p class="text-gray-600 text-sm mt-1">{{ specialty.description }}</p>
+              {% endif %}
             </div>
+            {% if session.user.role == 'admin' %}
+            <form method="POST" action="{{ url_for('dashboard.delete_specialty', specialty_id=specialty.id) }}"
+                  class="ml-2">
+              <button type="submit" onclick="return confirm('Are you sure you want to delete this specialty?')"
+                      class="text-red-600 hover:text-red-800">
+                <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/>
+                </svg>
+              </button>
+            </form>
+            {% endif %}
+          </div>
         </div>
         {% endfor %}
+      </div>
     </div>
+  </div>
+
+  <!-- Doctor-Specialty Matrix -->
+  <div class="mt-8">
+    <h2 class="text-lg font-semibold mb-4">Doctor Specialty Permissions</h2>
+    <div class="overflow-x-auto">
+      <table class="min-w-full bg-white border">
+        <thead>
+          <tr>
+            <th class="sticky left-0 bg-gray-100 border-b px-4 py-2 text-left">Doctor</th>
+            {% for specialty in specialties %}
+            <th class="border-b px-4 py-2 text-center whitespace-nowrap">
+              <div class="flex items-center justify-center">
+                {{ specialty.name }}
+                {% if specialty.description %}
+                <span class="ml-1 group relative">
+                  <svg class="w-4 h-4 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/>
+                  </svg>
+                  <span class="hidden group-hover:block absolute z-10 w-96 p-2 mt-1 text-sm text-white bg-gray-800 rounded-lg">
+                    {{ specialty.description }}
+                  </span>
+                </span>
+                {% endif %}
+              </div>
+            </th>
+            {% endfor %}
+          </tr>
+        </thead>
+        <tbody>
+          {% for doctor in doctors %}
+          <tr class="doctor-row hover:bg-gray-50">
+            <td class="sticky left-0 bg-white border-b px-4 py-2 font-medium">{{ doctor.name }}</td>
+            {% for specialty in specialties %}
+            <td class="border-b px-4 py-2 text-center">
+              {% if session.user.role == 'admin' %}
+              <label class="inline-flex items-center justify-center">
+                <input type="checkbox" 
+                       class="form-checkbox h-5 w-5 text-blue-600 permission-checkbox"
+                       data-radiologist-id="{{ doctor.id }}"
+                       data-specialty-id="{{ specialty.id }}"
+                       {% if permission_map.get(doctor.id, {}).get(specialty.id) %}checked{% endif %}
+                       onchange="updatePermission(this)">
+              </label>
+              {% else %}
+              <span class="inline-flex items-center justify-center">
+                {% if permission_map.get(doctor.id, {}).get(specialty.id) %}
+                <svg class="w-5 h-5 text-green-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"/>
+                </svg>
+                {% else %}
+                <svg class="w-5 h-5 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/>
+                </svg>
+                {% endif %}
+              </span>
+              {% endif %}
+            </td>
+            {% endfor %}
+          </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
+  </div>
 </div>
 
+<!-- Add Specialty Modal -->
+<div id="addSpecialtyModal" class="fixed inset-0 z-50 hidden bg-black bg-opacity-50 flex items-center justify-center">
+  <div class="bg-white rounded-lg shadow-lg w-[90%] max-w-md p-6">
+    <div class="flex justify-between items-center mb-4">
+      <h3 class="text-lg font-semibold">Add New Specialty</h3>
+      <button onclick="closeAddSpecialtyModal()" class="text-gray-500 hover:text-gray-700">
+        <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/>
+        </svg>
+      </button>
+    </div>
+
+    <form method="POST" action="{{ url_for('dashboard.add_specialty') }}">
+      <div class="mb-4">
+        <label class="block text-sm font-medium text-gray-700 mb-1">Specialty Name</label>
+        <input type="text" name="name" required
+               class="w-full px-3 py-2 border rounded text-sm">
+      </div>
+
+      <div class="mb-4">
+        <label class="block text-sm font-medium text-gray-700 mb-1">Description</label>
+        <textarea name="description" rows="3"
+                  class="w-full px-3 py-2 border rounded text-sm"></textarea>
+      </div>
+
+      <div class="flex justify-end">
+        <button type="submit" class="bg-blue-600 text-white px-4 py-2 rounded text-sm font-medium">
+          Add Specialty
+        </button>
+      </div>
+    </form>
+  </div>
+</div>
+
+<script src="//unpkg.com/alpinejs" defer></script>
 <script>
-document.addEventListener('DOMContentLoaded', function() {
-    const searchInput = document.getElementById('specialtySearch');
-    const showAllBtn = document.getElementById('showAllBtn');
-    const showAvailableBtn = document.getElementById('showAvailableBtn');
-    const specialtyCards = document.querySelectorAll('.bg-white.rounded-lg');
+function openAddSpecialtyModal() {
+  document.getElementById('addSpecialtyModal').classList.remove('hidden');
+}
 
-    function filterSpecialties() {
-        const searchTerm = searchInput.value.toLowerCase();
-        
-        specialtyCards.forEach(card => {
-            const specialtyName = card.querySelector('h2').textContent.toLowerCase();
-            const doctorNames = Array.from(card.querySelectorAll('li span:first-child'))
-                .map(span => span.textContent.toLowerCase());
-            
-            const matchesSearch = specialtyName.includes(searchTerm) || 
-                                doctorNames.some(name => name.includes(searchTerm));
-            
-            card.style.display = matchesSearch ? 'block' : 'none';
-        });
+function closeAddSpecialtyModal() {
+  document.getElementById('addSpecialtyModal').classList.add('hidden');
+}
+
+function updatePermission(checkbox) {
+  const radiologist_id = checkbox.dataset.radiologistId;
+  const specialty_id = checkbox.dataset.specialtyId;
+  const can_read = checkbox.checked;
+
+  fetch("{{ url_for('dashboard.update_specialty_permission') }}", {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/x-www-form-urlencoded',
+    },
+    body: `radiologist_id=${radiologist_id}&specialty_id=${specialty_id}&can_read=${can_read}`
+  })
+  .then(response => response.json())
+  .then(data => {
+    if (data.status !== 'success') {
+      checkbox.checked = !checkbox.checked; // Revert on failure
+      alert('Failed to update permission');
     }
+  })
+  .catch(error => {
+    checkbox.checked = !checkbox.checked; // Revert on error
+    alert('Error updating permission');
+  });
+}
 
-    function showAll() {
-        specialtyCards.forEach(card => {
-            card.style.display = 'block';
-        });
+function filterTable() {
+  const doctorQuery = document.getElementById('doctorSearch').value.toLowerCase();
+  const specialtyQuery = document.getElementById('specialtySearch').value.toLowerCase();
+  
+  // Filter specialty cards
+  const cards = document.querySelectorAll('.specialty-card');
+  cards.forEach(card => {
+    const name = card.querySelector('h3').textContent.toLowerCase();
+    const description = card.querySelector('p')?.textContent.toLowerCase() || '';
+    
+    if (name.includes(specialtyQuery) || description.includes(specialtyQuery)) {
+      card.style.display = '';
+    } else {
+      card.style.display = 'none';
     }
-
-    function showAvailable() {
-        specialtyCards.forEach(card => {
-            const hasAvailableDoctors = card.querySelector('.text-green-600') !== null;
-            card.style.display = hasAvailableDoctors ? 'block' : 'none';
-        });
+  });
+  
+  // Get all specialty headers
+  const specialtyHeaders = document.querySelectorAll('thead th:not(:first-child)');
+  const specialtyIndexes = new Set();
+  
+  // Filter specialties in matrix
+  specialtyHeaders.forEach((header, index) => {
+    const specialtyName = header.textContent.toLowerCase();
+    if (specialtyName.includes(specialtyQuery)) {
+      specialtyIndexes.add(index + 1); // +1 because of doctor name column
+      header.style.display = '';
+    } else {
+      header.style.display = 'none';
     }
-
-    searchInput.addEventListener('input', filterSpecialties);
-    showAllBtn.addEventListener('click', showAll);
-    showAvailableBtn.addEventListener('click', showAvailable);
-});
+  });
+  
+  // Filter doctors and their corresponding specialty cells
+  const rows = document.querySelectorAll('.doctor-row');
+  rows.forEach(row => {
+    const doctorName = row.cells[0].textContent.toLowerCase();
+    const showRow = doctorName.includes(doctorQuery);
+    
+    if (showRow) {
+      row.style.display = '';
+      // Show/hide specialty cells based on specialty filter
+      Array.from(row.cells).forEach((cell, index) => {
+        if (index > 0) { // Skip doctor name cell
+          cell.style.display = specialtyIndexes.has(index) ? '' : 'none';
+        }
+      });
+    } else {
+      row.style.display = 'none';
+    }
+  });
+}
 </script>
 {% endblock %} 

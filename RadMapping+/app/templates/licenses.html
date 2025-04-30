@@ -4,13 +4,26 @@
 {% block content %}
 <h2 class="text-2xl font-semibold mb-4">Licenses</h2>
 
-<div class="mb-4">
-  <input
-    type="text"
-    id="licenseSearch"
-    placeholder="Search licenses..."
-    class="w-full p-2 border rounded"
-    onkeyup="filterLicenses()" />
+<div class="mb-4 flex gap-4">
+  <div class="flex-1">
+    <input
+      type="text"
+      id="licenseSearch"
+      placeholder="Search licenses..."
+      class="w-full p-2 border rounded"
+      onkeyup="filterLicenses()" />
+  </div>
+  <div class="w-64">
+    <select
+      id="doctorFilter"
+      class="w-full p-2 border rounded"
+      onchange="filterLicenses()">
+      <option value="">All Doctors</option>
+      {% for rad in radiologists %}
+      <option value="{{ rad.id }}">{{ rad.name }}</option>
+      {% endfor %}
+    </select>
+  </div>
 </div>
 
 <!-- Licenses Table -->
@@ -31,17 +44,54 @@
       </thead>
       <tbody>
         {% for cert in certifications %}
-        <tr class="hover:bg-gray-50">
-          <td class="px-6 py-4 border">{{ cert.radiologists.name }}</td>
-          <td class="px-6 py-4 border">{{ cert.state }}</td>
-          <td class="px-6 py-4 border">{{ cert.specialty }}</td>
-          <td class="px-6 py-4 border">{{ cert.status }}</td>
-          <td class="px-6 py-4 border">{{ cert.tags }}</td>
-          <td class="px-6 py-4 border">{{ cert.expiration_date }}</td>
+        {% set is_expired = cert.status == 'Expired' or cert.status == 'Revoked' or (cert.expiration_date and cert.expiration_date < now.strftime('%Y-%m-%d')) %}
+        <tr id="license-row-{{ cert.id }}" 
+            class="hover:bg-opacity-80 {% if is_expired %}bg-red-50{% else %}bg-green-50{% endif %}"
+            data-doctor-id="{{ cert.radiologist_id }}">
           <td class="px-6 py-4 border">
-            <form method="POST" action="{{ url_for('dashboard.delete_certification', rad_id=cert.radiologist_id, cert_id=cert.id) }}" class="inline">
-              <button type="submit" class="text-red-600 hover:text-red-800">Delete</button>
-            </form>
+            <span class="view-mode">{{ cert.radiologists.name }}</span>
+            <select class="edit-mode hidden w-full px-2 py-1 border rounded">
+              {% for rad in radiologists %}
+              <option value="{{ rad.id }}" {% if rad.id == cert.radiologist_id %}selected{% endif %}>{{ rad.name }}</option>
+              {% endfor %}
+            </select>
+          </td>
+          <td class="px-6 py-4 border">
+            <span class="view-mode">{{ cert.state }}</span>
+            <input type="text" class="edit-mode hidden w-full px-2 py-1 border rounded" value="{{ cert.state }}">
+          </td>
+          <td class="px-6 py-4 border">
+            <span class="view-mode">{{ cert.specialty }}</span>
+            <input type="text" class="edit-mode hidden w-full px-2 py-1 border rounded" value="{{ cert.specialty }}">
+          </td>
+          <td class="px-6 py-4 border">
+            <span class="view-mode">{{ cert.status }}</span>
+            <select class="edit-mode hidden w-full px-2 py-1 border rounded">
+              <option value="Active" {% if cert.status == 'Active' %}selected{% endif %}>Active</option>
+              <option value="Pending" {% if cert.status == 'Pending' %}selected{% endif %}>Pending</option>
+              <option value="Expired" {% if cert.status == 'Expired' %}selected{% endif %}>Expired</option>
+              <option value="Revoked" {% if cert.status == 'Revoked' %}selected{% endif %}>Revoked</option>
+            </select>
+          </td>
+          <td class="px-6 py-4 border">
+            <span class="view-mode">{{ cert.tags }}</span>
+            <input type="text" class="edit-mode hidden w-full px-2 py-1 border rounded" value="{{ cert.tags }}">
+          </td>
+          <td class="px-6 py-4 border">
+            <span class="view-mode">{{ cert.expiration_date }}</span>
+            <input type="date" class="edit-mode hidden w-full px-2 py-1 border rounded" value="{{ cert.expiration_date }}">
+          </td>
+          <td class="px-6 py-4 border">
+            <div class="view-mode">
+              <button onclick="toggleEditMode('{{ cert.id }}')" class="text-blue-600 hover:text-blue-900 mr-3">Edit</button>
+              <form method="POST" action="{{ url_for('dashboard.delete_certification', rad_id=cert.radiologist_id, cert_id=cert.id) }}" class="inline">
+                <button type="submit" class="text-red-600 hover:text-red-800">Delete</button>
+              </form>
+            </div>
+            <div class="edit-mode hidden">
+              <button onclick="saveLicense('{{ cert.id }}')" class="text-green-600 hover:text-green-900 mr-3">Save</button>
+              <button onclick="cancelEdit('{{ cert.id }}')" class="text-gray-600 hover:text-gray-900">Cancel</button>
+            </div>
           </td>
         </tr>
         {% endfor %}
@@ -53,28 +103,71 @@
 <script>
 function filterLicenses() {
   const searchInput = document.getElementById('licenseSearch');
-  const filter = searchInput.value.toLowerCase();
+  const doctorFilter = document.getElementById('doctorFilter');
+  const searchFilter = searchInput.value.toLowerCase();
+  const selectedDoctor = doctorFilter.value;
   const table = document.getElementById('licensesTable');
   const rows = table.getElementsByTagName('tr');
 
   for (let i = 1; i < rows.length; i++) {
     const row = rows[i];
     const cells = row.getElementsByTagName('td');
-    let shouldShow = false;
+    let shouldShow = true;
 
-    for (let j = 0; j < cells.length; j++) {
-      const cell = cells[j];
-      if (cell) {
-        const text = cell.textContent || cell.innerText;
-        if (text.toLowerCase().indexOf(filter) > -1) {
-          shouldShow = true;
-          break;
+    // Check doctor filter
+    if (selectedDoctor && row.dataset.doctorId !== selectedDoctor) {
+      shouldShow = false;
+    }
+
+    // If doctor filter passes, check text search
+    if (shouldShow) {
+      let textMatch = false;
+      for (let j = 0; j < cells.length; j++) {
+        const cell = cells[j];
+        if (cell) {
+          const text = cell.textContent || cell.innerText;
+          if (text.toLowerCase().indexOf(searchFilter) > -1) {
+            textMatch = true;
+            break;
+          }
         }
       }
+      shouldShow = textMatch;
     }
 
     row.style.display = shouldShow ? '' : 'none';
   }
+}
+
+function toggleEditMode(licenseId) {
+  const row = document.getElementById(`license-row-${licenseId}`);
+  row.querySelectorAll('.view-mode').forEach(el => el.classList.add('hidden'));
+  row.querySelectorAll('.edit-mode').forEach(el => el.classList.remove('hidden'));
+}
+
+function cancelEdit(licenseId) {
+  const row = document.getElementById(`license-row-${licenseId}`);
+  row.querySelectorAll('.edit-mode').forEach(el => el.classList.add('hidden'));
+  row.querySelectorAll('.view-mode').forEach(el => el.classList.remove('hidden'));
+}
+
+function saveLicense(licenseId) {
+  const row = document.getElementById(`license-row-${licenseId}`);
+  const formData = new FormData();
+  
+  formData.append('radiologist_id', row.querySelector('select').value);
+  formData.append('state', row.querySelector('input[type="text"]').value);
+  formData.append('specialty', row.querySelectorAll('input[type="text"]')[1].value);
+  formData.append('status', row.querySelectorAll('select')[1].value);
+  formData.append('tags', row.querySelectorAll('input[type="text"]')[2].value);
+  formData.append('expiration_date', row.querySelector('input[type="date"]').value);
+
+  fetch(`/dashboard/licenses/${licenseId}/update`, {
+    method: 'POST',
+    body: formData
+  }).then(() => {
+    window.location.reload();
+  });
 }
 </script>
 {% endblock %} 
