@@ -370,7 +370,7 @@ def update_facility(facility_id):
         'pacs': form.get('pacs'),
         'tat_definition': form.get('tat_definition'),
         'modalities_assignment_period': form.get('modalities_assignment_period'),
-        'active_status': form.get('active_status') == 'true',
+        'active_status': 'true' if form.get('active_status') == 'true' else 'false',
     }).eq('id', facility_id).execute()
     return redirect(url_for('dashboard.facility_profile', facility_id=facility_id))
 

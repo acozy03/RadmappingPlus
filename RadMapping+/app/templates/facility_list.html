@@ -5,25 +5,45 @@
 
 <h2 class="text-2xl font-semibold mb-6 border-b pb-2">Facilities</h2>
 
-<!-- Search Box -->
-<input type="text"
-       id="facilitySearch"
-       placeholder="Search by name or location..."
-       class="w-full mb-6 p-3 border rounded text-sm"
-       onkeyup="filterFacilities()" />
+<div class="flex flex-col md:flex-row gap-4 mb-6">
+  <!-- Search Box -->
+  <input type="text"
+         id="facilitySearch"
+         placeholder="Search by name or location..."
+         class="w-full md:w-1/2 p-3 border rounded text-sm"
+         onkeyup="filterFacilities()" />
 
-<!-- Facility List -->
-<ul id="facilityList" class="space-y-4">
+  <!-- Filter Buttons -->
+  <div class="flex gap-2">
+    <button onclick="filterByStatus('all')" 
+            class="px-4 py-2 rounded text-sm font-medium bg-gray-100 hover:bg-gray-200 active-filter" 
+            data-status="all">
+      All
+    </button>
+    <button onclick="filterByStatus('true')" 
+            class="px-4 py-2 rounded text-sm font-medium bg-gray-100 hover:bg-gray-200" 
+            data-status="true">
+      Active
+    </button>
+    <button onclick="filterByStatus('false')" 
+            class="px-4 py-2 rounded text-sm font-medium bg-gray-100 hover:bg-gray-200" 
+            data-status="false">
+      Inactive
+    </button>
+  </div>
+</div>
+
+<!-- Facility Grid -->
+<div id="facilityList" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
   {% for fac in facilities %}
-  <li class="relative flex items-center justify-between p-4 bg-gray-50 rounded hover:bg-gray-100 cursor-pointer facility-item"
-      onclick="window.location.href='{{ url_for('dashboard.facility_profile', facility_id=fac.id) }}'"
-      onmouseenter="showPopup(this)""
-      onmouseleave="hidePopup(this)">
-    <div>
+  <div class="relative bg-gray-50 rounded hover:bg-gray-100 cursor-pointer facility-item group"
+       onclick="window.location.href='{{ url_for('dashboard.facility_profile', facility_id=fac.id) }}'"
+       data-status="{{ fac.active_status }}">
+    <div class="p-4">
       <p class="text-lg font-medium name">{{ fac.name }}</p>
       <p class="text-sm text-gray-500 location">{{ fac.location }}</p>
+      <span class="text-blue-600 font-semibold text-sm mt-2 inline-block">Details →</span>
     </div>
-    <span class="text-blue-600 font-semibold">Details →</span>
 
     <!-- Hover Popup -->
     <div class="facility-popup absolute left-0 top-full mt-2 w-[20rem] bg-white border p-3 rounded shadow-md text-left pointer-events-none opacity-0 transition-opacity duration-150 z-50">
@@ -31,46 +51,83 @@
       <p class="text-sm font-medium">Modalities: <span class="text-gray-700">{{ fac.modalities_assignment_period or 'N/A' }}</span></p>
       <p class="text-sm font-medium">TAT: <span class="text-gray-700">{{ fac.tat_definition or 'N/A' }}</span></p>
       <p class="text-sm font-medium">Status:
-        {% if fac.active_status %}
+        {% if fac.active_status == 'true' %}
           <span class="text-green-600">Active</span>
         {% else %}
           <span class="text-red-600">Inactive</span>
         {% endif %}
       </p>
     </div>
-  </li>
+  </div>
   {% endfor %}
-</ul>
+</div>
 
 <!-- Scripts -->
 <script>
+  let currentStatusFilter = 'all';
+  let currentSearchTerm = '';
+
   function filterFacilities() {
-    const input = document.getElementById("facilitySearch").value.toLowerCase();
+    currentSearchTerm = document.getElementById("facilitySearch").value.toLowerCase();
+    applyFilters();
+  }
+
+  function filterByStatus(status) {
+    currentStatusFilter = status;
+    
+    // Update active button styling
+    document.querySelectorAll('[data-status]').forEach(button => {
+      if (button.classList.contains('active-filter')) {
+        button.classList.remove('active-filter', 'bg-blue-600', 'text-white');
+        button.classList.add('bg-gray-100');
+      }
+    });
+    
+    const activeButton = document.querySelector(`[data-status="${status}"]`);
+    if (activeButton) {
+      activeButton.classList.remove('bg-gray-100');
+      activeButton.classList.add('active-filter', 'bg-blue-600', 'text-white');
+    }
+    
+    applyFilters();
+  }
+
+  function applyFilters() {
     const facilities = document.querySelectorAll(".facility-item");
 
     facilities.forEach(fac => {
       const name = fac.querySelector(".name").textContent.toLowerCase();
       const location = fac.querySelector(".location").textContent.toLowerCase();
-      const match = name.includes(input) || location.includes(input);
-      fac.style.display = match ? "flex" : "none";
+      const status = fac.getAttribute('data-status');
+      
+      const matchesSearch = name.includes(currentSearchTerm) || location.includes(currentSearchTerm);
+      const matchesStatus = currentStatusFilter === 'all' || status === currentStatusFilter;
+      
+      fac.style.display = (matchesSearch && matchesStatus) ? "block" : "none";
     });
   }
 
-  function showPopup(parent) {
-    const popup = parent.querySelector('.facility-popup');
-    if (popup) {
-      popup.classList.remove('opacity-0');
-      popup.classList.add('opacity-100');
-    }
-  }
+  // Add hover event listeners to all facility items
+  document.querySelectorAll('.facility-item').forEach(item => {
+    item.addEventListener('mouseenter', () => {
+      const popup = item.querySelector('.facility-popup');
+      if (popup) {
+        popup.classList.remove('opacity-0');
+        popup.classList.add('opacity-100');
+      }
+    });
 
-  function hidePopup(parent) {
-    const popup = parent.querySelector('.facility-popup');
-    if (popup) {
-      popup.classList.remove('opacity-100');
-      popup.classList.add('opacity-0');
-    }
-  }
+    item.addEventListener('mouseleave', () => {
+      const popup = item.querySelector('.facility-popup');
+      if (popup) {
+        popup.classList.remove('opacity-100');
+        popup.classList.add('opacity-0');
+      }
+    });
+  });
+
+  // Initialize with "All" filter active
+  document.querySelector('[data-status="all"]').classList.add('active-filter', 'bg-blue-600', 'text-white');
 </script>
 
 {% endblock %}

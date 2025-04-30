@@ -35,7 +35,7 @@
     </label>
     
     <label class="flex items-center space-x-2 mt-4">
-      <input type="checkbox" name="active_status" value="true" {% if facility.active_status %}checked{% endif %} class="form-checkbox h-5 w-5 text-blue-600">
+      <input type="checkbox" name="active_status" value="true" {% if facility.active_status == 'true' %}checked{% endif %} class="form-checkbox h-5 w-5 text-blue-600">
       <span class="text-sm font-medium">Active</span>
     </label>
     
@@ -52,7 +52,7 @@
     <p><strong>TAT Definition:</strong> {{ facility.tat_definition }}</p>
     <p><strong>Modalities:</strong> {{ facility.modalities_assignment_period }}</p>
     <p><strong>Status:</strong>
-      {% if facility.active_status %}
+      {% if facility.active_status == 'true' %}
         <span class="text-green-600 font-medium">Active</span>
       {% else %}
         <span class="text-red-600 font-medium">Inactive</span>
