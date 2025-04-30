@@ -77,17 +77,47 @@
                             <th class="px-6 py-3 bg-gray-50 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Back-Up #</th>
                             <th class="px-6 py-3 bg-gray-50 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Email</th>
                             <th class="px-6 py-3 bg-gray-50 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Additional Info</th>
+                            {% if session.user.role == 'admin' %}
+                            <th class="px-6 py-3 bg-gray-50 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Actions</th>
+                            {% endif %}
                         </tr>
                     </thead>
                     <tbody class="bg-white divide-y divide-gray-200">
                         {% for contact in contacts %}
                             {% if contact.department == department %}
-                            <tr>
-                                <td class="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">{{ contact.name }}</td>
-                                <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">{{ contact.contact_number }}</td>
-                                <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">{{ contact.backup_number or '-' }}</td>
-                                <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">{{ contact.email }}</td>
-                                <td class="px-6 py-4 text-sm text-gray-500">{{ contact.additional_info or '-' }}</td>
+                            <tr id="contact-row-{{ contact.id }}">
+                                <td class="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">
+                                    <span class="view-mode">{{ contact.name }}</span>
+                                    <input type="text" class="edit-mode hidden w-full px-2 py-1 border rounded" value="{{ contact.name }}">
+                                </td>
+                                <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
+                                    <span class="view-mode">{{ contact.contact_number }}</span>
+                                    <input type="tel" class="edit-mode hidden w-full px-2 py-1 border rounded" value="{{ contact.contact_number }}">
+                                </td>
+                                <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
+                                    <span class="view-mode">{{ contact.backup_number or '-' }}</span>
+                                    <input type="tel" class="edit-mode hidden w-full px-2 py-1 border rounded" value="{{ contact.backup_number or '' }}">
+                                </td>
+                                <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
+                                    <span class="view-mode">{{ contact.email }}</span>
+                                    <input type="email" class="edit-mode hidden w-full px-2 py-1 border rounded" value="{{ contact.email }}">
+                                </td>
+                                <td class="px-6 py-4 text-sm text-gray-500">
+                                    <span class="view-mode">{{ contact.additional_info or '-' }}</span>
+                                    <textarea class="edit-mode hidden w-full px-2 py-1 border rounded">{{ contact.additional_info or '' }}</textarea>
+                                </td>
+                                {% if session.user.role == 'admin' %}
+                                <td class="px-6 py-4 whitespace-nowrap text-sm font-medium">
+                                    <div class="view-mode">
+                                        <button onclick="toggleEditMode('{{ contact.id }}')" class="text-blue-600 hover:text-blue-900 mr-3">Edit</button>
+                                        <button onclick="deleteContact('{{ contact.id }}')" class="text-red-600 hover:text-red-900">Delete</button>
+                                    </div>
+                                    <div class="edit-mode hidden">
+                                        <button onclick="saveContact('{{ contact.id }}')" class="text-green-600 hover:text-green-900 mr-3">Save</button>
+                                        <button onclick="cancelEdit('{{ contact.id }}')" class="text-gray-600 hover:text-gray-900">Cancel</button>
+                                    </div>
+                                </td>
+                                {% endif %}
                             </tr>
                             {% endif %}
                         {% endfor %}
@@ -98,4 +128,47 @@
         {% endfor %}
     </div>
 </div>
+
+<script>
+function toggleEditMode(contactId) {
+    const row = document.getElementById(`contact-row-${contactId}`);
+    row.querySelectorAll('.view-mode').forEach(el => el.classList.add('hidden'));
+    row.querySelectorAll('.edit-mode').forEach(el => el.classList.remove('hidden'));
+}
+
+function cancelEdit(contactId) {
+    const row = document.getElementById(`contact-row-${contactId}`);
+    row.querySelectorAll('.edit-mode').forEach(el => el.classList.add('hidden'));
+    row.querySelectorAll('.view-mode').forEach(el => el.classList.remove('hidden'));
+}
+
+function saveContact(contactId) {
+    const row = document.getElementById(`contact-row-${contactId}`);
+    const formData = new FormData();
+    
+    formData.append('name', row.querySelector('input[type="text"]').value);
+    formData.append('contact_number', row.querySelector('input[type="tel"]').value);
+    formData.append('backup_number', row.querySelectorAll('input[type="tel"]')[1].value);
+    formData.append('email', row.querySelector('input[type="email"]').value);
+    formData.append('additional_info', row.querySelector('textarea').value);
+    formData.append('department', row.closest('section').querySelector('h2').textContent.trim());
+
+    fetch(`/dashboard/contacts/${contactId}/edit`, {
+        method: 'POST',
+        body: formData
+    }).then(() => {
+        window.location.reload();
+    });
+}
+
+function deleteContact(contactId) {
+    if (confirm('Are you sure you want to delete this contact?')) {
+        fetch(`/dashboard/contacts/${contactId}/delete`, {
+            method: 'POST'
+        }).then(() => {
+            window.location.reload();
+        });
+    }
+}
+</script>
 {% endblock %} 

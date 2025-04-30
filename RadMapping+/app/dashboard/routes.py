@@ -7,6 +7,8 @@ from collections import defaultdict
 import uuid  
 import calendar as pycalendar
 import pytz
+import ollama
+import json
 
 dashboard_bp = Blueprint('dashboard', __name__)
 
@@ -445,56 +447,176 @@ def licenses_page():
 @dashboard_bp.route('/chat', methods=['POST'])
 @login_required
 def chat():
-    from llama_index.core import Settings
-    from llama_index.llms.openai import OpenAI
-    import os
+    data = request.get_json()
+    question = data.get('question', '')
+    
+    # Create schema description with accurate table information
+    schema = """
+    Tables in the database:
+    1. vesta_contacts (
+        id uuid,
+        name text,
+        department text,
+        contact_number text,
+        backup_number text,
+        email text,
+        additional_info text,
+        created_at timestamptz,
+        updated_at timestamptz
+    )
+    
+    2. radiologists (
+        id uuid,
+        name text,
+        pacs text,
+        primary_contact_method text,
+        phone text,
+        email text,
+        active_status bool,
+        schedule_info_est text,
+        additional_info text,
+        credentialing_contact text,
+        rad_guidelines text,
+        modalities text,
+        timezone text,
+        reads_routines bool
+    )
+    
+    3. certifications (
+        id uuid,
+        radiologist_id uuid REFERENCES radiologists(id),
+        state text,
+        expiration_date date,
+        status text,
+        specialty text,
+        tags text
+    )
+    
+    4. monthly_schedule (
+        id uuid,
+        radiologist_id uuid REFERENCES radiologists(id),
+        date date,
+        start_time time,
+        end_time time,
+        schedule_details text,
+        notes text
+    )
+    
+    5. specialty_studies (
+        id uuid,
+        name text,
+        description text
+    )
+    
+    6. specialty_permissions (
+        id uuid,
+        radiologist_id uuid REFERENCES radiologists(id),
+        specialty_id uuid REFERENCES specialty_studies(id),
+        can_read bool
+    )
+    
+    7. facilities (
+        id uuid,
+        name text,
+        pacs text,
+        location text,
+        modalities_assignment_period text,
+        tat_definition text,
+        active_status text
+    )
+    
+    8. doctor_facility_assignments (
+        id uuid,
+        radiologist_id uuid REFERENCES radiologists(id),
+        facility_id uuid REFERENCES facilities(id),
+        can_read bool,
+        stipulations text,
+        does_stats bool,
+        does_routines bool,
+        notes text
+    )
+    
+    9. facility_contact_assignments (
+        id uuid,
+        facility_id uuid REFERENCES facilities(id),
+        contact_name text,
+        email text,
+        phone text,
+        comments text,
+        role text
+    )
+    
+    10. vacations (
+        id uuid,
+        radiologist_id uuid REFERENCES radiologists(id),
+        start_date date,
+        end_date date,
+        comments text
+    )
+    """
+    
+    # Format the schema as a string
+    schema_str = f"Here is the database schema:\n{schema}"
+    
+    # Build the prompt
+    prompt = f"""You are a helpful assistant for a medical radiology management system. 
+    Use the following schema to answer questions about the database:
+    
+    {schema_str}
+    
+    Question: {question}
+    
+    If the question requires querying the database, respond with a SQL query that can be executed.
+    The SQL query should:
+    1. Use proper table names and column names exactly as shown in the schema
+    2. Include necessary JOINs when querying related tables using the correct foreign key relationships
+    3. Use proper PostgreSQL syntax and formatting
+    4. Be wrapped in ```sql``` code blocks
+    5. Consider data types (uuid, text, date, time, bool, timestamptz) when writing conditions
+    6. DO NOT include semicolons at the end of queries
+    
+    If the question is about the schema or general information, provide a helpful response.
+    """
+    
+    # Get response from Ollama
+    response = ollama.chat(model='mistral', messages=[
+        {
+            'role': 'user',
+            'content': prompt
+        }
+    ])
+    
+    # Extract the response text
+    response_text = response['message']['content']
+    
+    # Check if the response contains a SQL query
+    if '```sql' in response_text:
+        try:
+            # Extract the SQL query from the response and remove semicolon if present
+            sql_query = response_text.split('```sql')[1].split('```')[0].strip()
+            sql_query = sql_query.rstrip(';')  # Remove trailing semicolon if present
+            
+            # Log the query for debugging
+            print(f"Executing SQL query: {sql_query}")
+            
+            # Execute the query using the execute_sql function
+            result = supabase.rpc('execute_sql', {'query': sql_query}).execute()
+            
+            # Return both the explanation and the query results
+            return jsonify({
+                'explanation': response_text,
+                'results': result.data
+            })
+        except Exception as e:
+            print(f"Error executing query: {str(e)}")
+            return jsonify({
+                'error': f'Error executing query: {str(e)}',
+                'explanation': response_text,
+                'query': sql_query if 'sql_query' in locals() else None
+            }), 500
+    
+    return jsonify({'response': response_text})
 
-    # Get the user's question
-    question = request.json.get('question')
-    if not question:
-        return jsonify({'error': 'No question provided'}), 400
-
-    try:
-        # Initialize OpenAI
-        llm = OpenAI(api_key=os.getenv('OPENAI_API_KEY'))
-        Settings.llm = llm
-
-        # Get database schema from Supabase
-        tables = [
-            "radiologists",
-            "facilities",
-            "certifications",
-            "doctor_facility_assignments",
-            "monthly_schedule",
-            "vacations"
-        ]
-
-        # Get schema information for each table
-        schema_info = {}
-        for table in tables:
-            response = supabase.table(table).select("*").limit(1).execute()
-            if response.data:
-                # Get column names from the first row
-                schema_info[table] = list(response.data[0].keys())
-
-        # Create a prompt that includes the schema information
-        schema_prompt = "Database Schema:\n"
-        for table, columns in schema_info.items():
-            schema_prompt += f"\n{table} table columns: {', '.join(columns)}"
-
-        # Create the full prompt
-        full_prompt = f"{schema_prompt}\n\nQuestion: {question}\n\nPlease provide a SQL query to answer this question and explain the results."
-
-        # Get response from OpenAI
-        response = llm.complete(full_prompt)
-        
-        return jsonify({
-            'answer': str(response),
-            'sql_query': 'Generated based on Supabase schema'
-        })
-
-    except Exception as e:
-        return jsonify({'error': str(e)}), 500
 
 @dashboard_bp.route('/schedule')
 @login_required
@@ -706,11 +828,10 @@ def vacations_page():
 def add_vacation():
     data = {
         "id": str(uuid.uuid4()),
-        "radiologist_id": request.form.get("doctor_id"),
+        "radiologist_id": request.form.get("radiologist_id"),
         "start_date": request.form.get("start_date"),
         "end_date": request.form.get("end_date"),
-        "status": request.form.get("status"),
-        "notes": request.form.get("notes")
+        "comments": request.form.get("comments")
     }
     supabase.table("vacations").insert(data).execute()
     return redirect(url_for("dashboard.vacations_page"))
@@ -721,11 +842,10 @@ def add_vacation():
 def update_vacation():
     vacation_id = request.form.get("vacation_id")
     data = {
-        "radiologist_id": request.form.get("doctor_id"),
+        "radiologist_id": request.form.get("radiologist_id"),
         "start_date": request.form.get("start_date"),
         "end_date": request.form.get("end_date"),
-        "status": request.form.get("status"),
-        "notes": request.form.get("notes")
+        "comments": request.form.get("comments")
     }
     supabase.table("vacations").update(data).eq("id", vacation_id).execute()
     return redirect(url_for("dashboard.vacations_page"))
@@ -747,7 +867,7 @@ def landing():
 @login_required
 def contacts():
     # Fetch contacts from the database
-    response = supabase.table("contacts").select("*").order("department").execute()
+    response = supabase.table("vesta_contacts").select("*").order("department").execute()
     contacts = response.data
     return render_template("contacts.html", contacts=contacts)
 
@@ -756,14 +876,40 @@ def contacts():
 @admin_required
 def add_contact():
     data = {
+        "id": str(uuid.uuid4()),
         "name": request.form.get("name"),
         "department": request.form.get("department"),
         "contact_number": request.form.get("contact_number"),
         "backup_number": request.form.get("backup_number"),
         "email": request.form.get("email"),
-        "additional_info": request.form.get("additional_info")
+        "additional_info": request.form.get("additional_info"),
+        "created_at": datetime.now().isoformat(),
+        "updated_at": datetime.now().isoformat()
     }
-    supabase.table("contacts").insert(data).execute()
+    supabase.table("vesta_contacts").insert(data).execute()
+    return redirect(url_for("dashboard.contacts"))
+
+@dashboard_bp.route('/contacts/<string:contact_id>/edit', methods=['POST'])
+@login_required
+@admin_required
+def edit_contact(contact_id):
+    data = {
+        "name": request.form.get("name"),
+        "department": request.form.get("department"),
+        "contact_number": request.form.get("contact_number"),
+        "backup_number": request.form.get("backup_number"),
+        "email": request.form.get("email"),
+        "additional_info": request.form.get("additional_info"),
+        "updated_at": datetime.now().isoformat()
+    }
+    supabase.table("vesta_contacts").update(data).eq("id", contact_id).execute()
+    return redirect(url_for("dashboard.contacts"))
+
+@dashboard_bp.route('/contacts/<string:contact_id>/delete', methods=['POST'])
+@login_required
+@admin_required
+def delete_contact(contact_id):
+    supabase.table("vesta_contacts").delete().eq("id", contact_id).execute()
     return redirect(url_for("dashboard.contacts"))
 
 # Add timezone conversion filter
