@@ -1,6 +1,12 @@
 {% extends "layout.html" %}
 {% block title %}Doctor Profile{% endblock %}
 
+{% block head %}
+<link href="https://cdn.jsdelivr.net/npm/select2@4.1.0-rc.0/dist/css/select2.min.css" rel="stylesheet" />
+<script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/select2@4.1.0-rc.0/dist/js/select2.min.js"></script>
+{% endblock %}
+
 {% block content %}
 
 
@@ -84,12 +90,10 @@
   <button onclick="openCertModal()" class="text-blue-600 hover:underline">View Licenses</button>
 </div>
 
-{% if assigned_facilities %}
 <div class="mt-6">
   <h3 class="text-xl font-semibold mb-2">Assigned Facilities</h3>
   <button onclick="openFacilityModal()" class="text-blue-600 hover:underline">View Facilities</button>
 </div>
-{% endif %}
 
 {% if session.user.role == 'admin' %}
 <div class="mt-10">
@@ -369,61 +373,175 @@ document.addEventListener("DOMContentLoaded", attachDayListeners);
   }
   </script>
   
-  <div id="facilityModal" class="fixed inset-0 z-50 hidden bg-black bg-opacity-50 flex items-center justify-center">
-    <div class="bg-white rounded-lg shadow-lg w-[90%] max-w-3xl max-h-[80vh] overflow-y-auto p-6 relative">
-      <button onclick="closeFacilityModal()" class="absolute top-2 right-2 text-2xl font-bold text-gray-500 hover:text-black">×</button>
-      <h3 class="text-xl font-semibold mb-4">Facilities for {{ doctor.name }}</h3>
-  
-      <input type="text" placeholder="Search facilities..." oninput="filterFacilities(this.value)"
-             class="w-full mb-4 px-3 py-2 border rounded text-sm">
-      
-      
-             <ul id="facilityList" class="space-y-3 text-sm">
-              {% for assignment in assigned_facilities %}
-              <form method="POST" action="{{ url_for('dashboard.update_assignment', assignment_id=assignment.id) }}">
-                <li class="border rounded p-3 bg-gray-50 facility-item">
-                  <div class="flex items-center justify-between">
-                    <div class="text-gray-700 font-medium">{{ assignment.facilities.name }}</div>
-                    <div class="flex items-center gap-2">
-                      <label><input type="checkbox" name="can_read" {% if assignment.can_read %}checked{% endif %}> Read</label>
-                      <label><input type="checkbox" name="does_stats" {% if assignment.does_stats %}checked{% endif %}> Stats</label>
-                      <label><input type="checkbox" name="does_routines" {% if assignment.does_routines %}checked{% endif %}> Routine</label>
-                    </div>
-                  </div>
-            
-                  <textarea name="stipulations" class="w-full border rounded mt-2" placeholder="Stipulations">{{ assignment.stipulations }}</textarea>
-                  <textarea name="notes" class="w-full border rounded mt-2" placeholder="Notes">{{ assignment.notes }}</textarea>
-            
-                  <button type="submit" class="bg-blue-600 text-white text-sm px-3 py-1 rounded mt-2">Save Changes</button>
-                </li>
-              </form>
-              {% endfor %}
-            </ul>
-            
-            
-            
-    </div>
-  </div>
-  
+<div id="facilityModal" class="fixed inset-0 z-50 hidden bg-black bg-opacity-50 flex items-center justify-center">
+  <div class="bg-white rounded-lg shadow-lg w-[90%] max-w-3xl max-h-[80vh] overflow-y-auto p-6 relative">
+    <button onclick="closeFacilityModal()" class="absolute top-2 right-2 text-2xl font-bold text-gray-500 hover:text-black">×</button>
+    <h3 class="text-xl font-semibold mb-4">Facilities for {{ doctor.name }}</h3>
 
-  <script>
-    function openFacilityModal() {
-      document.getElementById('facilityModal').classList.remove('hidden');
-    }
+    <div class="flex justify-between items-center mb-4">
+      <input type="text" placeholder="Search facilities..." oninput="filterFacilities(this.value)"
+             class="w-full mr-4 px-3 py-2 border rounded text-sm">
+      <button onclick="openAddFacilityModal()" class="bg-blue-600 text-white px-4 py-2 rounded text-sm font-medium">
+        Add Facility
+      </button>
+    </div>
     
-    function closeFacilityModal() {
-      document.getElementById('facilityModal').classList.add('hidden');
-    }
+    <ul id="facilityList" class="space-y-3 text-sm">
+      {% for assignment in assigned_facilities %}
+      <form method="POST" action="{{ url_for('dashboard.update_assignment', assignment_id=assignment.id) }}">
+        <li class="border rounded p-3 bg-gray-50 facility-item">
+          <div class="flex items-center justify-between">
+            <div class="text-gray-700 font-medium">{{ assignment.facilities.name }}</div>
+            <div class="flex items-center gap-2">
+              <label><input type="checkbox" name="can_read" {% if assignment.can_read %}checked{% endif %}> Read</label>
+              <label><input type="checkbox" name="does_stats" {% if assignment.does_stats %}checked{% endif %}> Stats</label>
+              <label><input type="checkbox" name="does_routines" {% if assignment.does_routines %}checked{% endif %}> Routine</label>
+            </div>
+          </div>
     
-    function filterFacilities(query) {
-      const items = document.querySelectorAll('.facility-item');
-      const q = query.toLowerCase();
+          <textarea name="stipulations" class="w-full border rounded mt-2" placeholder="Stipulations">{{ assignment.stipulations }}</textarea>
+          <textarea name="notes" class="w-full border rounded mt-2" placeholder="Notes">{{ assignment.notes }}</textarea>
     
-      items.forEach(item => {
-        const text = item.innerText.toLowerCase();
-        item.style.display = text.includes(q) ? '' : 'none';
+          <div class="flex justify-between items-center mt-2">
+            <button type="submit" class="bg-blue-600 text-white text-sm px-3 py-1 rounded">Save Changes</button>
+            <button type="button" onclick="deleteAssignment('{{ assignment.id }}')" class="text-red-600 text-sm hover:underline">Remove Assignment</button>
+          </div>
+        </li>
+      </form>
+      {% else %}
+      <li class="text-gray-500 italic text-center py-4">No facilities assigned yet.</li>
+      {% endfor %}
+    </ul>
+  </div>
+</div>
+
+<!-- Add Facility Modal -->
+<div id="addFacilityModal" class="fixed inset-0 z-50 hidden bg-black bg-opacity-50 flex items-center justify-center">
+  <div class="bg-white rounded-lg shadow-lg w-[90%] max-w-2xl p-6 relative">
+    <button onclick="closeAddFacilityModal()" class="absolute top-2 right-2 text-2xl font-bold text-gray-500 hover:text-black">×</button>
+    <h3 class="text-xl font-semibold mb-4">Add Facility Assignment</h3>
+
+    <form method="POST" action="{{ url_for('dashboard.add_facility_assignment', rad_id=doctor.id) }}" class="space-y-4">
+      <div>
+        <label class="block text-sm font-medium text-gray-700 mb-1">Select Facility</label>
+        <select name="facility_id" required class="w-full border rounded px-3 py-2 text-sm select2-facility">
+          <option value="">Choose a facility...</option>
+          {% for facility in available_facilities %}
+          <option value="{{ facility.id }}">{{ facility.name }}</option>
+          {% endfor %}
+        </select>
+      </div>
+
+      <div class="flex items-center gap-4">
+        <label class="flex items-center">
+          <input type="checkbox" name="can_read" class="form-checkbox h-4 w-4 text-blue-600">
+          <span class="ml-2 text-sm">Can Read</span>
+        </label>
+        <label class="flex items-center">
+          <input type="checkbox" name="does_stats" class="form-checkbox h-4 w-4 text-blue-600">
+          <span class="ml-2 text-sm">Does Stats</span>
+        </label>
+        <label class="flex items-center">
+          <input type="checkbox" name="does_routines" class="form-checkbox h-4 w-4 text-blue-600">
+          <span class="ml-2 text-sm">Does Routines</span>
+        </label>
+      </div>
+
+      <div>
+        <label class="block text-sm font-medium text-gray-700 mb-1">Stipulations</label>
+        <textarea name="stipulations" class="w-full border rounded px-3 py-2 text-sm" rows="2"></textarea>
+      </div>
+
+      <div>
+        <label class="block text-sm font-medium text-gray-700 mb-1">Notes</label>
+        <textarea name="notes" class="w-full border rounded px-3 py-2 text-sm" rows="2"></textarea>
+      </div>
+
+      <div class="flex justify-end">
+        <button type="submit" class="bg-blue-600 text-white px-4 py-2 rounded text-sm font-medium">
+          Add Assignment
+        </button>
+      </div>
+    </form>
+  </div>
+</div>
+
+<script>
+  function openFacilityModal() {
+    document.getElementById('facilityModal').classList.remove('hidden');
+  }
+  
+  function closeFacilityModal() {
+    document.getElementById('facilityModal').classList.add('hidden');
+  }
+  
+  function openAddFacilityModal() {
+    document.getElementById('addFacilityModal').classList.remove('hidden');
+    // Initialize Select2 when modal opens
+    $('.select2-facility').select2({
+      dropdownParent: $('#addFacilityModal'),
+      width: '100%',
+      placeholder: 'Search for a facility...',
+      allowClear: true,
+      minimumInputLength: 1,
+      theme: 'classic'
+    });
+  }
+  
+  function closeAddFacilityModal() {
+    document.getElementById('addFacilityModal').classList.add('hidden');
+    // Destroy Select2 when modal closes to prevent conflicts
+    $('.select2-facility').select2('destroy');
+  }
+  
+  function filterFacilities(query) {
+    const items = document.querySelectorAll('.facility-item');
+    const q = query.toLowerCase();
+  
+    items.forEach(item => {
+      const text = item.innerText.toLowerCase();
+      item.style.display = text.includes(q) ? '' : 'none';
+    });
+  }
+
+  function deleteAssignment(assignmentId) {
+    if (confirm('Are you sure you want to remove this facility assignment?')) {
+      fetch(`/dashboard/assignments/${assignmentId}/delete`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        }
+      }).then(() => {
+        window.location.reload();
       });
     }
-    </script>
-    
+  }
+</script>
+
+<style>
+/* Custom Select2 styles */
+.select2-container--classic .select2-selection--single {
+  height: 38px !important;
+  border: 1px solid #d1d5db !important;
+  border-radius: 0.375rem !important;
+}
+.select2-container--classic .select2-selection--single .select2-selection__rendered {
+  line-height: 38px !important;
+  padding-left: 12px !important;
+}
+.select2-container--classic .select2-selection--single .select2-selection__arrow {
+  height: 36px !important;
+}
+.select2-container--classic .select2-results__option {
+  padding: 8px 12px !important;
+}
+.select2-container--classic .select2-results__option--highlighted[aria-selected] {
+  background-color: #2563eb !important;
+}
+.select2-dropdown {
+  border: 1px solid #d1d5db !important;
+  border-radius: 0.375rem !important;
+}
+</style>
+
 {% endblock %}

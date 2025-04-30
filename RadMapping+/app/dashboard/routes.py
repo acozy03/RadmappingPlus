@@ -183,6 +183,14 @@ def doctor_profile(rad_id):
 
     assigned_facilities = facility_res.data
 
+    # Get all facilities for the add facility dropdown
+    all_facilities_res = supabase.table("facilities").select("*").order("name").execute()
+    all_facilities = all_facilities_res.data
+
+    # Filter out already assigned facilities
+    assigned_facility_ids = {assignment["facilities"]["id"] for assignment in assigned_facilities}
+    available_facilities = [fac for fac in all_facilities if fac["id"] not in assigned_facility_ids]
+
     return render_template("doctor_profile.html",
         doctor=doctor,
         now=now,
@@ -197,7 +205,8 @@ def doctor_profile(rad_id):
         next_month=next_month,
         today_str=today_str,
         certifications=certifications,
-        assigned_facilities=assigned_facilities
+        assigned_facilities=assigned_facilities,
+        available_facilities=available_facilities
     )
 
 @dashboard_bp.route('/doctors/<string:rad_id>/update_schedule', methods=["POST"])
@@ -405,11 +414,12 @@ def update_assignment(assignment_id):
 
     return redirect(request.referrer or url_for('dashboard.doctor_profile'))
 
-@dashboard_bp.route('/dashboard/assignments/<assignment_id>/delete')
+@dashboard_bp.route('/dashboard/assignments/<assignment_id>/delete', methods=['POST'])
 @login_required
+@admin_required
 def delete_assignment(assignment_id):
-    supabase.table('assignments').delete().eq('id', assignment_id).execute()
-    return redirect(request.referrer or url_for('dashboard.home'))
+    supabase.table("doctor_facility_assignments").delete().eq("id", assignment_id).execute()
+    return jsonify({"status": "success"})
 
 @dashboard_bp.route('/licenses', methods=["GET", "POST"])
 @login_required
@@ -988,3 +998,21 @@ def specialties():
         specialties_data.append(specialty_data)
 
     return render_template("specialties.html", specialties=specialties_data)
+
+@dashboard_bp.route('/doctors/<string:rad_id>/add_facility', methods=['POST'])
+@login_required
+@admin_required
+def add_facility_assignment(rad_id):
+    data = {
+        "id": str(uuid.uuid4()),
+        "radiologist_id": rad_id,
+        "facility_id": request.form.get("facility_id"),
+        "can_read": "can_read" in request.form,
+        "does_stats": "does_stats" in request.form,
+        "does_routines": "does_routines" in request.form,
+        "stipulations": request.form.get("stipulations", ""),
+        "notes": request.form.get("notes", "")
+    }
+    
+    supabase.table("doctor_facility_assignments").insert(data).execute()
+    return redirect(url_for("dashboard.doctor_profile", rad_id=rad_id))
