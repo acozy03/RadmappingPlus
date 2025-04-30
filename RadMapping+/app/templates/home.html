@@ -107,7 +107,9 @@
       {% if doctors_by_hour[hour] %}
         <ul class="space-y-2">
           {% for doc in doctors_by_hour[hour] %}
-            <li class="border p-2 rounded bg-gray-50 hover:bg-gray-100 transition-colors duration-200">
+            <li class="relative border p-2 rounded bg-gray-50 hover:bg-gray-100 transition-colors duration-200"
+                onmouseenter="showDoctorPopup(this)"
+                onmouseleave="hideDoctorPopup(this)">
               <div class="flex items-center justify-between">
                 <a href="{{ url_for('dashboard.doctor_profile', rad_id=doc.id) }}" class="text-blue-700 font-semibold hover:underline">
                   {{ doc.name }}
@@ -127,6 +129,21 @@
                 {% if doc.pacs %}
                   <span>PACS: {{ doc.pacs }}</span>
                 {% endif %}
+              </div>
+
+              <!-- Doctor Hover Popup -->
+              <div class="doctor-popup absolute left-full top-0 ml-2 w-[20rem] bg-white border p-4 rounded-lg shadow-lg text-left pointer-events-none opacity-0 transition-all duration-200 z-50 transform scale-95">
+                <h4 class="font-medium text-lg text-gray-900 mb-2">{{ doc.name }}</h4>
+                <div class="space-y-2">
+                  <p class="text-sm"><span class="font-medium">Timezone:</span> <span class="text-gray-700">{{ doc.timezone or 'N/A' }}</span></p>
+                  <p class="text-sm"><span class="font-medium">Modalities:</span> <span class="text-gray-700">{{ doc.modalities or 'N/A' }}</span></p>
+                  <p class="text-sm"><span class="font-medium">PACS:</span> <span class="text-gray-700">{{ doc.pacs or 'N/A' }}</span></p>
+                  <p class="text-sm"><span class="font-medium">Contact:</span> <span class="text-gray-700">{{ doc.email or 'N/A' }}</span></p>
+                  <p class="text-sm"><span class="font-medium">Phone:</span> <span class="text-gray-700">{{ doc.phone or 'N/A' }}</span></p>
+                  {% if doc.schedule_info_est %}
+                    <p class="text-sm"><span class="font-medium">Schedule Info:</span> <span class="text-gray-700">{{ doc.schedule_info_est }}</span></p>
+                  {% endif %}
+                </div>
               </div>
             </li>
           {% endfor %}
@@ -152,6 +169,33 @@
 
   function hideTimezonePopup(parent) {
     const popup = parent.querySelector('.timezone-popup');
+    if (popup) {
+      popup.classList.remove('opacity-100', 'scale-100');
+      popup.classList.add('opacity-0', 'scale-95');
+    }
+  }
+
+  function showDoctorPopup(parent) {
+    const popup = parent.querySelector('.doctor-popup');
+    if (popup) {
+      const rect = parent.getBoundingClientRect();
+      const viewportWidth = window.innerWidth;
+      
+      // Check if popup would go off screen to the right
+      if (rect.right + 340 > viewportWidth) {  // 340 = popup width (320) + margin (20)
+        popup.style.left = 'auto';
+        popup.style.right = '100%';
+        popup.style.marginLeft = '0';
+        popup.style.marginRight = '0.5rem';
+      }
+      
+      popup.classList.remove('opacity-0', 'scale-95');
+      popup.classList.add('opacity-100', 'scale-100');
+    }
+  }
+
+  function hideDoctorPopup(parent) {
+    const popup = parent.querySelector('.doctor-popup');
     if (popup) {
       popup.classList.remove('opacity-100', 'scale-100');
       popup.classList.add('opacity-0', 'scale-95');

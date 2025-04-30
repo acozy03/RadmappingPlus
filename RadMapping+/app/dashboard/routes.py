@@ -312,20 +312,25 @@ def facilities():
 @dashboard_bp.route('/facilities/<string:facility_id>')
 @login_required
 def facility_profile(facility_id):
+    # Get facility info
     fac = supabase.table("facilities").select("*").eq("id", facility_id).single().execute().data
 
+    # Get doctor assignments
     assignment_res = supabase.table("doctor_facility_assignments") \
         .select("*, radiologists(*)") \
         .eq("facility_id", facility_id).execute()
 
-    from pprint import pprint
-    pprint(assignment_res.data)
+    # Get facility contacts
+    contacts_res = supabase.table("facility_contact_assignments") \
+        .select("*") \
+        .eq("facility_id", facility_id) \
+        .order("role") \
+        .execute()
     
     return render_template("facility_profile.html",
         facility=fac,
-        doctor_assignments=assignment_res.data
-
-
+        doctor_assignments=assignment_res.data,
+        facility_contacts=contacts_res.data
     )
 
 @dashboard_bp.route('/doctors/<string:rad_id>/update', methods=["POST"])
@@ -1076,3 +1081,42 @@ def add_facility_assignment(rad_id):
     
     supabase.table("doctor_facility_assignments").insert(data).execute()
     return redirect(url_for("dashboard.doctor_profile", rad_id=rad_id))
+
+@dashboard_bp.route('/facilities/<string:facility_id>/contacts/add', methods=['POST'])
+@login_required
+@admin_required
+def add_facility_contact(facility_id):
+    data = {
+        "id": str(uuid.uuid4()),
+        "facility_id": facility_id,
+        "contact_name": request.form.get("contact_name"),
+        "role": request.form.get("role"),
+        "email": request.form.get("email"),
+        "phone": request.form.get("phone"),
+        "comments": request.form.get("comments")
+    }
+    
+    supabase.table("facility_contact_assignments").insert(data).execute()
+    return redirect(url_for("dashboard.facility_profile", facility_id=facility_id))
+
+@dashboard_bp.route('/facilities/<string:facility_id>/contacts/<string:contact_id>', methods=['POST'])
+@login_required
+@admin_required
+def edit_facility_contact(facility_id, contact_id):
+    data = {
+        "contact_name": request.form.get("contact_name"),
+        "role": request.form.get("role"),
+        "email": request.form.get("email"),
+        "phone": request.form.get("phone"),
+        "comments": request.form.get("comments")
+    }
+    
+    supabase.table("facility_contact_assignments").update(data).eq("id", contact_id).execute()
+    return redirect(url_for("dashboard.facility_profile", facility_id=facility_id))
+
+@dashboard_bp.route('/facilities/<string:facility_id>/contacts/<string:contact_id>/delete', methods=['POST'])
+@login_required
+@admin_required
+def delete_facility_contact(facility_id, contact_id):
+    supabase.table("facility_contact_assignments").delete().eq("id", contact_id).execute()
+    return redirect(url_for("dashboard.facility_profile", facility_id=facility_id))
