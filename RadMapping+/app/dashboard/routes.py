@@ -1114,9 +1114,41 @@ def edit_facility_contact(facility_id, contact_id):
     supabase.table("facility_contact_assignments").update(data).eq("id", contact_id).execute()
     return redirect(url_for("dashboard.facility_profile", facility_id=facility_id))
 
-@dashboard_bp.route('/facilities/<string:facility_id>/contacts/<string:contact_id>/delete', methods=['POST'])
+@dashboard_bp.route('/facility/<string:facility_id>/contact/<string:contact_id>', methods=['DELETE'])
 @login_required
 @admin_required
-def delete_facility_contact(facility_id, contact_id):
-    supabase.table("facility_contact_assignments").delete().eq("id", contact_id).execute()
-    return redirect(url_for("dashboard.facility_profile", facility_id=facility_id))
+def delete_facility_contact_api(facility_id, contact_id):
+    try:
+        print(f"Attempting to delete contact {contact_id} from facility {facility_id}")
+        
+        # First verify the contact exists and belongs to the facility
+        verify = supabase.table("facility_contact_assignments")\
+            .select("*")\
+            .eq("id", contact_id)\
+            .eq("facility_id", facility_id)\
+            .execute()
+            
+        print(f"Verification result: {verify.data}")
+        
+        if not verify.data:
+            print("Contact not found or doesn't belong to this facility")
+            return jsonify({"success": False, "error": "Contact not found"}), 404
+
+        # Proceed with deletion
+        result = supabase.table("facility_contact_assignments")\
+            .delete()\
+            .eq("id", contact_id)\
+            .eq("facility_id", facility_id)\
+            .execute()
+            
+        print(f"Delete result: {result.data}")
+        
+        if result.data:
+            return jsonify({"success": True})
+        else:
+            return jsonify({"success": False, "error": "Delete operation failed"}), 500
+            
+    except Exception as e:
+        print(f"Error deleting contact: {str(e)}")
+        return jsonify({"success": False, "error": str(e)}), 500
+
