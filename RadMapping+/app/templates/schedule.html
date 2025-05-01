@@ -315,16 +315,37 @@
       <p class="text-sm text-gray-500">Pinned doctors will always appear first on the schedule.</p>
     </div>
 
-    <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 max-h-[60vh] overflow-y-auto">
+    <div class="flex justify-between items-center mb-4">
+      <div class="flex-1 mr-4">
+        <input type="text" 
+               id="pinModalSearch" 
+               class="w-full border rounded px-3 py-2" 
+               placeholder="Search doctors..."
+               oninput="filterPinModalDoctors()">
+      </div>
+      <div class="flex items-center gap-4">
+        <span id="pinCounter" class="text-sm font-medium">0/15 selected</span>
+        <button onclick="resetPins()" class="px-3 py-1 text-sm border border-red-500 text-red-500 rounded hover:bg-red-50">
+          Reset All
+        </button>
+      </div>
+    </div>
+
+    <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 max-h-[60vh] overflow-y-auto" id="pinDoctorsList">
       {% for doctor in all_doctors %}
-        <div class="flex items-center gap-2 p-2 border rounded hover:bg-gray-50">
+        <div class="flex items-center gap-2 p-2 border rounded hover:bg-gray-50 doctor-item">
           <input type="checkbox" 
                  id="pin-{{ doctor.id }}" 
                  class="pin-checkbox form-checkbox h-5 w-5 text-purple-600"
                  data-doctor-id="{{ doctor.id }}"
+                 data-doctor-name="{{ doctor.name|lower }}"
+                 onchange="updatePinCounter()"
                  {% if doctor.id in pinned_doctors %}checked{% endif %}>
           <label for="pin-{{ doctor.id }}" class="flex-1 cursor-pointer">
             {{ doctor.name }}
+            {% if doctor.id in pinned_doctors %}
+              <span title="Currently Pinned" class="text-yellow-500 text-sm ml-1">⭐</span>
+            {% endif %}
           </label>
         </div>
       {% endfor %}
@@ -711,6 +732,45 @@ function savePinnedDoctors() {
   .catch(error => {
     console.error('Error:', error);
     alert('Error saving pinned doctors');
+  });
+}
+
+function updatePinCounter() {
+  const checkedBoxes = document.querySelectorAll('.pin-checkbox:checked');
+  const counter = document.getElementById('pinCounter');
+  counter.textContent = `${checkedBoxes.length}/15 selected`;
+  
+  // Disable checkboxes if limit reached
+  const uncheckedBoxes = document.querySelectorAll('.pin-checkbox:not(:checked)');
+  if (checkedBoxes.length >= 15) {
+    uncheckedBoxes.forEach(box => box.disabled = true);
+  } else {
+    uncheckedBoxes.forEach(box => box.disabled = false);
+  }
+}
+
+function resetPins() {
+  if (confirm('Are you sure you want to unpin all doctors?')) {
+    document.querySelectorAll('.pin-checkbox').forEach(box => {
+      box.checked = false;
+      box.disabled = false;
+    });
+    updatePinCounter();
+  }
+}
+
+function filterPinModalDoctors() {
+  const searchTerm = document.getElementById('pinModalSearch').value.toLowerCase();
+  const doctorItems = document.querySelectorAll('.doctor-item');
+  
+  doctorItems.forEach(item => {
+    const checkbox = item.querySelector('.pin-checkbox');
+    const doctorName = checkbox.dataset.doctorName;
+    if (doctorName.includes(searchTerm)) {
+      item.style.display = '';
+    } else {
+      item.style.display = 'none';
+    }
   });
 }
 </script>
