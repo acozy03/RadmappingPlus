@@ -4,12 +4,12 @@
 {% block content %}
 <h2 class="text-2xl font-semibold mb-4">Licenses</h2>
 
-<div class="mb-4 flex gap-4">
+<div class="mb-4 flex flex-col md:flex-row gap-4">
   <div class="flex-1">
     <input
       type="text"
       id="licenseSearch"
-      placeholder="Search licenses..."
+      placeholder="Search by state..."
       class="w-full p-2 border rounded"
       onkeyup="filterLicenses()" />
   </div>
@@ -23,6 +23,24 @@
       <option value="{{ rad.id }}">{{ rad.name }}</option>
       {% endfor %}
     </select>
+  </div>
+  <!-- Add Status Filter Buttons -->
+  <div class="flex gap-2">
+    <button onclick="filterByStatus('all')" 
+            class="px-4 py-2 rounded text-sm font-medium bg-gray-100 hover:bg-gray-200 active-filter" 
+            data-status="all">
+      All
+    </button>
+    <button onclick="filterByStatus('Active')" 
+            class="px-4 py-2 rounded text-sm font-medium bg-gray-100 hover:bg-gray-200" 
+            data-status="Active">
+      Active
+    </button>
+    <button onclick="filterByStatus('Expired')" 
+            class="px-4 py-2 rounded text-sm font-medium bg-gray-100 hover:bg-gray-200" 
+            data-status="Expired">
+      Expired
+    </button>
   </div>
 </div>
 
@@ -101,6 +119,9 @@
 </div>
 
 <script>
+let currentStatusFilter = 'all';
+let currentSearchTerm = '';
+
 function filterLicenses() {
   const searchInput = document.getElementById('licenseSearch');
   const doctorFilter = document.getElementById('doctorFilter');
@@ -108,6 +129,8 @@ function filterLicenses() {
   const selectedDoctor = doctorFilter.value;
   const table = document.getElementById('licensesTable');
   const rows = table.getElementsByTagName('tr');
+
+  currentSearchTerm = searchFilter;
 
   for (let i = 1; i < rows.length; i++) {
     const row = rows[i];
@@ -119,7 +142,16 @@ function filterLicenses() {
       shouldShow = false;
     }
 
-    // If doctor filter passes, check text search
+    // Check status filter
+    if (shouldShow && currentStatusFilter !== 'all') {
+      const statusCell = cells[3]; // Status is in the 4th column
+      const status = statusCell.querySelector('.view-mode').textContent.trim();
+      if (status !== currentStatusFilter) {
+        shouldShow = false;
+      }
+    }
+
+    // If filters pass, check text search
     if (shouldShow) {
       let textMatch = false;
       for (let j = 0; j < cells.length; j++) {
@@ -137,6 +169,20 @@ function filterLicenses() {
 
     row.style.display = shouldShow ? '' : 'none';
   }
+}
+
+function filterByStatus(status) {
+  currentStatusFilter = status;
+  
+  // Update button styles
+  document.querySelectorAll('[data-status]').forEach(button => {
+    button.classList.remove('active-filter', 'bg-blue-600', 'text-white');
+    if (button.dataset.status === status) {
+      button.classList.add('active-filter', 'bg-blue-600', 'text-white');
+    }
+  });
+  
+  filterLicenses();
 }
 
 function toggleEditMode(licenseId) {
