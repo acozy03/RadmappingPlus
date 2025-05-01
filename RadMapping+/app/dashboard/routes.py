@@ -814,19 +814,18 @@ def schedule():
     end_day = days_in_month
 
     # Get pagination parameters for doctors
-    page = request.args.get('page', 1, type=int)
-    per_page = 15  # Changed to 10 doctors per page
-    offset = (page - 1) * per_page
+    start_doctor = request.args.get('start_doctor', default=0, type=int)
+    doctors_per_page = 15
 
     # Get total count for pagination
     count_res = supabase.table("radiologists").select("*", count='exact').execute()
-    total_count = count_res.count
+    total_doctors = count_res.count
 
     # Get paginated doctors
     doctors_res = supabase.table("radiologists") \
         .select("*") \
         .order("name") \
-        .range(offset, offset + per_page - 1) \
+        .range(start_doctor, start_doctor + doctors_per_page - 1) \
         .execute()
     doctors = doctors_res.data
 
@@ -862,9 +861,8 @@ def schedule():
         next_start=1,
         calendar=calendar,
         datetime=datetime,
-        total_count=total_count,
-        current_page=page,
-        per_page=per_page,
+        start_doctor=start_doctor,
+        total_doctors=total_doctors,
         min=min)
 
 @dashboard_bp.route('/schedule/search', methods=["GET"])
