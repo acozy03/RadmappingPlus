@@ -1190,3 +1190,28 @@ def delete_facility_contact_api(facility_id, contact_id):
         print(f"Error deleting contact: {str(e)}")
         return jsonify({"success": False, "error": str(e)}), 500
 
+@dashboard_bp.route('/doctors/add', methods=['POST'])
+@login_required
+@admin_required
+def add_doctor():
+    # Generate a new UUID for the doctor
+    new_id = str(uuid.uuid4())
+    
+    data = {
+        "id": new_id,
+        "name": request.form.get("name"),
+        "email": request.form.get("email"),
+        "phone": request.form.get("phone"),
+        "pacs": request.form.get("pacs"),
+        "primary_contact_method": request.form.get("primary_contact_method"),
+        "modalities": request.form.get("modalities"),
+        "timezone": request.form.get("timezone"),
+        "additional_info": request.form.get("additional_info"),
+        "active_status": True if request.form.get("active_status") == "true" else False
+    }
+
+    # Insert the new doctor into the database
+    supabase.table("radiologists").insert(data).execute()
+
+    return redirect(url_for("dashboard.doctor_profile", rad_id=new_id))
+
