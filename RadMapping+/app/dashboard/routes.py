@@ -921,7 +921,7 @@ def add_contact():
         "name": request.form.get("name"),
         "department": request.form.get("department"),
         "contact_number": request.form.get("contact_number"),
-        "backup_number": request.form.get("backup_number"),
+        "extension_number": request.form.get("extension_number"),
         "email": request.form.get("email"),
         "additional_info": request.form.get("additional_info"),
         "created_at": datetime.now().isoformat(),
@@ -938,7 +938,7 @@ def edit_contact(contact_id):
         "name": request.form.get("name"),
         "department": request.form.get("department"),
         "contact_number": request.form.get("contact_number"),
-        "backup_number": request.form.get("backup_number"),
+        "extension_number": request.form.get("extension_number"),
         "email": request.form.get("email"),
         "additional_info": request.form.get("additional_info"),
         "updated_at": datetime.now().isoformat()

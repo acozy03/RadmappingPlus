@@ -30,7 +30,7 @@
                         <tr>
                             <th class="px-6 py-3 bg-gray-50 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Name</th>
                             <th class="px-6 py-3 bg-gray-50 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Contact #</th>
-                            <th class="px-6 py-3 bg-gray-50 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Back-Up #</th>
+                            <th class="px-6 py-3 bg-gray-50 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Extension</th>
                             <th class="px-6 py-3 bg-gray-50 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Email</th>
                             <th class="px-6 py-3 bg-gray-50 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Additional Info</th>
                             {% if session.user.role == 'admin' %}
@@ -51,8 +51,8 @@
                                     <input type="tel" class="edit-mode hidden w-full px-2 py-1 border rounded" value="{{ contact.contact_number }}">
                                 </td>
                                 <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
-                                    <span class="view-mode">{{ contact.backup_number or '-' }}</span>
-                                    <input type="tel" class="edit-mode hidden w-full px-2 py-1 border rounded" value="{{ contact.backup_number or '' }}">
+                                    <span class="view-mode">{{ contact.extension_number or '-' }}</span>
+                                    <input type="tel" class="edit-mode hidden w-full px-2 py-1 border rounded" value="{{ contact.extension_number or '' }}">
                                 </td>
                                 <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
                                     <span class="view-mode">{{ contact.email }}</span>
@@ -115,8 +115,8 @@
                        class="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500">
             </div>
             <div>
-                <label class="block text-sm font-medium text-gray-700 mb-1" for="backup_number">Backup Number</label>
-                <input type="tel" id="backup_number" name="backup_number"
+                <label class="block text-sm font-medium text-gray-700 mb-1" for="extension_number">Extension</label>
+                <input type="tel" id="extension_number" name="extension_number"
                        class="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500">
             </div>
             <div>
@@ -166,7 +166,7 @@ function saveContact(contactId) {
     
     formData.append('name', row.querySelector('input[type="text"]').value);
     formData.append('contact_number', row.querySelector('input[type="tel"]').value);
-    formData.append('backup_number', row.querySelectorAll('input[type="tel"]')[1].value);
+    formData.append('extension_number', row.querySelectorAll('input[type="tel"]')[1].value);
     formData.append('email', row.querySelector('input[type="email"]').value);
     formData.append('additional_info', row.querySelector('textarea').value);
     formData.append('department', row.closest('section').querySelector('h2').textContent.trim());

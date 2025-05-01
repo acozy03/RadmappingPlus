@@ -40,7 +40,12 @@
        onclick="window.location.href='{{ url_for('dashboard.facility_profile', facility_id=fac.id) }}'"
        data-status="{{ fac.active_status }}">
     <div class="p-4">
-      <p class="text-lg font-medium name">{{ fac.name }}</p>
+      <div class="flex justify-between items-start mb-2">
+        <p class="text-lg font-medium name">{{ fac.name }}</p>
+        <span class="px-2 py-1 text-xs font-medium rounded-full {% if fac.active_status == 'true' %}bg-green-100 text-green-800{% else %}bg-red-100 text-red-800{% endif %}">
+          {% if fac.active_status == 'true' %}Active{% else %}Inactive{% endif %}
+        </span>
+      </div>
       <p class="text-sm text-gray-500 location">{{ fac.location }}</p>
       <span class="text-blue-600 font-semibold text-sm mt-2 inline-block">Details →</span>
     </div>
