@@ -23,6 +23,9 @@
                 <button onclick="openToolsModal()" class="bg-blue-600 text-white px-4 py-2 rounded hover:bg-blue-700">
                     Scheduling Tools
                 </button>
+                <button onclick="openPinModal()" class="bg-purple-600 text-white px-4 py-2 rounded hover:bg-purple-700">
+                    Pin Doctors
+                </button>
             {% endif %}
         </div>
     </div>
@@ -50,6 +53,12 @@
                         <tr class="hover:bg-gray-50" style="height: 32px;">
                             <td style="min-width: 180px; position: sticky; left: 0; background: white; z-index: 1; height: 32px;" class="px-6 py-1 border font-medium">
                                 <div class="flex items-center gap-2">
+                                    {% if doctor.id in pinned_doctors %}
+<!-- Heroicons 2.0 - Push Pin Icon -->
+<span title="Pinned Doctor" class="text-yellow-500 text-sm">⭐</span>
+
+  
+                                    {% endif %}
                                     <a href="{{ url_for('dashboard.doctor_profile', rad_id=doctor.id) }}" class="text-blue-600 hover:underline text-base">
                                         {{ doctor.name }}
                                     </a>
@@ -132,7 +141,8 @@
     <!-- Pagination Controls -->
     <div class="flex justify-between items-center mt-4 px-4">
         <div class="text-gray-600">
-            Showing doctors {{ start_doctor + 1 }} to {{ min(start_doctor + 15, total_doctors) }} of {{ total_doctors }}
+            Page {{ (start_doctor // 15) + 1 }} of {{ total_pages }}
+            ({{ total_doctors }} total doctors)
         </div>
         <div class="flex gap-2">
             {% if start_doctor > 0 %}
@@ -141,7 +151,7 @@
                     ← Previous Page
                 </a>
             {% endif %}
-            {% if start_doctor + 15 < total_doctors %}
+            {% if (start_doctor // 15) + 1 < total_pages %}
                 <a href="{{ url_for('dashboard.schedule', year=year, month=month, start_day=1, start_doctor=start_doctor + 15) }}" 
                    class="px-4 py-2 border rounded hover:bg-gray-100 text-blue-600">
                     Next Page →
@@ -284,6 +294,49 @@
           <button type="submit" class="w-full bg-blue-600 text-white py-2 rounded">Apply Pattern</button>
         </form>
       </div>
+    </div>
+  </div>
+</div>
+
+<!-- Pin Doctors Modal -->
+<div id="pinModal" class="fixed inset-0 z-50 hidden bg-black bg-opacity-50 flex items-center justify-center">
+  <div class="bg-white rounded-lg shadow-lg w-[90%] max-w-4xl p-6">
+    <div class="flex justify-between items-center mb-4">
+      <h3 class="text-lg font-semibold">Pin Doctors</h3>
+      <button onclick="closePinModal()" class="text-gray-500 hover:text-gray-700">
+        <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12" />
+        </svg>
+      </button>
+    </div>
+    
+    <div class="mb-4">
+      <p class="text-gray-600">Select up to 15 doctors to pin to the first page of the schedule.</p>
+      <p class="text-sm text-gray-500">Pinned doctors will always appear first on the schedule.</p>
+    </div>
+
+    <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 max-h-[60vh] overflow-y-auto">
+      {% for doctor in all_doctors %}
+        <div class="flex items-center gap-2 p-2 border rounded hover:bg-gray-50">
+          <input type="checkbox" 
+                 id="pin-{{ doctor.id }}" 
+                 class="pin-checkbox form-checkbox h-5 w-5 text-purple-600"
+                 data-doctor-id="{{ doctor.id }}"
+                 {% if doctor.id in pinned_doctors %}checked{% endif %}>
+          <label for="pin-{{ doctor.id }}" class="flex-1 cursor-pointer">
+            {{ doctor.name }}
+          </label>
+        </div>
+      {% endfor %}
+    </div>
+
+    <div class="mt-4 flex justify-end gap-2">
+      <button onclick="closePinModal()" class="px-4 py-2 border rounded hover:bg-gray-100">
+        Cancel
+      </button>
+      <button onclick="savePinnedDoctors()" class="px-4 py-2 bg-purple-600 text-white rounded hover:bg-purple-700">
+        Save Pins
+      </button>
     </div>
   </div>
 </div>
@@ -621,6 +674,44 @@ function handlePatternNoTimeChange() {
       details.value = '';
     }
   }
+}
+
+function openPinModal() {
+  document.getElementById('pinModal').classList.remove('hidden');
+}
+
+function closePinModal() {
+  document.getElementById('pinModal').classList.add('hidden');
+}
+
+function savePinnedDoctors() {
+  const checkboxes = document.querySelectorAll('.pin-checkbox:checked');
+  const doctorIds = Array.from(checkboxes).map(cb => cb.dataset.doctorId);
+  
+  if (doctorIds.length > 15) {
+    alert('You can only pin up to 15 doctors.');
+    return;
+  }
+
+  fetch('/dashboard/schedule/pin', {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json',
+    },
+    body: JSON.stringify({ doctor_ids: doctorIds })
+  })
+  .then(response => response.json())
+  .then(data => {
+    if (data.success) {
+      window.location.reload();
+    } else {
+      alert('Error saving pinned doctors: ' + data.error);
+    }
+  })
+  .catch(error => {
+    console.error('Error:', error);
+    alert('Error saving pinned doctors');
+  });
 }
 </script>
 {% endblock %} 

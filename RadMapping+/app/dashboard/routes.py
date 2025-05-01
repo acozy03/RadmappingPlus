@@ -817,17 +817,48 @@ def schedule():
     start_doctor = request.args.get('start_doctor', default=0, type=int)
     doctors_per_page = 15
 
-    # Get total count for pagination
-    count_res = supabase.table("radiologists").select("*", count='exact').execute()
-    total_doctors = count_res.count
-
-    # Get paginated doctors
-    doctors_res = supabase.table("radiologists") \
+    # Get all doctors first
+    all_doctors_res = supabase.table("radiologists") \
         .select("*") \
         .order("name") \
-        .range(start_doctor, start_doctor + doctors_per_page - 1) \
         .execute()
-    doctors = doctors_res.data
+    all_doctors = all_doctors_res.data
+    total_doctors = len(all_doctors)
+
+    # Get pinned doctors for the current user using their email
+    user_email = session["user"]["email"]
+    pinned_res = supabase.table("pinned_doctors") \
+        .select("doctor_id") \
+        .eq("user_id", user_email) \
+        .execute()
+    pinned_doctor_ids = [p["doctor_id"] for p in pinned_res.data]
+
+    # Separate pinned and unpinned doctors
+    pinned_doctors = [doc for doc in all_doctors if doc["id"] in pinned_doctor_ids]
+    unpinned_doctors = [doc for doc in all_doctors if doc["id"] not in pinned_doctor_ids]
+
+    # Handle pagination
+    if start_doctor == 0:
+        # First page: Show pinned doctors + fill remaining slots with unpinned
+        if pinned_doctors:
+            remaining_slots = doctors_per_page - len(pinned_doctors)
+            if remaining_slots > 0:
+                doctors = pinned_doctors + unpinned_doctors[:remaining_slots]
+            else:
+                doctors = pinned_doctors[:doctors_per_page]
+        else:
+            doctors = unpinned_doctors[:doctors_per_page]
+    else:
+        # Subsequent pages: Show unpinned doctors starting after those shown on first page
+        if pinned_doctors:
+            # Calculate how many unpinned doctors were shown on first page
+            first_page_unpinned = max(0, doctors_per_page - len(pinned_doctors))
+            # Start index for unpinned doctors
+            unpinned_start = first_page_unpinned + (start_doctor - doctors_per_page)
+            doctors = unpinned_doctors[unpinned_start:unpinned_start + doctors_per_page]
+        else:
+            # If no pinned doctors, regular pagination
+            doctors = unpinned_doctors[start_doctor:start_doctor + doctors_per_page]
 
     # Get all schedules for the full month
     start_str = window_dates[0].strftime("%Y-%m-%d")
@@ -848,6 +879,19 @@ def schedule():
 
     month_name = pycalendar.month_name[month]
 
+    # Calculate total pages for pagination
+    if pinned_doctors:
+        # If we have pinned doctors, they take up the first page
+        # Remaining unpinned doctors are spread across subsequent pages
+        remaining_unpinned = len(unpinned_doctors)
+        if len(pinned_doctors) < doctors_per_page:
+            # Some unpinned doctors appear on first page
+            remaining_unpinned -= (doctors_per_page - len(pinned_doctors))
+        total_pages = 1 + max(0, (remaining_unpinned + doctors_per_page - 1) // doctors_per_page)
+    else:
+        # Regular pagination if no pinned doctors
+        total_pages = (total_doctors + doctors_per_page - 1) // doctors_per_page
+
     return render_template("schedule.html",
         doctors=doctors,
         window_dates=window_dates,
@@ -863,7 +907,38 @@ def schedule():
         datetime=datetime,
         start_doctor=start_doctor,
         total_doctors=total_doctors,
-        min=min)
+        total_pages=total_pages,
+        min=min,
+        all_doctors=all_doctors,
+        pinned_doctors=pinned_doctor_ids)
+
+@dashboard_bp.route('/schedule/pin', methods=['POST'])
+@login_required
+def pin_doctors():
+    data = request.get_json()
+    doctor_ids = data.get('doctor_ids', [])
+    user_email = session["user"]["email"]
+    
+    if len(doctor_ids) > 15:
+        return jsonify({'success': False, 'error': 'Cannot pin more than 15 doctors'})
+    
+    # Delete existing pins for this user
+    supabase.table("pinned_doctors") \
+        .delete() \
+        .eq("user_id", user_email) \
+        .execute()
+    
+    # Add new pins
+    if doctor_ids:
+        pins = [{
+            "id": str(uuid.uuid4()),
+            "user_id": user_email,
+            "doctor_id": doctor_id
+        } for doctor_id in doctor_ids]
+        
+        supabase.table("pinned_doctors").insert(pins).execute()
+    
+    return jsonify({'success': True})
 
 @dashboard_bp.route('/schedule/search', methods=["GET"])
 @login_required
