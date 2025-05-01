@@ -23,7 +23,7 @@
        id="searchBox"
        placeholder="Search by name or email..."
        class="w-full mb-6 p-3 border rounded text-sm"
-       onkeyup="filterDoctors()" />
+       onkeyup="debounceSearch()" />
 
 <!-- Doctor List -->
 <ul id="doctorList" class="space-y-4">
@@ -41,13 +41,29 @@
     <!-- Hover Popup -->
     <div class="doctor-popup absolute left-0 top-full mt-2 w-[20rem] bg-white border p-3 rounded shadow-md text-left pointer-events-none opacity-0 transition-opacity duration-150 z-50">
       <p class="text-sm font-medium">Timezone: <span class="text-gray-700">{{ doc.timezone }}</span></p>
-      <p class="text-sm font-medium">Modalities: <span class="text-gray-700">{{ doc.modalities or 'N/A' }}</span></p>
-      <p class="text-sm font-medium">PACS: <span class="text-gray-700">{{ doc.pacs or 'N/A' }}</span></p>
-      <p class="text-sm font-medium">Schedule: {{ doc.schedule_info_est or "N/A" }}</p>
+      <p class="text-sm font-medium">Modalities: <span class="text-gray-700">{{ doc.modalities }}</span></p>
+      <p class="text-sm font-medium">PACS: <span class="text-gray-700">{{ doc.pacs }}</span></p>
+      <p class="text-sm font-medium">Contact: <span class="text-gray-700">{{ doc.email }}</span></p>
+      <p class="text-sm font-medium">Phone: <span class="text-gray-700">{{ doc.phone }}</span></p>
     </div>
   </li>
   {% endfor %}
 </ul>
+
+<!-- Pagination Controls -->
+<div class="mt-4 flex justify-between items-center">
+  <div class="text-sm text-gray-700">
+    Showing <span id="startItem">1</span> to <span id="endItem">{{ per_page }}</span> of <span id="totalItems">{{ total_count }}</span> entries
+  </div>
+  <div class="flex gap-2">
+    <button onclick="changePage('prev')" id="prevPage" class="px-3 py-1 border rounded hover:bg-gray-100 disabled:opacity-50 disabled:cursor-not-allowed">
+      Previous
+    </button>
+    <button onclick="changePage('next')" id="nextPage" class="px-3 py-1 border rounded hover:bg-gray-100 disabled:opacity-50 disabled:cursor-not-allowed">
+      Next
+    </button>
+  </div>
+</div>
 
 <!-- Add Doctor Modal -->
 <div id="addDoctorModal" class="fixed inset-0 z-50 hidden bg-black bg-opacity-50 flex items-center justify-center">
@@ -119,43 +135,111 @@
   </div>
 </div>
 
-<!-- Scripts -->
 <script>
-  function filterDoctors() {
-    const input = document.getElementById("searchBox").value.toLowerCase();
-    const doctors = document.querySelectorAll(".doctor-item");
+let currentPage = {{ current_page }};
+const itemsPerPage = {{ per_page }};
+let totalCount = {{ total_count }};
+let searchTimeout;
 
-    doctors.forEach(doc => {
-      const name = doc.querySelector(".name").textContent.toLowerCase();
-      const email = doc.querySelector(".email").textContent.toLowerCase();
-      const match = name.includes(input) || email.includes(input);
-      doc.style.display = match ? "flex" : "none";
+function debounceSearch() {
+  clearTimeout(searchTimeout);
+  searchTimeout = setTimeout(() => {
+    currentPage = 1;
+    loadDoctors();
+  }, 300);
+}
+
+function loadDoctors() {
+  const searchTerm = document.getElementById('searchBox').value;
+  
+  fetch(`/dashboard/doctors/search?page=${currentPage}&search=${encodeURIComponent(searchTerm)}`)
+    .then(response => response.json())
+    .then(data => {
+      updateTable(data.doctors);
+      updatePagination(data.total_count);
     });
-  }
+}
 
-  function showPopup(parent) {
-    const popup = parent.querySelector('.doctor-popup');
-    if (popup) {
-      popup.classList.remove('opacity-0');
-      popup.classList.add('opacity-100');
-    }
-  }
+function updateTable(doctors) {
+  const tbody = document.getElementById('doctorList');
+  tbody.innerHTML = '';
+  
+  doctors.forEach(doc => {
+    const li = document.createElement('li');
+    li.className = 'relative flex items-center justify-between p-4 bg-gray-50 rounded hover:bg-gray-100 cursor-pointer doctor-item';
+    li.onclick = () => window.location.href = `/dashboard/doctors/${doc.id}`;
+    li.onmouseenter = () => showPopup(li);
+    li.onmouseleave = () => hidePopup(li);
+    
+    li.innerHTML = `
+      <div>
+        <p class="text-lg font-medium name">${doc.name}</p>
+        <p class="text-sm text-gray-500 email">${doc.email}</p>
+      </div>
+      <span class="text-blue-600 font-semibold">Details →</span>
 
-  function hidePopup(parent) {
-    const popup = parent.querySelector('.doctor-popup');
-    if (popup) {
-      popup.classList.remove('opacity-100');
-      popup.classList.add('opacity-0');
-    }
-  }
+      <div class="doctor-popup absolute left-0 top-full mt-2 w-[20rem] bg-white border p-3 rounded shadow-md text-left pointer-events-none opacity-0 transition-opacity duration-150 z-50">
+        <p class="text-sm font-medium">Timezone: <span class="text-gray-700">${doc.timezone || 'N/A'}</span></p>
+        <p class="text-sm font-medium">Modalities: <span class="text-gray-700">${doc.modalities || 'N/A'}</span></p>
+        <p class="text-sm font-medium">PACS: <span class="text-gray-700">${doc.pacs || 'N/A'}</span></p>
+        <p class="text-sm font-medium">Contact: <span class="text-gray-700">${doc.email || 'N/A'}</span></p>
+        <p class="text-sm font-medium">Phone: <span class="text-gray-700">${doc.phone || 'N/A'}</span></p>
+      </div>
+    `;
+    
+    tbody.appendChild(li);
+  });
+}
 
-  function openAddDoctorModal() {
-    document.getElementById('addDoctorModal').classList.remove('hidden');
-  }
+function updatePagination(total) {
+  totalCount = total;
+  const totalPages = Math.ceil(totalCount / itemsPerPage);
+  const startItem = ((currentPage - 1) * itemsPerPage) + 1;
+  const endItem = Math.min(currentPage * itemsPerPage, totalCount);
 
-  function closeAddDoctorModal() {
-    document.getElementById('addDoctorModal').classList.add('hidden');
+  document.getElementById('startItem').textContent = startItem;
+  document.getElementById('endItem').textContent = endItem;
+  document.getElementById('totalItems').textContent = totalCount;
+
+  document.getElementById('prevPage').disabled = currentPage === 1;
+  document.getElementById('nextPage').disabled = currentPage === totalPages;
+}
+
+function changePage(direction) {
+  const totalPages = Math.ceil(totalCount / itemsPerPage);
+  
+  if (direction === 'next' && currentPage < totalPages) {
+    currentPage++;
+  } else if (direction === 'prev' && currentPage > 1) {
+    currentPage--;
   }
+  
+  loadDoctors();
+}
+
+function showPopup(element) {
+  const popup = element.querySelector('.doctor-popup');
+  if (popup) {
+    popup.classList.remove('opacity-0');
+    popup.classList.add('opacity-100');
+  }
+}
+
+function hidePopup(element) {
+  const popup = element.querySelector('.doctor-popup');
+  if (popup) {
+    popup.classList.remove('opacity-100');
+    popup.classList.add('opacity-0');
+  }
+}
+
+function openAddDoctorModal() {
+  document.getElementById('addDoctorModal').classList.remove('hidden');
+}
+
+function closeAddDoctorModal() {
+  document.getElementById('addDoctorModal').classList.add('hidden');
+}
 </script>
 
 <style>

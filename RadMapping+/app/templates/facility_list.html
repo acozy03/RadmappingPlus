@@ -1,138 +1,309 @@
 {% extends "layout.html" %}
-{% block title %}All Facilities{% endblock %}
+
+{% block title %}Facilities{% endblock %}
 
 {% block content %}
+<div class="flex justify-between items-center mb-6 border-b pb-2">
+  <h2 class="text-2xl font-semibold">Facilities</h2>
+  {% if session.user.role == 'admin' %}
+  <button onclick="openAddFacilityModal()" class="bg-blue-600 text-white px-4 py-2 rounded text-sm font-medium">
+    Add Facility
+  </button>
+  {% endif %}
+</div>
 
-<h2 class="text-2xl font-semibold mb-6 border-b pb-2">Facilities</h2>
+<!-- Add Facility Modal -->
+<div id="addFacilityModal" class="fixed inset-0 bg-gray-600 bg-opacity-50 hidden overflow-y-auto h-full w-full z-[9999]">
+  <div class="relative top-20 mx-auto p-5 border w-96 shadow-lg rounded-md bg-white">
+    <div class="mt-3">
+      <h3 class="text-lg font-medium leading-6 text-gray-900 mb-4">Add New Facility</h3>
+      <form id="addFacilityForm" onsubmit="submitAddFacility(event)">
+        <div class="mb-4">
+          <label class="block text-gray-700 text-sm font-bold mb-2" for="name">
+            Facility Name
+          </label>
+          <input type="text" id="name" name="name" required
+                 class="shadow appearance-none border rounded w-full py-2 px-3 text-gray-700 leading-tight focus:outline-none focus:shadow-outline">
+        </div>
+        <div class="mb-4">
+          <label class="block text-gray-700 text-sm font-bold mb-2" for="location">
+            Location
+          </label>
+          <input type="text" id="location" name="location"
+                 class="shadow appearance-none border rounded w-full py-2 px-3 text-gray-700 leading-tight focus:outline-none focus:shadow-outline">
+        </div>
+        <div class="mb-4">
+          <label class="block text-gray-700 text-sm font-bold mb-2" for="pacs">
+            PACS
+          </label>
+          <input type="text" id="pacs" name="pacs"
+                 class="shadow appearance-none border rounded w-full py-2 px-3 text-gray-700 leading-tight focus:outline-none focus:shadow-outline">
+        </div>
+        <div class="mb-4">
+          <label class="block text-gray-700 text-sm font-bold mb-2" for="tat_definition">
+            TAT Definition
+          </label>
+          <input type="text" id="tat_definition" name="tat_definition"
+                 class="shadow appearance-none border rounded w-full py-2 px-3 text-gray-700 leading-tight focus:outline-none focus:shadow-outline">
+        </div>
+        <div class="mb-4">
+          <label class="block text-gray-700 text-sm font-bold mb-2" for="modalities_assignment_period">
+            Modalities Period
+          </label>
+          <input type="text" id="modalities_assignment_period" name="modalities_assignment_period"
+                 class="shadow appearance-none border rounded w-full py-2 px-3 text-gray-700 leading-tight focus:outline-none focus:shadow-outline">
+        </div>
+        <div class="mb-4">
+          <label class="flex items-center">
+            <input type="checkbox" id="active_status" name="active_status" checked
+                   class="form-checkbox h-4 w-4 text-blue-600">
+            <span class="ml-2 text-gray-700">Active</span>
+          </label>
+        </div>
+        <div class="flex justify-end gap-2">
+          <button type="button" onclick="closeAddFacilityModal()"
+                  class="bg-gray-300 text-gray-700 px-4 py-2 rounded text-sm font-medium hover:bg-gray-400">
+            Cancel
+          </button>
+          <button type="submit"
+                  class="bg-blue-600 text-white px-4 py-2 rounded text-sm font-medium hover:bg-blue-700">
+            Add Facility
+          </button>
+        </div>
+      </form>
+    </div>
+  </div>
+</div>
 
-<div class="flex flex-col md:flex-row gap-4 mb-6">
-  <!-- Search Box -->
-  <input type="text"
-         id="facilitySearch"
-         placeholder="Search by name or location..."
-         class="w-full md:w-1/2 p-3 border rounded text-sm"
-         onkeyup="filterFacilities()" />
-
-  <!-- Filter Buttons -->
+<div class="mb-4 flex flex-col md:flex-row gap-4">
+  <div class="flex-1">
+    <input type="text"
+           id="searchBox"
+           placeholder="Search by name..."
+           class="w-full p-2 border rounded"
+           onkeyup="debounceSearch()" />
+  </div>
+  <!-- Add Status Filter Buttons -->
   <div class="flex gap-2">
     <button onclick="filterByStatus('all')" 
             class="px-4 py-2 rounded text-sm font-medium bg-gray-100 hover:bg-gray-200 active-filter" 
             data-status="all">
       All
     </button>
-    <button onclick="filterByStatus('true')" 
+    <button onclick="filterByStatus('active')" 
             class="px-4 py-2 rounded text-sm font-medium bg-gray-100 hover:bg-gray-200" 
-            data-status="true">
+            data-status="active">
       Active
     </button>
-    <button onclick="filterByStatus('false')" 
+    <button onclick="filterByStatus('inactive')" 
             class="px-4 py-2 rounded text-sm font-medium bg-gray-100 hover:bg-gray-200" 
-            data-status="false">
+            data-status="inactive">
       Inactive
     </button>
   </div>
 </div>
 
-<!-- Facility Grid -->
-<div id="facilityList" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-  {% for fac in facilities %}
-  <div class="relative bg-gray-50 rounded hover:bg-gray-100 cursor-pointer facility-item group"
-       onclick="window.location.href='{{ url_for('dashboard.facility_profile', facility_id=fac.id) }}'"
-       data-status="{{ fac.active_status }}">
-    <div class="p-4">
-      <div class="flex justify-between items-start mb-2">
-        <p class="text-lg font-medium name">{{ fac.name }}</p>
-        <span class="px-2 py-1 text-xs font-medium rounded-full {% if fac.active_status == 'true' %}bg-green-100 text-green-800{% else %}bg-red-100 text-red-800{% endif %}">
-          {% if fac.active_status == 'true' %}Active{% else %}Inactive{% endif %}
-        </span>
+<!-- Facilities List -->
+<ul id="facilityList" class="space-y-4">
+  {% for facility in facilities %}
+  <li class="relative flex items-center justify-between p-4 bg-gray-50 rounded hover:bg-gray-100 cursor-pointer facility-item"
+      onclick="window.location.href='/dashboard/facilities/{{ facility.id }}'"
+      onmouseenter="showPopup(this)"
+      onmouseleave="hidePopup(this)">
+    <div class="flex items-center gap-3">
+      <div class="w-2 h-2 rounded-full {% if facility.active_status == 'true' %}bg-green-500{% else %}bg-red-500{% endif %}"></div>
+      <div>
+        <p class="text-lg font-medium name">{{ facility.name }}</p>
+        <p class="text-sm text-gray-500 location">{{ facility.location or 'No location specified' }}</p>
       </div>
-      <p class="text-sm text-gray-500 location">{{ fac.location }}</p>
-      <span class="text-blue-600 font-semibold text-sm mt-2 inline-block">Details →</span>
     </div>
+    <span class="text-blue-600 font-semibold">Details →</span>
 
     <!-- Hover Popup -->
     <div class="facility-popup absolute left-0 top-full mt-2 w-[20rem] bg-white border p-3 rounded shadow-md text-left pointer-events-none opacity-0 transition-opacity duration-150 z-50">
-      <p class="text-sm font-medium">PACS: <span class="text-gray-700">{{ fac.pacs or 'N/A' }}</span></p>
-      <p class="text-sm font-medium">Modalities: <span class="text-gray-700">{{ fac.modalities_assignment_period or 'N/A' }}</span></p>
-      <p class="text-sm font-medium">TAT: <span class="text-gray-700">{{ fac.tat_definition or 'N/A' }}</span></p>
-      <p class="text-sm font-medium">Status:
-        {% if fac.active_status == 'true' %}
-          <span class="text-green-600">Active</span>
-        {% else %}
-          <span class="text-red-600">Inactive</span>
-        {% endif %}
-      </p>
+      <p class="text-sm font-medium">Location: <span class="text-gray-700">{{ facility.location or 'N/A' }}</span></p>
+      <p class="text-sm font-medium">PACS: <span class="text-gray-700">{{ facility.pacs or 'N/A' }}</span></p>
+      <p class="text-sm font-medium">Status: <span class="text-gray-700">{{ 'Active' if facility.active_status == 'true' else 'Inactive' }}</span></p>
+      <p class="text-sm font-medium">TAT Definition: <span class="text-gray-700">{{ facility.tat_definition or 'N/A' }}</span></p>
+      <p class="text-sm font-medium">Modalities Period: <span class="text-gray-700">{{ facility.modalities_assignment_period or 'N/A' }}</span></p>
     </div>
-  </div>
+  </li>
   {% endfor %}
+</ul>
+
+<!-- Pagination Controls -->
+<div class="mt-4 flex justify-between items-center">
+  <div class="text-sm text-gray-700">
+    Showing <span id="startItem">1</span> to <span id="endItem">{{ per_page }}</span> of <span id="totalItems">{{ total_count }}</span> entries
+  </div>
+  <div class="flex gap-2">
+    <button onclick="changePage('prev')" id="prevPage" class="px-3 py-1 border rounded hover:bg-gray-100 disabled:opacity-50 disabled:cursor-not-allowed">
+      Previous
+    </button>
+    <button onclick="changePage('next')" id="nextPage" class="px-3 py-1 border rounded hover:bg-gray-100 disabled:opacity-50 disabled:cursor-not-allowed">
+      Next
+    </button>
+  </div>
 </div>
 
-<!-- Scripts -->
 <script>
-  let currentStatusFilter = 'all';
-  let currentSearchTerm = '';
+let currentPage = {{ current_page }};
+const itemsPerPage = {{ per_page }};
+let totalCount = {{ total_count }};
+let searchTimeout;
+let currentStatusFilter = 'all';
 
-  function filterFacilities() {
-    currentSearchTerm = document.getElementById("facilitySearch").value.toLowerCase();
-    applyFilters();
-  }
+function openAddFacilityModal() {
+  document.getElementById('addFacilityModal').classList.remove('hidden');
+}
 
-  function filterByStatus(status) {
-    currentStatusFilter = status;
-    
-    // Update active button styling
-    document.querySelectorAll('[data-status]').forEach(button => {
-      if (button.classList.contains('active-filter')) {
-        button.classList.remove('active-filter', 'bg-blue-600', 'text-white');
-        button.classList.add('bg-gray-100');
-      }
-    });
-    
-    const activeButton = document.querySelector(`[data-status="${status}"]`);
-    if (activeButton) {
-      activeButton.classList.remove('bg-gray-100');
-      activeButton.classList.add('active-filter', 'bg-blue-600', 'text-white');
+function closeAddFacilityModal() {
+  document.getElementById('addFacilityModal').classList.add('hidden');
+  document.getElementById('addFacilityForm').reset();
+}
+
+function submitAddFacility(event) {
+  event.preventDefault();
+  
+  const formData = new FormData(event.target);
+  const data = {
+    name: formData.get('name'),
+    location: formData.get('location'),
+    pacs: formData.get('pacs'),
+    tat_definition: formData.get('tat_definition'),
+    modalities_assignment_period: formData.get('modalities_assignment_period'),
+    active_status: formData.get('active_status') ? 'true' : 'false'
+  };
+
+  fetch('/dashboard/facilities/add', {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json',
+    },
+    body: JSON.stringify(data)
+  })
+  .then(response => {
+    if (response.ok) {
+      closeAddFacilityModal();
+      loadFacilities(); // Refresh the list
+    } else {
+      throw new Error('Failed to add facility');
     }
-    
-    applyFilters();
-  }
-
-  function applyFilters() {
-    const facilities = document.querySelectorAll(".facility-item");
-
-    facilities.forEach(fac => {
-      const name = fac.querySelector(".name").textContent.toLowerCase();
-      const location = fac.querySelector(".location").textContent.toLowerCase();
-      const status = fac.getAttribute('data-status');
-      
-      const matchesSearch = name.includes(currentSearchTerm) || location.includes(currentSearchTerm);
-      const matchesStatus = currentStatusFilter === 'all' || status === currentStatusFilter;
-      
-      fac.style.display = (matchesSearch && matchesStatus) ? "block" : "none";
-    });
-  }
-
-  // Add hover event listeners to all facility items
-  document.querySelectorAll('.facility-item').forEach(item => {
-    item.addEventListener('mouseenter', () => {
-      const popup = item.querySelector('.facility-popup');
-      if (popup) {
-        popup.classList.remove('opacity-0');
-        popup.classList.add('opacity-100');
-      }
-    });
-
-    item.addEventListener('mouseleave', () => {
-      const popup = item.querySelector('.facility-popup');
-      if (popup) {
-        popup.classList.remove('opacity-100');
-        popup.classList.add('opacity-0');
-      }
-    });
+  })
+  .catch(error => {
+    console.error('Error:', error);
+    alert('Failed to add facility. Please try again.');
   });
+}
 
-  // Initialize with "All" filter active
-  document.querySelector('[data-status="all"]').classList.add('active-filter', 'bg-blue-600', 'text-white');
+function debounceSearch() {
+  clearTimeout(searchTimeout);
+  searchTimeout = setTimeout(() => {
+    currentPage = 1;
+    loadFacilities();
+  }, 300);
+}
+
+function loadFacilities() {
+  const searchTerm = document.getElementById('searchBox').value;
+  
+  fetch(`/dashboard/facilities/search?page=${currentPage}&search=${encodeURIComponent(searchTerm)}&status=${currentStatusFilter}`)
+    .then(response => response.json())
+    .then(data => {
+      updateTable(data.facilities);
+      updatePagination(data.total_count);
+    });
+}
+
+function filterByStatus(status) {
+  currentStatusFilter = status;
+  
+  // Update button styles
+  document.querySelectorAll('[data-status]').forEach(button => {
+    button.classList.remove('active-filter', 'bg-blue-600', 'text-white');
+    if (button.dataset.status === status) {
+      button.classList.add('active-filter', 'bg-blue-600', 'text-white');
+    }
+  });
+  
+  currentPage = 1;
+  loadFacilities();
+}
+
+function updateTable(facilities) {
+  const tbody = document.getElementById('facilityList');
+  tbody.innerHTML = '';
+  
+  facilities.forEach(facility => {
+    const li = document.createElement('li');
+    li.className = 'relative flex items-center justify-between p-4 bg-gray-50 rounded hover:bg-gray-100 cursor-pointer facility-item';
+    li.onclick = () => window.location.href = `/dashboard/facilities/${facility.id}`;
+    li.onmouseenter = () => showPopup(li);
+    li.onmouseleave = () => hidePopup(li);
+    
+    li.innerHTML = `
+      <div class="flex items-center gap-3">
+        <div class="w-2 h-2 rounded-full ${facility.active_status === 'true' ? 'bg-green-500' : 'bg-red-500'}"></div>
+        <div>
+          <p class="text-lg font-medium name">${facility.name}</p>
+          <p class="text-sm text-gray-500 location">${facility.location || 'No location specified'}</p>
+        </div>
+      </div>
+      <span class="text-blue-600 font-semibold">Details →</span>
+
+      <div class="facility-popup absolute left-0 top-full mt-2 w-[20rem] bg-white border p-3 rounded shadow-md text-left pointer-events-none opacity-0 transition-opacity duration-150 z-50">
+        <p class="text-sm font-medium">Location: <span class="text-gray-700">${facility.location || 'N/A'}</span></p>
+        <p class="text-sm font-medium">PACS: <span class="text-gray-700">${facility.pacs || 'N/A'}</span></p>
+        <p class="text-sm font-medium">Status: <span class="text-gray-700">${facility.active_status === 'true' ? 'Active' : 'Inactive'}</span></p>
+        <p class="text-sm font-medium">TAT Definition: <span class="text-gray-700">${facility.tat_definition || 'N/A'}</span></p>
+        <p class="text-sm font-medium">Modalities Period: <span class="text-gray-700">${facility.modalities_assignment_period || 'N/A'}</span></p>
+      </div>
+    `;
+    
+    tbody.appendChild(li);
+  });
+}
+
+function updatePagination(total) {
+  totalCount = total;
+  const totalPages = Math.ceil(totalCount / itemsPerPage);
+  const startItem = ((currentPage - 1) * itemsPerPage) + 1;
+  const endItem = Math.min(currentPage * itemsPerPage, totalCount);
+
+  document.getElementById('startItem').textContent = startItem;
+  document.getElementById('endItem').textContent = endItem;
+  document.getElementById('totalItems').textContent = totalCount;
+
+  document.getElementById('prevPage').disabled = currentPage === 1;
+  document.getElementById('nextPage').disabled = currentPage === totalPages;
+}
+
+function changePage(direction) {
+  const totalPages = Math.ceil(totalCount / itemsPerPage);
+  
+  if (direction === 'next' && currentPage < totalPages) {
+    currentPage++;
+  } else if (direction === 'prev' && currentPage > 1) {
+    currentPage--;
+  }
+  
+  loadFacilities();
+}
+
+function showPopup(element) {
+  const popup = element.querySelector('.facility-popup');
+  if (popup) {
+    popup.classList.remove('opacity-0');
+    popup.classList.add('opacity-100');
+  }
+}
+
+function hidePopup(element) {
+  const popup = element.querySelector('.facility-popup');
+  if (popup) {
+    popup.classList.remove('opacity-100');
+    popup.classList.add('opacity-0');
+  }
+}
 </script>
-
 {% endblock %}

@@ -52,8 +52,8 @@
     <p><strong>TAT Definition:</strong> {{ facility.tat_definition }}</p>
     <p><strong>Modalities:</strong> {{ facility.modalities_assignment_period }}</p>
     <p><strong>Status:</strong>
-      {% if facility.active_status == 'true' %}
-        <span class="text-green-600 font-medium">Active</span>
+      {% if facility.active_status == 'truee' %}
+        <span class="text-red-600 font-medium">Active</span>
       {% else %}
         <span class="text-red-600 font-medium">Inactive</span>
       {% endif %}

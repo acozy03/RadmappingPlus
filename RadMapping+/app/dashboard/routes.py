@@ -131,9 +131,60 @@ def admin():
 @dashboard_bp.route('/doctors')
 @login_required
 def doctor_list():
-    response = supabase.table("radiologists").select("*").execute()
+    # Get pagination parameters
+    page = request.args.get('page', 1, type=int)
+    per_page = 25
+    offset = (page - 1) * per_page
+
+    # Get total count for pagination
+    count_res = supabase.table("radiologists").select("*", count='exact').execute()
+    total_count = count_res.count
+
+    # Fetch paginated doctors
+    response = supabase.table("radiologists") \
+        .select("*") \
+        .order("name") \
+        .range(offset, offset + per_page - 1) \
+        .execute()
     doctors = response.data
-    return render_template("doctor_list.html", doctors=doctors)
+
+    return render_template("doctor_list.html", 
+                         doctors=doctors,
+                         total_count=total_count,
+                         current_page=page,
+                         per_page=per_page)
+
+@dashboard_bp.route('/doctors/search', methods=["GET"])
+@login_required
+def search_doctors():
+    page = request.args.get('page', 1, type=int)
+    per_page = 25
+    offset = (page - 1) * per_page
+    
+    # Get search term
+    search_term = request.args.get('search', '')
+    
+    # Build query
+    query = supabase.table("radiologists").select("*")
+    
+    if search_term:
+        query = query.or_(f"name.ilike.%{search_term}%,email.ilike.%{search_term}%")
+    
+    # Get total count for pagination
+    count_res = query.execute()
+    total_count = len(count_res.data)
+    
+    # Get paginated results
+    query = query.order("name") \
+                .range(offset, offset + per_page - 1)
+    results = query.execute()
+    
+    return jsonify({
+        'doctors': results.data,
+        'total_count': total_count,
+        'current_page': page,
+        'per_page': per_page
+    })
 
 @dashboard_bp.route('/doctors/<string:rad_id>')
 @login_required
@@ -305,9 +356,64 @@ def bulk_update_schedule(rad_id):
 @dashboard_bp.route('/facilities')
 @login_required
 def facilities():
-    res = supabase.table("facilities").select("*").order("name").execute()
+    # Get pagination parameters
+    page = request.args.get('page', 1, type=int)
+    per_page = 25
+    offset = (page - 1) * per_page
+
+    # Get total count for pagination
+    count_res = supabase.table("facilities").select("*", count='exact').execute()
+    total_count = count_res.count
+
+    # Fetch paginated facilities
+    res = supabase.table("facilities") \
+        .select("*") \
+        .order("name") \
+        .range(offset, offset + per_page - 1) \
+        .execute()
     facilities = res.data
-    return render_template("facility_list.html", facilities=facilities)
+
+    return render_template("facility_list.html", 
+                         facilities=facilities,
+                         total_count=total_count,
+                         current_page=page,
+                         per_page=per_page)
+
+@dashboard_bp.route('/facilities/search', methods=["GET"])
+@login_required
+def search_facilities():
+    search_term = request.args.get('search', '')
+    page = int(request.args.get('page', 1))
+    per_page = int(request.args.get('per_page', 25))
+    status = request.args.get('status', 'all')
+    
+    offset = (page - 1) * per_page
+    
+    # Build the query
+    query = supabase.table("facilities").select("*", count='exact')
+    
+    # Add search condition if search term exists
+    if search_term:
+        query = query.ilike('name', f'%{search_term}%')
+    
+    # Add status filter
+    if status == 'active':
+        query = query.eq('active_status', 'true')
+    elif status == 'inactive':
+        query = query.eq('active_status', 'false')
+    
+    # Add pagination
+    query = query.range(offset, offset + per_page - 1)
+    
+    # Execute query
+    result = query.execute()
+    
+    return jsonify({
+        'facilities': result.data,
+        'total_count': result.count,
+        'current_page': page,
+        'per_page': per_page
+    })
 
 @dashboard_bp.route('/facilities/<string:facility_id>')
 @login_required
@@ -707,8 +813,21 @@ def schedule():
     start_day = 1
     end_day = days_in_month
 
-    # Get all doctors
-    doctors_res = supabase.table("radiologists").select("*").order("name").execute()
+    # Get pagination parameters for doctors
+    page = request.args.get('page', 1, type=int)
+    per_page = 15  # Changed to 10 doctors per page
+    offset = (page - 1) * per_page
+
+    # Get total count for pagination
+    count_res = supabase.table("radiologists").select("*", count='exact').execute()
+    total_count = count_res.count
+
+    # Get paginated doctors
+    doctors_res = supabase.table("radiologists") \
+        .select("*") \
+        .order("name") \
+        .range(offset, offset + per_page - 1) \
+        .execute()
     doctors = doctors_res.data
 
     # Get all schedules for the full month
@@ -742,8 +861,43 @@ def schedule():
         prev_start=1,
         next_start=1,
         calendar=calendar,
-        datetime=datetime
-    )
+        datetime=datetime,
+        total_count=total_count,
+        current_page=page,
+        per_page=per_page,
+        min=min)
+
+@dashboard_bp.route('/schedule/search', methods=["GET"])
+@login_required
+def search_schedule():
+    page = request.args.get('page', 1, type=int)
+    per_page = 25
+    offset = (page - 1) * per_page
+    
+    # Get search term
+    search_term = request.args.get('search', '')
+    
+    # Build query
+    query = supabase.table("radiologists").select("*")
+    
+    if search_term:
+        query = query.ilike('name', f'%{search_term}%')
+    
+    # Get total count for pagination
+    count_res = query.execute()
+    total_count = len(count_res.data)
+    
+    # Get paginated results
+    query = query.order("name") \
+                .range(offset, offset + per_page - 1)
+    results = query.execute()
+    
+    return jsonify({
+        'doctors': results.data,
+        'total_count': total_count,
+        'current_page': page,
+        'per_page': per_page
+    })
 
 @dashboard_bp.route('/schedule/bulk', methods=['POST'])
 @login_required
@@ -1214,4 +1368,21 @@ def add_doctor():
     supabase.table("radiologists").insert(data).execute()
 
     return redirect(url_for("dashboard.doctor_profile", rad_id=new_id))
+
+@dashboard_bp.route('/facilities/add', methods=['POST'])
+@login_required
+@admin_required
+def add_facility():
+    data = request.get_json()
+    
+    # Generate a new UUID for the facility
+    new_id = str(uuid.uuid4())
+    
+    # Add the ID to the data
+    data['id'] = new_id
+    
+    # Insert the new facility into the database
+    supabase.table("facilities").insert(data).execute()
+    
+    return jsonify({"status": "success", "id": new_id})
 
