@@ -453,8 +453,21 @@ def licenses_page():
             }).execute()
         return redirect(url_for("dashboard.licenses_page"))
 
-    # Fetch all licenses with radiologist names
-    certs_res = supabase.table("certifications").select("*, radiologists(name)").order("expiration_date", desc=False).execute()
+    # Get pagination parameters
+    page = request.args.get('page', 1, type=int)
+    per_page = 25
+    offset = (page - 1) * per_page
+
+    # Get total count for pagination
+    count_res = supabase.table("certifications").select("*", count='exact').execute()
+    total_count = count_res.count
+
+    # Fetch paginated licenses with radiologist names
+    certs_res = supabase.table("certifications") \
+        .select("*, radiologists(name)") \
+        .order("expiration_date", desc=False) \
+        .range(offset, offset + per_page - 1) \
+        .execute()
     certifications = certs_res.data or []
     
     # Get current date for expiration checking
@@ -463,23 +476,48 @@ def licenses_page():
     return render_template("licenses.html", 
                          certifications=certifications, 
                          radiologists=radiologists,
-                         now=now)
+                         now=now,
+                         total_count=total_count,
+                         current_page=page,
+                         per_page=per_page)
 
-@dashboard_bp.route('/licenses/<string:license_id>/update', methods=['POST'])
+@dashboard_bp.route('/licenses/search', methods=["GET"])
 @login_required
-@admin_required
-def update_license(license_id):
-    data = {
-        "radiologist_id": request.form.get("radiologist_id"),
-        "state": request.form.get("state"),
-        "specialty": request.form.get("specialty"),
-        "status": request.form.get("status"),
-        "tags": request.form.get("tags"),
-        "expiration_date": request.form.get("expiration_date")
-    }
+def search_licenses():
+    page = request.args.get('page', 1, type=int)
+    per_page = 25
+    offset = (page - 1) * per_page
     
-    supabase.table("certifications").update(data).eq("id", license_id).execute()
-    return redirect(url_for("dashboard.licenses_page"))
+    # Get filter parameters
+    search_term = request.args.get('search', '')
+    doctor_id = request.args.get('doctor', '')
+    status = request.args.get('status', 'all')
+    
+    # Build query
+    query = supabase.table("certifications").select("*, radiologists(name)")
+    
+    if search_term:
+        query = query.ilike('state', f'%{search_term}%')
+    if doctor_id:
+        query = query.eq('radiologist_id', doctor_id)
+    if status != 'all':
+        query = query.eq('status', status)
+    
+    # Get total count for pagination
+    count_res = query.execute()
+    total_count = len(count_res.data)
+    
+    # Get paginated results
+    query = query.order("expiration_date", desc=False) \
+                .range(offset, offset + per_page - 1)
+    results = query.execute()
+    
+    return jsonify({
+        'certifications': results.data,
+        'total_count': total_count,
+        'current_page': page,
+        'per_page': per_page
+    })
 
 @dashboard_bp.route('/chat', methods=['POST'])
 @login_required

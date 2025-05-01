@@ -4,6 +4,9 @@
 {% block content %}
 <h2 class="text-2xl font-semibold mb-4">Licenses</h2>
 
+<!-- Store radiologists data for JavaScript -->
+<div id="radiologistsData" data-radiologists='{{ radiologists|tojson|safe }}' class="hidden"></div>
+
 <div class="mb-4 flex flex-col md:flex-row gap-4">
   <div class="flex-1">
     <input
@@ -11,13 +14,13 @@
       id="licenseSearch"
       placeholder="Search by state..."
       class="w-full p-2 border rounded"
-      onkeyup="filterLicenses()" />
+      onkeyup="debounceSearch()" />
   </div>
   <div class="w-64">
     <select
       id="doctorFilter"
       class="w-full p-2 border rounded"
-      onchange="filterLicenses()">
+      onchange="loadLicenses()">
       <option value="">All Doctors</option>
       {% for rad in radiologists %}
       <option value="{{ rad.id }}">{{ rad.name }}</option>
@@ -60,7 +63,7 @@
           <th class="px-6 py-3 border">Actions</th>
         </tr>
       </thead>
-      <tbody>
+      <tbody id="licensesTableBody">
         {% for cert in certifications %}
         {% set is_expired = cert.status == 'Expired' or cert.status == 'Revoked' or (cert.expiration_date and cert.expiration_date < now.strftime('%Y-%m-%d')) %}
         <tr id="license-row-{{ cert.id }}" 
@@ -116,59 +119,147 @@
       </tbody>
     </table>
   </div>
+  
+  <!-- Pagination Controls -->
+  <div class="mt-4 flex justify-between items-center">
+    <div class="text-sm text-gray-700">
+      Showing <span id="startItem">1</span> to <span id="endItem">{{ per_page }}</span> of <span id="totalItems">{{ total_count }}</span> entries
+    </div>
+    <div class="flex gap-2">
+      <button onclick="changePage('prev')" id="prevPage" class="px-3 py-1 border rounded hover:bg-gray-100 disabled:opacity-50 disabled:cursor-not-allowed">
+        Previous
+      </button>
+      <button onclick="changePage('next')" id="nextPage" class="px-3 py-1 border rounded hover:bg-gray-100 disabled:opacity-50 disabled:cursor-not-allowed">
+        Next
+      </button>
+    </div>
+  </div>
 </div>
 
 <script>
 let currentStatusFilter = 'all';
 let currentSearchTerm = '';
+let currentPage = {{ current_page }};
+const itemsPerPage = {{ per_page }};
+let totalCount = {{ total_count }};
+let searchTimeout;
 
-function filterLicenses() {
-  const searchInput = document.getElementById('licenseSearch');
-  const doctorFilter = document.getElementById('doctorFilter');
-  const searchFilter = searchInput.value.toLowerCase();
-  const selectedDoctor = doctorFilter.value;
-  const table = document.getElementById('licensesTable');
-  const rows = table.getElementsByTagName('tr');
+// Get radiologists data from the hidden div
+const radiologists = JSON.parse(document.getElementById('radiologistsData').dataset.radiologists);
 
-  currentSearchTerm = searchFilter;
+function debounceSearch() {
+  clearTimeout(searchTimeout);
+  searchTimeout = setTimeout(() => {
+    currentSearchTerm = document.getElementById('licenseSearch').value;
+    currentPage = 1;
+    loadLicenses();
+  }, 300);
+}
 
-  for (let i = 1; i < rows.length; i++) {
-    const row = rows[i];
-    const cells = row.getElementsByTagName('td');
-    let shouldShow = true;
+function loadLicenses() {
+  const searchTerm = document.getElementById('licenseSearch').value;
+  const doctorId = document.getElementById('doctorFilter').value;
+  
+  fetch(`/dashboard/licenses/search?page=${currentPage}&search=${encodeURIComponent(searchTerm)}&doctor=${encodeURIComponent(doctorId)}&status=${currentStatusFilter}`)
+    .then(response => response.json())
+    .then(data => {
+      updateTable(data.certifications);
+      updatePagination(data.total_count);
+    });
+}
 
-    // Check doctor filter
-    if (selectedDoctor && row.dataset.doctorId !== selectedDoctor) {
-      shouldShow = false;
-    }
+function updateTable(certifications) {
+  const tbody = document.getElementById('licensesTableBody');
+  tbody.innerHTML = '';
+  
+  certifications.forEach(cert => {
+    const isExpired = cert.status === 'Expired' || cert.status === 'Revoked' || 
+                     (cert.expiration_date && cert.expiration_date < new Date().toISOString().split('T')[0]);
+    
+    const row = document.createElement('tr');
+    row.id = `license-row-${cert.id}`;
+    row.className = `hover:bg-opacity-80 ${isExpired ? 'bg-red-50' : 'bg-green-50'}`;
+    row.dataset.doctorId = cert.radiologist_id;
+    
+    // Create doctor select options
+    const doctorOptions = radiologists.map(rad => 
+      `<option value="${rad.id}" ${rad.id === cert.radiologist_id ? 'selected' : ''}>${rad.name}</option>`
+    ).join('');
+    
+    row.innerHTML = `
+      <td class="px-6 py-4 border">
+        <span class="view-mode">${cert.radiologists.name}</span>
+        <select class="edit-mode hidden w-full px-2 py-1 border rounded">
+          ${doctorOptions}
+        </select>
+      </td>
+      <td class="px-6 py-4 border">
+        <span class="view-mode">${cert.state}</span>
+        <input type="text" class="edit-mode hidden w-full px-2 py-1 border rounded" value="${cert.state}">
+      </td>
+      <td class="px-6 py-4 border">
+        <span class="view-mode">${cert.specialty || ''}</span>
+        <input type="text" class="edit-mode hidden w-full px-2 py-1 border rounded" value="${cert.specialty || ''}">
+      </td>
+      <td class="px-6 py-4 border">
+        <span class="view-mode">${cert.status}</span>
+        <select class="edit-mode hidden w-full px-2 py-1 border rounded">
+          <option value="Active" ${cert.status === 'Active' ? 'selected' : ''}>Active</option>
+          <option value="Pending" ${cert.status === 'Pending' ? 'selected' : ''}>Pending</option>
+          <option value="Expired" ${cert.status === 'Expired' ? 'selected' : ''}>Expired</option>
+          <option value="Revoked" ${cert.status === 'Revoked' ? 'selected' : ''}>Revoked</option>
+        </select>
+      </td>
+      <td class="px-6 py-4 border">
+        <span class="view-mode">${cert.tags || ''}</span>
+        <input type="text" class="edit-mode hidden w-full px-2 py-1 border rounded" value="${cert.tags || ''}">
+      </td>
+      <td class="px-6 py-4 border">
+        <span class="view-mode">${cert.expiration_date}</span>
+        <input type="date" class="edit-mode hidden w-full px-2 py-1 border rounded" value="${cert.expiration_date}">
+      </td>
+      <td class="px-6 py-4 border">
+        <div class="view-mode">
+          <button onclick="toggleEditMode('${cert.id}')" class="text-blue-600 hover:text-blue-900 mr-3">Edit</button>
+          <form method="POST" action="/dashboard/doctors/${cert.radiologist_id}/licenses/${cert.id}/delete" class="inline">
+            <button type="submit" class="text-red-600 hover:text-red-800">Delete</button>
+          </form>
+        </div>
+        <div class="edit-mode hidden">
+          <button onclick="saveLicense('${cert.id}')" class="text-green-600 hover:text-green-900 mr-3">Save</button>
+          <button onclick="cancelEdit('${cert.id}')" class="text-gray-600 hover:text-gray-900">Cancel</button>
+        </div>
+      </td>
+    `;
+    
+    tbody.appendChild(row);
+  });
+}
 
-    // Check status filter
-    if (shouldShow && currentStatusFilter !== 'all') {
-      const statusCell = cells[3]; // Status is in the 4th column
-      const status = statusCell.querySelector('.view-mode').textContent.trim();
-      if (status !== currentStatusFilter) {
-        shouldShow = false;
-      }
-    }
+function updatePagination(total) {
+  totalCount = total;
+  const totalPages = Math.ceil(totalCount / itemsPerPage);
+  const startItem = ((currentPage - 1) * itemsPerPage) + 1;
+  const endItem = Math.min(currentPage * itemsPerPage, totalCount);
 
-    // If filters pass, check text search
-    if (shouldShow) {
-      let textMatch = false;
-      for (let j = 0; j < cells.length; j++) {
-        const cell = cells[j];
-        if (cell) {
-          const text = cell.textContent || cell.innerText;
-          if (text.toLowerCase().indexOf(searchFilter) > -1) {
-            textMatch = true;
-            break;
-          }
-        }
-      }
-      shouldShow = textMatch;
-    }
+  document.getElementById('startItem').textContent = startItem;
+  document.getElementById('endItem').textContent = endItem;
+  document.getElementById('totalItems').textContent = totalCount;
 
-    row.style.display = shouldShow ? '' : 'none';
+  document.getElementById('prevPage').disabled = currentPage === 1;
+  document.getElementById('nextPage').disabled = currentPage === totalPages;
+}
+
+function changePage(direction) {
+  const totalPages = Math.ceil(totalCount / itemsPerPage);
+  
+  if (direction === 'next' && currentPage < totalPages) {
+    currentPage++;
+  } else if (direction === 'prev' && currentPage > 1) {
+    currentPage--;
   }
+  
+  loadLicenses();
 }
 
 function filterByStatus(status) {
@@ -182,7 +273,8 @@ function filterByStatus(status) {
     }
   });
   
-  filterLicenses();
+  currentPage = 1;
+  loadLicenses();
 }
 
 function toggleEditMode(licenseId) {
@@ -212,7 +304,7 @@ function saveLicense(licenseId) {
     method: 'POST',
     body: formData
   }).then(() => {
-    window.location.reload();
+    loadLicenses();
   });
 }
 </script>
