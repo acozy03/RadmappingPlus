@@ -10,90 +10,108 @@
 {% block content %}
 
 
-<div x-data="{ editing: false }" class="grid grid-cols-1 sm:grid-cols-2 gap-4 text-sm mb-6">
-  
-  <div class="flex justify-between items-center col-span-2">
-    <h2 class="text-2xl font-semibold">{{ doctor.name }}</h2>
+<div x-data="{ editing: false }" class="mb-8">
+  <div class="bg-white rounded-lg shadow p-6 border flex flex-col sm:flex-row items-center justify-between gap-4">
+    <h2 class="text-3xl font-bold text-blue-800 text-center sm:text-left mb-2 sm:mb-0 flex-1">{{ doctor.name }}</h2>
     {% if session.user.role == 'admin' %}
-      <button @click="editing = !editing" class="text-blue-600 text-sm hover:underline">
+      <button @click="editing = !editing" class="inline-flex items-center gap-2 px-5 py-2 bg-blue-600 text-white rounded-lg shadow hover:bg-blue-700 transition text-base font-semibold focus:outline-none focus:ring-2 focus:ring-blue-400">
+        <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11 5h2m-1 0v14m-7-7h14" /></svg>
         <span x-show="!editing">Edit Info</span>
         <span x-show="editing">Cancel Edit</span>
       </button>
     {% endif %}
   </div>
+</div>
 
-  <form method="POST" action="{{ url_for('dashboard.update_doctor', rad_id=doctor.id) }}" class="grid grid-cols-1 sm:grid-cols-2 gap-4 col-span-2" x-show="editing">
-    <label class="block">
-      <span class="font-semibold">Email</span>
-      <input type="email" name="email" value="{{ doctor.email or '' }}" class="input w-full border rounded px-3 py-2 text-sm" />
-    </label>
-
-    <label class="block">
-      <span class="font-semibold">Phone</span>
-      <input type="text" name="phone" value="{{ doctor.phone or '' }}" class="input w-full border rounded px-3 py-2 text-sm" />
-    </label>
-
-    <label class="block">
-      <span class="font-semibold">PACS</span>
-      <input type="text" name="pacs" value="{{ doctor.pacs or '' }}" class="input w-full border rounded px-3 py-2 text-sm" />
-    </label>
-
-    <label class="block">
-      <span class="font-semibold">Primary Contact Method</span>
-      <input type="text" name="primary_contact_method" value="{{ doctor.primary_contact_method or '' }}" class="input w-full border rounded px-3 py-2 text-sm" />
-    </label>
-
-    <label class="block">
-      <span class="font-semibold">Modalities</span>
-      <input type="text" name="modalities" value="{{ doctor.modalities or '' }}" class="input w-full border rounded px-3 py-2 text-sm" />
-    </label>
-
-    <label class="block">
-      <span class="font-semibold">Timezone</span>
-      <input type="text" name="timezone" value="{{ doctor.timezone or '' }}" class="input w-full border rounded px-3 py-2 text-sm" />
-    </label>
-    
-    <label class="flex items-center space-x-2 mt-4">
-      <input type="checkbox" name="active_status" value="true" {% if doctor.active_status %}checked{% endif %} class="form-checkbox h-5 w-5 text-blue-600">
-      <span class="text-sm font-medium">Active</span>
-    </label>
-    
-    <div class="col-span-2">
-      <button type="submit" class="bg-blue-600 text-white px-4 py-2 rounded text-sm font-semibold mt-2">
-        Save Changes
-      </button>
+<div x-show="!editing" class="mb-8">
+  <div class="bg-white rounded-lg shadow p-6 border grid grid-cols-1 sm:grid-cols-2 gap-6">
+    <div class="flex items-center space-x-3">
+      <span class="inline-flex items-center justify-center w-8 h-8 bg-blue-100 text-blue-600 rounded-full">
+        <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M16 12a4 4 0 01-8 0m8 0a4 4 0 00-8 0m8 0V8a4 4 0 00-8 0v4m8 0v4a4 4 0 01-8 0v-4" /></svg>
+      </span>
+      <div>
+        <div class="text-xs text-gray-500 font-semibold uppercase">Email</div>
+        <div class="text-base font-medium text-gray-900">{{ doctor.email }}</div>
+      </div>
     </div>
-  </form>
-
-  <div x-show="!editing" class="grid grid-cols-1 sm:grid-cols-2 gap-4 col-span-2">
-    <p><strong>Email:</strong> {{ doctor.email }}</p>
-    <p><strong>Phone:</strong> {{ doctor.phone }}</p>
-    <p><strong>PACS:</strong> {{ doctor.pacs }}</p>
-    <p><strong>Primary Method:</strong> {{ doctor.primary_contact_method }}</p>
-    <p><strong>Modalities:</strong> {{ doctor.modalities or "—" }}</p>
-    <p><strong>Timezone (EST):</strong> {{ doctor.timezone or "—" }}</p>
+    <div class="flex items-center space-x-3">
+      <span class="inline-flex items-center justify-center w-8 h-8 bg-green-100 text-green-600 rounded-full">
+        <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 5h2l.4 2M7 13h10l4-8H5.4M7 13l-1.35 2.7A2 2 0 007.52 19h8.96a2 2 0 001.87-2.3L17 13M7 13V6a1 1 0 011-1h6a1 1 0 011 1v7" /></svg>
+      </span>
+      <div>
+        <div class="text-xs text-gray-500 font-semibold uppercase">Phone</div>
+        <div class="text-base font-medium text-gray-900">{{ doctor.phone }}</div>
+      </div>
+    </div>
+    <div class="flex items-center space-x-3">
+      <span class="inline-flex items-center justify-center w-8 h-8 bg-purple-100 text-purple-600 rounded-full">
+        <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 17v-2a2 2 0 012-2h2a2 2 0 012 2v2m-6 0a2 2 0 002 2h2a2 2 0 002-2m-6 0V7a2 2 0 012-2h2a2 2 0 012 2v10" /></svg>
+      </span>
+      <div>
+        <div class="text-xs text-gray-500 font-semibold uppercase">PACS</div>
+        <div class="text-base font-medium text-gray-900">{{ doctor.pacs }}</div>
+      </div>
+    </div>
+    <div class="flex items-center space-x-3">
+      <span class="inline-flex items-center justify-center w-8 h-8 bg-yellow-100 text-yellow-600 rounded-full">
+        <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" /></svg>
+      </span>
+      <div>
+        <div class="text-xs text-gray-500 font-semibold uppercase">Primary Method</div>
+        <div class="text-base font-medium text-gray-900">{{ doctor.primary_contact_method }}</div>
+      </div>
+    </div>
+    <div class="flex items-center space-x-3">
+      <span class="inline-flex items-center justify-center w-8 h-8 bg-pink-100 text-pink-600 rounded-full">
+        <!-- Stethoscope icon for Modalities -->
+        <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 18a4 4 0 008 0m-8 0V7a4 4 0 018 0v11m-8 0a4 4 0 008 0" /></svg>
+      </span>
+      <div>
+        <div class="text-xs text-gray-500 font-semibold uppercase">Modalities</div>
+        <div class="text-base font-medium text-gray-900">{{ doctor.modalities or "—" }}</div>
+      </div>
+    </div>
+    <div class="flex items-center space-x-3">
+      <span class="inline-flex items-center justify-center w-8 h-8 bg-indigo-100 text-indigo-600 rounded-full">
+        <!-- Clock icon for Timezone -->
+        <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4l3 3m6 0a9 9 0 11-18 0 9 9 0 0118 0z" /></svg>
+      </span>
+      <div>
+        <div class="text-xs text-gray-500 font-semibold uppercase">Timezone (EST)</div>
+        <div class="text-base font-medium text-gray-900">{{ doctor.timezone or "—" }}</div>
+      </div>
+    </div>
   </div>
-
 </div>
 
 
-{% if doctor.additional_info %}
-<div class="mt-6">
-  <h3 class="font-semibold mb-2">Additional Info</h3>
-  <p class="text-gray-700">{{ doctor.additional_info }}</p>
+<div class="mt-8 flex flex-col md:flex-row gap-6">
+  <div class="flex-1 min-w-0">
+    <div class="bg-white rounded-lg shadow p-6 border flex flex-col items-center justify-center h-full text-center">
+      <h3 class="font-semibold text-lg mb-2 text-blue-800">Additional Info</h3>
+      {% if doctor.additional_info %}
+        <p class="text-gray-700 break-words">{{ doctor.additional_info }}</p>
+      {% else %}
+        <p class="text-gray-400 italic">No additional info provided.</p>
+      {% endif %}
+    </div>
+  </div>
+  <div class="flex-1 min-w-0 flex flex-col">
+    <div class="bg-white rounded-lg shadow p-6 border flex flex-col items-center justify-center h-full text-center">
+      <h3 class="text-xl font-semibold mb-4">Licenses</h3>
+      <div class="flex-1"></div>
+      <button onclick="openCertModal()" class="text-blue-600 hover:underline w-full mt-auto">View Licenses</button>
+    </div>
+  </div>
+  <div class="flex-1 min-w-0 flex flex-col">
+    <div class="bg-white rounded-lg shadow p-6 border flex flex-col items-center justify-center h-full text-center">
+      <h3 class="text-xl font-semibold mb-4">Assigned Facilities</h3>
+      <div class="flex-1"></div>
+      <button onclick="openFacilityModal()" class="text-blue-600 hover:underline w-full mt-auto">View Facilities</button>
+    </div>
+  </div>
 </div>
-{% endif %}
-
-
-<div class="mt-10">
-  <h3 class="text-xl font-semibold mb-2">Licenses</h3>
-  <button onclick="openCertModal()" class="text-blue-600 hover:underline">View Licenses</button>
-</div>
-
-<div class="mt-6">
-  <h3 class="text-xl font-semibold mb-2">Assigned Facilities</h3>
-  <button onclick="openFacilityModal()" class="text-blue-600 hover:underline">View Facilities</button>
-</div>
+<hr class="my-10 border-t-2 border-gray-200">
 
 {% if session.user.role == 'admin' %}
 <div class="mt-10">
@@ -292,42 +310,45 @@ document.addEventListener("DOMContentLoaded", attachDayListeners);
 <div id="certModal" class="fixed inset-0 z-50 hidden bg-black bg-opacity-50 flex items-center justify-center">
   <div class="bg-white rounded-lg shadow-lg w-[90%] max-w-3xl max-h-[80vh] overflow-y-auto p-6 relative">
     <button onclick="closeCertModal()" class="absolute top-2 right-2 text-2xl font-bold text-gray-500 hover:text-black">×</button>
-    <h3 class="text-xl font-semibold mb-4">Licenses for {{ doctor.name }}</h3>
-
+    <h3 class="text-xl font-semibold mb-4 flex items-center gap-2">
+      <span class="inline-flex items-center justify-center w-8 h-8 bg-green-100 text-green-600 rounded-full">
+        <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4l3 3m6 0a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>
+      </span>
+      Licenses for {{ doctor.name }}
+    </h3>
     <div class="mb-4">
       <input type="text" placeholder="Search by state..." oninput="filterCerts(this.value)"
              class="w-full mb-4 px-3 py-2 border rounded text-sm">
     </div>
-
     <ul id="certList" class="space-y-3 text-sm">
      {% for cert in certifications %}
-     <li class="border rounded p-3 bg-gray-50 flex justify-between items-center cert-item">
-       <div>
-         <p><strong>{{ cert.state }}</strong> — expires <span class="text-gray-700">{{ cert.expiration_date }}</span></p>
-         <p class="text-xs text-gray-500">{{ cert.status | capitalize }}</p>
+     <li class="border rounded p-4 bg-gray-50 flex justify-between items-center cert-item shadow-sm">
+       <div class="flex items-center gap-3">
+         <span class="inline-flex items-center justify-center w-8 h-8 bg-blue-100 text-blue-600 rounded-full">
+           <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"/></svg>
+         </span>
+         <div>
+           <p class="font-semibold text-gray-800">{{ cert.state }}</p>
+           <p class="text-xs text-gray-500">Expires <span class="text-gray-700">{{ cert.expiration_date }}</span></p>
+           <p class="text-xs text-gray-500">{{ cert.status | capitalize }}</p>
+         </div>
        </div>
-   
        <form method="POST" action="{{ url_for('dashboard.delete_certification', cert_id=cert.id, rad_id=doctor.id) }}" class="ml-4">
          <button type="submit" class="text-red-600 hover:text-red-800">Delete</button>
        </form>
      </li>
      {% endfor %}
    </ul>          
- 
-
-  <form method="POST" action="{{ url_for('dashboard.add_certification', rad_id=doctor.id) }}" class="mt-6 border-t pt-4">
+   <form method="POST" action="{{ url_for('dashboard.add_certification', rad_id=doctor.id) }}" class="mt-6 border-t pt-4">
     <h4 class="text-md font-semibold mb-2">Add New Certification</h4>
-  
     <label class="block mb-2">
       <span class="font-semibold">State</span>
       <input type="text" name="state" required class="w-full border rounded px-3 py-2 text-sm">
     </label>
-  
     <label class="block mb-2">
       <span class="font-semibold">Expiration Date</span>
       <input type="date" name="expiration_date" required class="w-full border rounded px-3 py-2 text-sm">
     </label>
-  
     <label class="block mb-2">
       <span class="font-semibold">Status</span>
       <select name="status" class="w-full border rounded px-3 py-2 text-sm">
@@ -339,18 +360,15 @@ document.addEventListener("DOMContentLoaded", attachDayListeners);
       <span class="font-semibold">Specialty</span>
       <input type="text" name="specialty" class="w-full border rounded px-3 py-2 text-sm">
     </label>
-    
     <label class="block mb-2">
       <span class="font-semibold">Tags (comma separated)</span>
       <input type="text" name="tags" class="w-full border rounded px-3 py-2 text-sm">
     </label>
-    
     <button type="submit" class="bg-blue-600 text-white px-4 py-2 rounded text-sm font-semibold mt-2">
       Add Certification
     </button>
   </form>
-  
-</div>
+  </div>
 </div>
 
 <script>
@@ -376,8 +394,12 @@ document.addEventListener("DOMContentLoaded", attachDayListeners);
 <div id="facilityModal" class="fixed inset-0 z-50 hidden bg-black bg-opacity-50 flex items-center justify-center">
   <div class="bg-white rounded-lg shadow-lg w-[90%] max-w-3xl max-h-[80vh] overflow-y-auto p-6 relative">
     <button onclick="closeFacilityModal()" class="absolute top-2 right-2 text-2xl font-bold text-gray-500 hover:text-black">×</button>
-    <h3 class="text-xl font-semibold mb-4">Facilities for {{ doctor.name }}</h3>
-
+    <h3 class="text-xl font-semibold mb-4 flex items-center gap-2">
+      <span class="inline-flex items-center justify-center w-8 h-8 bg-purple-100 text-purple-600 rounded-full">
+        <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 17v-2a2 2 0 012-2h2a2 2 0 012 2v2m-6 0a2 2 0 002 2h2a2 2 0 002-2m-6 0V7a2 2 0 012-2h2a2 2 0 012 2v10"/></svg>
+      </span>
+      Facilities for {{ doctor.name }}
+    </h3>
     <div class="flex justify-between items-center mb-4">
       <input type="text" placeholder="Search facilities..." oninput="filterFacilities(this.value)"
              class="w-full mr-4 px-3 py-2 border rounded text-sm">
@@ -385,23 +407,27 @@ document.addEventListener("DOMContentLoaded", attachDayListeners);
         Add Facility
       </button>
     </div>
-    
     <ul id="facilityList" class="space-y-3 text-sm">
       {% for assignment in assigned_facilities %}
       <form method="POST" action="{{ url_for('dashboard.update_assignment', assignment_id=assignment.id) }}">
-        <li class="border rounded p-3 bg-gray-50 facility-item">
-          <div class="flex items-center justify-between">
-            <div class="text-gray-700 font-medium">{{ assignment.facilities.name }}</div>
+        <li class="border rounded p-4 bg-gray-50 facility-item shadow-sm mb-2">
+          <div class="flex items-center justify-between mb-2">
+            <div class="flex items-center gap-3">
+              <span class="inline-flex items-center justify-center w-8 h-8 bg-indigo-100 text-indigo-600 rounded-full">
+                <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4l3 3m6 0a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>
+              </span>
+              <div class="text-gray-700 font-medium">{{ assignment.facilities.name }}</div>
+            </div>
             <div class="flex items-center gap-2">
-              <label><input type="checkbox" name="can_read" {% if assignment.can_read %}checked{% endif %}> Read</label>
-              <label><input type="checkbox" name="does_stats" {% if assignment.does_stats %}checked{% endif %}> Stats</label>
-              <label><input type="checkbox" name="does_routines" {% if assignment.does_routines %}checked{% endif %}> Routine</label>
+              <label class="flex items-center gap-1"><input type="checkbox" name="can_read" {% if assignment.can_read %}checked{% endif %}> <span>Read</span></label>
+              <label class="flex items-center gap-1"><input type="checkbox" name="does_stats" {% if assignment.does_stats %}checked{% endif %}> <span>Stats</span></label>
+              <label class="flex items-center gap-1"><input type="checkbox" name="does_routines" {% if assignment.does_routines %}checked{% endif %}> <span>Routine</span></label>
             </div>
           </div>
-    
-          <textarea name="stipulations" class="w-full border rounded mt-2" placeholder="Stipulations">{{ assignment.stipulations }}</textarea>
-          <textarea name="notes" class="w-full border rounded mt-2" placeholder="Notes">{{ assignment.notes }}</textarea>
-    
+          <div class="grid grid-cols-1 md:grid-cols-2 gap-2">
+            <textarea name="stipulations" class="w-full border rounded mt-2" placeholder="Stipulations">{{ assignment.stipulations }}</textarea>
+            <textarea name="notes" class="w-full border rounded mt-2" placeholder="Notes">{{ assignment.notes }}</textarea>
+          </div>
           <div class="flex justify-between items-center mt-2">
             <button type="submit" class="bg-blue-600 text-white text-sm px-3 py-1 rounded">Save Changes</button>
             <button type="button" onclick="deleteAssignment('{{ assignment.id }}')" class="text-red-600 text-sm hover:underline">Remove Assignment</button>
