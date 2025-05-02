@@ -168,7 +168,7 @@ def search_doctors():
     query = supabase.table("radiologists").select("*")
     
     if search_term:
-        query = query.or_(f"name.ilike.%{search_term}%,email.ilike.%{search_term}%")
+        query = query.or_(f"name.ilike.%{search_term}%")
     
     # Get total count for pagination
     count_res = query.execute()
