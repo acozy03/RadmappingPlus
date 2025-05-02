@@ -1247,6 +1247,13 @@ def convert_timezone(time_str, target_tz):
 @dashboard_bp.route('/specialties')
 @login_required
 def specialties():
+    user_email = session["user"]["email"]
+    pinned_res = supabase.table("pinned_doctors") \
+        .select("doctor_id") \
+        .eq("user_id", user_email) \
+        .execute()
+    pinned_doctor_ids = [p["doctor_id"] for p in pinned_res.data]
+
     # Get all specialties with their descriptions
     specialties_res = supabase.table("specialty_studies").select("*").order("name").execute()
     specialties = specialties_res.data
@@ -1261,6 +1268,7 @@ def specialties():
         .execute()
     permissions = permissions_res.data
 
+
     # Create a mapping for easy lookup of permissions
     permission_map = {}
     for perm in permissions:
@@ -1270,11 +1278,27 @@ def specialties():
             permission_map[rad_id] = {}
         permission_map[rad_id][spec_id] = perm["can_read"]
 
+    # Assuming `doctors` is a list of dicts and already sorted with pinned first
+    sorted_doctors = sorted(doctors, key=lambda doc: str(doc['id']) not in pinned_doctor_ids)
+
+    # Limit to 15 doctors
+    visible_doctors = sorted_doctors[:15]
+
+    page = int(request.args.get('page', 1))
+    page_size = 15
+    total_doctors = len(sorted_doctors)
+    start = (page - 1) * page_size
+    end = start + page_size
+    visible_doctors = sorted_doctors[start:end]
+
     return render_template("specialties.html",
-        specialties=specialties,
-        doctors=doctors,
-        permission_map=permission_map
-    )
+                           doctors=visible_doctors,
+                           specialties=specialties,
+                           permission_map=permission_map,
+                           pinned_doctors=pinned_doctor_ids,
+                           page=page,
+                           total_pages=(total_doctors + page_size - 1) // page_size)
+
 
 @dashboard_bp.route('/specialties/add', methods=['POST'])
 @login_required
