@@ -163,12 +163,19 @@ def search_doctors():
     
     # Get search term
     search_term = request.args.get('search', '')
+    status = request.args.get('status', 'all')
     
     # Build query
     query = supabase.table("radiologists").select("*")
     
     if search_term:
         query = query.or_(f"name.ilike.%{search_term}%")
+    
+    # Add status filter
+    if status == 'active':
+        query = query.eq('active_status', True)
+    elif status == 'inactive':
+        query = query.eq('active_status', False)
     
     # Get total count for pagination
     count_res = query.execute()

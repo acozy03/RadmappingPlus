@@ -18,12 +18,34 @@
   {% endif %}
 </div>
 
-<!-- Search Box -->
-<input type="text"
-       id="searchBox"
-       placeholder="Search by name..."
-       class="w-full mb-6 p-3 border rounded text-md"
-       onkeyup="debounceSearch()" />
+<!-- Search and Status Filter Row -->
+<div class="mb-4 flex flex-col md:flex-row gap-4">
+  <div class="flex-1">
+    <input type="text"
+           id="searchBox"
+           placeholder="Search by name..."
+           class="w-full p-2 border rounded"
+           onkeyup="debounceSearch()" />
+  </div>
+  <!-- Status Filter Buttons -->
+  <div class="flex gap-2">
+    <button onclick="filterByStatus('all')"
+            class="px-4 py-2 rounded text-sm font-medium bg-gray-100 hover:bg-gray-200 active-filter"
+            data-status="all">
+      All
+    </button>
+    <button onclick="filterByStatus('active')"
+            class="px-4 py-2 rounded text-sm font-medium bg-gray-100 hover:bg-gray-200"
+            data-status="active">
+      Active
+    </button>
+    <button onclick="filterByStatus('inactive')"
+            class="px-4 py-2 rounded text-sm font-medium bg-gray-100 hover:bg-gray-200"
+            data-status="inactive">
+      Inactive
+    </button>
+  </div>
+</div>
 
 <!-- Doctor List -->
 <ul id="doctorList" class="space-y-4">
@@ -144,6 +166,7 @@ let currentPage = {{ current_page }};
 const itemsPerPage = {{ per_page }};
 let totalCount = {{ total_count }};
 let searchTimeout;
+let currentStatusFilter = 'all';
 
 function debounceSearch() {
   clearTimeout(searchTimeout);
@@ -153,10 +176,22 @@ function debounceSearch() {
   }, 300);
 }
 
+function filterByStatus(status) {
+  currentStatusFilter = status;
+  // Update button styles
+  document.querySelectorAll('[data-status]').forEach(button => {
+    button.classList.remove('active-filter', 'bg-blue-600', 'text-white');
+    if (button.dataset.status === status) {
+      button.classList.add('active-filter', 'bg-blue-600', 'text-white');
+    }
+  });
+  currentPage = 1;
+  loadDoctors();
+}
+
 function loadDoctors() {
   const searchTerm = document.getElementById('searchBox').value;
-  
-  fetch(`/dashboard/doctors/search?page=${currentPage}&search=${encodeURIComponent(searchTerm)}`)
+  fetch(`/dashboard/doctors/search?page=${currentPage}&search=${encodeURIComponent(searchTerm)}&status=${currentStatusFilter}`)
     .then(response => response.json())
     .then(data => {
       updateTable(data.doctors);
