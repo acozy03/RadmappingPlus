@@ -863,19 +863,23 @@ def schedule():
     # Get all schedules for the full month
     start_str = window_dates[0].strftime("%Y-%m-%d")
     end_str = window_dates[-1].strftime("%Y-%m-%d")
+    visible_doctor_ids = [str(d["id"]) for d in doctors]
+
     schedule_res = supabase.table("monthly_schedule") \
         .select("*, radiologists(*)") \
+        .in_("radiologist_id", visible_doctor_ids) \
         .gte("date", start_str) \
         .lte("date", end_str) \
         .execute()
 
+
     # Create a calendar dictionary for easy lookup
     calendar = defaultdict(dict)
     for entry in schedule_res.data:
-        if entry.get("radiologists"):
-            doc_id = entry["radiologists"]["id"]
-            date = entry["date"]
-            calendar[date][doc_id] = entry
+        doc_id = str(entry["radiologist_id"]).strip()
+        date = str(entry["date"])[:10]  # ensure it's just 'YYYY-MM-DD'
+        calendar[date][doc_id] = entry
+
 
     month_name = pycalendar.month_name[month]
 
@@ -891,6 +895,7 @@ def schedule():
     else:
         # Regular pagination if no pinned doctors
         total_pages = (total_doctors + doctors_per_page - 1) // doctors_per_page
+
 
     return render_template("schedule.html",
         doctors=doctors,
@@ -1487,4 +1492,3 @@ def add_facility():
 @login_required
 def visualize():
     return render_template('visualize.html')
-
