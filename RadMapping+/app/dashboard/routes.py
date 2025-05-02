@@ -1483,3 +1483,8 @@ def add_facility():
     
     return jsonify({"status": "success", "id": new_id})
 
+@dashboard_bp.route('/visualize')
+@login_required
+def visualize():
+    return render_template('visualize.html')
+

@@ -1,0 +1,26 @@
+{% extends "layout.html" %}
+{% block title %}Visualize{% endblock %}
+
+{% block content %}
+<div class="max-w-2xl mx-auto mt-16 text-center">
+    <h1 class="text-4xl font-bold text-blue-800 mb-4">Visualize Data</h1>
+    <p class="text-lg text-gray-600 mb-8">Type a natural language query to visualize your radiology data.</p>
+    <form class="bg-white rounded-lg shadow-lg p-8 flex flex-col items-center gap-6">
+        <input
+            type="text"
+            name="query"
+            placeholder="e.g. Show me the number of scans per facility last month"
+            class="w-full px-6 py-4 border border-gray-200 rounded-lg text-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition"
+            disabled
+        >
+        <button
+            type="submit"
+            class="bg-blue-600 text-white px-8 py-3 rounded-lg text-lg font-semibold shadow hover:bg-blue-700 transition disabled:opacity-50"
+            disabled
+        >
+            Visualize (Coming Soon)
+        </button>
+    </form>
+    <div class="mt-8 text-gray-400 text-sm">This feature is in development. Stay tuned!</div>
+</div>
+{% endblock %} 
