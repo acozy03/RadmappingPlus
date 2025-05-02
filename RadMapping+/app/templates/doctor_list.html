@@ -21,8 +21,8 @@
 <!-- Search Box -->
 <input type="text"
        id="searchBox"
-       placeholder="Search by name or email..."
-       class="w-full mb-6 p-3 border rounded text-sm"
+       placeholder="Search by name..."
+       class="w-full mb-6 p-3 border rounded text-md"
        onkeyup="debounceSearch()" />
 
 <!-- Doctor List -->
@@ -32,10 +32,14 @@
       onclick="window.location.href='/dashboard/doctors/{{ doc.id }}'"
       onmouseenter="showPopup(this)"
       onmouseleave="hidePopup(this)">
-    <div>
-      <p class="text-lg font-medium name">{{ doc.name }}</p>
-      <p class="text-sm text-gray-500 email">{{ doc.email }}</p>
-    </div>
+      <div class="flex items-center gap-3">
+        <div class="w-2 h-2 rounded-full {% if doc.active_status %}bg-green-500{% else %}bg-red-500{% endif %}"></div>
+        <div>
+          <p class="text-lg font-medium name">{{ doc.name }}</p>
+          <p class="text-sm text-gray-500 email">{{ doc.email }}</p>
+        </div>
+      </div>
+      
     <span class="text-blue-600 font-semibold">Details →</span>
 
     <!-- Hover Popup -->
@@ -171,21 +175,27 @@ function updateTable(doctors) {
     li.onmouseenter = () => showPopup(li);
     li.onmouseleave = () => hidePopup(li);
     
-    li.innerHTML = `
-      <div>
-        <p class="text-lg font-medium name">${doc.name}</p>
-        <p class="text-sm text-gray-500 email">${doc.email}</p>
-      </div>
-      <span class="text-blue-600 font-semibold">Details →</span>
+    const statusDot = `<div class="w-2 h-2 rounded-full ${doc.active_status ? 'bg-green-500' : 'bg-red-500'}"></div>`;
 
-      <div class="doctor-popup absolute left-0 top-full mt-2 w-[20rem] bg-white border p-3 rounded shadow-md text-left pointer-events-none opacity-0 transition-opacity duration-150 z-50">
-        <p class="text-sm font-medium">Timezone: <span class="text-gray-700">${doc.timezone || 'N/A'}</span></p>
-        <p class="text-sm font-medium">Modalities: <span class="text-gray-700">${doc.modalities || 'N/A'}</span></p>
-        <p class="text-sm font-medium">PACS: <span class="text-gray-700">${doc.pacs || 'N/A'}</span></p>
-        <p class="text-sm font-medium">Contact: <span class="text-gray-700">${doc.email || 'N/A'}</span></p>
-        <p class="text-sm font-medium">Phone: <span class="text-gray-700">${doc.phone || 'N/A'}</span></p>
-      </div>
-    `;
+li.innerHTML = `
+  <div class="flex items-center gap-3">
+    ${statusDot}
+    <div>
+      <p class="text-lg font-medium name">${doc.name}</p>
+      <p class="text-sm text-gray-500 email">${doc.email}</p>
+    </div>
+  </div>
+  <span class="text-blue-600 font-semibold">Details →</span>
+
+  <div class="doctor-popup absolute left-0 top-full mt-2 w-[20rem] bg-white border p-3 rounded shadow-md text-left pointer-events-none opacity-0 transition-opacity duration-150 z-50">
+    <p class="text-sm font-medium">Timezone: <span class="text-gray-700">${doc.timezone || 'N/A'}</span></p>
+    <p class="text-sm font-medium">Modalities: <span class="text-gray-700">${doc.modalities || 'N/A'}</span></p>
+    <p class="text-sm font-medium">PACS: <span class="text-gray-700">${doc.pacs || 'N/A'}</span></p>
+    <p class="text-sm font-medium">Contact: <span class="text-gray-700">${doc.email || 'N/A'}</span></p>
+    <p class="text-sm font-medium">Phone: <span class="text-gray-700">${doc.phone || 'N/A'}</span></p>
+  </div>
+`;
+
     
     tbody.appendChild(li);
   });
