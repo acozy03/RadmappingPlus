@@ -1334,6 +1334,18 @@ def delete_specialty(specialty_id):
     supabase.table("specialty_studies").delete().eq("id", specialty_id).execute()
     return redirect(url_for("dashboard.specialties"))
 
+@dashboard_bp.route('/specialties/<string:specialty_id>/doctors')
+@login_required
+def doctors_for_specialty(specialty_id):
+    # Get all permissions for this specialty where can_read is True
+    permissions_res = supabase.table("specialty_permissions") \
+        .select("*, radiologists(id, name, email, active_status)") \
+        .eq("specialty_id", specialty_id) \
+        .eq("can_read", True) \
+        .execute()
+    doctors = [perm["radiologists"] for perm in permissions_res.data if perm.get("radiologists")]
+    return jsonify(doctors)
+
 @dashboard_bp.route('/specialties/permissions/update', methods=['POST'])
 @login_required
 @admin_required
