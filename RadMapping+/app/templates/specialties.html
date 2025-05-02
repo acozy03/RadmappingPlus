@@ -88,6 +88,19 @@
   <!-- Doctor-Specialty Matrix -->
   <div class="mt-8">
     <h2 class="text-lg font-semibold mb-4">Doctor Specialty Permissions</h2>
+    <!-- Pagination Controls -->
+<div class="flex justify-end items-center mb-4 gap-4 text-sm">
+  {% if page > 1 %}
+  <a href="{{ url_for('dashboard.specialties', page=page-1) }}" class="text-blue-600 hover:underline">← Previous</a>
+  {% endif %}
+
+  <span>Page {{ page }} of {{ total_pages }}</span>
+
+  {% if page < total_pages %}
+  <a href="{{ url_for('dashboard.specialties', page=page+1) }}" class="text-blue-600 hover:underline">Next →</a>
+  {% endif %}
+</div>
+
     <div class="overflow-x-auto">
       <table class="min-w-full bg-white border">
         <thead>
@@ -115,7 +128,16 @@
         <tbody>
           {% for doctor in doctors %}
           <tr class="doctor-row hover:bg-gray-50">
-            <td class="sticky left-0 bg-white border-b px-4 py-2 font-medium">{{ doctor.name }}</td>
+            <td class="sticky left-0 bg-white border-b px-4 py-2 font-medium whitespace-nowrap max-w-xs">
+              <div class="flex items-center gap-2">
+                {% if doctor.id|string in pinned_doctors %}
+                  <span class="text-yellow-500 text-base" title="Pinned Doctor">⭐</span>
+                {% endif %}
+                <span class="truncate">{{ doctor.name }}</span>
+              </div>
+            </td>
+            
+            
             {% for specialty in specialties %}
             <td class="border-b px-4 py-2 text-center">
               {% if session.user.role == 'admin' %}
