@@ -2,105 +2,186 @@
 {% block title %}{{ facility.name }}{% endblock %}
 
 {% block content %}
-<div x-data="{ editing: false }" class="grid grid-cols-1 sm:grid-cols-2 gap-4 text-sm mb-6">
-  <div class="flex justify-between items-center col-span-2">
-    <h2 class="text-2xl font-semibold">{{ facility.name }}</h2>
-    {% if session.user.role == 'admin' %}
-      <button @click="editing = !editing" class="text-blue-600 text-sm hover:underline">
-        <span x-show="!editing">Edit Info</span>
-        <span x-show="editing">Cancel Edit</span>
-      </button>
-    {% endif %}
+<div x-data="{ editing: false }">
+  <div class="mb-8">
+    <div class="bg-white rounded-lg shadow p-6 border flex flex-col sm:flex-row items-center justify-between gap-4">
+      <h2 class="text-3xl font-bold text-blue-800 text-center sm:text-left mb-2 sm:mb-0 flex-1">{{ facility.name }}</h2>
+      {% if session.user.role == 'admin' %}
+        <button @click="editing = !editing" class="inline-flex items-center gap-2 px-5 py-2 bg-blue-600 text-white rounded-lg shadow hover:bg-blue-700 transition text-base font-semibold focus:outline-none focus:ring-2 focus:ring-blue-400">
+          <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11 5h2m-1 0v14m-7-7h14" /></svg>
+          <span x-show="!editing">Edit Info</span>
+          <span x-show="editing">Cancel Edit</span>
+        </button>
+      {% endif %}
+    </div>
   </div>
 
-  <form method="POST" action="{{ url_for('dashboard.update_facility', facility_id=facility.id) }}" class="grid grid-cols-1 sm:grid-cols-2 gap-4 col-span-2" x-show="editing">
-    <label class="block">
-      <span class="font-semibold">Location</span>
-      <input type="text" name="location" value="{{ facility.location or '' }}" class="input w-full border rounded px-3 py-2 text-sm" />
-    </label>
-
-    <label class="block">
-      <span class="font-semibold">PACS</span>
-      <input type="text" name="pacs" value="{{ facility.pacs or '' }}" class="input w-full border rounded px-3 py-2 text-sm" />
-    </label>
-
-    <label class="block">
-      <span class="font-semibold">TAT Definition</span>
-      <input type="text" name="tat_definition" value="{{ facility.tat_definition or '' }}" class="input w-full border rounded px-3 py-2 text-sm" />
-    </label>
-
-    <label class="block">
-      <span class="font-semibold">Modalities Assignment Period</span>
-      <input type="text" name="modalities_assignment_period" value="{{ facility.modalities_assignment_period or '' }}" class="input w-full border rounded px-3 py-2 text-sm" />
-    </label>
-    
-    <label class="flex items-center space-x-2 mt-4">
-      <input type="checkbox" name="active_status" value="true" {% if facility.active_status == 'true' %}checked{% endif %} class="form-checkbox h-5 w-5 text-blue-600">
-      <span class="text-sm font-medium">Active</span>
-    </label>
-    
-    <div class="col-span-2">
-      <button type="submit" class="bg-blue-600 text-white px-4 py-2 rounded text-sm font-semibold mt-2">
-        Save Changes
-      </button>
+  <div x-show="!editing" class="mb-8">
+    <div class="bg-white rounded-lg shadow p-6 border grid grid-cols-1 sm:grid-cols-2 gap-6">
+      <div class="flex items-center space-x-3">
+        <span class="inline-flex items-center justify-center w-8 h-8 bg-blue-100 text-blue-600 rounded-full text-lg">📍</span>
+        <div>
+          <div class="text-xs text-gray-500 font-semibold uppercase">Location</div>
+          <div class="text-base font-medium text-gray-900">{{ facility.location }}</div>
+        </div>
+      </div>
+      <div class="flex items-center space-x-3">
+        <span class="inline-flex items-center justify-center w-8 h-8 bg-purple-100 text-purple-600 rounded-full text-lg">💾</span>
+        <div>
+          <div class="text-xs text-gray-500 font-semibold uppercase">PACS</div>
+          <div class="text-base font-medium text-gray-900">{{ facility.pacs }}</div>
+        </div>
+      </div>
+      <div class="flex items-center space-x-3">
+        <span class="inline-flex items-center justify-center w-8 h-8 bg-yellow-100 text-yellow-600 rounded-full text-lg">⏱️</span>
+        <div>
+          <div class="text-xs text-gray-500 font-semibold uppercase">TAT Definition</div>
+          <div class="text-base font-medium text-gray-900">{{ facility.tat_definition }}</div>
+        </div>
+      </div>
+      <div class="flex items-center space-x-3">
+        <span class="inline-flex items-center justify-center w-8 h-8 bg-pink-100 text-pink-600 rounded-full text-lg">🧬</span>
+        <div>
+          <div class="text-xs text-gray-500 font-semibold uppercase">Modalities Assignment Period</div>
+          <div class="text-base font-medium text-gray-900">{{ facility.modalities_assignment_period }}</div>
+        </div>
+      </div>
+      <div class="flex items-center space-x-3">
+        <span class="inline-flex items-center justify-center w-8 h-8 rounded-full text-lg
+          {% if facility.active_status == 'true' %}bg-green-100 text-green-600{% else %}bg-red-100 text-red-600{% endif %}">
+          {% if facility.active_status == 'true' %}✅{% else %}❌{% endif %}
+        </span>
+        <div>
+          <div class="text-xs text-gray-500 font-semibold uppercase">Status</div>
+          <div class="text-base font-medium {% if facility.active_status == 'true' %}text-green-700{% else %}text-red-700{% endif %}">
+            {% if facility.active_status == 'true' %}Active{% else %}Inactive{% endif %}
+          </div>
+        </div>
+      </div>
     </div>
-  </form>
+  </div>
 
-  <div x-show="!editing" class="grid grid-cols-1 sm:grid-cols-2 gap-4 col-span-2">
-    <p><strong>Location:</strong> {{ facility.location }}</p>
-    <p><strong>PACS:</strong> {{ facility.pacs }}</p>
-    <p><strong>TAT Definition:</strong> {{ facility.tat_definition }}</p>
-    <p><strong>Modalities:</strong> {{ facility.modalities_assignment_period }}</p>
-    <p><strong>Status:</strong>
-      {% if facility.active_status == 'truee' %}
-        <span class="text-red-600 font-medium">Active</span>
-      {% else %}
-        <span class="text-red-600 font-medium">Inactive</span>
-      {% endif %}
-    </p>
+  <div x-show="editing" class="mb-8">
+    <form method="POST" action="{{ url_for('dashboard.update_facility', facility_id=facility.id) }}" class="bg-white rounded-lg shadow p-6 border grid grid-cols-1 sm:grid-cols-2 gap-6">
+      <label class="block">
+        <span class="font-semibold">Location</span>
+        <input type="text" name="location" value="{{ facility.location or '' }}" class="input w-full border rounded px-3 py-2 text-sm" />
+      </label>
+      <label class="block">
+        <span class="font-semibold">PACS</span>
+        <input type="text" name="pacs" value="{{ facility.pacs or '' }}" class="input w-full border rounded px-3 py-2 text-sm" />
+      </label>
+      <label class="block">
+        <span class="font-semibold">TAT Definition</span>
+        <input type="text" name="tat_definition" value="{{ facility.tat_definition or '' }}" class="input w-full border rounded px-3 py-2 text-sm" />
+      </label>
+      <label class="block">
+        <span class="font-semibold">Modalities Assignment Period</span>
+        <input type="text" name="modalities_assignment_period" value="{{ facility.modalities_assignment_period or '' }}" class="input w-full border rounded px-3 py-2 text-sm" />
+      </label>
+      <label class="flex items-center space-x-2 mt-4">
+        <input type="checkbox" name="active_status" value="true" {% if facility.active_status == 'true' %}checked{% endif %} class="form-checkbox h-5 w-5 text-blue-600">
+        <span class="text-sm font-medium">Active</span>
+      </label>
+      <div class="col-span-2">
+        <button type="submit" class="bg-blue-600 text-white px-4 py-2 rounded text-sm font-semibold mt-2">
+          Save Changes
+        </button>
+      </div>
+    </form>
   </div>
 </div>
 
-<!-- Facility Contacts Section -->
-<div class="mt-8">
-  <div class="flex justify-between items-center mb-4">
-    <h3 class="text-lg font-semibold">Facility Contacts</h3>
-    {% if session.user.role == 'admin' %}
-      <button onclick="openAddContactModal()" class="text-blue-600 text-sm hover:underline">Add Contact</button>
-    {% endif %}
-  </div>
-
-  {% if facility_contacts %}
-    <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-      {% for contact in facility_contacts %}
-        <div class="border rounded-lg shadow-sm bg-white p-4 contact-item">
-          <div class="flex flex-col h-full">
-            <p class="text-blue-600 font-bold text-xl mb-3 pb-2 border-b">{{ contact.role }}</p>
-            <div class="space-y-2 flex-grow">
-              <p><strong>Name:</strong> <span class="searchable">{{ contact.contact_name }}</span></p>
-              <p><strong>Email:</strong> <a href="mailto:{{ contact.email }}" class="text-blue-600 hover:underline searchable">{{ contact.email }}</a></p>
-              <p><strong>Phone:</strong> <span class="searchable">{{ contact.phone }}</span></p>
+<div class="flex flex-col md:flex-row gap-8 mt-8">
+  <!-- Facility Contacts Card -->
+  <div class="flex-1 min-w-0">
+    <div class="bg-white rounded-lg shadow p-6 border h-full flex flex-col">
+      <div class="flex justify-between items-center mb-4">
+        <h3 class="text-lg font-semibold">Facility Contacts</h3>
+        {% if session.user.role == 'admin' %}
+          <button onclick="openAddContactModal()" class="bg-blue-600 text-white px-4 py-2 rounded text-sm font-medium hover:bg-blue-700">Add Contact</button>
+        {% endif %}
+      </div>
+      {% if facility_contacts %}
+        <div class="grid grid-cols-1 gap-4">
+          {% for contact in facility_contacts %}
+            <div class="border rounded-lg shadow-sm bg-gray-50 p-4 contact-item flex flex-col h-full">
+              <p class="text-blue-600 font-bold text-xl mb-3 pb-2 border-b">{{ contact.role }}</p>
+              <div class="space-y-2 flex-grow">
+                <p><strong>Name:</strong> <span class="searchable">{{ contact.contact_name }}</span></p>
+                <p><strong>Email:</strong> <a href="mailto:{{ contact.email }}" class="text-blue-600 hover:underline searchable">{{ contact.email }}</a></p>
+                <p><strong>Phone:</strong> <span class="searchable">{{ contact.phone }}</span></p>
+              </div>
+              <div class="mt-3 pt-3 border-t flex items-center justify-between">
+                <button onclick="toggleContactDetails('{{ contact.id }}')" class="text-blue-600 text-sm hover:underline">View Details</button>
+                {% if session.user.role == 'admin' %}
+                  <div class="flex gap-2">
+                    <button onclick="editContact({{ contact|tojson|safe }})" class="bg-blue-100 text-blue-700 px-3 py-1 rounded hover:bg-blue-200">Edit</button>
+                    <button onclick="deleteContact('{{ contact.id }}', '{{ facility.id }}')" class="bg-red-100 text-red-700 px-3 py-1 rounded hover:bg-red-200">Delete</button>
+                  </div>
+                {% endif %}
+              </div>
+              <div id="details-{{ contact.id }}" class="hidden mt-2 pt-2 border-t">
+                <p><strong>Comments:</strong></p>
+                <div class="whitespace-pre-line mt-2 text-sm">{{ contact.comments or "—" }}</div>
+              </div>
             </div>
-            <div class="mt-3 pt-3 border-t flex items-center justify-between">
-              <button onclick="toggleContactDetails('{{ contact.id }}')" class="text-blue-600 text-sm hover:underline">View Details</button>
-              {% if session.user.role == 'admin' %}
-                <div class="flex gap-2">
-                  <button onclick='editContact({{ contact|tojson|safe }})' class="text-blue-600 hover:text-blue-800">Edit</button>
-                  <button onclick='deleteContact({"id": "{{ contact.id }}", "facility_id": "{{ facility.id }}"})' class="text-red-600 hover:text-red-800">Delete</button>
-                </div>
-              {% endif %}
-            </div>
-            <div id="details-{{ contact.id }}" class="hidden mt-2 pt-2 border-t">
-              <p><strong>Comments:</strong></p>
-              <div class="whitespace-pre-line mt-2 text-sm">{{ contact.comments or "—" }}</div>
-            </div>
-          </div>
+          {% endfor %}
         </div>
-      {% endfor %}
+      {% else %}
+        <p class="text-gray-500 italic">No contacts available for this facility.</p>
+      {% endif %}
     </div>
-  {% else %}
-    <p class="text-gray-500 italic">No contacts available for this facility.</p>
-  {% endif %}
+  </div>
+  <!-- Assigned Radiologists Card -->
+  <div class="flex-1 min-w-0">
+    <div class="bg-white rounded-lg shadow p-6 border h-full flex flex-col">
+      <div class="flex flex-col sm:flex-row sm:items-center sm:justify-between mb-4 gap-2">
+        <h3 class="text-lg font-semibold">Assigned Radiologists</h3>
+        <div class="relative w-full sm:w-64">
+          <span class="absolute inset-y-0 left-0 flex items-center pl-3 text-gray-400 pointer-events-none">
+            <svg class="h-5 w-5" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
+          </span>
+          <input type="text" class="pl-10 pr-4 py-2 border border-gray-300 rounded-lg shadow-sm focus:ring-2 focus:ring-blue-200 focus:border-blue-400 text-sm w-full bg-gray-50" placeholder="Search radiologists..." disabled />
+        </div>
+      </div>
+      {% if doctor_assignments %}
+        <div class="overflow-x-auto">
+          <table class="min-w-full bg-white border border-gray-200 text-sm rounded">
+            <thead class="bg-gray-100">
+              <tr class="text-left">
+                <th class="px-4 py-2 border-b">Name</th>
+                <th class="px-4 py-2 border-b">Can Read</th>
+                <th class="px-4 py-2 border-b">Does Stats</th>
+                <th class="px-4 py-2 border-b">Does Routines</th>
+                <th class="px-4 py-2 border-b">Stipulations</th>
+                <th class="px-4 py-2 border-b">Notes</th>
+              </tr>
+            </thead>
+            <tbody>
+              {% for assignment in doctor_assignments %}
+              <tr class="hover:bg-blue-50">
+                <td class="px-4 py-2 border-b">
+                  <a href="{{ url_for('dashboard.doctor_profile', rad_id=assignment.radiologists.id) }}"
+                     class="text-blue-700 hover:underline">
+                    {{ assignment.radiologists.name }}
+                  </a>
+                </td>
+                <td class="px-4 py-2 border-b">{{ "✅" if assignment.can_read else "❌" }}</td>
+                <td class="px-4 py-2 border-b">{{ "✅" if assignment.does_stats else "❌" }}</td>
+                <td class="px-4 py-2 border-b">{{ "✅" if assignment.does_routines else "❌" }}</td>
+                <td class="px-4 py-2 border-b">{{ assignment.stipulations or "—" }}</td>
+                <td class="px-4 py-2 border-b">{{ assignment.notes or "—" }}</td>
+              </tr>
+              {% endfor %}
+            </tbody>
+          </table>
+        </div>
+      {% else %}
+        <p class="text-gray-500 italic">No doctors assigned.</p>
+      {% endif %}
+    </div>
+  </div>
 </div>
 
 <!-- Add Contact Modal -->
@@ -183,6 +264,19 @@
   </div>
 </div>
 
+<!-- Radiologist Assignment Modal -->
+<div id="radiologistModal" class="fixed inset-0 z-50 hidden bg-black bg-opacity-50 flex items-center justify-center">
+  <div class="bg-white rounded-lg shadow-lg w-[90%] max-w-2xl max-h-[80vh] overflow-y-auto p-6 relative">
+    <button onclick="closeRadiologistModal()" class="absolute top-2 right-2 text-2xl font-bold text-gray-500 hover:text-black">×</button>
+    <h3 class="text-xl font-semibold mb-4">Edit Assigned Radiologists</h3>
+    <div class="text-gray-600 mb-4">Here you can assign or unassign radiologists to this facility. (Form or controls go here.)</div>
+    <!-- TODO: Insert actual assignment form or controls here -->
+    <div class="flex justify-end">
+      <button type="button" onclick="closeRadiologistModal()" class="px-4 py-2 text-sm border rounded text-gray-700 hover:bg-gray-50">Close</button>
+    </div>
+  </div>
+</div>
+
 <!-- Delete Contact Form (Hidden) -->
 <form id="deleteContactForm" method="POST" style="display: none;"></form>
 
@@ -238,10 +332,10 @@
     document.getElementById('editContactModal').classList.add('hidden');
   }
 
-  function deleteContact(contact) {
+  function deleteContact(contactId, facilityId) {
     if (confirm('Are you sure you want to delete this contact?')) {
-        console.log('Deleting contact:', contact); // Debug log
-        fetch(`/dashboard/facility/${contact.facility_id}/contact/${contact.id}`, {
+        console.log('Deleting contact:', { contactId, facilityId }); // Debug log
+        fetch(`/dashboard/facility/${facilityId}/contact/${contactId}`, {
             method: 'DELETE',
             headers: {
                 'Content-Type': 'application/json',
@@ -283,86 +377,7 @@
     const detailsDiv = document.getElementById(`details-${contactId}`);
     detailsDiv.classList.toggle('hidden');
   }
-</script>
 
-<div class="mt-8">
-  <div class="flex justify-between items-center mb-4">
-    <h3 class="text-lg font-semibold">Assigned Radiologists</h3>
-    {% if session.user.role == 'admin' %}
-      <button onclick="openRadiologistModal()" class="text-blue-600 text-sm hover:underline">Edit Assignments</button>
-    {% endif %}
-  </div>
-  {% if doctor_assignments %}
-  <div class="overflow-x-auto">
-    <table class="min-w-full bg-white border border-gray-200 text-sm">
-      <thead class="bg-gray-100">
-        <tr class="text-left">
-          <th class="px-4 py-2 border-b">Name</th>
-          <th class="px-4 py-2 border-b">Can Read</th>
-          <th class="px-4 py-2 border-b">Does Stats</th>
-          <th class="px-4 py-2 border-b">Does Routines</th>
-          <th class="px-4 py-2 border-b">Stipulations</th>
-          <th class="px-4 py-2 border-b">Notes</th>
-        </tr>
-      </thead>
-      <tbody>
-        {% for assignment in doctor_assignments %}
-        <tr class="hover:bg-gray-50">
-          <td class="px-4 py-2 border-b">
-            <a href="{{ url_for('dashboard.doctor_profile', rad_id=assignment.radiologists.id) }}"
-               class="text-blue-700 hover:underline">
-              {{ assignment.radiologists.name }}
-            </a>
-          </td>
-          <td class="px-4 py-2 border-b">{{ "✅" if assignment.can_read else "❌" }}</td>
-          <td class="px-4 py-2 border-b">{{ "✅" if assignment.does_stats else "❌" }}</td>
-          <td class="px-4 py-2 border-b">{{ "✅" if assignment.does_routines else "❌" }}</td>
-          <td class="px-4 py-2 border-b">{{ assignment.stipulations or "—" }}</td>
-          <td class="px-4 py-2 border-b">{{ assignment.notes or "—" }}</td>
-        </tr>
-        {% endfor %}
-      </tbody>
-    </table>
-  </div>
-  {% else %}
-    <p class="text-gray-500 italic">No doctors assigned.</p>
-  {% endif %}
-</div>
-
-<!-- Radiologist Assignment Modal -->
-<div id="radiologistModal" class="fixed inset-0 z-50 hidden bg-black bg-opacity-50 flex items-center justify-center">
-  <div class="bg-white rounded-lg shadow-lg w-[90%] max-w-3xl max-h-[80vh] overflow-y-auto p-6 relative">
-    <button onclick="closeRadiologistModal()" class="absolute top-2 right-2 text-2xl font-bold text-gray-500 hover:text-black">×</button>
-    <h3 class="text-xl font-semibold mb-4">Radiologist Assignments for {{ facility.name }}</h3>
-
-    <input type="text" placeholder="Search radiologists..." oninput="filterRadiologists(this.value)"
-           class="w-full mb-4 px-3 py-2 border rounded text-sm">
-    
-    <ul id="radiologistList" class="space-y-3 text-sm">
-      {% for assignment in doctor_assignments %}
-      <form method="POST" action="{{ url_for('dashboard.update_assignment', assignment_id=assignment.id) }}">
-        <li class="border rounded p-3 bg-gray-50 radiologist-item">
-          <div class="flex items-center justify-between">
-            <div class="text-gray-700 font-medium">{{ assignment.radiologists.name }}</div>
-            <div class="flex items-center gap-2">
-              <label><input type="checkbox" name="can_read" {% if assignment.can_read %}checked{% endif %}> Read</label>
-              <label><input type="checkbox" name="does_stats" {% if assignment.does_stats %}checked{% endif %}> Stats</label>
-              <label><input type="checkbox" name="does_routines" {% if assignment.does_routines %}checked{% endif %}> Routine</label>
-            </div>
-          </div>
-    
-          <textarea name="stipulations" class="w-full border rounded mt-2" placeholder="Stipulations">{{ assignment.stipulations }}</textarea>
-          <textarea name="notes" class="w-full border rounded mt-2" placeholder="Notes">{{ assignment.notes }}</textarea>
-    
-          <button type="submit" class="bg-blue-600 text-white text-sm px-3 py-1 rounded mt-2">Save Changes</button>
-        </li>
-      </form>
-      {% endfor %}
-    </ul>
-  </div>
-</div>
-
-<script>
   function openRadiologistModal() {
     document.getElementById('radiologistModal').classList.remove('hidden');
   }
