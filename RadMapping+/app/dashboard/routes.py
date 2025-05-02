@@ -74,8 +74,16 @@ def home():
             try:
                 start_hour = int(entry["start_time"].split(":")[0])
                 end_hour = int(entry["end_time"].split(":")[0])
-                for hour in range(start_hour, end_hour):
-                    doctors_by_hour[hour].append(doc)
+                if start_hour < end_hour:
+                    for hour in range(start_hour, end_hour):
+                        doctors_by_hour[hour].append(doc)
+                else:
+                    # Overnight shift
+                    for hour in range(start_hour, 24):
+                        doctors_by_hour[hour].append(doc)
+                    for hour in range(0, end_hour):
+                        doctors_by_hour[hour].append(doc)
+
             except Exception as e:
                 print("Shift hour error:", e)
 
