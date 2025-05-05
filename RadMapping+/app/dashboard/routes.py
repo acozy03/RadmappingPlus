@@ -1591,3 +1591,18 @@ def search_specialties_doctors():
         'permission_map': permission_map,
         'pinned_doctors': pinned_doctor_ids
     })
+
+@dashboard_bp.route('/licenses/<string:license_id>/update', methods=["POST"])
+@login_required
+@admin_required
+def update_license(license_id):
+    data = {
+        "radiologist_id": request.form.get("radiologist_id"),
+        "state": request.form.get("state"),
+        "specialty": request.form.get("specialty"),
+        "status": request.form.get("status"),
+        "tags": request.form.get("tags"),
+        "expiration_date": request.form.get("expiration_date")
+    }
+    supabase.table("certifications").update(data).eq("id", license_id).execute()
+    return jsonify({"status": "success"})
