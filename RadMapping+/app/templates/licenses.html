@@ -30,12 +30,12 @@
   <!-- Add Status Filter Buttons -->
   <div class="flex gap-2">
     <button onclick="filterByStatus('all')" 
-            class="px-4 py-2 rounded text-sm font-medium bg-gray-100 hover:bg-gray-200 active-filter" 
+            class="px-4 py-2 rounded text-sm font-medium bg-gray-100 hover:bg-gray-200" 
             data-status="all">
       All
     </button>
     <button onclick="filterByStatus('Active')" 
-            class="px-4 py-2 rounded text-sm font-medium bg-gray-100 hover:bg-gray-200" 
+            class="px-4 py-2 rounded text-sm font-medium bg-gray-100 hover:bg-gray-200 active-filter" 
             data-status="Active">
       Active
     </button>
@@ -63,7 +63,7 @@
           <th class="px-6 py-3 border">Actions</th>
         </tr>
       </thead>
-      <tbody id="licensesTableBody">
+      <tbody id="licensesTableBody" style="opacity: 0; transition: opacity 0.2s;">
         {% for cert in certifications %}
         {% set is_expired = cert.status == 'Expired' or cert.status == 'Revoked' or (cert.expiration_date and cert.expiration_date < now.strftime('%Y-%m-%d')) %}
         <tr id="license-row-{{ cert.id }}" 
@@ -137,7 +137,7 @@
 </div>
 
 <script>
-let currentStatusFilter = 'all';
+let currentStatusFilter = 'Active';
 let currentSearchTerm = '';
 let currentPage = {{ current_page }};
 const itemsPerPage = {{ per_page }};
@@ -170,8 +170,14 @@ function loadLicenses() {
 
 function updateTable(certifications) {
   const tbody = document.getElementById('licensesTableBody');
+  tbody.style.opacity = 0;
   tbody.innerHTML = '';
-  
+  // Sort certifications by expiration_date ascending (oldest first, expired at end)
+  certifications.sort((a, b) => {
+    if (!a.expiration_date) return 1;
+    if (!b.expiration_date) return -1;
+    return a.expiration_date.localeCompare(b.expiration_date);
+  });
   certifications.forEach(cert => {
     const isExpired = cert.status === 'Expired' || cert.status === 'Revoked' || 
                      (cert.expiration_date && cert.expiration_date < new Date().toISOString().split('T')[0]);
@@ -234,6 +240,8 @@ function updateTable(certifications) {
     
     tbody.appendChild(row);
   });
+  // Fade in after rendering
+  setTimeout(() => { tbody.style.opacity = 1; }, 50);
 }
 
 function updatePagination(total) {
@@ -307,5 +315,16 @@ function saveLicense(licenseId) {
     loadLicenses();
   });
 }
+
+window.addEventListener('DOMContentLoaded', () => {
+  // Set the active filter button style on page load
+  document.querySelectorAll('[data-status]').forEach(button => {
+    button.classList.remove('active-filter', 'bg-blue-600', 'text-white');
+    if (button.dataset.status === 'Active') {
+      button.classList.add('active-filter', 'bg-blue-600', 'text-white');
+    }
+  });
+  loadLicenses();
+});
 </script>
 {% endblock %} 
