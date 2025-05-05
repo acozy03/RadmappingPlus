@@ -597,27 +597,21 @@ function scrollToTodayColumn() {
   const mm = String(today.getMonth() + 1).padStart(2, '0');
   const dd = String(today.getDate()).padStart(2, '0');
   const todayStr = `${yyyy}-${mm}-${dd}`;
-  console.log('Looking for th[data-date="' + todayStr + '"]');
-  const th = document.querySelector('th[data-date="' + todayStr + '"]');
-  let wrapper = document.getElementById('schedule-scroll-wrapper');
+
+  const th = document.querySelector(`th[data-date="${todayStr}"]`);
+  const wrapper = document.getElementById('schedule-container');
+
   if (th && wrapper) {
-    // Try scrolling the wrapper
-    const thRect = th.getBoundingClientRect();
-    const wrapperRect = wrapper.getBoundingClientRect();
-    const scrollLeft = th.offsetLeft - wrapperRect.width / 2 + thRect.width / 2;
-    wrapper.scrollLeft = scrollLeft;
-    // Check if scroll worked
-    if (wrapper.scrollLeft !== scrollLeft) {
-      // Try scrolling the parent
-      wrapper = wrapper.parentElement;
-      if (wrapper) {
-        wrapper.scrollLeft = scrollLeft;
-        console.log('Tried scrolling parent wrapper.');
-      }
-    }
-    console.log('Scrolled to today column.');
+    // Get position of the target column relative to the scroll container
+    const thLeft = th.offsetLeft;
+    const stickyTh = document.querySelector('th[style*="position: sticky"]');
+    const stickyWidth = stickyTh ? stickyTh.offsetWidth : 0;
+    console.log('thLeft:', thLeft);
+    console.log('stickyWidth:', stickyWidth);
+    wrapper.scrollLeft = thLeft - stickyWidth;
+
   } else {
-    console.log('Today column or wrapper not found.', th, wrapper);
+    console.log('Today column or scroll wrapper not found.', th, wrapper);
   }
 }
 
