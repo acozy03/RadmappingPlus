@@ -387,7 +387,7 @@ function showDoctorsForSpecialty(specialtyId, specialtyName) {
         const statusDot = `<span class='inline-block w-2 h-2 rounded-full ${doc.active_status ? 'bg-green-500' : 'bg-red-500'} mr-2'></span>`;
         const div = document.createElement('div');
         div.className = 'flex items-center gap-3 p-2 rounded hover:bg-gray-50';
-        div.innerHTML = `${statusDot}<span class='font-medium'>${doc.name}</span> <span class='text-gray-500 text-sm'>${doc.email || ''}</span>`;
+        div.innerHTML = `${statusDot}<a href='/dashboard/doctors/${doc.id}' class='font-medium text-blue-700 hover:underline'>${doc.name}</a> <span class='text-gray-500 text-sm'>${doc.email || ''}</span>`;
         list.appendChild(div);
       });
     });
