@@ -1305,7 +1305,6 @@ def specialties():
         .execute()
     permissions = permissions_res.data
 
-
     # Create a mapping for easy lookup of permissions
     permission_map = {}
     for perm in permissions:
@@ -1315,18 +1314,24 @@ def specialties():
             permission_map[rad_id] = {}
         permission_map[rad_id][spec_id] = perm["can_read"]
 
-    # Assuming `doctors` is a list of dicts and already sorted with pinned first
-    sorted_doctors = sorted(doctors, key=lambda doc: str(doc['id']) not in pinned_doctor_ids)
-
-    # Limit to 15 doctors
-    visible_doctors = sorted_doctors[:15]
-
-    page = int(request.args.get('page', 1))
-    page_size = 15
-    total_doctors = len(sorted_doctors)
-    start = (page - 1) * page_size
-    end = start + page_size
-    visible_doctors = sorted_doctors[start:end]
+    # Search logic
+    search = request.args.get('search', '').strip().lower()
+    if search:
+        filtered_doctors = [doc for doc in doctors if search in doc['name'].lower()]
+        sorted_doctors = sorted(filtered_doctors, key=lambda doc: str(doc['id']) not in pinned_doctor_ids)
+        visible_doctors = sorted_doctors  # Show all matches, no pagination
+        page = 1
+        total_pages = 1
+    else:
+        # Assuming `doctors` is a list of dicts and already sorted with pinned first
+        sorted_doctors = sorted(doctors, key=lambda doc: str(doc['id']) not in pinned_doctor_ids)
+        page = int(request.args.get('page', 1))
+        page_size = 15
+        total_doctors = len(sorted_doctors)
+        start = (page - 1) * page_size
+        end = start + page_size
+        visible_doctors = sorted_doctors[start:end]
+        total_pages = (total_doctors + page_size - 1) // page_size
 
     return render_template("specialties.html",
                            doctors=visible_doctors,
@@ -1334,7 +1339,7 @@ def specialties():
                            permission_map=permission_map,
                            pinned_doctors=pinned_doctor_ids,
                            page=page,
-                           total_pages=(total_doctors + page_size - 1) // page_size)
+                           total_pages=total_pages)
 
 
 @dashboard_bp.route('/specialties/add', methods=['POST'])
@@ -1536,3 +1541,53 @@ def add_facility():
 @login_required
 def visualize():
     return render_template('visualize.html')
+
+@dashboard_bp.route('/specialties/search', methods=["GET"])
+@login_required
+def search_specialties_doctors():
+    user_email = session["user"]["email"]
+    pinned_res = supabase.table("pinned_doctors") \
+        .select("doctor_id") \
+        .eq("user_id", user_email) \
+        .execute()
+    pinned_doctor_ids = [p["doctor_id"] for p in pinned_res.data]
+
+    # Get all specialties with their descriptions
+    specialties_res = supabase.table("specialty_studies").select("*").order("name").execute()
+    specialties = specialties_res.data
+
+    # Get all doctors
+    doctors_res = supabase.table("radiologists").select("*").order("name").execute()
+    doctors = doctors_res.data
+
+    # Get all specialty permissions
+    permissions_res = supabase.table("specialty_permissions") \
+        .select("*, radiologists(id, name), specialty_studies(id, name)") \
+        .execute()
+    permissions = permissions_res.data
+
+    # Create a mapping for easy lookup of permissions
+    permission_map = {}
+    for perm in permissions:
+        rad_id = perm["radiologist_id"]
+        spec_id = perm["specialty_id"]
+        if rad_id not in permission_map:
+            permission_map[rad_id] = {}
+        permission_map[rad_id][spec_id] = perm["can_read"]
+
+    # Search logic
+    search = request.args.get('search', '').strip().lower()
+    if search:
+        filtered_doctors = [doc for doc in doctors if search in doc['name'].lower()]
+        sorted_doctors = sorted(filtered_doctors, key=lambda doc: str(doc['id']) not in pinned_doctor_ids)
+        visible_doctors = sorted_doctors  # Show all matches, no pagination
+    else:
+        sorted_doctors = sorted(doctors, key=lambda doc: str(doc['id']) not in pinned_doctor_ids)
+        visible_doctors = sorted_doctors
+
+    return jsonify({
+        'doctors': visible_doctors,
+        'specialties': specialties,
+        'permission_map': permission_map,
+        'pinned_doctors': pinned_doctor_ids
+    })

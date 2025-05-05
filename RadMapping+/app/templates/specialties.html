@@ -17,7 +17,7 @@
     <div class="flex-1">
       <input type="text" id="doctorSearch" placeholder="Search doctors..." 
              class="w-full px-4 py-2 border rounded text-sm"
-             oninput="filterTable()">
+             oninput="debouncedDoctorSearch()">
     </div>
     <div class="flex-1">
       <input type="text" id="specialtySearch" placeholder="Search specialties..." 
@@ -217,6 +217,8 @@
 
 <script src="//unpkg.com/alpinejs" defer></script>
 <script>
+const isAdmin = "{{ 'true' if session.user.role == 'admin' else 'false' }}" === 'true';
+
 function openAddSpecialtyModal() {
   document.getElementById('addSpecialtyModal').classList.remove('hidden');
 }
@@ -250,8 +252,80 @@ function updatePermission(checkbox) {
   });
 }
 
+let doctorSearchTimeout;
+function debouncedDoctorSearch() {
+  clearTimeout(doctorSearchTimeout);
+  doctorSearchTimeout = setTimeout(serverDoctorSearch, 300);
+}
+
+function serverDoctorSearch() {
+  const doctorQuery = document.getElementById('doctorSearch').value.trim();
+  fetch(`/dashboard/specialties/search?search=${encodeURIComponent(doctorQuery)}`)
+    .then(res => res.json())
+    .then(data => {
+      updateDoctorSpecialtyTable(data);
+    });
+}
+
+function updateDoctorSpecialtyTable(data) {
+  const tbody = document.querySelector('tbody');
+  tbody.innerHTML = '';
+  data.doctors.forEach(doctor => {
+    const tr = document.createElement('tr');
+    tr.className = 'doctor-row hover:bg-gray-50';
+    // Doctor name cell
+    const tdName = document.createElement('td');
+    tdName.className = 'sticky left-0 bg-white border-b px-4 py-2 font-medium whitespace-nowrap max-w-xs';
+    const nameDiv = document.createElement('div');
+    nameDiv.className = 'flex items-center gap-2';
+    if (data.pinned_doctors.includes(String(doctor.id))) {
+      const star = document.createElement('span');
+      star.className = 'text-yellow-500 text-base';
+      star.title = 'Pinned Doctor';
+      star.textContent = '⭐';
+      nameDiv.appendChild(star);
+    }
+    const nameSpan = document.createElement('span');
+    nameSpan.className = 'truncate';
+    nameSpan.textContent = doctor.name;
+    nameDiv.appendChild(nameSpan);
+    tdName.appendChild(nameDiv);
+    tr.appendChild(tdName);
+    // Specialty cells
+    data.specialties.forEach(specialty => {
+      const td = document.createElement('td');
+      td.className = 'border-b px-4 py-2 text-center';
+      if (isAdmin) {
+        const label = document.createElement('label');
+        label.className = 'inline-flex items-center justify-center';
+        const checkbox = document.createElement('input');
+        checkbox.type = 'checkbox';
+        checkbox.className = 'form-checkbox h-5 w-5 text-blue-600 permission-checkbox';
+        checkbox.dataset.radiologistId = doctor.id;
+        checkbox.dataset.specialtyId = specialty.id;
+        if (data.permission_map[doctor.id] && data.permission_map[doctor.id][specialty.id]) {
+          checkbox.checked = true;
+        }
+        checkbox.onchange = function() { updatePermission(this); };
+        label.appendChild(checkbox);
+        td.appendChild(label);
+      } else {
+        const span = document.createElement('span');
+        span.className = 'inline-flex items-center justify-center';
+        if (data.permission_map[doctor.id] && data.permission_map[doctor.id][specialty.id]) {
+          span.innerHTML = `<svg class="w-5 h-5 text-green-600" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"/></svg>`;
+        } else {
+          span.innerHTML = `<svg class="w-5 h-5 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/></svg>`;
+        }
+        td.appendChild(span);
+      }
+      tr.appendChild(td);
+    });
+    tbody.appendChild(tr);
+  });
+}
+
 function filterTable() {
-  const doctorQuery = document.getElementById('doctorSearch').value.toLowerCase();
   const specialtyQuery = document.getElementById('specialtySearch').value.toLowerCase();
   
   // Filter specialty cards
@@ -285,20 +359,12 @@ function filterTable() {
   // Filter doctors and their corresponding specialty cells
   const rows = document.querySelectorAll('.doctor-row');
   rows.forEach(row => {
-    const doctorName = row.cells[0].textContent.toLowerCase();
-    const showRow = doctorName.includes(doctorQuery);
-    
-    if (showRow) {
-      row.style.display = '';
-      // Show/hide specialty cells based on specialty filter
-      Array.from(row.cells).forEach((cell, index) => {
-        if (index > 0) { // Skip doctor name cell
-          cell.style.display = specialtyIndexes.has(index) ? '' : 'none';
-        }
-      });
-    } else {
-      row.style.display = 'none';
-    }
+    // Only filter specialties, not doctors
+    Array.from(row.cells).forEach((cell, index) => {
+      if (index > 0) { // Skip doctor name cell
+        cell.style.display = specialtyIndexes.has(index) ? '' : 'none';
+      }
+    });
   });
 }
 
