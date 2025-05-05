@@ -86,12 +86,12 @@
   <!-- Add Status Filter Buttons -->
   <div class="flex gap-2">
     <button onclick="filterByStatus('all')" 
-            class="px-4 py-2 rounded text-sm font-medium bg-gray-100 hover:bg-gray-200 active-filter" 
+            class="px-4 py-2 rounded text-sm font-medium bg-gray-100 hover:bg-gray-200" 
             data-status="all">
       All
     </button>
     <button onclick="filterByStatus('active')" 
-            class="px-4 py-2 rounded text-sm font-medium bg-gray-100 hover:bg-gray-200" 
+            class="px-4 py-2 rounded text-sm font-medium bg-gray-100 hover:bg-gray-200 active-filter" 
             data-status="active">
       Active
     </button>
@@ -151,7 +151,7 @@ let currentPage = {{ current_page }};
 const itemsPerPage = {{ per_page }};
 let totalCount = {{ total_count }};
 let searchTimeout;
-let currentStatusFilter = 'all';
+let currentStatusFilter = 'active';
 
 function openAddFacilityModal() {
   document.getElementById('addFacilityModal').classList.remove('hidden');
@@ -305,5 +305,16 @@ function hidePopup(element) {
     popup.classList.add('opacity-0');
   }
 }
+
+window.addEventListener('DOMContentLoaded', () => {
+  // Set the active filter button style on page load
+  document.querySelectorAll('[data-status]').forEach(button => {
+    button.classList.remove('active-filter', 'bg-blue-600', 'text-white');
+    if (button.dataset.status === 'active') {
+      button.classList.add('active-filter', 'bg-blue-600', 'text-white');
+    }
+  });
+  loadFacilities();
+});
 </script>
 {% endblock %}
