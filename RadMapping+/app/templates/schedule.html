@@ -51,7 +51,7 @@
                 <tbody>
                     {% for doctor in doctors %}
                         <tr class="hover:bg-gray-50" style="height: 32px;">
-                            <td style="min-width: 180px; position: sticky; left: 0; background: white; z-index: 1; height: 32px;" class="px-6 py-1 font-medium">
+                            <td style="min-width: 180px; position: sticky; left: 0; background: white; z-index: 1; height: 32px;" class="px-6 py-5 font-medium">
                                 <div class="flex items-center gap-2">
                                     {% if doctor.id in pinned_doctors %}
 <!-- Heroicons 2.0 - Push Pin Icon -->
@@ -366,6 +366,15 @@
 table, th, td {
   border: none !important;
 }
+td[style*="position: sticky"], th[style*="position: sticky"] {
+  background: white !important;
+  z-index: 3;
+  height: 100%;
+  min-height: 32px;
+}
+tr:hover td[style*="position: sticky"] {
+  background: #f9fafb !important; /* match your hover color */
+}
 
 .today-col {
   background: #e0f2fe !important;
@@ -421,7 +430,7 @@ function handleSearch() {
                     
                     // Add doctor name cell
                     const nameCell = document.createElement('td');
-                    nameCell.className = 'px-6 py-1 font-medium';
+                    nameCell.className = 'px-6 py-5 font-medium';
                     nameCell.style.cssText = 'min-width: 180px; position: sticky; left: 0; background: white; z-index: 1; height: 32px;';
                     
                     const nameDiv = document.createElement('div');
