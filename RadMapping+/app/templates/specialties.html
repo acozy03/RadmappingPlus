@@ -85,89 +85,49 @@
     </div>
   </div>
 
-  <!-- Doctor-Specialty Matrix -->
-  <div class="mt-8">
-    <h2 class="text-lg font-semibold mb-4">Doctor Specialty Permissions</h2>
-    <!-- Pagination Controls -->
-<div class="flex justify-end items-center mb-4 gap-4 text-sm">
-  {% if page > 1 %}
-  <a href="{{ url_for('dashboard.specialties', page=page-1) }}" class="text-blue-600 hover:underline">← Previous</a>
-  {% endif %}
+  <!-- Per-Specialty Doctor Assignment -->
+  <div class="mb-8">
+    <h2 class="text-lg font-semibold mb-4">Specialty Doctor Permissions</h2>
+    <div class="bg-white rounded-lg shadow p-4 border">
+      <ul class="divide-y">
+        {% for specialty in specialties %}
+        <li class="py-4 flex items-center justify-between">
+          <div>
+            <span class="font-medium">{{ specialty.name }}</span>
+            {% if specialty.description %}
+              <span class="text-gray-500 text-sm ml-2">{{ specialty.description }}</span>
+            {% endif %}
+          </div>
+          {% if session.user.role == 'admin' %}
+          <button class="bg-blue-600 text-white px-3 py-1 rounded text-sm font-medium" onclick="openEditDoctorsModal('{{ specialty.id }}', '{{ specialty.name|escape }}')">Edit Doctors</button>
+          {% endif %}
+        </li>
+        {% endfor %}
+      </ul>
+    </div>
+  </div>
 
-  <span>Page {{ page }} of {{ total_pages }}</span>
-
-  {% if page < total_pages %}
-  <a href="{{ url_for('dashboard.specialties', page=page+1) }}" class="text-blue-600 hover:underline">Next →</a>
-  {% endif %}
-</div>
-
-    <div class="overflow-x-auto">
-      <table class="min-w-full bg-white border">
-        <thead>
-          <tr>
-            <th class="sticky left-0 bg-gray-100 border-b px-4 py-2 text-left">Doctor</th>
-            {% for specialty in specialties %}
-            <th class="border-b px-4 py-2 text-center whitespace-nowrap">
-              <div class="flex items-center justify-center">
-                {{ specialty.name }}
-                {% if specialty.description %}
-                <span class="ml-1 group relative">
-                  <svg class="w-4 h-4 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/>
-                  </svg>
-                  <span class="hidden group-hover:block absolute z-10 w-96 p-2 mt-1 text-sm text-white bg-gray-800 rounded-lg">
-                    {{ specialty.description }}
-                  </span>
-                </span>
-                {% endif %}
-              </div>
-            </th>
-            {% endfor %}
-          </tr>
-        </thead>
-        <tbody>
-          {% for doctor in doctors %}
-          <tr class="doctor-row hover:bg-gray-50">
-            <td class="sticky left-0 bg-white border-b px-4 py-2 font-medium whitespace-nowrap max-w-xs">
-              <div class="flex items-center gap-2">
-                {% if doctor.id|string in pinned_doctors %}
-                  <span class="text-yellow-500 text-base" title="Pinned Doctor">⭐</span>
-                {% endif %}
-                <span class="truncate">{{ doctor.name }}</span>
-              </div>
-            </td>
-            
-            
-            {% for specialty in specialties %}
-            <td class="border-b px-4 py-2 text-center">
-              {% if session.user.role == 'admin' %}
-              <label class="inline-flex items-center justify-center">
-                <input type="checkbox" 
-                       class="form-checkbox h-5 w-5 text-blue-600 permission-checkbox"
-                       data-radiologist-id="{{ doctor.id }}"
-                       data-specialty-id="{{ specialty.id }}"
-                       {% if permission_map.get(doctor.id, {}).get(specialty.id) %}checked{% endif %}
-                       onchange="updatePermission(this)">
-              </label>
-              {% else %}
-              <span class="inline-flex items-center justify-center">
-                {% if permission_map.get(doctor.id, {}).get(specialty.id) %}
-                <svg class="w-5 h-5 text-green-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"/>
-                </svg>
-                {% else %}
-                <svg class="w-5 h-5 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/>
-                </svg>
-                {% endif %}
-              </span>
-              {% endif %}
-            </td>
-            {% endfor %}
-          </tr>
-          {% endfor %}
-        </tbody>
-      </table>
+  <!-- Edit Doctors Modal -->
+  <div id="editDoctorsModal" class="fixed inset-0 z-50 hidden bg-black bg-opacity-50 flex items-center justify-center">
+    <div class="bg-white rounded-lg shadow-lg w-[90%] max-w-md p-6">
+      <div class="flex justify-between items-center mb-4">
+        <h3 class="text-lg font-semibold">Edit Doctors for <span id="editSpecialtyName"></span></h3>
+        <button onclick="closeEditDoctorsModal()" class="text-gray-500 hover:text-gray-700">
+          <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/>
+          </svg>
+        </button>
+      </div>
+      <form id="editDoctorsForm" onsubmit="submitEditDoctors(event)">
+        <input type="text" id="doctorModalSearch" placeholder="Search doctors..." class="w-full px-3 py-2 border rounded text-sm mb-3" oninput="filterDoctorsChecklist()">
+        <div id="doctorsChecklist" class="mb-4 space-y-2 max-h-64 overflow-y-auto">
+          <!-- Populated by JS -->
+        </div>
+        <input type="hidden" name="specialty_id" id="editSpecialtyId">
+        <div class="flex justify-end">
+          <button type="submit" class="bg-blue-600 text-white px-4 py-2 rounded text-sm font-medium">Save</button>
+        </div>
+      </form>
     </div>
   </div>
 </div>
@@ -395,6 +355,60 @@ function showDoctorsForSpecialty(specialtyId, specialtyName) {
 
 function closeSpecialtyDoctorsModal() {
   document.getElementById('specialtyDoctorsModal').classList.add('hidden');
+}
+
+function openEditDoctorsModal(specialtyId, specialtyName) {
+  document.getElementById('editSpecialtyId').value = specialtyId;
+  document.getElementById('editSpecialtyName').textContent = specialtyName;
+  const checklist = document.getElementById('doctorsChecklist');
+  checklist.innerHTML = '<div class="text-gray-400 text-sm">Loading...</div>';
+  document.getElementById('editDoctorsModal').classList.remove('hidden');
+  // Fetch current doctors for this specialty
+  fetch(`/dashboard/specialties/${specialtyId}/doctors/all`)
+    .then(res => res.json())
+    .then(data => {
+      checklist.innerHTML = '';
+      data.doctors.forEach(doc => {
+        const id = `doc-check-${doc.id}`;
+        const checked = doc.assigned ? 'checked' : '';
+        checklist.innerHTML += `<label class='flex items-center gap-2 doctor-check-item'><input type='checkbox' name='doctor_ids' value='${doc.id}' ${checked}> <span class='doctor-name'>${doc.name}</span> <span class='text-gray-400 text-xs ml-1'>${doc.email || ''}</span></label>`;
+      });
+      document.getElementById('doctorModalSearch').value = '';
+    });
+}
+
+function closeEditDoctorsModal() {
+  document.getElementById('editDoctorsModal').classList.add('hidden');
+}
+
+function submitEditDoctors(e) {
+  e.preventDefault();
+  const form = document.getElementById('editDoctorsForm');
+  const specialtyId = form.specialty_id.value;
+  const checked = Array.from(form.querySelectorAll('input[name="doctor_ids"]:checked')).map(cb => cb.value);
+  fetch(`/dashboard/specialties/${specialtyId}/doctors/update`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ doctor_ids: checked })
+  })
+  .then(res => res.json())
+  .then(data => {
+    if (data.status === 'success') {
+      closeEditDoctorsModal();
+      // Optionally, show a toast or reload the page/section
+    } else {
+      alert('Failed to update doctors');
+    }
+  });
+}
+
+function filterDoctorsChecklist() {
+  const q = document.getElementById('doctorModalSearch').value.toLowerCase();
+  document.querySelectorAll('#doctorsChecklist .doctor-check-item').forEach(item => {
+    const name = item.querySelector('.doctor-name').textContent.toLowerCase();
+    const email = item.querySelector('.text-gray-400').textContent.toLowerCase();
+    item.style.display = (name.includes(q) || email.includes(q)) ? '' : 'none';
+  });
 }
 </script>
 {% endblock %} 

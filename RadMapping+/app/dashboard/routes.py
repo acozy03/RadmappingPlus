@@ -1623,3 +1623,109 @@ def update_license(license_id):
     }
     supabase.table("certifications").update(data).eq("id", license_id).execute()
     return jsonify({"status": "success"})
+
+@dashboard_bp.route('/doctors/<string:doctor_id>/specialties')
+@login_required
+@admin_required
+def get_doctor_specialties(doctor_id):
+    # Get all specialties
+    specialties_res = supabase.table("specialty_studies").select("*").order("name").execute()
+    specialties = specialties_res.data
+    # Get all permissions for this doctor
+    perms_res = supabase.table("specialty_permissions") \
+        .select("specialty_id, can_read") \
+        .eq("radiologist_id", doctor_id) \
+        .execute()
+    perms = {p['specialty_id']: p['can_read'] for p in perms_res.data}
+    # Build response
+    result = []
+    for spec in specialties:
+        result.append({
+            'id': spec['id'],
+            'name': spec['name'],
+            'description': spec.get('description', ''),
+            'assigned': perms.get(spec['id'], False)
+        })
+    return jsonify({'specialties': result})
+
+@dashboard_bp.route('/doctors/<string:doctor_id>/specialties/update', methods=['POST'])
+@login_required
+@admin_required
+def update_doctor_specialties(doctor_id):
+    data = request.get_json()
+    specialty_ids = set(data.get('specialty_ids', []))
+    # Get all specialties
+    specialties_res = supabase.table("specialty_studies").select("id").execute()
+    all_specialty_ids = {s['id'] for s in specialties_res.data}
+    # Get current permissions
+    perms_res = supabase.table("specialty_permissions") \
+        .select("id, specialty_id") \
+        .eq("radiologist_id", doctor_id) \
+        .execute()
+    perms = {p['specialty_id']: p['id'] for p in perms_res.data}
+    # Update or create permissions
+    for spec_id in all_specialty_ids:
+        should_have = spec_id in specialty_ids
+        if spec_id in perms:
+            supabase.table("specialty_permissions").update({"can_read": should_have}).eq("id", perms[spec_id]).execute()
+        elif should_have:
+            supabase.table("specialty_permissions").insert({
+                "id": str(uuid.uuid4()),
+                "radiologist_id": doctor_id,
+                "specialty_id": spec_id,
+                "can_read": True
+            }).execute()
+    return jsonify({"status": "success"})
+
+@dashboard_bp.route('/specialties/<string:specialty_id>/doctors/all')
+@login_required
+@admin_required
+def get_specialty_doctors(specialty_id):
+    # Get all doctors
+    doctors_res = supabase.table("radiologists").select("*").order("name").execute()
+    doctors = doctors_res.data
+    # Get all permissions for this specialty
+    perms_res = supabase.table("specialty_permissions") \
+        .select("radiologist_id, can_read") \
+        .eq("specialty_id", specialty_id) \
+        .execute()
+    perms = {p['radiologist_id']: p['can_read'] for p in perms_res.data}
+    # Build response
+    result = []
+    for doc in doctors:
+        result.append({
+            'id': doc['id'],
+            'name': doc['name'],
+            'email': doc.get('email', ''),
+            'assigned': perms.get(doc['id'], False)
+        })
+    return jsonify({'doctors': result})
+
+@dashboard_bp.route('/specialties/<string:specialty_id>/doctors/update', methods=['POST'])
+@login_required
+@admin_required
+def update_specialty_doctors(specialty_id):
+    data = request.get_json()
+    doctor_ids = set(data.get('doctor_ids', []))
+    # Get all doctors
+    doctors_res = supabase.table("radiologists").select("id").execute()
+    all_doctor_ids = {d['id'] for d in doctors_res.data}
+    # Get current permissions
+    perms_res = supabase.table("specialty_permissions") \
+        .select("id, radiologist_id") \
+        .eq("specialty_id", specialty_id) \
+        .execute()
+    perms = {p['radiologist_id']: p['id'] for p in perms_res.data}
+    # Update or create permissions
+    for doc_id in all_doctor_ids:
+        should_have = doc_id in doctor_ids
+        if doc_id in perms:
+            supabase.table("specialty_permissions").update({"can_read": should_have}).eq("id", perms[doc_id]).execute()
+        elif should_have:
+            supabase.table("specialty_permissions").insert({
+                "id": str(uuid.uuid4()),
+                "radiologist_id": doc_id,
+                "specialty_id": specialty_id,
+                "can_read": True
+            }).execute()
+    return jsonify({"status": "success"})
