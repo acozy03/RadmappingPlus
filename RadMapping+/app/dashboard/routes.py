@@ -835,6 +835,7 @@ def schedule():
     # Get all doctors first
     all_doctors_res = supabase.table("radiologists") \
         .select("*") \
+        .eq("active_status", True) \
         .order("name") \
         .execute()
     all_doctors = all_doctors_res.data
