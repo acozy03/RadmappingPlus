@@ -72,20 +72,36 @@ def home():
             doctors_on_shift.append(doc)
 
             try:
-                start_hour = int(entry["start_time"].split(":")[0])
-                end_hour = int(entry["end_time"].split(":")[0])
-                if start_hour < end_hour:
-                    for hour in range(start_hour, end_hour):
+                # Parse the full time including minutes
+                start_time = datetime.strptime(entry["start_time"], "%H:%M:%S")
+                end_time = datetime.strptime(entry["end_time"], "%H:%M:%S")
+                
+                # Convert to minutes since midnight
+                start_minutes = start_time.hour * 60 + start_time.minute
+                end_minutes = end_time.hour * 60 + end_time.minute
+                
+                print(f"\nProcessing shift for doctor {doc['name']}:")
+                print(f"Raw times - Start: {entry['start_time']}, End: {entry['end_time']}")
+                print(f"Parsed times - Start: {start_time}, End: {end_time}")
+                print(f"Minutes - Start: {start_minutes}, End: {end_minutes}")
+                
+                # Handle overnight shifts
+                if end_minutes < start_minutes:
+                    end_minutes += 1440  # Add 24 hours in minutes
+                    print("Overnight shift detected - adjusted end time")
+                
+                # Add to each hour block that the shift covers
+                for hour in range(0, 24):
+                    hour_start = hour * 60
+                    hour_end = (hour + 1) * 60
+                    
+                    # Check if this hour overlaps with the shift
+                    if (start_minutes < hour_end and end_minutes > hour_start):
                         doctors_by_hour[hour].append(doc)
-                else:
-                    # Overnight shift
-                    for hour in range(start_hour, 24):
-                        doctors_by_hour[hour].append(doc)
-                    for hour in range(0, end_hour):
-                        doctors_by_hour[hour].append(doc)
+                        print(f"Added to hour {hour} block")
 
             except Exception as e:
-                print("Shift hour error:", e)
+                print(f"Error processing shift for doctor {doc['name']}: {str(e)}")
 
     # Get all doctors
     all_doctors_res = supabase.table("radiologists").select("*").execute()
@@ -1262,7 +1278,6 @@ def convert_timezone(time_str, target_tz):
         converted_time = dt.astimezone(target_timezone)
         return converted_time.strftime("%I:%M %p")
     except Exception as e:
-        print(f"Error converting timezone: {e}")
         return time_str
 
 @dashboard_bp.route('/specialties')

@@ -26,6 +26,32 @@ def create_app():
         return ""
     app.jinja_env.filters['ampm'] = format_ampm
 
+    def shift_minutes_filter(value):
+        from datetime import datetime
+        if isinstance(value, str):
+            # Try to parse the time string
+            try:
+                # First try with seconds
+                t = datetime.strptime(value, "%H:%M:%S")
+            except ValueError:
+                try:
+                    # Then try without seconds
+                    t = datetime.strptime(value, "%H:%M")
+                except ValueError:
+                    # If both fail, log the error and return None
+                    print(f"Error parsing time string: {value}")
+                    return None
+            
+            # Convert to minutes since midnight
+            return t.hour * 60 + t.minute
+            
+        elif isinstance(value, datetime):
+            return value.hour * 60 + value.minute
+            
+        return None  # Return None for invalid input types
+
+    app.jinja_env.filters['shift_minutes'] = shift_minutes_filter
+
     # Register blueprints
     app.register_blueprint(auth_bp, url_prefix='/auth')
     app.register_blueprint(dashboard_bp, url_prefix='/dashboard')

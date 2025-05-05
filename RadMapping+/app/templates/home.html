@@ -145,9 +145,12 @@
       {% if doctors_by_hour[hour] %}
         <ul class="space-y-2">
           {% for doc in doctors_by_hour[hour] %}
-            <li class="relative border p-2 rounded bg-gray-50 hover:bg-gray-100 transition-colors duration-200"
-                onmouseenter="showDoctorPopup(this)"
-                onmouseleave="hideDoctorPopup(this)">
+          <li class="relative border p-2 rounded bg-gray-50 hover:bg-gray-100 transition-colors duration-200"
+          onmouseenter="showDoctorPopup(this)"
+          onmouseleave="hideDoctorPopup(this)"
+          data-start="{{ doc.start_time|shift_minutes }}"
+          data-end="{{ doc.end_time|shift_minutes }}">
+      
               <div class="flex items-center justify-between">
                 <a href="{{ url_for('dashboard.doctor_profile', rad_id=doc.id) }}" class="text-blue-700 font-semibold hover:underline">
                   {{ doc.name }}
@@ -162,10 +165,15 @@
               </div>
               <div class="text-sm text-gray-500 mt-1">
                 {% if doc.modalities %}
-                  <span class="mr-2">Modalities: {{ doc.modalities }}</span>
+                <div>
+                  <span class="font-semibold text-gray-800">Modalities:</span>
+                  <span class="text-gray-700">{{ doc.modalities }}</span>
+                </div>
+                              
                 {% endif %}
                 {% if doc.pacs %}
-                  <span>PACS: {{ doc.pacs }}</span>
+                <span class="font-semibold text-gray-800">PACS:</span>
+                <span class="text-gray-700">{{ doc.pacs }}</span>
                 {% endif %}
               </div>
 
@@ -265,10 +273,11 @@
 
   document.addEventListener("DOMContentLoaded", () => {
   updateTimezoneClocks();
+  colorDoctorBlocks();
   setInterval(updateTimezoneClocks, 60_000);
-
+  scrollToCurrentHour();
   setInitialHourFilter();    
-     
+  
 });
 
 
@@ -295,7 +304,6 @@ function scrollToCurrentHour() {
   const target = document.getElementById(`hour-${currentHour}`);
 
   if (target) {
-    target.scrollIntoView({ behavior: "smooth", block: "start" });
 
     // Add highlight class
     target.classList.add("ring-2", "ring-blue-200", "ring-offset-2");
@@ -318,13 +326,90 @@ function setInitialHourFilter() {
   }
 }
 
-// Trigger scroll once everything is ready
-document.addEventListener("DOMContentLoaded", () => {
-  updateTimezoneClocks();
-  setInterval(updateTimezoneClocks, 60_000); // Update every minute
-  filterByCustomRange(); // Ensure filtering still applies
-  scrollToCurrentHour(); // Auto-scroll to current hour
-});
+
+function colorDoctorBlocks() {
+  const now = new Date();
+  const currentHour = now.getHours();
+  console.log(`Current hour: ${currentHour}`);
+
+  document.querySelectorAll("li[data-start][data-end]").forEach(el => {
+    const start = parseInt(el.dataset.start, 10);
+    const end = parseInt(el.dataset.end, 10);
+    const doctorName = el.querySelector('a').textContent.trim();
+    const hourBlock = parseInt(el.closest('[id^="hour-"]').id.split('-')[1], 10);
+    const hourBlockMinutes = hourBlock * 60;
+    
+    console.log(`\nProcessing doctor: ${doctorName}`);
+    console.log(`Hour block: ${hourBlock} (${hourBlockMinutes} minutes)`);
+    console.log(`Raw data - Start: ${el.dataset.start}, End: ${el.dataset.end}`);
+    console.log(`Parsed minutes - Start: ${start}, End: ${end}`);
+    
+    // Reset any existing color classes
+    el.classList.remove("bg-green-50", "border-green-200", "bg-yellow-50", "border-yellow-200", "bg-red-50", "border-red-200");
+
+    // Handle overnight shifts (end time is next day)
+    let adjustedEnd = end;
+    if (end < start) {
+      adjustedEnd += 1440; // Add 24 hours in minutes
+      console.log("Overnight shift detected - adjusted end time");
+    }
+
+    // Calculate time remaining
+    let minutesSinceStart;
+    let totalDuration;
+    
+    if (hourBlockMinutes < start) {
+      // If hour block is before shift start
+      minutesSinceStart = 0; // Shift hasn't started yet
+      totalDuration = adjustedEnd - start;
+      console.log("Shift hasn't started in this hour block");
+    } else if (hourBlockMinutes >= adjustedEnd) {
+      // If hour block is after shift end
+      minutesSinceStart = totalDuration; // Shift is over
+      totalDuration = adjustedEnd - start;
+      console.log("Shift has ended by this hour block");
+    } else {
+      // Shift is in progress during this hour block
+      minutesSinceStart = hourBlockMinutes - start;
+      totalDuration = adjustedEnd - start;
+      console.log("Shift is in progress during this hour block");
+    }
+
+    const minutesRemaining = totalDuration - minutesSinceStart;
+    
+    console.log(`Time calculations:
+      Minutes since start: ${minutesSinceStart}
+      Total duration: ${totalDuration}
+      Minutes remaining: ${minutesRemaining}
+      Percentage remaining: ${(minutesRemaining / totalDuration * 100).toFixed(2)}%`);
+
+    // Only apply colors if the shift is active in this hour block
+    if (hourBlockMinutes >= start && hourBlockMinutes < adjustedEnd) {
+      const percentageRemaining = (minutesRemaining / totalDuration) * 100;
+      
+      // Check if this is the last hour block of the shift
+      const nextHourBlock = hourBlockMinutes + 60;
+      const isLastHourBlock = nextHourBlock >= adjustedEnd;
+      
+      if (isLastHourBlock) {
+        el.classList.add("bg-red-50", "border-red-200");
+        console.log("Color: Red (last hour of shift)");
+      } else if (percentageRemaining > 50) {
+        el.classList.add("bg-green-50", "border-green-200");
+        console.log("Color: Green (>50% remaining)");
+      } else if (percentageRemaining > 30) {
+        el.classList.add("bg-yellow-50", "border-yellow-200");
+        console.log("Color: Yellow (25-50% remaining)");
+      } else {
+        el.classList.add("bg-red-50", "border-red-200");
+        console.log("Color: Red (<25% remaining)");
+      }
+    } else {
+      console.log("Shift not active in this hour block");
+    }
+  });
+}
+
 
 </script>
 
