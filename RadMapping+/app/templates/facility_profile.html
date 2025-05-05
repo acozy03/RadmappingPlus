@@ -42,8 +42,15 @@
       <div class="flex items-center space-x-3">
         <span class="inline-flex items-center justify-center w-8 h-8 bg-pink-100 text-pink-600 rounded-full text-lg">🧬</span>
         <div>
-          <div class="text-xs text-gray-500 font-semibold uppercase">Modalities Assignment Period</div>
+          <div class="text-xs text-gray-500 font-semibold uppercase">Assignment Period</div>
           <div class="text-base font-medium text-gray-900">{{ facility.modalities_assignment_period }}</div>
+        </div>
+      </div>
+      <div class="flex items-center space-x-3">
+        <span class="inline-flex items-center justify-center w-8 h-8 bg-pink-100 text-pink-600 rounded-full text-lg">🔢</span>
+        <div>
+          <div class="text-xs text-gray-500 font-semibold uppercase">Assignment Type</div>
+          <div class="text-base font-medium text-gray-900">{{ facility.assignment_type }}</div>
         </div>
       </div>
       <div class="flex items-center space-x-3">
@@ -76,8 +83,12 @@
         <input type="text" name="tat_definition" value="{{ facility.tat_definition or '' }}" class="input w-full border rounded px-3 py-2 text-sm" />
       </label>
       <label class="block">
-        <span class="font-semibold">Modalities Assignment Period</span>
-        <input type="text" name="modalities_assignment_period" value="{{ facility.modalities_assignment_period or '' }}" class="input w-full border rounded px-3 py-2 text-sm" />
+        <span class="font-semibold">Assignment Period</span>
+        <input type="text" name="assignment_period" value="{{ facility.modalities_assignment_period or '' }}" class="input w-full border rounded px-3 py-2 text-sm" />
+      </label>
+      <label class="block">
+        <span class="font-semibold">Assignment Type</span>
+        <input type="text" name="assignment_type" value="{{ facility.assignment_type or '' }}" class="input w-full border rounded px-3 py-2 text-sm" />
       </label>
       <label class="flex items-center space-x-2 mt-4">
         <input type="checkbox" name="active_status" value="true" {% if facility.active_status == 'true' %}checked{% endif %} class="form-checkbox h-5 w-5 text-blue-600">
