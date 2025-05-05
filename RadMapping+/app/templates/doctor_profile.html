@@ -82,6 +82,34 @@
           <div class="text-base font-medium text-gray-900">{{ doctor.timezone or "—" }}</div>
         </div>
       </div>
+      {% if doctor_specialty %}
+      <div class="flex items-center space-x-3">
+        <span class="inline-flex items-center justify-center w-8 h-8 bg-cyan-100 text-cyan-600 rounded-full">
+          <!-- Graduation cap icon for Fellowship -->
+          <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 14l9-5-9-5-9 5 9 5zm0 0v6m0 0H6m6 0h6" /></svg>
+        </span>
+        <div>
+          <div class="text-xs text-gray-500 font-semibold uppercase">Fellowship</div>
+          <div class="text-base font-medium text-gray-900">{{ doctor_specialty }}</div>
+        </div>
+      </div>
+      {% endif %}
+      {% if doctor_specialties and doctor_specialties|length > 0 %}
+      <div class="flex items-center space-x-3">
+        <span class="inline-flex items-center justify-center w-8 h-8 bg-orange-100 text-orange-600 rounded-full">
+          <!-- Star icon for Specialties -->
+          <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11.049 2.927c.3-.921 1.603-.921 1.902 0l2.036 6.29a1 1 0 00.95.69h6.631c.969 0 1.371 1.24.588 1.81l-5.37 3.905a1 1 0 00-.364 1.118l2.036 6.29c.3.921-.755 1.688-1.54 1.118l-5.37-3.905a1 1 0 00-1.176 0l-5.37 3.905c-.784.57-1.838-.197-1.54-1.118l2.036-6.29a1 1 0 00-.364-1.118L2.342 11.717c-.783-.57-.38-1.81.588-1.81h6.631a1 1 0 00.95-.69l2.036-6.29z" /></svg>
+        </span>
+        <div>
+          <div class="text-xs text-gray-500 font-semibold uppercase">Specialties</div>
+          <div class="flex flex-wrap gap-2 mt-1">
+            {% for spec in doctor_specialties %}
+              <span class="inline-block bg-orange-200 text-orange-800 px-2 py-1 rounded text-xs font-semibold">{{ spec.name }}</span>
+            {% endfor %}
+          </div>
+        </div>
+      </div>
+      {% endif %}
     </div>
   </div>
 

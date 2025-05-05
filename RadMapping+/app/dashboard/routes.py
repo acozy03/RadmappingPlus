@@ -260,6 +260,21 @@ def doctor_profile(rad_id):
     certifications = certs_res.data
     print(certifications)
 
+    # Extract the most recent non-empty specialty from certifications
+    doctor_specialty = None
+    for cert in reversed(certifications):
+        if cert.get('specialty'):
+            doctor_specialty = cert['specialty']
+            break
+
+    # Fetch specialties from specialty_permissions
+    specialty_perms = supabase.table("specialty_permissions") \
+        .select("*, specialty_studies(name, description)") \
+        .eq("radiologist_id", rad_id) \
+        .eq("can_read", True) \
+        .execute().data
+    doctor_specialties = [perm["specialty_studies"] for perm in specialty_perms if perm.get("specialty_studies")]
+
     facility_res = supabase.table("doctor_facility_assignments") \
     .select("*, facilities(*)") \
     .eq("radiologist_id", rad_id).execute()
@@ -289,7 +304,9 @@ def doctor_profile(rad_id):
         today_str=today_str,
         certifications=certifications,
         assigned_facilities=assigned_facilities,
-        available_facilities=available_facilities
+        available_facilities=available_facilities,
+        doctor_specialty=doctor_specialty,
+        doctor_specialties=doctor_specialties
     )
 
 @dashboard_bp.route('/doctors/<string:rad_id>/update_schedule', methods=["POST"])
