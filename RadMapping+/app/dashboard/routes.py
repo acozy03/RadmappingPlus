@@ -67,7 +67,8 @@ def home():
             doc = entry["radiologists"]
             doc.update({
                 "start_time": entry["start_time"],
-                "end_time": entry["end_time"]
+                "end_time": entry["end_time"],
+                "schedule_details": entry.get("schedule_details", "")
             })
             doctors_on_shift.append(doc)
 

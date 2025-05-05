@@ -43,7 +43,12 @@
         <option value="PST" {% if selected_timezone == 'PST' %}selected{% endif %}>Pacific Time (PST)</option>
         <option value="UTC" {% if selected_timezone == 'UTC' %}selected{% endif %}>UTC</option>
       </select>
-    
+       <a href="{{ url_for('dashboard.home') }}?date={{ next_date }}" 
+         class="p-2 hover:bg-gray-100 rounded-full transition-colors">
+        <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6 text-gray-600" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7" />
+        </svg>
+      </a>
       <!-- Custom Hour Range Filter -->
       <label class="text-sm font-medium text-gray-700">Show hours:</label>
     
@@ -64,12 +69,7 @@
       </select>
       </form>
 
-      <a href="{{ url_for('dashboard.home') }}?date={{ next_date }}" 
-         class="p-2 hover:bg-gray-100 rounded-full transition-colors">
-        <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6 text-gray-600" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7" />
-        </svg>
-      </a>
+     
     </div>
 
     <!-- Timezone Display -->
@@ -110,26 +110,7 @@
     </div>
   </div>
 </div>
-<!-- Custom Time Range Filter
-<div class="flex items-center gap-2">
-  <label class="text-sm font-medium text-gray-700">Show hours:</label>
 
-  <select id="startHour" onchange="filterByCustomRange()" class="border rounded px-2 py-1 text-sm">
-    {% for hour in range(0, 24) %}
-      {% set label = '%02d:00 %s' % (((hour - 1) % 12 + 1), 'AM' if hour < 12 else 'PM') %}
-      <option value="{{ hour }}">{{ label }}</option>
-    {% endfor %}
-  </select>
-
-  <span class="text-sm">to</span>
-
-  <select id="endHour" onchange="filterByCustomRange()" class="border rounded px-2 py-1 text-sm">
-    {% for hour in range(0, 24) %}
-      {% set label = '%02d:00 %s' % (((hour - 1) % 12 + 1), 'AM' if hour < 12 else 'PM') %}
-      <option value="{{ hour }}" {% if hour == 23 %}selected{% endif %}>{{ label }}</option>
-    {% endfor %}
-  </select>
-</div> -->
 
 <!-- Daily Schedule -->
 <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
@@ -149,7 +130,8 @@
           onmouseenter="showDoctorPopup(this)"
           onmouseleave="hideDoctorPopup(this)"
           data-start="{{ doc.start_time|shift_minutes }}"
-          data-end="{{ doc.end_time|shift_minutes }}">
+          data-end="{{ doc.end_time|shift_minutes }}"
+          data-schedule-details="{{ doc.schedule_details or '' }}">
       
               <div class="flex items-center justify-between">
                 <a href="{{ url_for('dashboard.doctor_profile', rad_id=doc.id) }}" class="text-blue-700 font-semibold hover:underline">
@@ -181,13 +163,10 @@
               <div class="doctor-popup absolute left-full top-0 ml-2 w-[20rem] bg-white border p-4 rounded-lg shadow-lg text-left pointer-events-none opacity-0 transition-all duration-200 z-50 transform scale-95">
                 <h4 class="font-medium text-lg text-gray-900 mb-2">{{ doc.name }}</h4>
                 <div class="space-y-2">
-                  <p class="text-sm"><span class="font-medium">Timezone:</span> <span class="text-gray-700">{{ doc.timezone or 'N/A' }}</span></p>
-                  <p class="text-sm"><span class="font-medium">Modalities:</span> <span class="text-gray-700">{{ doc.modalities or 'N/A' }}</span></p>
-                  <p class="text-sm"><span class="font-medium">PACS:</span> <span class="text-gray-700">{{ doc.pacs or 'N/A' }}</span></p>
-                  <p class="text-sm"><span class="font-medium">Contact:</span> <span class="text-gray-700">{{ doc.email or 'N/A' }}</span></p>
                   <p class="text-sm"><span class="font-medium">Phone:</span> <span class="text-gray-700">{{ doc.phone or 'N/A' }}</span></p>
-                  {% if doc.schedule_info_est %}
-                    <p class="text-sm"><span class="font-medium">Schedule Info:</span> <span class="text-gray-700">{{ doc.schedule_info_est }}</span></p>
+                  <p class="text-sm"><span class="font-medium">Email:</span> <span class="text-gray-700">{{ doc.email or 'N/A' }}</span></p>
+                  {% if doc.schedule_details %}
+                    <p class="text-sm"><span class="font-medium">Schedule Notes:</span> <span class="text-gray-700">{{ doc.schedule_details }}</span></p>
                   {% endif %}
                 </div>
               </div>
@@ -330,19 +309,12 @@ function setInitialHourFilter() {
 function colorDoctorBlocks() {
   const now = new Date();
   const currentHour = now.getHours();
-  console.log(`Current hour: ${currentHour}`);
 
   document.querySelectorAll("li[data-start][data-end]").forEach(el => {
     const start = parseInt(el.dataset.start, 10);
     const end = parseInt(el.dataset.end, 10);
-    const doctorName = el.querySelector('a').textContent.trim();
     const hourBlock = parseInt(el.closest('[id^="hour-"]').id.split('-')[1], 10);
     const hourBlockMinutes = hourBlock * 60;
-    
-    console.log(`\nProcessing doctor: ${doctorName}`);
-    console.log(`Hour block: ${hourBlock} (${hourBlockMinutes} minutes)`);
-    console.log(`Raw data - Start: ${el.dataset.start}, End: ${el.dataset.end}`);
-    console.log(`Parsed minutes - Start: ${start}, End: ${end}`);
     
     // Reset any existing color classes
     el.classList.remove("bg-green-50", "border-green-200", "bg-yellow-50", "border-yellow-200", "bg-red-50", "border-red-200");
@@ -351,7 +323,6 @@ function colorDoctorBlocks() {
     let adjustedEnd = end;
     if (end < start) {
       adjustedEnd += 1440; // Add 24 hours in minutes
-      console.log("Overnight shift detected - adjusted end time");
     }
 
     // Calculate time remaining
@@ -362,26 +333,17 @@ function colorDoctorBlocks() {
       // If hour block is before shift start
       minutesSinceStart = 0; // Shift hasn't started yet
       totalDuration = adjustedEnd - start;
-      console.log("Shift hasn't started in this hour block");
     } else if (hourBlockMinutes >= adjustedEnd) {
       // If hour block is after shift end
       minutesSinceStart = totalDuration; // Shift is over
       totalDuration = adjustedEnd - start;
-      console.log("Shift has ended by this hour block");
     } else {
       // Shift is in progress during this hour block
       minutesSinceStart = hourBlockMinutes - start;
       totalDuration = adjustedEnd - start;
-      console.log("Shift is in progress during this hour block");
     }
 
     const minutesRemaining = totalDuration - minutesSinceStart;
-    
-    console.log(`Time calculations:
-      Minutes since start: ${minutesSinceStart}
-      Total duration: ${totalDuration}
-      Minutes remaining: ${minutesRemaining}
-      Percentage remaining: ${(minutesRemaining / totalDuration * 100).toFixed(2)}%`);
 
     // Only apply colors if the shift is active in this hour block
     if (hourBlockMinutes >= start && hourBlockMinutes < adjustedEnd) {
@@ -393,19 +355,13 @@ function colorDoctorBlocks() {
       
       if (isLastHourBlock) {
         el.classList.add("bg-red-50", "border-red-200");
-        console.log("Color: Red (last hour of shift)");
       } else if (percentageRemaining > 50) {
         el.classList.add("bg-green-50", "border-green-200");
-        console.log("Color: Green (>50% remaining)");
       } else if (percentageRemaining > 30) {
         el.classList.add("bg-yellow-50", "border-yellow-200");
-        console.log("Color: Yellow (25-50% remaining)");
       } else {
         el.classList.add("bg-red-50", "border-red-200");
-        console.log("Color: Red (<25% remaining)");
       }
-    } else {
-      console.log("Shift not active in this hour block");
     }
   });
 }
