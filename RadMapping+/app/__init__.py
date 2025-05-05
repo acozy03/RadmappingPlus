@@ -1,8 +1,11 @@
 from flask import Flask, session, redirect, url_for
 from config import Config
 from datetime import datetime
+from dotenv import load_dotenv
+
 
 def create_app():
+    load_dotenv()
     app = Flask(__name__)
     app.config.from_object(Config)
 
@@ -13,6 +16,8 @@ def create_app():
     @app.context_processor
     def inject_session():
         return dict(session=session)
+
+
 
     # Inject 'now' into Jinja templates
     @app.context_processor

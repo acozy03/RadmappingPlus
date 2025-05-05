@@ -4,3 +4,6 @@ supabase
 llama-index
 openai
 pytz
+gunicorn
+python-dotenv
+ollama
