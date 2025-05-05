@@ -62,9 +62,6 @@
         </div>
       </div>
       <span class="text-blue-600 font-semibold">Details →</span>
-      {% if session.user.role == 'admin' %}
-      <button type="button" class="ml-4 bg-blue-500 text-white px-3 py-1 rounded text-xs font-semibold hover:bg-blue-600" onclick="event.stopPropagation(); openEditSpecialtiesModal('{{ doc.id }}', '{{ doc.name|escape }}')">Edit Specialties</button>
-      {% endif %}
       <!-- Hover Popup -->
       <div class="doctor-popup absolute left-0 top-full mt-2 w-[20rem] bg-white border p-3 rounded shadow-md text-left pointer-events-none opacity-0 transition-opacity duration-150 z-50">
         <p class="text-sm font-medium">Timezone: <span class="text-gray-700">{{ doc.timezone }}</span></p>
@@ -157,22 +154,6 @@
         <button type="submit" class="bg-blue-600 text-white px-4 py-2 rounded text-sm font-medium">
           Add Doctor
         </button>
-      </div>
-    </form>
-  </div>
-</div>
-
-<!-- Edit Specialties Modal -->
-<div id="editSpecialtiesModal" class="fixed inset-0 z-50 hidden bg-black bg-opacity-50 flex items-center justify-center">
-  <div class="bg-white rounded-lg shadow-lg w-[90%] max-w-md p-6 relative">
-    <button onclick="closeEditSpecialtiesModal()" class="absolute top-2 right-2 text-2xl font-bold text-gray-500 hover:text-black">×</button>
-    <h3 id="editSpecialtiesTitle" class="text-xl font-semibold mb-4">Edit Specialties for <span id="editSpecialtiesDoctorName"></span></h3>
-    <form id="editSpecialtiesForm">
-      <div id="specialtiesCheckboxes" class="space-y-2 mb-4">
-        <!-- Specialties checkboxes will be loaded here -->
-      </div>
-      <div class="flex justify-end">
-        <button type="button" onclick="saveDoctorSpecialties()" class="bg-blue-600 text-white px-4 py-2 rounded text-sm font-medium">Save</button>
       </div>
     </form>
   </div>
@@ -301,84 +282,6 @@ function openAddDoctorModal() {
 
 function closeAddDoctorModal() {
   document.getElementById('addDoctorModal').classList.add('hidden');
-}
-
-function openEditSpecialtiesModal(doctorId, doctorName) {
-  document.getElementById('editSpecialtiesTitle').textContent = `Edit Specialties for ${doctorName}`;
-  document.getElementById('editSpecialtiesDoctorName').textContent = doctorName;
-  document.getElementById('editSpecialtiesForm').action = `/dashboard/doctors/${doctorId}/edit-specialties`;
-  loadSpecialties(doctorId);
-  document.getElementById('editSpecialtiesModal').classList.remove('hidden');
-}
-
-function closeEditSpecialtiesModal() {
-  document.getElementById('editSpecialtiesModal').classList.add('hidden');
-}
-
-function loadSpecialties(doctorId) {
-  fetch(`/dashboard/doctors/${doctorId}/specialties`)
-    .then(response => response.json())
-    .then(data => {
-      const specialtiesCheckboxes = document.getElementById('specialtiesCheckboxes');
-      specialtiesCheckboxes.innerHTML = '';
-      data.specialties.forEach(specialty => {
-        const checkbox = document.createElement('input');
-        checkbox.type = 'checkbox';
-        checkbox.name = 'specialties';
-        checkbox.value = specialty.id;
-        checkbox.checked = specialty.assigned;
-        checkbox.addEventListener('change', () => updateSpecialties(doctorId));
-        const label = document.createElement('label');
-        label.textContent = specialty.name;
-        const li = document.createElement('li');
-        li.className = 'flex items-center space-x-2';
-        li.appendChild(checkbox);
-        li.appendChild(label);
-        specialtiesCheckboxes.appendChild(li);
-      });
-    });
-}
-
-function updateSpecialties(doctorId) {
-  const specialties = document.querySelectorAll('#specialtiesCheckboxes input[name="specialties"]:checked');
-  const selectedSpecialties = Array.from(specialties).map(checkbox => checkbox.value);
-  fetch(`/dashboard/doctors/${doctorId}/specialties`, {
-    method: 'POST',
-    headers: {
-      'Content-Type': 'application/json'
-    },
-    body: JSON.stringify({ specialties: selectedSpecialties })
-  })
-  .then(response => response.json())
-  .then(data => {
-    if (data.success) {
-      alert('Specialties updated successfully');
-      closeEditSpecialtiesModal();
-    } else {
-      alert('Failed to update specialties');
-    }
-  });
-}
-
-function saveDoctorSpecialties() {
-  const specialties = document.querySelectorAll('#specialtiesCheckboxes input[name="specialties"]:checked');
-  const selectedSpecialties = Array.from(specialties).map(checkbox => checkbox.value);
-  fetch(`/dashboard/doctors/${doctorId}/specialties`, {
-    method: 'POST',
-    headers: {
-      'Content-Type': 'application/json'
-    },
-    body: JSON.stringify({ specialties: selectedSpecialties })
-  })
-  .then(response => response.json())
-  .then(data => {
-    if (data.success) {
-      alert('Specialties updated successfully');
-      closeEditSpecialtiesModal();
-    } else {
-      alert('Failed to update specialties');
-    }
-  });
 }
 </script>
 
