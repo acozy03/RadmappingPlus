@@ -474,6 +474,12 @@ def facility_profile(facility_id):
     assignment_res = supabase.table("doctor_facility_assignments") \
         .select("*, radiologists(*)") \
         .eq("facility_id", facility_id).execute()
+    assigned_radiologist_ids = {a["radiologist_id"] for a in assignment_res.data}
+
+    # Get all radiologists
+    all_rads_res = supabase.table("radiologists").select("id, name").order("name").execute()
+    all_radiologists = all_rads_res.data or []
+    available_radiologists = [r for r in all_radiologists if r["id"] not in assigned_radiologist_ids]
 
     # Get facility contacts
     contacts_res = supabase.table("facility_contact_assignments") \
@@ -485,8 +491,26 @@ def facility_profile(facility_id):
     return render_template("facility_profile.html",
         facility=fac,
         doctor_assignments=assignment_res.data,
-        facility_contacts=contacts_res.data
+        facility_contacts=contacts_res.data,
+        available_radiologists=available_radiologists
     )
+
+@dashboard_bp.route('/facilities/<facility_id>/assign_radiologist', methods=['POST'])
+@login_required
+@admin_required
+def assign_radiologist(facility_id):
+    data = {
+        "id": str(uuid.uuid4()),
+        "radiologist_id": request.form.get("radiologist_id"),
+        "facility_id": facility_id,
+        "can_read": "can_read" in request.form,
+        "does_stats": "does_stats" in request.form,
+        "does_routines": "does_routines" in request.form,
+        "stipulations": request.form.get("stipulations", ""),
+        "notes": request.form.get("notes", "")
+    }
+    supabase.table("doctor_facility_assignments").insert(data).execute()
+    return redirect(url_for("dashboard.facility_profile", facility_id=facility_id))
 
 @dashboard_bp.route('/doctors/<string:rad_id>/update', methods=["POST"])
 @login_required

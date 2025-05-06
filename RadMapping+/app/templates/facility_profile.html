@@ -149,11 +149,16 @@
     <div class="bg-white rounded-lg shadow p-6 border h-full flex flex-col">
       <div class="flex flex-col sm:flex-row sm:items-center sm:justify-between mb-4 gap-2">
         <h3 class="text-lg font-semibold">Assigned Radiologists</h3>
-        <div class="relative w-full sm:w-64">
-          <span class="absolute inset-y-0 left-0 flex items-center pl-3 text-gray-400 pointer-events-none">
-            <svg class="h-5 w-5" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
-          </span>
-          <input type="text" class="pl-10 pr-4 py-2 border border-gray-300 rounded-lg shadow-sm focus:ring-2 focus:ring-blue-200 focus:border-blue-400 text-sm w-full bg-gray-50" placeholder="Search radiologists..." disabled />
+        <div class="flex items-center gap-2 w-full sm:w-auto">
+          <div class="relative w-full sm:w-64">
+            <span class="absolute inset-y-0 left-0 flex items-center pl-3 text-gray-400 pointer-events-none">
+              <svg class="h-5 w-5" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
+            </span>
+            <input type="text" class="pl-10 pr-4 py-2 border border-gray-300 rounded-lg shadow-sm focus:ring-2 focus:ring-blue-200 focus:border-blue-400 text-sm w-full bg-gray-50" placeholder="Search radiologists..." disabled />
+          </div>
+          {% if session.user.role == 'admin' %}
+            <button type="button" onclick="openRadiologistModal()" class="bg-blue-600 text-white px-4 py-2 rounded text-sm font-medium hover:bg-blue-700 whitespace-nowrap">Assign Radiologists</button>
+          {% endif %}
         </div>
       </div>
       {% if doctor_assignments %}
@@ -279,12 +284,44 @@
 <div id="radiologistModal" class="fixed inset-0 z-50 hidden bg-black bg-opacity-50 flex items-center justify-center">
   <div class="bg-white rounded-lg shadow-lg w-[90%] max-w-2xl max-h-[80vh] overflow-y-auto p-6 relative">
     <button onclick="closeRadiologistModal()" class="absolute top-2 right-2 text-2xl font-bold text-gray-500 hover:text-black">×</button>
-    <h3 class="text-xl font-semibold mb-4">Edit Assigned Radiologists</h3>
-    <div class="text-gray-600 mb-4">Here you can assign or unassign radiologists to this facility. (Form or controls go here.)</div>
-    <!-- TODO: Insert actual assignment form or controls here -->
-    <div class="flex justify-end">
-      <button type="button" onclick="closeRadiologistModal()" class="px-4 py-2 text-sm border rounded text-gray-700 hover:bg-gray-50">Close</button>
-    </div>
+    <h3 class="text-xl font-semibold mb-4">Assign Radiologist to Facility</h3>
+    <form method="POST" action="{{ url_for('dashboard.assign_radiologist', facility_id=facility.id) }}" class="space-y-4">
+      <div>
+        <label class="block text-sm font-medium text-gray-700 mb-1">Select Radiologist</label>
+        <select name="radiologist_id" required class="w-full border rounded px-3 py-2 text-sm">
+          <option value="">Choose a radiologist...</option>
+          {% for rad in available_radiologists %}
+            <option value="{{ rad.id }}">{{ rad.name }}</option>
+          {% endfor %}
+        </select>
+      </div>
+      <div class="flex items-center gap-4">
+        <label class="flex items-center">
+          <input type="checkbox" name="can_read" class="form-checkbox h-4 w-4 text-blue-600">
+          <span class="ml-2 text-sm">Can Read</span>
+        </label>
+        <label class="flex items-center">
+          <input type="checkbox" name="does_stats" class="form-checkbox h-4 w-4 text-blue-600">
+          <span class="ml-2 text-sm">Does Stats</span>
+        </label>
+        <label class="flex items-center">
+          <input type="checkbox" name="does_routines" class="form-checkbox h-4 w-4 text-blue-600">
+          <span class="ml-2 text-sm">Does Routines</span>
+        </label>
+      </div>
+      <div>
+        <label class="block text-sm font-medium text-gray-700 mb-1">Stipulations</label>
+        <textarea name="stipulations" class="w-full border rounded px-3 py-2 text-sm" rows="2"></textarea>
+      </div>
+      <div>
+        <label class="block text-sm font-medium text-gray-700 mb-1">Notes</label>
+        <textarea name="notes" class="w-full border rounded px-3 py-2 text-sm" rows="2"></textarea>
+      </div>
+      <div class="flex justify-end gap-3">
+        <button type="button" onclick="closeRadiologistModal()" class="px-4 py-2 text-sm border rounded text-gray-700 hover:bg-gray-50">Cancel</button>
+        <button type="submit" class="px-4 py-2 text-sm bg-blue-600 text-white rounded hover:bg-blue-700">Assign</button>
+      </div>
+    </form>
   </div>
 </div>
 
