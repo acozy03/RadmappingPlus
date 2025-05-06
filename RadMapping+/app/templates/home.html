@@ -51,20 +51,15 @@
       </a>
       <!-- Custom Hour Range Filter -->
       <label class="text-sm font-medium text-gray-700">Show hours:</label>
-    
       <select id="startHour" onchange="filterByCustomRange()" class="border rounded px-2 py-1 text-sm">
-        {% for hour in range(0, 24) %}
-          {% set label = '%02d:00 %s' % (((hour - 1) % 12 + 1), 'AM' if hour < 12 else 'PM') %}
-          <option value="{{ hour }}" {% if hour == 14 %}selected{% endif %}>{{ label }}</option>
+        {% for slot in hour_slots %}
+          <option value="{{ loop.index0 }}">{{ slot.label }} {{ slot.day_label }}</option>
         {% endfor %}
       </select>
-    
       <span class="text-sm">to</span>
-    
       <select id="endHour" onchange="filterByCustomRange()" class="border rounded px-2 py-1 text-sm">
-        {% for hour in range(0, 24) %}
-          {% set label = '%02d:00 %s' % (((hour - 1) % 12 + 1), 'AM' if hour < 12 else 'PM') %}
-          <option value="{{ hour }}" {% if hour == 17 %}selected{% endif %}>{{ label }}</option>
+        {% for slot in hour_slots %}
+          <option value="{{ loop.index0 }}">{{ slot.label }} {{ slot.day_label }}</option>
         {% endfor %}
       </select>
       </form>
@@ -114,25 +109,30 @@
 
 <!-- Daily Schedule -->
 <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
-  {% for hour in range(0, 24) %}
-    {% set ampm_label = '%02d:00 %s' % (((hour - 1) % 12 + 1), 'AM' if hour < 12 else 'PM') %}
-    <div id="hour-{{ hour }}" class="bg-white border rounded shadow p-4">
+  {% for slot in hour_slots %}
+    <div id="hour-{{ loop.index0 }}" class="bg-white border rounded shadow p-4" data-slot-datetime="{{ slot.datetime.isoformat() }}">
       <h4 class="text-md font-semibold text-blue-800 border-b pb-1 mb-2">
-        {{ ampm_label }}
+        {{ slot.label }}
+        <span class="text-xs text-gray-500 ml-2">({{ slot.date }})</span>
         {% if selected_timezone != 'UTC' %}
-          <span class="text-sm text-gray-500 ml-2">({{ (hour - timezone_offset)|int }}:00 {{ selected_timezone }})</span>
+          <span class="text-sm text-gray-500 ml-2">({{ (slot.hour - timezone_offset)|int }}:00 {{ selected_timezone }})</span>
         {% endif %}
       </h4>
-      {% if doctors_by_hour[hour] %}
+      {% set slot_doctors = [] %}
+      {% for doc in doctors_on_shift %}
+        {% if doc.start_dt <= slot.datetime < doc.end_dt %}
+          {% set _ = slot_doctors.append(doc) %}
+        {% endif %}
+      {% endfor %}
+      {% if slot_doctors %}
         <ul class="space-y-2">
-          {% for doc in doctors_by_hour[hour] %}
+          {% for doc in slot_doctors %}
           <li class="relative border p-2 rounded bg-gray-50 hover:bg-gray-100 transition-colors duration-200"
           onmouseenter="showDoctorPopup(this)"
           onmouseleave="hideDoctorPopup(this)"
-          data-start="{{ doc.start_time|shift_minutes }}"
-          data-end="{{ doc.end_time|shift_minutes }}"
+          data-start-dt="{{ doc.start_dt.isoformat() }}"
+          data-end-dt="{{ doc.end_dt.isoformat() }}"
           data-schedule-details="{{ doc.schedule_details or '' }}">
-      
               <div class="flex items-center justify-between">
                 <a href="{{ url_for('dashboard.doctor_profile', rad_id=doc.id) }}" class="text-blue-700 font-semibold hover:underline">
                   {{ doc.name }}
@@ -151,15 +151,12 @@
                   <span class="font-semibold text-gray-800">Modalities:</span>
                   <span class="text-gray-700">{{ doc.modalities }}</span>
                 </div>
-                              
                 {% endif %}
                 {% if doc.pacs %}
                 <span class="font-semibold text-gray-800">PACS:</span>
                 <span class="text-gray-700">{{ doc.pacs }}</span>
                 {% endif %}
               </div>
-
-              <!-- Doctor Hover Popup -->
               <div class="doctor-popup absolute left-full top-0 ml-2 w-[20rem] bg-white border p-4 rounded-lg shadow-lg text-left pointer-events-none opacity-0 transition-all duration-200 z-50 transform scale-95">
                 <h4 class="font-medium text-lg text-gray-900 mb-2">{{ doc.name }}</h4>
                 <div class="space-y-2">
@@ -179,6 +176,18 @@
     </div>
   {% endfor %}
 </div>
+
+{# --- FILTER UI UPDATE (date+time) and JS validation for invalid ranges --- #}
+<form id="filterForm" class="flex gap-2 mt-4">
+  <label>Start:</label>
+  <input type="date" id="filterStartDate" required>
+  <input type="time" id="filterStartTime" required>
+  <label>End:</label>
+  <input type="date" id="filterEndDate" required>
+  <input type="time" id="filterEndTime" required>
+  <button type="button" onclick="applyDateTimeFilter()" class="bg-blue-600 text-white px-3 py-1 rounded">Filter</button>
+  <span id="filterError" class="text-red-600 ml-2"></span>
+</form>
 
 <script>
   function showTimezonePopup(parent) {
@@ -263,16 +272,12 @@
   function filterByCustomRange() {
   const start = parseInt(document.getElementById("startHour").value, 10);
   const end = parseInt(document.getElementById("endHour").value, 10);
-
-  for (let hour = 0; hour < 24; hour++) {
-    const block = document.getElementById(`hour-${hour}`);
+  const total = document.querySelectorAll('[id^="hour-"]').length;
+  for (let i = 0; i < total; i++) {
+    const block = document.getElementById(`hour-${i}`);
     if (!block) continue;
-
-    // Handle ranges that wrap past midnight (e.g., 22–2)
-    const isInRange = start <= end
-      ? hour >= start && hour <= end
-      : hour >= start || hour <= end;
-
+    // Handle ranges that wrap past midnight (shouldn't happen with linear hour_slots, but keep logic robust)
+    const isInRange = start <= end ? (i >= start && i <= end) : (i >= start || i <= end);
     block.style.display = isInRange ? "block" : "none";
   }
 }
@@ -307,57 +312,32 @@ function setInitialHourFilter() {
 
 
 function colorDoctorBlocks() {
-  const now = new Date();
-  const currentHour = now.getHours();
+  document.querySelectorAll("li[data-start-dt][data-end-dt]").forEach(el => {
+    const slotDiv = el.closest('[id^="hour-"]');
+    if (!slotDiv) return;
+    const slotDtStr = slotDiv.getAttribute('data-slot-datetime');
+    if (!slotDtStr) return;
+    const slotDt = new Date(slotDtStr);
+    const startDt = new Date(el.dataset.startDt);
+    const endDt = new Date(el.dataset.endDt);
 
-  document.querySelectorAll("li[data-start][data-end]").forEach(el => {
-    const start = parseInt(el.dataset.start, 10);
-    const end = parseInt(el.dataset.end, 10);
-    const hourBlock = parseInt(el.closest('[id^="hour-"]').id.split('-')[1], 10);
-    const hourBlockMinutes = hourBlock * 60;
-    
     // Reset any existing color classes
     el.classList.remove("bg-green-50", "border-green-200", "bg-yellow-50", "border-yellow-200", "bg-red-50", "border-red-200");
 
-    // Handle overnight shifts (end time is next day)
-    let adjustedEnd = end;
-    if (end < start) {
-      adjustedEnd += 1440; // Add 24 hours in minutes
-    }
-
-    // Calculate time remaining
-    let minutesSinceStart;
-    let totalDuration;
-    
-    if (hourBlockMinutes < start) {
-      // If hour block is before shift start
-      minutesSinceStart = 0; // Shift hasn't started yet
-      totalDuration = adjustedEnd - start;
-    } else if (hourBlockMinutes >= adjustedEnd) {
-      // If hour block is after shift end
-      minutesSinceStart = totalDuration; // Shift is over
-      totalDuration = adjustedEnd - start;
-    } else {
-      // Shift is in progress during this hour block
-      minutesSinceStart = hourBlockMinutes - start;
-      totalDuration = adjustedEnd - start;
-    }
-
-    const minutesRemaining = totalDuration - minutesSinceStart;
-
-    // Only apply colors if the shift is active in this hour block
-    if (hourBlockMinutes >= start && hourBlockMinutes < adjustedEnd) {
-      const percentageRemaining = (minutesRemaining / totalDuration) * 100;
-      
+    if (slotDt >= startDt && slotDt < endDt) {
+      // Calculate percentage remaining in shift
+      const totalMs = endDt - startDt;
+      const msSinceStart = slotDt - startDt;
+      const msRemaining = totalMs - msSinceStart;
+      const percentageRemaining = (msRemaining / totalMs) * 100;
       // Check if this is the last hour block of the shift
-      const nextHourBlock = hourBlockMinutes + 60;
-      const isLastHourBlock = nextHourBlock >= adjustedEnd;
-      
+      const nextHourDt = new Date(slotDt.getTime() + 60 * 60 * 1000);
+      const isLastHourBlock = nextHourDt >= endDt;
       if (isLastHourBlock) {
         el.classList.add("bg-red-50", "border-red-200");
-      } else if (percentageRemaining > 50) {
+      } else if (percentageRemaining > 75) {
         el.classList.add("bg-green-50", "border-green-200");
-      } else if (percentageRemaining > 30) {
+      } else if (percentageRemaining > 25) {
         el.classList.add("bg-yellow-50", "border-yellow-200");
       } else {
         el.classList.add("bg-red-50", "border-red-200");
@@ -366,6 +346,24 @@ function colorDoctorBlocks() {
   });
 }
 
+function applyDateTimeFilter() {
+  const startDate = document.getElementById('filterStartDate').value;
+  const startTime = document.getElementById('filterStartTime').value;
+  const endDate = document.getElementById('filterEndDate').value;
+  const endTime = document.getElementById('filterEndTime').value;
+  const errorSpan = document.getElementById('filterError');
+  errorSpan.textContent = '';
+  if (!startDate || !startTime || !endDate || !endTime) {
+    errorSpan.textContent = 'All fields required.';
+    return;
+  }
+  if (endDate > startDate) {
+    errorSpan.textContent = 'End date cannot be after start date.';
+    return;
+  }
+  // Optionally, add logic to filter the hour slots here
+  // ...
+}
 
 </script>
 
