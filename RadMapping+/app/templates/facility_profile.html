@@ -158,6 +158,7 @@
           </div>
           {% if session.user.role == 'admin' %}
             <button type="button" onclick="openRadiologistModal()" class="bg-blue-600 text-white px-4 py-2 rounded text-sm font-medium hover:bg-blue-700 whitespace-nowrap">Assign Radiologists</button>
+            <button type="button" onclick="openBulkEditAssignmentsModal()" class="bg-yellow-500 text-white px-4 py-2 rounded text-sm font-medium hover:bg-yellow-600 whitespace-nowrap">Edit Assignments</button>
           {% endif %}
         </div>
       </div>
@@ -325,6 +326,47 @@
   </div>
 </div>
 
+<!-- Bulk Edit Assignments Modal -->
+<div id="bulkEditAssignmentsModal" class="fixed inset-0 z-50 hidden bg-black bg-opacity-50 flex items-center justify-center">
+  <div class="bg-white rounded-lg shadow-lg w-[95%] max-w-4xl max-h-[90vh] overflow-y-auto p-6 relative">
+    <button onclick="closeBulkEditAssignmentsModal()" class="absolute top-2 right-2 text-2xl font-bold text-gray-500 hover:text-black">×</button>
+    <h3 class="text-xl font-semibold mb-4">Bulk Edit Assigned Radiologists</h3>
+    <form method="POST" action="{{ url_for('dashboard.bulk_update_assignments', facility_id=facility.id) }}" class="space-y-4">
+      <div class="overflow-x-auto">
+        <table class="min-w-full bg-white border border-gray-200 text-sm rounded">
+          <thead class="bg-gray-100">
+            <tr class="text-left">
+              <th class="px-4 py-2 border-b">Name</th>
+              <th class="px-4 py-2 border-b">Can Read</th>
+              <th class="px-4 py-2 border-b">Does Stats</th>
+              <th class="px-4 py-2 border-b">Does Routines</th>
+              <th class="px-4 py-2 border-b">Stipulations</th>
+              <th class="px-4 py-2 border-b">Notes</th>
+            </tr>
+          </thead>
+          <tbody>
+            {% for assignment in doctor_assignments %}
+            <tr>
+              <td class="px-4 py-2 border-b font-medium">{{ assignment.radiologists.name }}</td>
+              <td class="px-4 py-2 border-b text-center"><input type="checkbox" name="can_read_{{ assignment.id }}" {% if assignment.can_read %}checked{% endif %}></td>
+              <td class="px-4 py-2 border-b text-center"><input type="checkbox" name="does_stats_{{ assignment.id }}" {% if assignment.does_stats %}checked{% endif %}></td>
+              <td class="px-4 py-2 border-b text-center"><input type="checkbox" name="does_routines_{{ assignment.id }}" {% if assignment.does_routines %}checked{% endif %}></td>
+              <td class="px-4 py-2 border-b"><textarea name="stipulations_{{ assignment.id }}" class="w-full border rounded px-2 py-1">{{ assignment.stipulations }}</textarea></td>
+              <td class="px-4 py-2 border-b"><textarea name="notes_{{ assignment.id }}" class="w-full border rounded px-2 py-1">{{ assignment.notes }}</textarea></td>
+              <input type="hidden" name="assignment_ids" value="{{ assignment.id }}">
+            </tr>
+            {% endfor %}
+          </tbody>
+        </table>
+      </div>
+      <div class="flex justify-end gap-3 mt-4">
+        <button type="button" onclick="closeBulkEditAssignmentsModal()" class="px-4 py-2 text-sm border rounded text-gray-700 hover:bg-gray-50">Cancel</button>
+        <button type="submit" class="px-4 py-2 text-sm bg-blue-600 text-white rounded hover:bg-blue-700">Save Changes</button>
+      </div>
+    </form>
+  </div>
+</div>
+
 <!-- Delete Contact Form (Hidden) -->
 <form id="deleteContactForm" method="POST" style="display: none;"></form>
 
@@ -442,6 +484,13 @@
       const text = item.innerText.toLowerCase();
       item.style.display = text.includes(q) ? '' : 'none';
     });
+  }
+
+  function openBulkEditAssignmentsModal() {
+    document.getElementById('bulkEditAssignmentsModal').classList.remove('hidden');
+  }
+  function closeBulkEditAssignmentsModal() {
+    document.getElementById('bulkEditAssignmentsModal').classList.add('hidden');
   }
 </script>
 {% endblock %}

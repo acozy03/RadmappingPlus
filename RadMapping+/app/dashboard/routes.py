@@ -1754,3 +1754,23 @@ def update_specialty_doctors(specialty_id):
                 "can_read": True
             }).execute()
     return jsonify({"status": "success"})
+
+@dashboard_bp.route('/facilities/<facility_id>/bulk_update_assignments', methods=['POST'])
+@login_required
+@admin_required
+def bulk_update_assignments(facility_id):
+    assignment_ids = request.form.getlist('assignment_ids')
+    for assignment_id in assignment_ids:
+        can_read = f'can_read_{assignment_id}' in request.form
+        does_stats = f'does_stats_{assignment_id}' in request.form
+        does_routines = f'does_routines_{assignment_id}' in request.form
+        stipulations = request.form.get(f'stipulations_{assignment_id}', '')
+        notes = request.form.get(f'notes_{assignment_id}', '')
+        supabase.table('doctor_facility_assignments').update({
+            'can_read': can_read,
+            'does_stats': does_stats,
+            'does_routines': does_routines,
+            'stipulations': stipulations,
+            'notes': notes
+        }).eq('id', assignment_id).execute()
+    return redirect(url_for('dashboard.facility_profile', facility_id=facility_id))
