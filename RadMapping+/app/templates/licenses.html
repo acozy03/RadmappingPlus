@@ -60,7 +60,10 @@
           <th class="px-6 py-3 border">Status</th>
           <th class="px-6 py-3 border">Tags</th>
           <th class="px-6 py-3 border">Expiration</th>
+          {% if session.user.role == 'admin' %}
           <th class="px-6 py-3 border">Actions</th>
+          {% endif %}
+          
         </tr>
       </thead>
       <tbody id="licensesTableBody">
@@ -102,6 +105,7 @@
             <span class="view-mode">{{ cert.expiration_date }}</span>
             <input type="date" class="edit-mode hidden w-full px-2 py-1 border rounded" value="{{ cert.expiration_date }}">
           </td>
+          {% if session.user.role == 'admin' %}
           <td class="px-6 py-4 border">
             <div class="view-mode">
               <button onclick="toggleEditMode('{{ cert.id }}')" class="text-blue-600 hover:text-blue-900 mr-3">Edit</button>
@@ -114,6 +118,7 @@
               <button onclick="cancelEdit('{{ cert.id }}')" class="text-gray-600 hover:text-gray-900">Cancel</button>
             </div>
           </td>
+          {% endif %}
         </tr>
         {% endfor %}
       </tbody>
@@ -192,6 +197,7 @@ function updateTable(certifications) {
     ).join('');
     
     row.innerHTML = `
+   
       <td class="px-6 py-4 border">
         <span class="view-mode">${cert.radiologists.name}</span>
         <select class="edit-mode hidden w-full px-2 py-1 border rounded">
@@ -223,6 +229,7 @@ function updateTable(certifications) {
         <span class="view-mode">${cert.expiration_date}</span>
         <input type="date" class="edit-mode hidden w-full px-2 py-1 border rounded" value="${cert.expiration_date}">
       </td>
+       {% if session.user.role == 'admin' %}
       <td class="px-6 py-4 border">
         <div class="view-mode">
           <button onclick="toggleEditMode('${cert.id}')" class="text-blue-600 hover:text-blue-900 mr-3">Edit</button>
@@ -235,6 +242,7 @@ function updateTable(certifications) {
           <button onclick="cancelEdit('${cert.id}')" class="text-gray-600 hover:text-gray-900">Cancel</button>
         </div>
       </td>
+      {% endif %}
     `;
     
     tbody.appendChild(row);
