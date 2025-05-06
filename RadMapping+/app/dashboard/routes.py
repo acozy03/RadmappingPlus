@@ -731,8 +731,8 @@ def search_licenses():
     count_res = query.execute()
     total_count = len(count_res.data)
     
-    # Get paginated results
-    query = query.order("expiration_date", desc=False) \
+    # Get paginated results with sorting
+    query = query.order("expiration_date", desc=True) \
                 .range(offset, offset + per_page - 1)
     results = query.execute()
     
@@ -1752,6 +1752,7 @@ def update_doctor_specialties(doctor_id):
                 "can_read": True
             }).execute()
     return jsonify({"status": "success"})
+
 
 @dashboard_bp.route('/specialties/<string:specialty_id>/doctors/all')
 @login_required

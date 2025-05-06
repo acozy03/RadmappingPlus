@@ -419,9 +419,11 @@
              <p class="text-xs text-gray-500">{{ cert.status | capitalize }}</p>
            </div>
          </div>
+         {% if session.user.role == 'admin' %}
          <form method="POST" action="{{ url_for('dashboard.delete_certification', cert_id=cert.id, rad_id=doctor.id) }}" class="ml-4">
            <button type="submit" class="text-red-600 hover:text-red-800">Delete</button>
          </form>
+         {% endif %}
        </li>
        {% endfor %}
      </ul>          
@@ -505,6 +507,7 @@
                 <div class="text-gray-700 font-medium">{{ assignment.facilities.name }}</div>
               </div>
               <div class="flex items-center gap-2">
+                {% if session.user.role == 'admin' %}
                 <label class="flex items-center gap-1"><input type="checkbox" name="can_read" {% if assignment.can_read %}checked{% endif %}> <span>Read</span></label>
                 <label class="flex items-center gap-1"><input type="checkbox" name="does_stats" {% if assignment.does_stats %}checked{% endif %}> <span>Stats</span></label>
                 <label class="flex items-center gap-1"><input type="checkbox" name="does_routines" {% if assignment.does_routines %}checked{% endif %}> <span>Routine</span></label>
@@ -518,6 +521,7 @@
               <button type="submit" class="bg-blue-600 text-white text-sm px-3 py-1 rounded">Save Changes</button>
               <button type="button" onclick="deleteAssignment('{{ assignment.id }}')" class="text-red-600 text-sm hover:underline">Remove Assignment</button>
             </div>
+            {% endif %}
           </li>
         </form>
         {% else %}

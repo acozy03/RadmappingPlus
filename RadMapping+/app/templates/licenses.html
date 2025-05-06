@@ -30,12 +30,12 @@
   <!-- Add Status Filter Buttons -->
   <div class="flex gap-2">
     <button onclick="filterByStatus('all')" 
-            class="px-4 py-2 rounded text-sm font-medium bg-gray-100 hover:bg-gray-200" 
+            class="px-4 py-2 rounded text-sm font-medium bg-blue-600 text-white hover:bg-blue-700 active-filter" 
             data-status="all">
       All
     </button>
     <button onclick="filterByStatus('Active')" 
-            class="px-4 py-2 rounded text-sm font-medium bg-gray-100 hover:bg-gray-200 active-filter" 
+            class="px-4 py-2 rounded text-sm font-medium bg-gray-100 hover:bg-gray-200" 
             data-status="Active">
       Active
     </button>
@@ -60,10 +60,13 @@
           <th class="px-6 py-3 border">Status</th>
           <th class="px-6 py-3 border">Tags</th>
           <th class="px-6 py-3 border">Expiration</th>
+          {% if session.user.role == 'admin' %}
           <th class="px-6 py-3 border">Actions</th>
+          {% endif %}
+          
         </tr>
       </thead>
-      <tbody id="licensesTableBody" style="opacity: 0; transition: opacity 0.2s;">
+      <tbody id="licensesTableBody">
         {% for cert in certifications %}
         {% set is_expired = cert.status == 'Expired' or cert.status == 'Revoked' or (cert.expiration_date and cert.expiration_date < now.strftime('%Y-%m-%d')) %}
         <tr id="license-row-{{ cert.id }}" 
@@ -102,6 +105,7 @@
             <span class="view-mode">{{ cert.expiration_date }}</span>
             <input type="date" class="edit-mode hidden w-full px-2 py-1 border rounded" value="{{ cert.expiration_date }}">
           </td>
+          {% if session.user.role == 'admin' %}
           <td class="px-6 py-4 border">
             <div class="view-mode">
               <button onclick="toggleEditMode('{{ cert.id }}')" class="text-blue-600 hover:text-blue-900 mr-3">Edit</button>
@@ -114,6 +118,7 @@
               <button onclick="cancelEdit('{{ cert.id }}')" class="text-gray-600 hover:text-gray-900">Cancel</button>
             </div>
           </td>
+          {% endif %}
         </tr>
         {% endfor %}
       </tbody>
@@ -137,7 +142,7 @@
 </div>
 
 <script>
-let currentStatusFilter = 'Active';
+let currentStatusFilter = 'all';
 let currentSearchTerm = '';
 let currentPage = {{ current_page }};
 const itemsPerPage = {{ per_page }};
@@ -146,6 +151,11 @@ let searchTimeout;
 
 // Get radiologists data from the hidden div
 const radiologists = JSON.parse(document.getElementById('radiologistsData').dataset.radiologists);
+
+// Load licenses when page loads
+document.addEventListener('DOMContentLoaded', function() {
+  loadLicenses();
+});
 
 function debounceSearch() {
   clearTimeout(searchTimeout);
@@ -170,14 +180,8 @@ function loadLicenses() {
 
 function updateTable(certifications) {
   const tbody = document.getElementById('licensesTableBody');
-  tbody.style.opacity = 0;
   tbody.innerHTML = '';
-  // Sort certifications by expiration_date ascending (oldest first, expired at end)
-  certifications.sort((a, b) => {
-    if (!a.expiration_date) return 1;
-    if (!b.expiration_date) return -1;
-    return a.expiration_date.localeCompare(b.expiration_date);
-  });
+  
   certifications.forEach(cert => {
     const isExpired = cert.status === 'Expired' || cert.status === 'Revoked' || 
                      (cert.expiration_date && cert.expiration_date < new Date().toISOString().split('T')[0]);
@@ -193,6 +197,7 @@ function updateTable(certifications) {
     ).join('');
     
     row.innerHTML = `
+   
       <td class="px-6 py-4 border">
         <span class="view-mode">${cert.radiologists.name}</span>
         <select class="edit-mode hidden w-full px-2 py-1 border rounded">
@@ -224,6 +229,7 @@ function updateTable(certifications) {
         <span class="view-mode">${cert.expiration_date}</span>
         <input type="date" class="edit-mode hidden w-full px-2 py-1 border rounded" value="${cert.expiration_date}">
       </td>
+       {% if session.user.role == 'admin' %}
       <td class="px-6 py-4 border">
         <div class="view-mode">
           <button onclick="toggleEditMode('${cert.id}')" class="text-blue-600 hover:text-blue-900 mr-3">Edit</button>
@@ -236,12 +242,11 @@ function updateTable(certifications) {
           <button onclick="cancelEdit('${cert.id}')" class="text-gray-600 hover:text-gray-900">Cancel</button>
         </div>
       </td>
+      {% endif %}
     `;
     
     tbody.appendChild(row);
   });
-  // Fade in after rendering
-  setTimeout(() => { tbody.style.opacity = 1; }, 50);
 }
 
 function updatePagination(total) {
@@ -315,16 +320,5 @@ function saveLicense(licenseId) {
     loadLicenses();
   });
 }
-
-window.addEventListener('DOMContentLoaded', () => {
-  // Set the active filter button style on page load
-  document.querySelectorAll('[data-status]').forEach(button => {
-    button.classList.remove('active-filter', 'bg-blue-600', 'text-white');
-    if (button.dataset.status === 'Active') {
-      button.classList.add('active-filter', 'bg-blue-600', 'text-white');
-    }
-  });
-  loadLicenses();
-});
 </script>
 {% endblock %} 

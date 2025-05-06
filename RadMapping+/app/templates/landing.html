@@ -63,7 +63,7 @@
 
         <!-- Time Off Management -->
         <div class="bg-white rounded-lg shadow-lg p-6">
-            <h2 class="text-xl font-semibold text-blue-800 mb-4">Time Off Management</h2>
+            <h2 class="text-xl font-semibold text-blue-800 mb-4">Other</h2>
             <div class="space-y-3">
                 <a href="{{ url_for('dashboard.vacations_page') }}" class="block p-3 bg-blue-50 rounded-lg hover:bg-blue-100 transition-colors duration-200">
                     <div class="flex items-center">
@@ -91,18 +91,6 @@
     <div class="bg-white rounded-lg shadow-lg p-6">
         <h2 class="text-xl font-semibold text-blue-800 mb-4">Recent Activity</h2>
         <div class="space-y-4">
-            {% if session.user.role == 'admin' %}
-            <div class="flex items-center justify-between p-3 bg-gray-50 rounded-lg">
-                <div class="flex items-center">
-                    <i class="fas fa-clock text-gray-400 text-xl mr-3"></i>
-                    <div>
-                        <h3 class="font-medium text-gray-900">Quick Actions</h3>
-                        <p class="text-sm text-gray-600">Manage schedules, licenses, and department settings</p>
-                    </div>
-                </div>
-                <a href="{{ url_for('dashboard.admin') }}" class="text-blue-600 hover:text-blue-800">Go to Admin →</a>
-            </div>
-            {% endif %}
             <div class="flex items-center justify-between p-3 bg-gray-50 rounded-lg">
                 <div class="flex items-center">
                     <i class="fas fa-calendar-check text-gray-400 text-xl mr-3"></i>
