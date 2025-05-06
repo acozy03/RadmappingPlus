@@ -9,7 +9,7 @@ import calendar as pycalendar
 import pytz
 import ollama
 import json
-
+# https://flask-app-522764157304.us-central1.run.app/auth/login
 dashboard_bp = Blueprint('dashboard', __name__)
 
 def login_required(view_func):
