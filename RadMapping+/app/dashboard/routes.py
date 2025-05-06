@@ -173,6 +173,16 @@ def home():
         })
         current_hour += timedelta(hours=1)
 
+    # Add day_label to each slot for dropdown display
+    today_dt = datetime.strptime(today, "%Y-%m-%d")
+    tomorrow_str = (today_dt + timedelta(days=1)).strftime("%Y-%m-%d")
+    for slot in hour_slots:
+        if slot['date'] == today:
+            slot['day_label'] = 'Today'
+        elif slot['date'] == tomorrow_str:
+            slot['day_label'] = 'Tomorrow'
+        else:
+            slot['day_label'] = slot['date']
 
     return render_template("home.html",
         user=user,

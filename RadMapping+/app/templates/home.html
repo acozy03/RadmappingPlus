@@ -51,20 +51,15 @@
       </a>
       <!-- Custom Hour Range Filter -->
       <label class="text-sm font-medium text-gray-700">Show hours:</label>
-    
       <select id="startHour" onchange="filterByCustomRange()" class="border rounded px-2 py-1 text-sm">
-        {% for hour in range(0, 24) %}
-          {% set label = '%02d:00 %s' % (((hour - 1) % 12 + 1), 'AM' if hour < 12 else 'PM') %}
-          <option value="{{ hour }}" {% if hour == 14 %}selected{% endif %}>{{ label }}</option>
+        {% for slot in hour_slots %}
+          <option value="{{ loop.index0 }}">{{ slot.label }} {{ slot.day_label }}</option>
         {% endfor %}
       </select>
-    
       <span class="text-sm">to</span>
-    
       <select id="endHour" onchange="filterByCustomRange()" class="border rounded px-2 py-1 text-sm">
-        {% for hour in range(0, 24) %}
-          {% set label = '%02d:00 %s' % (((hour - 1) % 12 + 1), 'AM' if hour < 12 else 'PM') %}
-          <option value="{{ hour }}" {% if hour == 17 %}selected{% endif %}>{{ label }}</option>
+        {% for slot in hour_slots %}
+          <option value="{{ loop.index0 }}">{{ slot.label }} {{ slot.day_label }}</option>
         {% endfor %}
       </select>
       </form>
@@ -182,6 +177,18 @@
   {% endfor %}
 </div>
 
+{# --- FILTER UI UPDATE (date+time) and JS validation for invalid ranges --- #}
+<form id="filterForm" class="flex gap-2 mt-4">
+  <label>Start:</label>
+  <input type="date" id="filterStartDate" required>
+  <input type="time" id="filterStartTime" required>
+  <label>End:</label>
+  <input type="date" id="filterEndDate" required>
+  <input type="time" id="filterEndTime" required>
+  <button type="button" onclick="applyDateTimeFilter()" class="bg-blue-600 text-white px-3 py-1 rounded">Filter</button>
+  <span id="filterError" class="text-red-600 ml-2"></span>
+</form>
+
 <script>
   function showTimezonePopup(parent) {
     const popup = parent.querySelector('.timezone-popup');
@@ -265,16 +272,12 @@
   function filterByCustomRange() {
   const start = parseInt(document.getElementById("startHour").value, 10);
   const end = parseInt(document.getElementById("endHour").value, 10);
-
-  for (let hour = 0; hour < 24; hour++) {
-    const block = document.getElementById(`hour-${hour}`);
+  const total = document.querySelectorAll('[id^="hour-"]').length;
+  for (let i = 0; i < total; i++) {
+    const block = document.getElementById(`hour-${i}`);
     if (!block) continue;
-
-    // Handle ranges that wrap past midnight (e.g., 22–2)
-    const isInRange = start <= end
-      ? hour >= start && hour <= end
-      : hour >= start || hour <= end;
-
+    // Handle ranges that wrap past midnight (shouldn't happen with linear hour_slots, but keep logic robust)
+    const isInRange = start <= end ? (i >= start && i <= end) : (i >= start || i <= end);
     block.style.display = isInRange ? "block" : "none";
   }
 }
