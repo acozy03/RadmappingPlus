@@ -535,13 +535,13 @@ def facility_profile(facility_id):
     assignment_res = supabase.table("doctor_facility_assignments") \
         .select("*, radiologists(*)") \
         .eq("facility_id", facility_id).execute()
-    assigned_radiologist_ids = {a["radiologist_id"] for a in assignment_res.data}
 
-    # Get all radiologists
+    assigned_radiologist_ids = {a["radiologist_id"] for a in assignment_res.data}
+ 
+     # Get all radiologists
     all_rads_res = supabase.table("radiologists").select("id, name").order("name").execute()
     all_radiologists = all_rads_res.data or []
     available_radiologists = [r for r in all_radiologists if r["id"] not in assigned_radiologist_ids]
-
     # Get facility contacts
     contacts_res = supabase.table("facility_contact_assignments") \
         .select("*") \
@@ -555,23 +555,6 @@ def facility_profile(facility_id):
         facility_contacts=contacts_res.data,
         available_radiologists=available_radiologists
     )
-
-@dashboard_bp.route('/facilities/<facility_id>/assign_radiologist', methods=['POST'])
-@login_required
-@admin_required
-def assign_radiologist(facility_id):
-    data = {
-        "id": str(uuid.uuid4()),
-        "radiologist_id": request.form.get("radiologist_id"),
-        "facility_id": facility_id,
-        "can_read": "can_read" in request.form,
-        "does_stats": "does_stats" in request.form,
-        "does_routines": "does_routines" in request.form,
-        "stipulations": request.form.get("stipulations", ""),
-        "notes": request.form.get("notes", "")
-    }
-    supabase.table("doctor_facility_assignments").insert(data).execute()
-    return redirect(url_for("dashboard.facility_profile", facility_id=facility_id))
 
 @dashboard_bp.route('/doctors/<string:rad_id>/update', methods=["POST"])
 @login_required
@@ -1823,22 +1806,40 @@ def update_specialty_doctors(specialty_id):
             }).execute()
     return jsonify({"status": "success"})
 
+
 @dashboard_bp.route('/facilities/<facility_id>/bulk_update_assignments', methods=['POST'])
 @login_required
 @admin_required
 def bulk_update_assignments(facility_id):
-    assignment_ids = request.form.getlist('assignment_ids')
-    for assignment_id in assignment_ids:
-        can_read = f'can_read_{assignment_id}' in request.form
-        does_stats = f'does_stats_{assignment_id}' in request.form
-        does_routines = f'does_routines_{assignment_id}' in request.form
-        stipulations = request.form.get(f'stipulations_{assignment_id}', '')
-        notes = request.form.get(f'notes_{assignment_id}', '')
-        supabase.table('doctor_facility_assignments').update({
-            'can_read': can_read,
-            'does_stats': does_stats,
-            'does_routines': does_routines,
-            'stipulations': stipulations,
-            'notes': notes
-        }).eq('id', assignment_id).execute()
-    return redirect(url_for('dashboard.facility_profile', facility_id=facility_id))
+     assignment_ids = request.form.getlist('assignment_ids')
+     for assignment_id in assignment_ids:
+         can_read = f'can_read_{assignment_id}' in request.form
+         does_stats = f'does_stats_{assignment_id}' in request.form
+         does_routines = f'does_routines_{assignment_id}' in request.form
+         stipulations = request.form.get(f'stipulations_{assignment_id}', '')
+         notes = request.form.get(f'notes_{assignment_id}', '')
+         supabase.table('doctor_facility_assignments').update({
+             'can_read': can_read,
+             'does_stats': does_stats,
+             'does_routines': does_routines,
+             'stipulations': stipulations,
+             'notes': notes
+         }).eq('id', assignment_id).execute()
+     return redirect(url_for('dashboard.facility_profile', facility_id=facility_id))
+
+@dashboard_bp.route('/facilities/<facility_id>/assign_radiologist', methods=['POST'])
+@login_required
+@admin_required
+def assign_radiologist(facility_id):
+     data = {
+         "id": str(uuid.uuid4()),
+         "radiologist_id": request.form.get("radiologist_id"),
+         "facility_id": facility_id,
+         "can_read": "can_read" in request.form,
+         "does_stats": "does_stats" in request.form,
+         "does_routines": "does_routines" in request.form,
+         "stipulations": request.form.get("stipulations", ""),
+         "notes": request.form.get("notes", "")
+     }
+     supabase.table("doctor_facility_assignments").insert(data).execute()
+     return redirect(url_for("dashboard.facility_profile", facility_id=facility_id))

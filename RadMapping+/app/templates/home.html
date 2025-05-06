@@ -177,17 +177,6 @@
   {% endfor %}
 </div>
 
-{# --- FILTER UI UPDATE (date+time) and JS validation for invalid ranges --- #}
-<form id="filterForm" class="flex gap-2 mt-4">
-  <label>Start:</label>
-  <input type="date" id="filterStartDate" required>
-  <input type="time" id="filterStartTime" required>
-  <label>End:</label>
-  <input type="date" id="filterEndDate" required>
-  <input type="time" id="filterEndTime" required>
-  <button type="button" onclick="applyDateTimeFilter()" class="bg-blue-600 text-white px-3 py-1 rounded">Filter</button>
-  <span id="filterError" class="text-red-600 ml-2"></span>
-</form>
 
 <script>
   function showTimezonePopup(parent) {
