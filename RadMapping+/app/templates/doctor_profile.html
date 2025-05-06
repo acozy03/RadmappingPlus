@@ -12,8 +12,10 @@
 
 <div x-data="{ editing: false }">
   <div class="mb-8">
-    <div class="bg-white rounded-lg shadow p-6 border flex flex-col sm:flex-row items-center justify-between gap-4">
-      <h2 class="text-3xl font-bold text-blue-800 text-center sm:text-left mb-2 sm:mb-0 flex-1">{{ doctor.name }}</h2>
+    <div class="bg-white rounded-lg shadow p-6 border flex flex-col sm:flex-row items-center justify-between gap-4{% if doctor.active_status %} border-green-500{% endif %}">
+      <h2 class="text-3xl font-bold text-blue-800 text-center sm:text-left mb-2 sm:mb-0 flex-1">
+        {{ doctor.name }}
+      </h2>
       {% if session.user.role == 'admin' %}
         <button @click="editing = !editing" class="inline-flex items-center gap-2 px-5 py-2 bg-blue-600 text-white rounded-lg shadow hover:bg-blue-700 transition text-base font-semibold focus:outline-none focus:ring-2 focus:ring-blue-400">
           <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11 5h2m-1 0v14m-7-7h14" /></svg>
