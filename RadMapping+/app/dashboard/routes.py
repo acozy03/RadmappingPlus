@@ -309,7 +309,7 @@ def doctor_profile(rad_id):
     certs_res = supabase.table("certifications") \
     .select("*") \
     .eq("radiologist_id", rad_id) \
-    .order("expiration_date", desc=False) \
+    .order("expiration_date", desc=True) \
     .execute()
 
     from pprint import pprint
@@ -689,7 +689,7 @@ def licenses_page():
     # Fetch paginated licenses with radiologist names
     certs_res = supabase.table("certifications") \
         .select("*, radiologists(name)") \
-        .order("expiration_date", desc=False) \
+        .order("expiration_date", desc=True) \
         .range(offset, offset + per_page - 1) \
         .execute()
     certifications = certs_res.data or []
