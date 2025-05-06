@@ -276,26 +276,28 @@ function scrollToCurrentHour() {
   const currentHour = now.getHours();
   const target = document.getElementById(`hour-${currentHour}`);
 
-  if (target) {
-
+  // Only apply if we're viewing today's date
+  if (target && "{{ today }}" === new Date().toISOString().split('T')[0]) {
     // Add highlight class
     target.classList.add("ring-2", "ring-blue-200", "ring-offset-2");
-
   }
 }
 
 function setInitialHourFilter() {
-  const now = new Date();
-  const currentHour = now.getHours();
-  const endHour = (currentHour - 24);
+  // Only set initial filter if we're viewing today's date
+  if ("{{ today }}" === new Date().toISOString().split('T')[0]) {
+    const now = new Date();
+    const currentHour = now.getHours();
+    const endHour = (currentHour - 24);
 
-  const startSelect = document.getElementById("startHour");
-  const endSelect = document.getElementById("endHour");
+    const startSelect = document.getElementById("startHour");
+    const endSelect = document.getElementById("endHour");
 
-  if (startSelect && endSelect) {
-    startSelect.value = currentHour;
-    endSelect.value = endHour;
-    filterByCustomRange();
+    if (startSelect && endSelect) {
+      startSelect.value = currentHour;
+      endSelect.value = endHour;
+      filterByCustomRange();
+    }
   }
 }
 
