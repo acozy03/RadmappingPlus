@@ -313,9 +313,9 @@ def doctor_profile(rad_id):
     .execute()
 
     from pprint import pprint
-    pprint(certs_res.model_dump())
+    #pprint(certs_res.model_dump())
     certifications = certs_res.data
-    print(certifications)
+    #print(certifications)
 
     # Extract the most recent non-empty specialty from certifications
     doctor_specialty = None
@@ -648,7 +648,7 @@ def update_assignment(assignment_id):
 @admin_required
 def delete_assignment(assignment_id):
     supabase.table("doctor_facility_assignments").delete().eq("id", assignment_id).execute()
-    return jsonify({"status": "success"})
+    return redirect(request.referrer or url_for('dashboard.doctor_profile'))
 
 @dashboard_bp.route('/licenses', methods=["GET", "POST"])
 @login_required

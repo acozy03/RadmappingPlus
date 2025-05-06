@@ -481,8 +481,8 @@
     }
     </script>
     
-  <div id="facilityModal" class="fixed inset-0 z-50 hidden bg-black bg-opacity-50 flex items-center justify-center">
-    <div class="bg-white rounded-lg shadow-lg w-[90%] max-w-3xl max-h-[80vh] overflow-y-auto p-6 relative">
+  <div id="facilityModal" x-data="{ editMode: false, expanded: {} }" class="fixed inset-0 z-50 hidden bg-black bg-opacity-50 flex items-center justify-center">
+    <div class="bg-white rounded-lg shadow-lg w-[98%] max-w-5xl max-h-[90vh] overflow-y-auto p-8 relative">
       <button onclick="closeFacilityModal()" class="absolute top-2 right-2 text-2xl font-bold text-gray-500 hover:text-black">×</button>
       <h3 class="text-xl font-semibold mb-4 flex items-center gap-2">
         <span class="inline-flex items-center justify-center w-8 h-8 bg-purple-100 text-purple-600 rounded-full">
@@ -493,39 +493,73 @@
       <div class="flex justify-between items-center mb-4">
         <input type="text" placeholder="Search facilities..." oninput="filterFacilities(this.value)"
                class="w-full mr-4 px-3 py-2 border rounded text-sm">
-        <button onclick="openAddFacilityModal()" class="bg-blue-600 text-white px-4 py-2 rounded text-sm font-medium">
-          Add Facility
-        </button>
+        <div class="flex gap-2">
+          <button x-show="!editMode" @click="editMode = true" class="bg-yellow-500 text-white px-4 py-2 rounded text-sm font-medium">Edit Assignments</button>
+          <button x-show="editMode" @click="editMode = false" class="bg-gray-300 text-gray-800 px-4 py-2 rounded text-sm font-medium">Cancel Edit</button>
+          <button onclick="openAddFacilityModal()" class="bg-blue-600 text-white px-4 py-2 rounded text-sm font-medium">Add Facility</button>
+        </div>
       </div>
-      <ul id="facilityList" class="space-y-3 text-sm">
+      <ul id="facilityList" class="space-y-4 text-sm">
         {% for assignment in assigned_facilities %}
-        <form method="POST" action="{{ url_for('dashboard.update_assignment', assignment_id=assignment.id) }}">
-          <li class="border rounded p-4 bg-gray-50 facility-item shadow-sm mb-2{% if assignment.active_status %} border-green-500{% else %} border-red-500{% endif %}">
-            <div class="flex items-center justify-between mb-2">
-              <div class="flex items-center gap-3">
-                <span class="inline-flex items-center justify-center w-8 h-8 bg-indigo-100 text-indigo-600 rounded-full">
-                  <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4l3 3m6 0a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>
-                </span>
-                <div class="text-gray-700 font-medium">{{ assignment.facilities.name }}</div>
+        <li class="facility-item">
+          <form method="POST" action="{{ url_for('dashboard.update_assignment', assignment_id=assignment.id) }}">
+            <div :class="editMode ? '{% if assignment.active_status %}border-green-500{% else %}border-red-500{% endif %}' : 'border-gray-200'" class="border rounded-lg bg-gray-50 shadow-sm p-4 flex flex-col gap-2">
+              <!-- Card summary row -->
+              <div class="flex items-center justify-between">
+                <div class="flex items-center gap-3">
+                  <span class="inline-flex items-center justify-center w-8 h-8 bg-indigo-100 text-indigo-600 rounded-full">
+                    <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4l3 3m6 0a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>
+                  </span>
+                  <div>
+                    <div class="font-semibold text-gray-800">{{ assignment.facilities.name }}</div>
+                    <div class="text-xs text-gray-500">Status: <span class="font-medium {% if assignment.active_status %}text-green-700{% else %}text-red-700{% endif %}">{% if assignment.active_status %}Active{% else %}Inactive{% endif %}</span></div>
+                  </div>
+                </div>
+                <div class="flex items-center gap-2">
+                  <span class="inline-flex items-center gap-1 text-xs bg-gray-100 px-2 py-1 rounded" title="Can Read">Read: <span class="font-bold">{{ 'Yes' if assignment.can_read else 'No' }}</span></span>
+                  <span class="inline-flex items-center gap-1 text-xs bg-gray-100 px-2 py-1 rounded" title="Does Stats">Stats: <span class="font-bold">{{ 'Yes' if assignment.does_stats else 'No' }}</span></span>
+                  <span class="inline-flex items-center gap-1 text-xs bg-gray-100 px-2 py-1 rounded" title="Does Routines">Routine: <span class="font-bold">{{ 'Yes' if assignment.does_routines else 'No' }}</span></span>
+                </div>
               </div>
-              <div class="flex items-center gap-2">
-                {% if session.user.role == 'admin' %}
-                <label class="flex items-center gap-1"><input type="checkbox" name="can_read" {% if assignment.can_read %}checked{% endif %}> <span>Read</span></label>
-                <label class="flex items-center gap-1"><input type="checkbox" name="does_stats" {% if assignment.does_stats %}checked{% endif %}> <span>Stats</span></label>
-                <label class="flex items-center gap-1"><input type="checkbox" name="does_routines" {% if assignment.does_routines %}checked{% endif %}> <span>Routine</span></label>
+              <!-- Details always shown -->
+              <div class="mt-2 border-t pt-2">
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-2">
+                  <div>
+                    <div class="text-xs text-gray-500 font-semibold mb-1">Stipulations</div>
+                    <div class="text-gray-700 whitespace-pre-line">{{ assignment.stipulations or '—' }}</div>
+                  </div>
+                  <div>
+                    <div class="text-xs text-gray-500 font-semibold mb-1">Notes</div>
+                    <div class="text-gray-700 whitespace-pre-line">{{ assignment.notes or '—' }}</div>
+                  </div>
+                </div>
               </div>
+              <!-- Edit mode: show form fields and Save button -->
+              <template x-if="editMode">
+                <div class="mt-4 border-t pt-4 flex flex-col gap-2">
+                  <div class="flex items-center gap-4 flex-wrap">
+                    <label class="flex items-center gap-1"><input type="checkbox" name="can_read" {% if assignment.can_read %}checked{% endif %}> <span>Read</span></label>
+                    <label class="flex items-center gap-1"><input type="checkbox" name="does_stats" {% if assignment.does_stats %}checked{% endif %}> <span>Stats</span></label>
+                    <label class="flex items-center gap-1"><input type="checkbox" name="does_routines" {% if assignment.does_routines %}checked{% endif %}> <span>Routine</span></label>
+                  </div>
+                  <div class="grid grid-cols-1 md:grid-cols-2 gap-2">
+                    <textarea name="stipulations" class="w-full border rounded mt-2" placeholder="Stipulations">{{ assignment.stipulations }}</textarea>
+                    <textarea name="notes" class="w-full border rounded mt-2" placeholder="Notes">{{ assignment.notes }}</textarea>
+                  </div>
+                  <div class="flex gap-2 mt-2">
+                    <button type="submit" class="bg-blue-600 text-white text-sm px-3 py-1 rounded">Save Changes</button>
+                  </div>
+                </div>
+              </template>
+              <!-- Edit mode: Remove Assignment button at the bottom -->
+              <template x-if="editMode">
+                <form method="POST" action="{{ url_for('dashboard.delete_assignment', assignment_id=assignment.id) }}" class="mt-4 flex justify-end">
+                  <button type="submit" class="text-red-600 text-sm hover:underline">Remove Assignment</button>
+                </form>
+              </template>
             </div>
-            <div class="grid grid-cols-1 md:grid-cols-2 gap-2">
-              <textarea name="stipulations" class="w-full border rounded mt-2" placeholder="Stipulations">{{ assignment.stipulations }}</textarea>
-              <textarea name="notes" class="w-full border rounded mt-2" placeholder="Notes">{{ assignment.notes }}</textarea>
-            </div>
-            <div class="flex justify-between items-center mt-2">
-              <button type="submit" class="bg-blue-600 text-white text-sm px-3 py-1 rounded">Save Changes</button>
-              <button type="button" onclick="deleteAssignment('{{ assignment.id }}')" class="text-red-600 text-sm hover:underline">Remove Assignment</button>
-            </div>
-            {% endif %}
-          </li>
-        </form>
+          </form>
+        </li>
         {% else %}
         <li class="text-gray-500 italic text-center py-4">No facilities assigned yet.</li>
         {% endfor %}
@@ -620,19 +654,6 @@
         const text = item.innerText.toLowerCase();
         item.style.display = text.includes(q) ? '' : 'none';
       });
-    }
-
-    function deleteAssignment(assignmentId) {
-      if (confirm('Are you sure you want to remove this facility assignment?')) {
-        fetch(`/dashboard/assignments/${assignmentId}/delete`, {
-          method: 'POST',
-          headers: {
-            'Content-Type': 'application/json',
-          }
-        }).then(() => {
-          window.location.reload();
-        });
-      }
     }
   </script>
 

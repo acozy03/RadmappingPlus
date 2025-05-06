@@ -424,7 +424,7 @@
 
   function deleteContact(contactId, facilityId) {
     if (confirm('Are you sure you want to delete this contact?')) {
-        console.log('Deleting contact:', { contactId, facilityId }); // Debug log
+      //  console.log('Deleting contact:', { contactId, facilityId }); // Debug log
         fetch(`/dashboard/facility/${facilityId}/contact/${contactId}`, {
             method: 'DELETE',
             headers: {
@@ -434,7 +434,7 @@
         })
         .then(async (response) => {
             const text = await response.text();
-            console.log('Response text:', text); // Debug log
+            // console.log('Response text:', text); // Debug log
             
             let data;
             try {
@@ -457,7 +457,7 @@
             }
         })
         .catch(err => {
-            console.error('Delete error:', err);
+            // console.error('Delete error:', err);
             alert('Error deleting contact: ' + err.message);
         });
     }
