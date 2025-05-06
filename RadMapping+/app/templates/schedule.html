@@ -111,7 +111,7 @@
                                                     {{ schedule.start_time|ampm }} - {{ schedule.end_time|ampm }}
                                                 {% endif %}
                                             </span>
-                                            <span class="cell-desc text-sm hidden">{{ schedule.schedule_details }}</span>
+                                            <span class="cell-desc text-sm">{{ schedule.schedule_details }}</span>
                                         </div>
                                         {% if session.user.role == 'admin' %}
                                             <form method="POST" action="{{ url_for('dashboard.delete_schedule', rad_id=doctor.id) }}" class="mt-1">
@@ -631,8 +631,12 @@ window.addEventListener('DOMContentLoaded', function() {
   const filter = document.getElementById('scheduleFilter');
   function applyFilter() {
     const showTime = filter.value === 'time';
-    document.querySelectorAll('.cell-time').forEach(el => el.style.display = showTime ? '' : 'none');
-    document.querySelectorAll('.cell-desc').forEach(el => el.style.display = showTime ? 'none' : '');
+    document.querySelectorAll('.cell-time').forEach(el => {
+      el.style.display = showTime ? 'block' : 'none';
+    });
+    document.querySelectorAll('.cell-desc').forEach(el => {
+      el.style.display = showTime ? 'none' : 'block';
+    });
   }
   filter.addEventListener('change', applyFilter);
   applyFilter();
