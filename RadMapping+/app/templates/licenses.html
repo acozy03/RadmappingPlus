@@ -30,7 +30,7 @@
   <!-- Add Status Filter Buttons -->
   <div class="flex gap-2">
     <button onclick="filterByStatus('all')" 
-            class="px-4 py-2 rounded text-sm font-medium bg-gray-100 hover:bg-gray-200 active-filter" 
+            class="px-4 py-2 rounded text-sm font-medium bg-blue-600 text-white hover:bg-blue-700 active-filter" 
             data-status="all">
       All
     </button>
@@ -146,6 +146,11 @@ let searchTimeout;
 
 // Get radiologists data from the hidden div
 const radiologists = JSON.parse(document.getElementById('radiologistsData').dataset.radiologists);
+
+// Load licenses when page loads
+document.addEventListener('DOMContentLoaded', function() {
+  loadLicenses();
+});
 
 function debounceSearch() {
   clearTimeout(searchTimeout);
