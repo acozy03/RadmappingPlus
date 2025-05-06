@@ -53,10 +53,11 @@ def home():
     prev_date = (now - timedelta(days=1)).strftime("%Y-%m-%d")
     next_date = (now + timedelta(days=1)).strftime("%Y-%m-%d")
 
-    # Fetch shifts
+    # Fetch shifts that overlap the selected day (for overnight and multi-day shifts)
     shift_res = supabase.table("monthly_schedule") \
         .select("*, radiologists(*)") \
-        .eq("date", today) \
+        .lte("start_date", today) \
+        .gte("end_date", today) \
         .execute()
 
     doctors_by_hour = defaultdict(list)
@@ -65,44 +66,41 @@ def home():
     for entry in shift_res.data:
         if entry.get("radiologists") and entry.get("start_time") and entry.get("end_time"):
             doc = entry["radiologists"]
+
+            # Use today's date if start_date or end_date is missing
+            start_date = entry.get("start_date") or today
+            end_date = entry.get("end_date") or today
+
             doc.update({
                 "start_time": entry["start_time"],
                 "end_time": entry["end_time"],
-                "schedule_details": entry.get("schedule_details", "")
+                "schedule_details": entry.get("schedule_details", ""),
+                "start_date": start_date,
+                "end_date": end_date
             })
-            doctors_on_shift.append(doc)
 
             try:
-                # Parse the full time including minutes
-                start_time = datetime.strptime(entry["start_time"], "%H:%M:%S")
-                end_time = datetime.strptime(entry["end_time"], "%H:%M:%S")
-                
-                # Convert to minutes since midnight
-                start_minutes = start_time.hour * 60 + start_time.minute
-                end_minutes = end_time.hour * 60 + end_time.minute
-                
-                print(f"\nProcessing shift for doctor {doc['name']}:")
-                print(f"Raw times - Start: {entry['start_time']}, End: {entry['end_time']}")
-                print(f"Parsed times - Start: {start_time}, End: {end_time}")
-                print(f"Minutes - Start: {start_minutes}, End: {end_minutes}")
-                
-                # Handle overnight shifts
-                if end_minutes < start_minutes:
-                    end_minutes += 1440  # Add 24 hours in minutes
-                    print("Overnight shift detected - adjusted end time")
-                
-                # Add to each hour block that the shift covers
+                start_dt = datetime.strptime(f"{start_date} {entry['start_time']}", "%Y-%m-%d %H:%M:%S")
+                end_dt = datetime.strptime(f"{end_date} {entry['end_time']}", "%Y-%m-%d %H:%M:%S")
+                if end_dt < start_dt:
+                    end_dt += timedelta(days=1)
+
+                doc["start_dt"] = start_dt
+                doc["end_dt"] = end_dt
+                doctors_on_shift.append(doc)
+
+                # Compute overlap per hour as before
+                start_minutes = start_dt.hour * 60 + start_dt.minute
+                end_minutes = end_dt.hour * 60 + end_dt.minute
                 for hour in range(0, 24):
                     hour_start = hour * 60
                     hour_end = (hour + 1) * 60
-                    
-                    # Check if this hour overlaps with the shift
-                    if (start_minutes < hour_end and end_minutes > hour_start):
+                    if start_minutes < hour_end and end_minutes > hour_start:
                         doctors_by_hour[hour].append(doc)
-                        print(f"Added to hour {hour} block")
 
             except Exception as e:
-                print(f"Error processing shift for doctor {doc['name']}: {str(e)}")
+                print(f"Error parsing datetime for doc {doc.get('name', 'Unknown')}: {e}")
+
 
     # Get all doctors
     all_doctors_res = supabase.table("radiologists").select("*").execute()
@@ -134,6 +132,48 @@ def home():
         except Exception as e:
             print("Error checking current shift:", e)
 
+    # Calculate hour slots for daily schedule (from 00:00 of today up to latest shift end time)
+    base_date = datetime.strptime(today, "%Y-%m-%d")
+    from datetime import timedelta
+
+    # Find latest end datetime among all shifts
+    max_end_dt = base_date.replace(hour=0, minute=0, second=0, microsecond=0)
+    for doc in doctors_on_shift:
+        if not doc["start_time"] or not doc["end_time"]:
+            continue  # Skip if missing time
+        
+        try:
+            start_dt = datetime.strptime(f"{doc['start_date']} {doc['start_time']}", "%Y-%m-%d %H:%M:%S")
+            end_dt = datetime.strptime(f"{doc['end_date']} {doc['end_time']}", "%Y-%m-%d %H:%M:%S")
+
+            if end_dt < start_dt:
+                end_dt += timedelta(days=1)
+
+
+            doc["start_dt"] = start_dt
+            doc["end_dt"] = end_dt
+
+            
+            if end_dt > max_end_dt:
+                max_end_dt = end_dt
+
+        except Exception as e:
+            print(f"Error parsing datetime for doc {doc.get('name', '')}: {e}")
+
+
+    # Generate hour slots from base_date until the latest shift end
+    hour_slots = []
+    current_hour = base_date.replace(hour=0, minute=0, second=0, microsecond=0)
+    while current_hour <= max_end_dt:
+        hour_slots.append({
+            "datetime": current_hour,
+            "label": current_hour.strftime("%I %p").lstrip("0"),
+            "hour": current_hour.hour,
+            "date": current_hour.strftime("%Y-%m-%d"),
+        })
+        current_hour += timedelta(hours=1)
+
+
     return render_template("home.html",
         user=user,
         today=today,
@@ -145,7 +185,8 @@ def home():
         doctors_on_shift_ids=doctors_on_shift_ids,
         doctors_currently_on_shift_ids=doctors_currently_on_shift_ids,
         selected_timezone=selected_timezone,
-        timezone_offset=timezone_offset
+        timezone_offset=timezone_offset,
+        hour_slots=hour_slots
     )
 
 @dashboard_bp.route('/admin')
@@ -242,12 +283,18 @@ def doctor_profile(rad_id):
     schedule_res = supabase.table("monthly_schedule") \
         .select("*") \
         .eq("radiologist_id", rad_id) \
-        .gte("date", f"{year}-{month:02d}-01") \
-        .lte("date", f"{year}-{month:02d}-{days_in_month}") \
+        .lte("start_date", f"{year}-{month:02d}-{days_in_month}") \
+        .gte("end_date", f"{year}-{month:02d}-01") \
         .execute()
 
-    calendar = {entry["date"]: entry for entry in schedule_res.data}
-    print("RAD ID:", rad_id)
+    # Build calendar for the month, mapping each day to the schedule entry if it covers that day
+    calendar = {}
+    for entry in schedule_res.data:
+        start = datetime.strptime(entry["start_date"], "%Y-%m-%d")
+        end = datetime.strptime(entry["end_date"], "%Y-%m-%d")
+        for n in range((end - start).days + 1):
+            date = (start + timedelta(days=n)).strftime("%Y-%m-%d")
+            calendar[date] = entry
 
     certs_res = supabase.table("certifications") \
     .select("*") \
@@ -330,7 +377,8 @@ def update_schedule(rad_id):
     existing = supabase.table("monthly_schedule") \
         .select("id") \
         .eq("radiologist_id", rad_id) \
-        .eq("date", date).execute()
+        .eq("start_date", date) \
+        .eq("end_date", date).execute()
 
     if existing.data:
         # Update existing entry
@@ -339,7 +387,8 @@ def update_schedule(rad_id):
     else:
         # Insert new entry
         data["radiologist_id"] = rad_id
-        data["date"] = date
+        data["start_date"] = date
+        data["end_date"] = date
         supabase.table("monthly_schedule").insert(data).execute()
 
     year = request.form.get("year")
@@ -359,7 +408,7 @@ def delete_schedule(rad_id):
     month = request.form.get("month")
     start_day = request.form.get("start_day")
     supabase.table("monthly_schedule").delete() \
-        .eq("radiologist_id", rad_id).eq("date", date).execute()
+        .eq("radiologist_id", rad_id).eq("start_date", date).eq("end_date", date).execute()
 
     return redirect(url_for("dashboard.schedule", year=year, month=month, start_day=start_day))
 
@@ -384,11 +433,13 @@ def bulk_update_schedule(rad_id):
         existing = supabase.table("monthly_schedule") \
             .select("id") \
             .eq("radiologist_id", rad_id) \
-            .eq("date", date).execute()
+            .eq("start_date", date) \
+            .eq("end_date", date).execute()
 
         payload = {
             "radiologist_id": rad_id,
-            "date": date,
+            "start_date": date,
+            "end_date": date,
             "start_time": start_time,
             "end_time": end_time,
             "schedule_details": notes
@@ -918,17 +969,20 @@ def schedule():
     schedule_res = supabase.table("monthly_schedule") \
         .select("*, radiologists(*)") \
         .in_("radiologist_id", visible_doctor_ids) \
-        .gte("date", start_str) \
-        .lte("date", end_str) \
+        .lte("start_date", end_str) \
+        .gte("end_date", start_str) \
         .execute()
 
 
     # Create a calendar dictionary for easy lookup
     calendar = defaultdict(dict)
     for entry in schedule_res.data:
-        doc_id = str(entry["radiologist_id"]).strip()
-        date = str(entry["date"])[:10]  # ensure it's just 'YYYY-MM-DD'
-        calendar[date][doc_id] = entry
+        start = datetime.strptime(entry["start_date"], "%Y-%m-%d")
+        end = datetime.strptime(entry["end_date"], "%Y-%m-%d")
+        for n in range((end - start).days + 1):
+            date = (start + timedelta(days=n)).strftime("%Y-%m-%d")
+            doc_id = str(entry["radiologist_id"]).strip()
+            calendar[date][doc_id] = entry
 
 
     month_name = pycalendar.month_name[month]
@@ -1068,11 +1122,13 @@ def bulk_schedule():
         existing = supabase.table("monthly_schedule") \
             .select("id") \
             .eq("radiologist_id", doctor_id) \
-            .eq("date", date_str).execute()
+            .eq("start_date", date) \
+            .eq("end_date", date).execute()
 
         payload = {
             "radiologist_id": doctor_id,
-            "date": date_str,
+            "start_date": date,
+            "end_date": date,
             "start_time": start_time if not is_special_case else None,
             "end_time": end_time if not is_special_case else None,
             "schedule_details": notes
@@ -1137,11 +1193,13 @@ def pattern_schedule():
             existing = supabase.table("monthly_schedule") \
                 .select("id") \
                 .eq("radiologist_id", doctor_id) \
-                .eq("date", date_str).execute()
+                .eq("start_date", date) \
+                .eq("end_date", date).execute()
 
             payload = {
                 "radiologist_id": doctor_id,
-                "date": date_str,
+                "start_date": date,
+                "end_date": date,
                 "start_time": start_time if not is_special_case else None,
                 "end_time": end_time if not is_special_case else None,
                 "schedule_details": notes
