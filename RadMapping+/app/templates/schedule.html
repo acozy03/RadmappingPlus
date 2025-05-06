@@ -32,34 +32,32 @@
 
     <!-- Height and Scroll Wrapper -->
     <div id="schedule-container" class="flex-1 overflow-y-auto max-w-full overflow-x-auto">
-        <div id="schedule-scroll-wrapper" style="width: 100%; border-bottom: 1px solid #e5e7eb; margin-bottom: 0.5rem;">
-            <table style="width: max-content; min-width: 1400px; table-layout: fixed;" class="text-base whitespace-nowrap">
-                <thead class="bg-gray-100" style="position: sticky; top: 0; z-index: 3; background: white;">
-                    <tr style="height: 44px;">
-                        <th style="min-width: 180px; position: sticky; left: 0; background: white; z-index: 2;" class="px-6 py-3 font-medium">Doctor</th>
+        <div id="schedule-scroll-wrapper" class="w-full border-b border-gray-200 mb-2">
+            <table class="w-full min-w-[1200px] table-fixed text-base">
+                <thead class="bg-gray-50 sticky top-0 z-30">
+                    <tr class="h-16">
+                        <th class="sticky left-0 bg-gray-50 z-40 w-48 px-4 py-3 font-medium text-left">Doctor</th>
                         {% set today_str = datetime.utcnow().strftime('%Y-%m-%d') %}
                         {% for day in range(1, days_in_month + 1) %}
                             {% set date = datetime(year, month, day) %}
                             {% set date_str = date.strftime('%Y-%m-%d') %}
-                            <th data-date="{{ date_str }}" style="min-width: 220px;" class="px-6 py-3{% if date_str == today_str %} today-header{% endif %}">
+                            <th data-date="{{ date_str }}" class="w-48 px-4 py-3 text-center{% if date_str == today_str %} today-header bg-blue-50{% endif %}">
                                 <div class="font-medium">{{ date.strftime('%a') }}</div>
-                                <div class="text-gray-600">{{ day }}</div>
+                                <div class="text-gray-600 text-sm">{{ day }}</div>
                             </th>
                         {% endfor %}
                     </tr>
                 </thead>
                 <tbody>
                     {% for doctor in doctors %}
-                        <tr class="hover:bg-gray-50" style="height: 32px;">
-                            <td style="min-width: 180px; position: sticky; left: 0; background: white; z-index: 1; height: 32px;" class="px-6 py-5 font-medium">
+                        <tr class="hover:bg-gray-50 h-16">
+                            <td class="sticky left-0 bg-white z-20 w-48 px-4 py-2 font-medium text-left">
                                 <div class="flex items-center gap-2">
                                     {% if doctor.id in pinned_doctors %}
-<!-- Heroicons 2.0 - Push Pin Icon -->
-<span title="Pinned Doctor" class="text-yellow-500 text-sm">⭐</span>
-
-  
+                                  
+                                        <span title="Pinned Doctor" class="text-yellow-500 text-sm">⭐</span>
                                     {% endif %}
-                                    <a href="{{ url_for('dashboard.doctor_profile', rad_id=doctor.id) }}" class="text-blue-600 hover:underline text-base">
+                                    <a href="{{ url_for('dashboard.doctor_profile', rad_id=doctor.id) }}" class="text-blue-600 hover:underline">
                                         {{ doctor.name }}
                                     </a>
                                     {% if doctor.reads_routines %}
@@ -71,47 +69,49 @@
                                 {% set date = datetime(year, month, day) %}
                                 {% set date_str = date.strftime('%Y-%m-%d') %}
                                 {% set schedule = calendar.get(date_str, {}).get(doctor.id) %}
-                                {% set details = schedule.schedule_details if schedule else '' %}
                                 {% set cell_class = '' %}
+                                {% set details = schedule.schedule_details if schedule else '' %}
+                                
                                 {% if details %}
                                     {% set details_upper = details.upper() %}
                                     {% if 'OFF' in details_upper %}
-                                        {% set cell_class = 'bg-red-400' %}
+                                        {% set cell_class = 'bg-red-100' %}
                                     {% elif 'VACATION' in details_upper %}
-                                        {% set cell_class = 'bg-red-400' %}
+                                        {% set cell_class = 'bg-red-100' %}
                                     {% elif 'REACH AS NEEDED' in details_upper %}
-                                        {% set cell_class = 'bg-gray-200' %}
+                                        {% set cell_class = 'bg-gray-100' %}
                                     {% elif 'ONSITE' in details.lower() %}
-                                        {% set cell_class = 'bg-orange-100' %}
+                                        {% set cell_class = 'bg-orange-50' %}
                                     {% elif 'ROUTINE' in details_upper %}
-                                        {% set cell_class = 'bg-green-100' %}
+                                        {% set cell_class = 'bg-green-50' %}
                                     {% endif %}
                                 {% endif %}
                                 {% if schedule and schedule.start_time and not cell_class %}
                                     {% set raw_hour = schedule.start_time.split(':')[0]|int %}
                                     {% if raw_hour >= 13 or raw_hour < 6 %}
-                                        {% set cell_class = 'bg-orange-100' %}
+                                        {% set cell_class = 'bg-orange-50' %}
                                     {% else %}
-                                        {% set cell_class = 'bg-green-100' %}
+                                        {% set cell_class = 'bg-green-50' %}
                                     {% endif %}
                                 {% endif %}
-                                <td style="min-width: 220px; height: 32px;" class="px-6 py-1 align-top {{ cell_class }}">
+                                
+                                <td class="w-48 px-4 py-3 text-center {{ cell_class }}{% if date_str == today_str %} today-col bg-blue-50{% endif %}">
                                     {% if schedule %}
-                                        <div class="cell-content" style="cursor:pointer;" onclick="openScheduleModal('{{ doctor.id }}', '{{ date_str }}', '{{ schedule.start_time }}', '{{ schedule.end_time }}', `{{ schedule.schedule_details|e }}`)">
+                                        <div class="cell-content cursor-pointer" onclick="openScheduleModal('{{ doctor.id }}', '{{ date_str }}', '{{ schedule.start_time }}', '{{ schedule.end_time }}', `{{ schedule.schedule_details|e }}`)">
                                             {% set is_off = schedule.schedule_details and schedule.schedule_details.strip().upper() == 'OFF' %}
                                             {% set is_vac = schedule.schedule_details and schedule.schedule_details.strip().upper() == 'VACATION' %}
-                                            <span class="cell-time">
+                                            <span class="cell-time text-sm">
                                                 {% if is_off %}
-                                                    <span class="text-black">OFF</span>
+                                                    <span class="text-gray-900">OFF</span>
                                                 {% elif is_vac %}
-                                                    <span class="text-black">VACATION</span>
+                                                    <span class="text-gray-900">VACATION</span>
                                                 {% elif schedule.schedule_details and schedule.schedule_details.strip().upper() == 'REACH AS NEEDED' %}
-                                                    <span class="text-black">REACH AS NEEDED</span>
+                                                    <span class="text-gray-900">REACH AS NEEDED</span>
                                                 {% else %}
                                                     {{ schedule.start_time|ampm }} - {{ schedule.end_time|ampm }}
                                                 {% endif %}
                                             </span>
-                                            <span class="cell-desc" style="display:none;">{{ schedule.schedule_details }}</span>
+                                            <span class="cell-desc text-sm hidden">{{ schedule.schedule_details }}</span>
                                         </div>
                                         {% if session.user.role == 'admin' %}
                                             <form method="POST" action="{{ url_for('dashboard.delete_schedule', rad_id=doctor.id) }}" class="mt-1">
@@ -119,13 +119,13 @@
                                                 <input type="hidden" name="year" value="{{ year }}" />
                                                 <input type="hidden" name="month" value="{{ month }}" />
                                                 <input type="hidden" name="start_day" value="{{ start_day }}" />
-                                                <button type="submit" class="text-red-600 hover:text-red-800 text-base font-semibold">Delete</button>
+                                                <button type="submit" class="text-red-600 hover:text-red-800 text-xs font-medium">Delete</button>
                                             </form>
                                         {% endif %}
                                     {% else %}
                                         {% if session.user.role == 'admin' %}
-                                            <div onclick="openScheduleModal('{{ doctor.id }}', '{{ date_str }}', '', '', '')" class="w-full h-full cursor-pointer text-center text-blue-600 hover:text-blue-800 text-base font-semibold">
-                                                &nbsp;
+                                            <div onclick="openScheduleModal('{{ doctor.id }}', '{{ date_str }}', '', '', '')" class="w-full h-full cursor-pointer text-center text-blue-600 hover:text-blue-800 text-xs font-medium">
+                                                Add
                                             </div>
                                         {% endif %}
                                     {% endif %}
@@ -370,36 +370,46 @@ td[style*="position: sticky"], th[style*="position: sticky"] {
   background: white !important;
   z-index: 3;
   height: 100%;
-  min-height: 32px;
+  min-height: 64px;
 }
 tr:hover td[style*="position: sticky"] {
-  background: #f9fafb !important; /* match your hover color */
+  background: #f9fafb !important;
 }
 
 .today-col {
   background: #e0f2fe !important;
-  /* border-top: 3px solid #2563eb !important; */
 }
 
 .cell-content {
-  max-height: 40px;
-  overflow: hidden;
+  min-height: 64px;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  overflow: visible;
   text-overflow: ellipsis;
-  white-space: nowrap;
-  word-break: break-all;
-  font-size: 1.25rem;
+  white-space: normal;
+  word-break: break-word;
+  font-size: 1rem;
   position: relative;
   cursor: pointer;
+  padding: 4px;
+}
+
+.cell-time, .cell-desc {
+  padding: 2px 0;
+  line-height: 1.4;
+}
+
+.cell-desc {
+  font-size: 0.9rem;
+  color: #374151;
 }
 
 .today-header {
   color: #2563eb !important;
   border-bottom: 3px solid #2563eb !important;
   background: #e0f2fe !important;
-
-  
 }
-
 
 </style>
 <script>
