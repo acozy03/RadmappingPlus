@@ -41,7 +41,7 @@
         <option value="EST" {% if selected_timezone == 'EST' %}selected{% endif %}>Eastern Time (EST)</option>
         <option value="CST" {% if selected_timezone == 'CST' %}selected{% endif %}>Central Time (CST)</option>
         <option value="PST" {% if selected_timezone == 'PST' %}selected{% endif %}>Pacific Time (PST)</option>
-        <option value="UTC" {% if selected_timezone == 'UTC' %}selected{% endif %}>UTC</option>
+  
       </select>
        <a href="{{ url_for('dashboard.home') }}?date={{ next_date }}" 
          class="p-2 hover:bg-gray-100 rounded-full transition-colors">

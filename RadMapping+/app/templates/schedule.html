@@ -111,7 +111,7 @@
                                                     {{ schedule.start_time|ampm }} - {{ schedule.end_time|ampm }}
                                                 {% endif %}
                                             </span>
-                                            <span class="cell-desc text-sm hidden">{{ schedule.schedule_details }}</span>
+                                            <span class="cell-desc text-sm">{{ schedule.schedule_details }}</span>
                                         </div>
                                         {% if session.user.role == 'admin' %}
                                             <form method="POST" action="{{ url_for('dashboard.delete_schedule', rad_id=doctor.id) }}" class="mt-1">
@@ -610,20 +610,19 @@ function scrollToTodayColumn() {
 
   const th = document.querySelector(`th[data-date="${todayStr}"]`);
   const wrapper = document.getElementById('schedule-container');
+  const scrollWrapper = document.getElementById('schedule-scroll-wrapper');
 
-  if (th && wrapper) {
-    // Get position of the target column relative to the scroll container
-    const thLeft = th.offsetLeft;
-    const stickyTh = document.querySelector('th[style*="position: sticky"]');
-    const stickyWidth = stickyTh ? stickyTh.offsetWidth : 0;
-    console.log('thLeft:', thLeft);
-    console.log('stickyWidth:', stickyWidth);
-    wrapper.scrollLeft = thLeft - stickyWidth;
+  if (th && wrapper && scrollWrapper) {
+    const thOffset = th.offsetLeft;
+    const stickyOffset = scrollWrapper.querySelector('th.sticky.left-0')?.offsetWidth || 0;
+    const scrollAmount = thOffset - stickyOffset;
 
+    wrapper.scrollLeft = scrollAmount;
   } else {
-    console.log('Today column or scroll wrapper not found.', th, wrapper);
+    console.log('Could not scroll to today column:', { th, wrapper, scrollWrapper });
   }
 }
+
 
 window.addEventListener('DOMContentLoaded', function() {
   setTimeout(scrollToTodayColumn, 500);
@@ -631,8 +630,12 @@ window.addEventListener('DOMContentLoaded', function() {
   const filter = document.getElementById('scheduleFilter');
   function applyFilter() {
     const showTime = filter.value === 'time';
-    document.querySelectorAll('.cell-time').forEach(el => el.style.display = showTime ? '' : 'none');
-    document.querySelectorAll('.cell-desc').forEach(el => el.style.display = showTime ? 'none' : '');
+    document.querySelectorAll('.cell-time').forEach(el => {
+      el.style.display = showTime ? 'block' : 'none';
+    });
+    document.querySelectorAll('.cell-desc').forEach(el => {
+      el.style.display = showTime ? 'none' : 'block';
+    });
   }
   filter.addEventListener('change', applyFilter);
   applyFilter();

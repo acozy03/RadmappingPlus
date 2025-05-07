@@ -80,7 +80,7 @@
           <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4l3 3m6 0a9 9 0 11-18 0 9 9 0 0118 0z" /></svg>
         </span>
         <div>
-          <div class="text-xs text-gray-500 font-semibold uppercase">Timezone (EST)</div>
+          <div class="text-xs text-gray-500 font-semibold uppercase">Timezone</div>
           <div class="text-base font-medium text-gray-900">{{ doctor.timezone or "—" }}</div>
         </div>
       </div>
@@ -503,7 +503,7 @@
         {% for assignment in assigned_facilities %}
         <li class="facility-item">
           <form method="POST" action="{{ url_for('dashboard.update_assignment', assignment_id=assignment.id) }}">
-            <div :class="editMode ? '{% if assignment.active_status %}border-green-500{% else %}border-red-500{% endif %}' : 'border-gray-200'" class="border rounded-lg bg-gray-50 shadow-sm p-4 flex flex-col gap-2">
+            <div :class="editMode ? '{% if assignment.facilities.active_status %}border-green-500{% else %}border-red-500{% endif %}' : 'border-gray-200'" class="border rounded-lg bg-gray-50 shadow-sm p-4 flex flex-col gap-2">
               <!-- Card summary row -->
               <div class="flex items-center justify-between">
                 <div class="flex items-center gap-3">
@@ -512,13 +512,13 @@
                   </span>
                   <div>
                     <div class="font-semibold text-gray-800">{{ assignment.facilities.name }}</div>
-                    <div class="text-xs text-gray-500">Status: <span class="font-medium {% if assignment.active_status %}text-green-700{% else %}text-red-700{% endif %}">{% if assignment.active_status %}Active{% else %}Inactive{% endif %}</span></div>
+                    <div class="text-xs text-gray-500">Status: <span class="font-medium {% if assignment.facilities.active_status == 'true' %}text-green-700{% else %}text-red-700{% endif %}">{% if assignment.facilities.active_status == 'true' %}Active{% else %}Inactive{% endif %}</span></div>
                   </div>
                 </div>
                 <div class="flex items-center gap-2">
-                  <span class="inline-flex items-center gap-1 text-xs bg-gray-100 px-2 py-1 rounded" title="Can Read">Read: <span class="font-bold">{{ 'Yes' if assignment.can_read else 'No' }}</span></span>
-                  <span class="inline-flex items-center gap-1 text-xs bg-gray-100 px-2 py-1 rounded" title="Does Stats">Stats: <span class="font-bold">{{ 'Yes' if assignment.does_stats else 'No' }}</span></span>
-                  <span class="inline-flex items-center gap-1 text-xs bg-gray-100 px-2 py-1 rounded" title="Does Routines">Routine: <span class="font-bold">{{ 'Yes' if assignment.does_routines else 'No' }}</span></span>
+                  <span class="inline-flex items-center gap-1 text-xs {% if assignment.can_read %}bg-green-100 text-green-800{% else %}bg-red-100 text-red-800{% endif %} px-2 py-1 rounded" title="Can Read">Read: <span class="font-bold">{{ 'Yes' if assignment.can_read else 'No' }}</span></span>
+                  <span class="inline-flex items-center gap-1 text-xs {% if assignment.does_stats %}bg-green-100 text-green-800{% else %}bg-red-100 text-red-800{% endif %} px-2 py-1 rounded" title="Does Stats">Stats: <span class="font-bold">{{ 'Yes' if assignment.does_stats else 'No' }}</span></span>
+                  <span class="inline-flex items-center gap-1 text-xs {% if assignment.does_routines %}bg-green-100 text-green-800{% else %}bg-red-100 text-red-800{% endif %} px-2 py-1 rounded" title="Does Routines">Routine: <span class="font-bold">{{ 'Yes' if assignment.does_routines else 'No' }}</span></span>
                 </div>
               </div>
               <!-- Details always shown -->
