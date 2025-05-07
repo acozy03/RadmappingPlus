@@ -413,6 +413,11 @@ tr:hover td[style*="position: sticky"] {
 
 </style>
 <script>
+const calendar = {{ calendar|tojson }};
+const daysInMonth = {{ days_in_month }};
+const year = {{ year }};
+const month = {{ month }};
+const isAdmin = {{ 'true' if session.user.role == 'admin' else 'false' }};
 const serverToday = "{{ today_str }}";  // from Jinja
 let searchTimeout;
 
@@ -464,12 +469,6 @@ function handleSearch() {
                     tr.appendChild(nameCell);
                     
                     // Add schedule cells for each day
-                    const calendar = {{ calendar|tojson }};
-                    const daysInMonth = {{ days_in_month }};
-                    const year = {{ year }};
-                    const month = {{ month }};
-                    const isAdmin = {{ 'true' if session.user.role == 'admin' else 'false' }};
-                    
                     for (let day = 1; day <= daysInMonth; day++) {
                         const date = new Date(year, month - 1, day);
                         const dateStr = date.toISOString().split('T')[0];

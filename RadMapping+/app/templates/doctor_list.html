@@ -11,6 +11,9 @@
 {% block content %}
 <div class="flex justify-between items-center mb-6 border-b pb-2">
   <h2 class="text-2xl font-semibold">Doctor Directory</h2>
+  <button onclick="openPinModal()" class="bg-purple-600 text-white px-4 py-2 rounded hover:bg-purple-700">
+    Pin Doctors
+  </button>
 </div>
 
 <!-- Search and Status Filter Row -->
@@ -52,7 +55,12 @@
       <div class="flex items-center gap-3">
         <div class="w-2 h-2 rounded-full {% if doc.active_status %}bg-green-500{% else %}bg-red-500{% endif %}"></div>
         <div>
-          <p class="text-lg font-medium name">{{ doc.name }}</p>
+          <div class="flex items-center gap-1">
+            {% if doc.id in pinned_doctors %}
+              <span title="Pinned Doctor" class="text-yellow-500 text-base">⭐</span>
+            {% endif %}
+            <p class="text-lg font-medium name mb-0">{{ doc.name }}</p>
+          </div>
           <p class="text-sm text-gray-500 email">{{ doc.email }}</p>
         </div>
       </div>
@@ -84,12 +92,75 @@
   </div>
 </div>
 
+<!-- Pin Doctors Modal -->
+<div id="pinModal" class="fixed inset-0 z-50 hidden bg-black bg-opacity-50 flex items-center justify-center">
+  <div class="bg-white rounded-lg shadow-lg w-[90%] max-w-4xl p-6">
+    <div class="flex justify-between items-center mb-4">
+      <h3 class="text-lg font-semibold">Pin Doctors</h3>
+      <button onclick="closePinModal()" class="text-gray-500 hover:text-gray-700">
+        <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12" />
+        </svg>
+      </button>
+    </div>
+    <div class="mb-4">
+      <p class="text-gray-600">Select up to 15 doctors to pin to the top of the directory.</p>
+      <p class="text-sm text-gray-500">Pinned doctors will always appear first in the directory and schedule.</p>
+    </div>
+    <div class="flex justify-between items-center mb-4">
+      <div class="flex-1 mr-4">
+        <input type="text" 
+               id="pinModalSearch" 
+               class="w-full border rounded px-3 py-2" 
+               placeholder="Search doctors..."
+               oninput="filterPinModalDoctors()">
+      </div>
+      <div class="flex items-center gap-4">
+        <span id="pinCounter" class="text-sm font-medium">0/15 selected</span>
+        <button onclick="resetPins()" class="px-3 py-1 text-sm border border-red-500 text-red-500 rounded hover:bg-red-50">
+          Reset All
+        </button>
+      </div>
+    </div>
+    <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 max-h-[60vh] overflow-y-auto" id="pinDoctorsList">
+      {% for doctor in all_doctors %}
+        <div class="flex items-center gap-2 p-2 border rounded hover:bg-gray-50 doctor-item">
+          <input type="checkbox" 
+                 id="pin-{{ doctor.id }}" 
+                 class="pin-checkbox form-checkbox h-5 w-5 text-purple-600"
+                 data-doctor-id="{{ doctor.id }}"
+                 data-doctor-name="{{ doctor.name|lower }}"
+                 onchange="updatePinCounter()"
+                 {% if doctor.id in pinned_doctors %}checked{% endif %}>
+          <label for="pin-{{ doctor.id }}" class="flex-1 cursor-pointer">
+            {{ doctor.name }}
+            {% if doctor.id in pinned_doctors %}
+              <span title="Currently Pinned" class="text-yellow-500 text-sm ml-1">⭐</span>
+            {% endif %}
+          </label>
+        </div>
+      {% endfor %}
+    </div>
+    <div class="mt-4 flex justify-end gap-2">
+      <button onclick="closePinModal()" class="px-4 py-2 border rounded hover:bg-gray-100">
+        Cancel
+      </button>
+      <button onclick="savePinnedDoctors()" class="px-4 py-2 bg-purple-600 text-white rounded hover:bg-purple-700">
+        Save Pins
+      </button>
+    </div>
+  </div>
+</div>
+
 <script>
 let currentPage = parseInt("{{ current_page }}", 10);
 const itemsPerPage = parseInt("{{ per_page }}", 10);
 let totalCount = parseInt("{{ total_count }}", 10);
 let searchTimeout;
 let currentStatusFilter = 'active';
+
+// Initialize PINNED_DOCTORS array from the server-side data
+const PINNED_DOCTORS = {{ pinned_doctors|tojson }};
 
 function debounceSearch() {
   clearTimeout(searchTimeout);
@@ -111,22 +182,62 @@ function filterByStatus(status) {
     }
   });
   currentPage = 1;
-  loadDoctors();
+  loadDoctors(true); // Always force load when changing filters
 }
 
-function loadDoctors() {
+// Only load doctors when explicitly requested (search or filter)
+function loadDoctors(forceLoad = false) {
   const searchTerm = document.getElementById('searchBox').value;
-  fetch(`/dashboard/doctors/search?page=${currentPage}&search=${encodeURIComponent(searchTerm)}&status=${currentStatusFilter}`)
-    .then(response => response.json())
-    .then(data => {
-      updateTable(data.doctors);
-      updatePagination(data.total_count);
-    });
+  
+  // Always load if:
+  // 1. Force load is true (pagination/filter changes)
+  // 2. There's a search term
+  // 3. Filter is not active
+  // 4. We're not on page 1
+  if (!forceLoad && !searchTerm && currentStatusFilter === 'active' && currentPage === 1) {
+    return;
+  }
+  
+  // If we have pinned doctors and we're on page 1, fetch them first
+  if (currentPage === 1 && PINNED_DOCTORS.length > 0) {
+    fetch(`/dashboard/doctors/search?page=1&search=${encodeURIComponent(searchTerm)}&status=${currentStatusFilter}&include_pinned=true`)
+      .then(response => response.json())
+      .then(pinnedData => {
+        // Then fetch the current page's doctors
+        fetch(`/dashboard/doctors/search?page=${currentPage}&search=${encodeURIComponent(searchTerm)}&status=${currentStatusFilter}`)
+          .then(response => response.json())
+          .then(data => {
+            // Combine pinned doctors with current page doctors, removing duplicates
+            const pinnedDoctors = pinnedData.doctors.filter(doc => PINNED_DOCTORS.includes(doc.id));
+            const otherDoctors = data.doctors.filter(doc => !PINNED_DOCTORS.includes(doc.id));
+            const combinedDoctors = [...pinnedDoctors, ...otherDoctors];
+            updateTable(combinedDoctors);
+            updatePagination(data.total_count);
+          });
+      });
+  } else {
+    // Normal fetch for other pages or when no pinned doctors
+    fetch(`/dashboard/doctors/search?page=${currentPage}&search=${encodeURIComponent(searchTerm)}&status=${currentStatusFilter}`)
+      .then(response => response.json())
+      .then(data => {
+        updateTable(data.doctors);
+        updatePagination(data.total_count);
+      });
+  }
 }
 
 function updateTable(doctors) {
   const tbody = document.getElementById('doctorList');
   tbody.innerHTML = '';
+  
+  // Sort doctors to keep pinned ones at the top
+  doctors.sort((a, b) => {
+    const aPinned = PINNED_DOCTORS.includes(a.id);
+    const bPinned = PINNED_DOCTORS.includes(b.id);
+    if (aPinned && !bPinned) return -1;
+    if (!aPinned && bPinned) return 1;
+    return 0;
+  });
   
   doctors.forEach(doc => {
     const li = document.createElement('li');
@@ -136,26 +247,27 @@ function updateTable(doctors) {
     li.onmouseleave = () => hidePopup(li);
     
     const statusDot = `<div class="w-2 h-2 rounded-full ${doc.active_status ? 'bg-green-500' : 'bg-red-500'}"></div>`;
-
-li.innerHTML = `
-  <div class="flex items-center gap-3">
-    ${statusDot}
-    <div>
-      <p class="text-lg font-medium name">${doc.name}</p>
-      <p class="text-sm text-gray-500 email">${doc.email}</p>
-    </div>
-  </div>
-  <span class="text-blue-600 font-semibold">Details →</span>
-
-  <div class="doctor-popup absolute left-0 top-full mt-2 w-[20rem] bg-white border p-3 rounded shadow-md text-left pointer-events-none opacity-0 transition-opacity duration-150 z-50">
-    <p class="text-sm font-medium">Timezone: <span class="text-gray-700">${doc.timezone || 'N/A'}</span></p>
-    <p class="text-sm font-medium">Modalities: <span class="text-gray-700">${doc.modalities || 'N/A'}</span></p>
-    <p class="text-sm font-medium">PACS: <span class="text-gray-700">${doc.pacs || 'N/A'}</span></p>
-    <p class="text-sm font-medium">Contact: <span class="text-gray-700">${doc.email || 'N/A'}</span></p>
-    <p class="text-sm font-medium">Phone: <span class="text-gray-700">${doc.phone || 'N/A'}</span></p>
-  </div>
-`;
-
+    const isPinned = PINNED_DOCTORS.includes(doc.id);
+    li.innerHTML = `
+      <div class="flex items-center gap-3">
+        ${statusDot}
+        <div>
+          <div class="flex items-center gap-1">
+            ${isPinned ? '<span title="Pinned Doctor" class="text-yellow-500 text-base">⭐</span>' : ''}
+            <p class="text-lg font-medium name mb-0">${doc.name}</p>
+          </div>
+          <p class="text-sm text-gray-500 email">${doc.email}</p>
+        </div>
+      </div>
+      <span class="text-blue-600 font-semibold">Details →</span>
+      <div class="doctor-popup absolute left-0 top-full mt-2 w-[20rem] bg-white border p-3 rounded shadow-md text-left pointer-events-none opacity-0 transition-opacity duration-150 z-50">
+        <p class="text-sm font-medium">Timezone: <span class="text-gray-700">${doc.timezone || 'N/A'}</span></p>
+        <p class="text-sm font-medium">Modalities: <span class="text-gray-700">${doc.modalities || 'N/A'}</span></p>
+        <p class="text-sm font-medium">PACS: <span class="text-gray-700">${doc.pacs || 'N/A'}</span></p>
+        <p class="text-sm font-medium">Contact: <span class="text-gray-700">${doc.email || 'N/A'}</span></p>
+        <p class="text-sm font-medium">Phone: <span class="text-gray-700">${doc.phone || 'N/A'}</span></p>
+      </div>
+    `;
     
     tbody.appendChild(li);
   });
@@ -184,7 +296,7 @@ function changePage(direction) {
     currentPage--;
   }
   
-  loadDoctors();
+  loadDoctors(true); // Force load when changing pages
 }
 
 function showPopup(element) {
@@ -203,6 +315,79 @@ function hidePopup(element) {
   }
 }
 
+function openPinModal() {
+  document.getElementById('pinModal').classList.remove('hidden');
+}
+
+function closePinModal() {
+  document.getElementById('pinModal').classList.add('hidden');
+}
+
+function savePinnedDoctors() {
+  const checkboxes = document.querySelectorAll('.pin-checkbox:checked');
+  const doctorIds = Array.from(checkboxes).map(cb => cb.dataset.doctorId);
+  if (doctorIds.length > 15) {
+    alert('You can only pin up to 15 doctors.');
+    return;
+  }
+  fetch('/dashboard/schedule/pin', {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json',
+    },
+    body: JSON.stringify({ doctor_ids: doctorIds })
+  })
+  .then(response => response.json())
+  .then(data => {
+    if (data.success) {
+      window.location.reload();
+    } else {
+      alert('Error saving pinned doctors: ' + data.error);
+    }
+  })
+  .catch(error => {
+    console.error('Error:', error);
+    alert('Error saving pinned doctors');
+  });
+}
+
+function updatePinCounter() {
+  const checkedBoxes = document.querySelectorAll('.pin-checkbox:checked');
+  const counter = document.getElementById('pinCounter');
+  counter.textContent = `${checkedBoxes.length}/15 selected`;
+  // Disable checkboxes if limit reached
+  const uncheckedBoxes = document.querySelectorAll('.pin-checkbox:not(:checked)');
+  if (checkedBoxes.length >= 15) {
+    uncheckedBoxes.forEach(box => box.disabled = true);
+  } else {
+    uncheckedBoxes.forEach(box => box.disabled = false);
+  }
+}
+
+function resetPins() {
+  if (confirm('Are you sure you want to unpin all doctors?')) {
+    document.querySelectorAll('.pin-checkbox').forEach(box => {
+      box.checked = false;
+      box.disabled = false;
+    });
+    updatePinCounter();
+  }
+}
+
+function filterPinModalDoctors() {
+  const searchTerm = document.getElementById('pinModalSearch').value.toLowerCase();
+  const doctorItems = document.querySelectorAll('.doctor-item');
+  doctorItems.forEach(item => {
+    const checkbox = item.querySelector('.pin-checkbox');
+    const doctorName = checkbox.dataset.doctorName;
+    if (doctorName.includes(searchTerm)) {
+      item.style.display = '';
+    } else {
+      item.style.display = 'none';
+    }
+  });
+}
+
 window.addEventListener('DOMContentLoaded', () => {
   // Set the active filter button style on page load
   document.querySelectorAll('[data-status]').forEach(button => {
@@ -211,7 +396,33 @@ window.addEventListener('DOMContentLoaded', () => {
       button.classList.add('active-filter', 'bg-blue-600', 'text-white');
     }
   });
-  loadDoctors();
+  
+  // First load pinned doctors if any exist
+  if (PINNED_DOCTORS.length > 0) {
+    fetch(`/dashboard/doctors/search?page=1&search=&status=all&include_pinned=true`)
+      .then(response => response.json())
+      .then(pinnedData => {
+        // Then apply active filter
+        if (currentStatusFilter === 'active') {
+          fetch(`/dashboard/doctors/search?page=${currentPage}&search=&status=active`)
+            .then(response => response.json())
+            .then(data => {
+              // Combine pinned doctors with current page doctors, removing duplicates
+              const pinnedDoctors = pinnedData.doctors.filter(doc => PINNED_DOCTORS.includes(doc.id));
+              const otherDoctors = data.doctors.filter(doc => !PINNED_DOCTORS.includes(doc.id));
+              const combinedDoctors = [...pinnedDoctors, ...otherDoctors];
+              updateTable(combinedDoctors);
+              updatePagination(data.total_count);
+            });
+        } else {
+          updateTable(pinnedData.doctors);
+          updatePagination(pinnedData.total_count);
+        }
+      });
+  } else if (currentStatusFilter === 'active') {
+    // If no pinned doctors, just load active doctors
+    loadDoctors(true);
+  }
 });
 </script>
 

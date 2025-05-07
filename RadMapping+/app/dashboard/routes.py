@@ -212,23 +212,32 @@ def doctor_list():
     per_page = 25
     offset = (page - 1) * per_page
 
-    # Get total count for pagination
-    count_res = supabase.table("radiologists").select("*", count='exact').execute()
-    total_count = count_res.count
+    # Get all doctors for the modal
+    all_doctors_res = supabase.table("radiologists").select("*").order("name").execute()
+    all_doctors = all_doctors_res.data
 
-    # Fetch paginated doctors
-    response = supabase.table("radiologists") \
-        .select("*") \
-        .order("name") \
-        .range(offset, offset + per_page - 1) \
+    # Get pinned doctors for the current user using their email
+    user_email = session["user"]["email"]
+    pinned_res = supabase.table("pinned_doctors") \
+        .select("doctor_id") \
+        .eq("user_id", user_email) \
         .execute()
-    doctors = response.data
+    pinned_doctor_ids = [p["doctor_id"] for p in pinned_res.data]
 
-    return render_template("doctor_list.html", 
-                         doctors=doctors,
+    # Sort doctors so pinned appear first
+    sorted_doctors = sorted(all_doctors, key=lambda doc: str(doc['id']) not in pinned_doctor_ids)
+    total_count = len(sorted_doctors)
+    start = (page - 1) * per_page
+    end = start + per_page
+    visible_doctors = sorted_doctors[start:end]
+
+    return render_template("doctor_list.html",
+                         doctors=visible_doctors,
                          total_count=total_count,
                          current_page=page,
-                         per_page=per_page)
+                         per_page=per_page,
+                         pinned_doctors=pinned_doctor_ids,
+                         all_doctors=all_doctors)
 
 @dashboard_bp.route('/doctors/search', methods=["GET"])
 @login_required
@@ -236,34 +245,52 @@ def search_doctors():
     page = request.args.get('page', 1, type=int)
     per_page = 25
     offset = (page - 1) * per_page
-    
-    # Get search term
     search_term = request.args.get('search', '')
     status = request.args.get('status', 'all')
-    
-    # Build query
-    query = supabase.table("radiologists").select("*")
-    
+
+    # Get pinned doctors for the current user using their email
+    user_email = session["user"]["email"]
+    pinned_res = supabase.table("pinned_doctors") \
+        .select("doctor_id") \
+        .eq("user_id", user_email) \
+        .execute()
+    pinned_doctor_ids = [p["doctor_id"] for p in pinned_res.data]
+
+    # Build base query for all filters
+    base_query = supabase.table("radiologists").select("*")
     if search_term:
-        query = query.or_(f"name.ilike.%{search_term}%")
-    
-    # Add status filter
+        base_query = base_query.or_(f"name.ilike.%{search_term}%")
     if status == 'active':
-        query = query.eq('active_status', True)
+        base_query = base_query.eq('active_status', True)
     elif status == 'inactive':
-        query = query.eq('active_status', False)
-    
-    # Get total count for pagination
-    count_res = query.execute()
-    total_count = len(count_res.data)
-    
-    # Get paginated results
-    query = query.order("name") \
-                .range(offset, offset + per_page - 1)
-    results = query.execute()
-    
+        base_query = base_query.eq('active_status', False)
+
+    # Get all matching doctors (for total count)
+    all_matching = base_query.execute().data
+
+    # Separate pinned and unpinned
+    pinned_doctors = [doc for doc in all_matching if str(doc["id"]) in pinned_doctor_ids]
+    unpinned_doctors = [doc for doc in all_matching if str(doc["id"]) not in pinned_doctor_ids]
+
+    # Sort both lists alphabetically by name
+    pinned_doctors = sorted(pinned_doctors, key=lambda d: d["name"])
+    unpinned_doctors = sorted(unpinned_doctors, key=lambda d: d["name"])
+
+    # Pagination logic
+    if page == 1:
+        # First page: pinned + fill with unpinned
+        remaining_slots = per_page - len(pinned_doctors)
+        visible_doctors = pinned_doctors + unpinned_doctors[:max(0, remaining_slots)]
+    else:
+        # Subsequent pages: only unpinned, skipping those already shown
+        start = (page - 1) * per_page - len(pinned_doctors)
+        end = start + per_page
+        visible_doctors = unpinned_doctors[start:end]
+
+    total_count = len(all_matching)
+
     return jsonify({
-        'doctors': results.data,
+        'doctors': visible_doctors,
         'total_count': total_count,
         'current_page': page,
         'per_page': per_page
