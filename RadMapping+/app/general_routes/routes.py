@@ -28,10 +28,7 @@ def daily():
 
     user = session.get("user")
 
-    # Get selected timezone from query params or default to EST
     selected_timezone = request.args.get("timezone", "EST")
-    
-    # Calculate timezone offset
     timezone_offset = {
         'EST': 0,
         'CST': 1,
@@ -39,132 +36,54 @@ def daily():
         'UTC': 5
     }.get(selected_timezone, 0)
 
-    # Allow optional date navigation
     date_str = request.args.get("date")
-    if date_str:
-        now = datetime.strptime(date_str, "%Y-%m-%d")
-    else:
-        now = datetime.now()
+    now = datetime.strptime(date_str, "%Y-%m-%d") if date_str else datetime.now()
 
     today = now.strftime("%Y-%m-%d")
-    current_time = datetime.now().strftime("%H:%M")
-
-    # Date navigation
     prev_date = (now - timedelta(days=1)).strftime("%Y-%m-%d")
     next_date = (now + timedelta(days=1)).strftime("%Y-%m-%d")
 
-    # Fetch shifts that overlap the selected day (for overnight and multi-day shifts)
+    base_date = datetime.strptime(today, "%Y-%m-%d")
+    max_end_dt = base_date.replace(hour=0, minute=0, second=0, microsecond=0)
+
+    # Pre-fetch schedule data
     shift_res = supabase.table("monthly_schedule") \
         .select("*, radiologists(*)") \
         .lte("start_date", today) \
         .gte("end_date", today) \
         .execute()
 
-    doctors_by_hour = defaultdict(list)
     doctors_on_shift = []
 
     for entry in shift_res.data:
         if entry.get("radiologists") and entry.get("start_time") and entry.get("end_time"):
             doc = entry["radiologists"]
-
-            # Use today's date if start_date or end_date is missing
             start_date = entry.get("start_date") or today
             end_date = entry.get("end_date") or today
-
-            doc.update({
-                "start_time": entry["start_time"],
-                "end_time": entry["end_time"],
-                "schedule_details": entry.get("schedule_details", ""),
-                "start_date": start_date,
-                "end_date": end_date
-            })
-
             try:
                 start_dt = datetime.strptime(f"{start_date} {entry['start_time']}", "%Y-%m-%d %H:%M:%S")
                 end_dt = datetime.strptime(f"{end_date} {entry['end_time']}", "%Y-%m-%d %H:%M:%S")
                 if end_dt < start_dt:
                     end_dt += timedelta(days=1)
-
-                doc["start_dt"] = start_dt
-                doc["end_dt"] = end_dt
+                doc.update({
+                    "start_time": entry["start_time"],
+                    "end_time": entry["end_time"],
+                    "schedule_details": entry.get("schedule_details", ""),
+                    "start_date": start_date,
+                    "end_date": end_date,
+                    "start_dt": start_dt,
+                    "end_dt": end_dt
+                })
                 doctors_on_shift.append(doc)
-
-                # Compute overlap per hour as before
-                start_minutes = start_dt.hour * 60 + start_dt.minute
-                end_minutes = end_dt.hour * 60 + end_dt.minute
-                for hour in range(0, 24):
-                    hour_start = hour * 60
-                    hour_end = (hour + 1) * 60
-                    if start_minutes < hour_end and end_minutes > hour_start:
-                        doctors_by_hour[hour].append(doc)
-
+                if end_dt > max_end_dt:
+                    max_end_dt = end_dt
             except Exception as e:
                 print(f"Error parsing datetime for doc {doc.get('name', 'Unknown')}: {e}")
 
-
-    # Get all doctors
-    all_doctors_res = supabase.table("radiologists").select("*").execute()
-    all_doctors = all_doctors_res.data
-
-    # Create timezone dictionary for all doctors
-    doctors_by_timezone = defaultdict(list)
-    for doctor in all_doctors:
-        timezone = doctor.get("timezone", "Unknown")
-        if timezone:
-            doctors_by_timezone[timezone].append(doctor)
-
-    # Create sets for doctors on shift today and currently on shift
-    doctors_on_shift_ids = {doc["id"] for doc in doctors_on_shift}
-    doctors_currently_on_shift_ids = set()
-
-    # Get current hour
-    current_hour = datetime.now().hour
-
-    # Check which doctors are currently on shift
-    for doc in doctors_on_shift:
-        try:
-            start_hour = int(doc["start_time"].split(":")[0])
-            end_hour = int(doc["end_time"].split(":")[0])
-            
-            # Check if current hour falls within shift hours
-            if start_hour <= current_hour < end_hour:
-                doctors_currently_on_shift_ids.add(doc["id"])
-        except Exception as e:
-            print("Error checking current shift:", e)
-
-    # Calculate hour slots for daily schedule (from 00:00 of today up to latest shift end time)
-    base_date = datetime.strptime(today, "%Y-%m-%d")
-    from datetime import timedelta
-
-    # Find latest end datetime among all shifts
-    max_end_dt = base_date.replace(hour=0, minute=0, second=0, microsecond=0)
-    for doc in doctors_on_shift:
-        if not doc["start_time"] or not doc["end_time"]:
-            continue  # Skip if missing time
-        
-        try:
-            start_dt = datetime.strptime(f"{doc['start_date']} {doc['start_time']}", "%Y-%m-%d %H:%M:%S")
-            end_dt = datetime.strptime(f"{doc['end_date']} {doc['end_time']}", "%Y-%m-%d %H:%M:%S")
-
-            if end_dt < start_dt:
-                end_dt += timedelta(days=1)
-
-
-            doc["start_dt"] = start_dt
-            doc["end_dt"] = end_dt
-
-            
-            if end_dt > max_end_dt:
-                max_end_dt = end_dt
-
-        except Exception as e:
-            print(f"Error parsing datetime for doc {doc.get('name', '')}: {e}")
-
-
-    # Generate hour slots from base_date until the latest shift end
+    # Build hour slots
     hour_slots = []
     current_hour = base_date.replace(hour=0, minute=0, second=0, microsecond=0)
-    while current_hour <= max_end_dt:
+    while current_hour < max_end_dt:
         hour_slots.append({
             "datetime": current_hour,
             "label": current_hour.strftime("%I %p").lstrip("0"),
@@ -173,7 +92,7 @@ def daily():
         })
         current_hour += timedelta(hours=1)
 
-    # Add day_label to each slot for dropdown display
+    # Label slots for today/tomorrow
     today_dt = datetime.strptime(today, "%Y-%m-%d")
     tomorrow_str = (today_dt + timedelta(days=1)).strftime("%Y-%m-%d")
     for slot in hour_slots:
@@ -183,6 +102,35 @@ def daily():
             slot['day_label'] = 'Tomorrow'
         else:
             slot['day_label'] = slot['date']
+
+    # Fill doctor shifts by hour
+    doctors_by_hour = defaultdict(list)
+    for doc in doctors_on_shift:
+        for slot in hour_slots:
+            slot_start = slot["datetime"]
+            slot_end = slot_start + timedelta(hours=1)
+            if doc["start_dt"] < slot_end and doc["end_dt"] > slot_start:
+                doctors_by_hour[slot_start].append(doc)
+
+    # All doctors by timezone
+    all_doctors_res = supabase.table("radiologists").select("*").execute()
+    all_doctors = all_doctors_res.data
+    doctors_by_timezone = defaultdict(list)
+    for doctor in all_doctors:
+        tz = doctor.get("timezone", "Unknown")
+        doctors_by_timezone[tz].append(doctor)
+
+    doctors_on_shift_ids = {doc["id"] for doc in doctors_on_shift}
+    doctors_currently_on_shift_ids = set()
+    current_hour = datetime.now().hour
+    for doc in doctors_on_shift:
+        try:
+            start_hour = int(doc["start_time"].split(":")[0])
+            end_hour = int(doc["end_time"].split(":")[0])
+            if start_hour <= current_hour < end_hour:
+                doctors_currently_on_shift_ids.add(doc["id"])
+        except Exception as e:
+            print("Error checking current shift:", e)
 
     return render_template("daily.html",
         user=user,
@@ -198,6 +146,7 @@ def daily():
         timezone_offset=timezone_offset,
         hour_slots=hour_slots
     )
+
 
 @dashboard_bp.route('/admin')
 @admin_required

@@ -127,21 +127,17 @@
           <span class="text-sm text-gray-500 ml-2">({{ (slot.hour - timezone_offset)|int }}:00 {{ selected_timezone }})</span>
         {% endif %}
       </h4>
-      {% set slot_doctors = [] %}
-      {% for doc in doctors_on_shift %}
-        {% if doc.start_dt <= slot.datetime < doc.end_dt %}
-          {% set _ = slot_doctors.append(doc) %}
-        {% endif %}
-      {% endfor %}
+
+      {% set slot_doctors = doctors_by_hour.get(slot.datetime, []) %}
       {% if slot_doctors %}
         <ul class="space-y-2">
           {% for doc in slot_doctors %}
           <li class="relative border p-2 rounded bg-gray-50 hover:bg-gray-100 transition-colors duration-200"
-          onmouseenter="showDoctorPopup(this)"
-          onmouseleave="hideDoctorPopup(this)"
-          data-start-dt="{{ doc.start_dt.isoformat() }}"
-          data-end-dt="{{ doc.end_dt.isoformat() }}"
-          data-schedule-details="{{ doc.schedule_details or '' }}">
+              onmouseenter="showDoctorPopup(this)"
+              onmouseleave="hideDoctorPopup(this)"
+              data-start-dt="{{ doc.start_dt.isoformat() }}"
+              data-end-dt="{{ doc.end_dt.isoformat() }}"
+              data-schedule-details="{{ doc.schedule_details or '' }}">
               <div class="flex items-center justify-between">
                 <a href="{{ url_for('dashboard.doctor_profile', rad_id=doc.id) }}" target="_blank" class="text-blue-700 font-semibold hover:underline">
                   {{ doc.name }}
@@ -156,14 +152,14 @@
               </div>
               <div class="text-sm text-gray-500 mt-1">
                 {% if doc.modalities %}
-                <div>
-                  <span class="font-semibold text-gray-800">Modalities:</span>
-                  <span class="text-gray-700">{{ doc.modalities }}</span>
-                </div>
+                  <div>
+                    <span class="font-semibold text-gray-800">Modalities:</span>
+                    <span class="text-gray-700">{{ doc.modalities }}</span>
+                  </div>
                 {% endif %}
                 {% if doc.pacs %}
-                <span class="font-semibold text-gray-800">PACS:</span>
-                <span class="text-gray-700">{{ doc.pacs }}</span>
+                  <span class="font-semibold text-gray-800">PACS:</span>
+                  <span class="text-gray-700">{{ doc.pacs }}</span>
                 {% endif %}
               </div>
               <div class="doctor-popup absolute left-full top-0 ml-2 w-[20rem] bg-white border p-4 rounded-lg shadow-lg text-left pointer-events-none opacity-0 transition-all duration-200 z-50 transform scale-95">
@@ -323,7 +319,7 @@ function colorDoctorBlocks() {
 
     // Reset any existing color classes
     el.classList.remove("bg-green-50", "border-green-200", "bg-yellow-50", "border-yellow-200", "bg-red-50", "border-red-200");
-
+    el.classList.add("bg-green-50", "border-green-200");
     if (slotDt >= startDt && slotDt < endDt) {
       // Calculate percentage remaining in shift
       const totalMs = endDt - startDt;
