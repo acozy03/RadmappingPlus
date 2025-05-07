@@ -39,7 +39,7 @@
 <ul id="facilityList" class="space-y-4">
   {% for facility in facilities %}
   <li class="relative flex items-center justify-between p-4 bg-gray-50 rounded hover:bg-gray-100 cursor-pointer facility-item"
-      onclick="window.location.href='/dashboard/facilities/{{ facility.id }}'"
+      onclick="window.location.href='/radmapping/facilities/{{ facility.id }}'"
       onmouseenter="showPopup(this)"
       onmouseleave="hidePopup(this)">
     <div class="flex items-center gap-3">
@@ -107,7 +107,7 @@ function submitAddFacility(event) {
     active_status: formData.get('active_status') ? 'true' : 'false'
   };
 
-  fetch('/dashboard/facilities/add', {
+  fetch('/radmapping/facilities/add', {
     method: 'POST',
     headers: {
       'Content-Type': 'application/json',
@@ -139,7 +139,7 @@ function debounceSearch() {
 function loadFacilities() {
   const searchTerm = document.getElementById('searchBox').value;
   
-  fetch(`/dashboard/facilities/search?page=${currentPage}&search=${encodeURIComponent(searchTerm)}&status=${currentStatusFilter}`)
+  fetch(`/radmapping/facilities/search?page=${currentPage}&search=${encodeURIComponent(searchTerm)}&status=${currentStatusFilter}`)
     .then(response => response.json())
     .then(data => {
       updateTable(data.facilities);
@@ -169,7 +169,7 @@ function updateTable(facilities) {
   facilities.forEach(facility => {
     const li = document.createElement('li');
     li.className = 'relative flex items-center justify-between p-4 bg-gray-50 rounded hover:bg-gray-100 cursor-pointer facility-item';
-    li.onclick = () => window.location.href = `/dashboard/facilities/${facility.id}`;
+    li.onclick = () => window.location.href = `/radmapping/facilities/${facility.id}`;
     li.onmouseenter = () => showPopup(li);
     li.onmouseleave = () => hidePopup(li);
     

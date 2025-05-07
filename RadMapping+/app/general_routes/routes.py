@@ -606,7 +606,7 @@ def update_doctor(rad_id):
 
 
 
-@dashboard_bp.route('/dashboard/doctors/<rad_id>/add_certification', methods=['POST'])
+@dashboard_bp.route('/radmapping/doctors/<rad_id>/add_certification', methods=['POST'])
 @login_required
 def add_certification(rad_id):
     data = {
@@ -625,7 +625,7 @@ def add_certification(rad_id):
 
 
 
-@dashboard_bp.route('/dashboard/facility/<facility_id>/update', methods=['POST'])
+@dashboard_bp.route('/radmapping/facility/<facility_id>/update', methods=['POST'])
 @login_required
 def update_facility(facility_id):
     form = request.form
@@ -650,7 +650,7 @@ def delete_certification(rad_id, cert_id):
 
     return redirect(url_for('dashboard.doctor_profile', rad_id=rad_id))
 
-@dashboard_bp.route('/dashboard/assignments/<assignment_id>/update', methods=['POST'])
+@dashboard_bp.route('/radmapping/assignments/<assignment_id>/update', methods=['POST'])
 @login_required
 def update_assignment(assignment_id):
     # Always map explicitly:
@@ -670,7 +670,7 @@ def update_assignment(assignment_id):
 
     return redirect(request.referrer or url_for('dashboard.doctor_profile'))
 
-@dashboard_bp.route('/dashboard/assignments/<assignment_id>/delete', methods=['POST'])
+@dashboard_bp.route('/radmapping/assignments/<assignment_id>/delete', methods=['POST'])
 @login_required
 @admin_required
 def delete_assignment(assignment_id):

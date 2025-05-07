@@ -71,7 +71,7 @@ async function sendMessage(event) {
     addMessage('Thinking...', 'assistant', true);
 
     // Send question to backend
-    const response = await fetch('/dashboard/chat', {
+    const response = await fetch('/radmapping/chat', {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',

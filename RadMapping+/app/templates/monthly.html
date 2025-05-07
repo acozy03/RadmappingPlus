@@ -432,7 +432,7 @@ function handleSearch() {
         }
         
         // Make a request to the server to search all doctors
-        fetch(`/dashboard/monthly/search?search=${encodeURIComponent(searchTerm)}`)
+        fetch(`/radmapping/monthly/search?search=${encodeURIComponent(searchTerm)}`)
             .then(response => response.json())
             .then(data => {
                 const tbody = document.querySelector('tbody');
@@ -452,7 +452,7 @@ function handleSearch() {
                     nameDiv.className = 'flex items-center gap-2';
                     
                     const nameLink = document.createElement('a');
-                    nameLink.href = `/dashboard/doctors/${doctor.id}`;
+                    nameLink.href = `/radmapping/doctors/${doctor.id}`;
                     nameLink.className = 'text-blue-600 hover:underline text-base';
                     nameLink.textContent = doctor.name;
                     
@@ -521,7 +521,7 @@ function handleSearch() {
                             if (isAdmin) {
                                 const deleteForm = document.createElement('form');
                                 deleteForm.method = 'POST';
-                                deleteForm.action = `/dashboard/doctors/${doctor.id}/delete_schedule`;
+                                deleteForm.action = `/radmapping/doctors/${doctor.id}/delete_schedule`;
                                 deleteForm.className = 'mt-1';
                                 
                                 const inputs = [
@@ -737,7 +737,7 @@ function savePinnedDoctors() {
     return;
   }
 
-  fetch('/dashboard/monthly/pin', {
+  fetch('/radmapping/monthly/pin', {
     method: 'POST',
     headers: {
       'Content-Type': 'application/json',

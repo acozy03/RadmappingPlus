@@ -212,7 +212,7 @@ function showDoctorsForSpecialty(specialtyId, specialtyName) {
   searchInput.value = ''; // Clear search input
   modal.classList.remove('hidden');
   
-  fetch(`/dashboard/specialties/${specialtyId}/doctors`)
+  fetch(`/radmapping/specialties/${specialtyId}/doctors`)
     .then(res => res.json())
     .then(doctors => {
       if (!doctors.length) {
@@ -224,7 +224,7 @@ function showDoctorsForSpecialty(specialtyId, specialtyName) {
         const statusDot = `<span class='inline-block w-2 h-2 rounded-full ${doc.active_status ? 'bg-green-500' : 'bg-red-500'} mr-2'></span>`;
         const div = document.createElement('div');
         div.className = 'flex items-center gap-3 p-2 rounded hover:bg-gray-50 doctor-item';
-        div.innerHTML = `${statusDot}<a href='/dashboard/doctors/${doc.id}' class='font-medium text-blue-700 hover:underline'>${doc.name}</a> <span class='text-gray-500 text-sm'>${doc.email || ''}</span>`;
+        div.innerHTML = `${statusDot}<a href='/radmapping/doctors/${doc.id}' class='font-medium text-blue-700 hover:underline'>${doc.name}</a> <span class='text-gray-500 text-sm'>${doc.email || ''}</span>`;
         list.appendChild(div);
       });
     });
@@ -250,7 +250,7 @@ function openEditDoctorsModal(specialtyId, specialtyName) {
   checklist.innerHTML = '<div class="text-gray-400 text-sm">Loading...</div>';
   document.getElementById('editDoctorsModal').classList.remove('hidden');
   // Fetch current doctors for this specialty
-  fetch(`/dashboard/specialties/${specialtyId}/doctors/all`)
+  fetch(`/radmapping/specialties/${specialtyId}/doctors/all`)
     .then(res => res.json())
     .then(data => {
       checklist.innerHTML = '';
@@ -272,7 +272,7 @@ function submitEditDoctors(e) {
   const form = document.getElementById('editDoctorsForm');
   const specialtyId = form.specialty_id.value;
   const checked = Array.from(form.querySelectorAll('input[name="doctor_ids"]:checked')).map(cb => cb.value);
-  fetch(`/dashboard/specialties/${specialtyId}/doctors/update`, {
+  fetch(`/radmapping/specialties/${specialtyId}/doctors/update`, {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify({ doctor_ids: checked })
@@ -303,7 +303,7 @@ function confirmDeleteSpecialty(specialtyId, specialtyName) {
   const nameSpan = document.getElementById('deleteSpecialtyName');
   
   nameSpan.textContent = specialtyName;
-  form.action = `/dashboard/specialties/${specialtyId}/delete`;
+  form.action = `/radmapping/specialties/${specialtyId}/delete`;
   modal.classList.remove('hidden');
 }
 

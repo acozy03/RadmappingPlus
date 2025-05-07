@@ -49,7 +49,7 @@
 <ul id="doctorList" class="space-y-4">
   {% for doc in doctors %}
   <li class="relative flex items-center justify-between p-4 bg-gray-50 rounded hover:bg-gray-100 cursor-pointer doctor-item"
-      onclick="window.location.href='/dashboard/doctors/{{ doc.id }}'"
+      onclick="window.location.href='/radmapping/doctors/{{ doc.id }}'"
       onmouseenter="showPopup(this)"
       onmouseleave="hidePopup(this)">
       <div class="flex items-center gap-3">
@@ -200,11 +200,11 @@ function loadDoctors(forceLoad = false) {
   
   // If we have pinned doctors and we're on page 1, fetch them first
   if (currentPage === 1 && PINNED_DOCTORS.length > 0) {
-    fetch(`/dashboard/doctors/search?page=1&search=${encodeURIComponent(searchTerm)}&status=${currentStatusFilter}&include_pinned=true`)
+    fetch(`/radmapping/doctors/search?page=1&search=${encodeURIComponent(searchTerm)}&status=${currentStatusFilter}&include_pinned=true`)
       .then(response => response.json())
       .then(pinnedData => {
         // Then fetch the current page's doctors
-        fetch(`/dashboard/doctors/search?page=${currentPage}&search=${encodeURIComponent(searchTerm)}&status=${currentStatusFilter}`)
+        fetch(`/radmapping/doctors/search?page=${currentPage}&search=${encodeURIComponent(searchTerm)}&status=${currentStatusFilter}`)
           .then(response => response.json())
           .then(data => {
             // Combine pinned doctors with current page doctors, removing duplicates
@@ -217,7 +217,7 @@ function loadDoctors(forceLoad = false) {
       });
   } else {
     // Normal fetch for other pages or when no pinned doctors
-    fetch(`/dashboard/doctors/search?page=${currentPage}&search=${encodeURIComponent(searchTerm)}&status=${currentStatusFilter}`)
+    fetch(`/radmapping/doctors/search?page=${currentPage}&search=${encodeURIComponent(searchTerm)}&status=${currentStatusFilter}`)
       .then(response => response.json())
       .then(data => {
         updateTable(data.doctors);
@@ -242,7 +242,7 @@ function updateTable(doctors) {
   doctors.forEach(doc => {
     const li = document.createElement('li');
     li.className = 'relative flex items-center justify-between p-4 bg-gray-50 rounded hover:bg-gray-100 cursor-pointer doctor-item';
-    li.onclick = () => window.location.href = `/dashboard/doctors/${doc.id}`;
+    li.onclick = () => window.location.href = `/radmapping/doctors/${doc.id}`;
     li.onmouseenter = () => showPopup(li);
     li.onmouseleave = () => hidePopup(li);
     
@@ -330,7 +330,7 @@ function savePinnedDoctors() {
     alert('You can only pin up to 15 doctors.');
     return;
   }
-  fetch('/dashboard/monthly/pin', {
+  fetch('/radmapping/monthly/pin', {
     method: 'POST',
     headers: {
       'Content-Type': 'application/json',
@@ -399,12 +399,12 @@ window.addEventListener('DOMContentLoaded', () => {
   
   // First load pinned doctors if any exist
   if (PINNED_DOCTORS.length > 0) {
-    fetch(`/dashboard/doctors/search?page=1&search=&status=all&include_pinned=true`)
+    fetch(`/radmapping/doctors/search?page=1&search=&status=all&include_pinned=true`)
       .then(response => response.json())
       .then(pinnedData => {
         // Then apply active filter
         if (currentStatusFilter === 'active') {
-          fetch(`/dashboard/doctors/search?page=${currentPage}&search=&status=active`)
+          fetch(`/radmapping/doctors/search?page=${currentPage}&search=&status=active`)
             .then(response => response.json())
             .then(data => {
               // Combine pinned doctors with current page doctors, removing duplicates

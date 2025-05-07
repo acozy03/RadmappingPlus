@@ -109,7 +109,7 @@
           <td class="px-6 py-4 border">
             <div class="view-mode">
               <button onclick="toggleEditMode('{{ cert.id }}')" class="text-blue-600 hover:text-blue-900 mr-3">Edit</button>
-              <form method="POST" action="{{ url_for('dashboard.delete_certification', rad_id=cert.radiologist_id, cert_id=cert.id) }}" class="inline">
+              <form method="POST" action="/radmapping/doctors/{{ cert.radiologist_id }}/licenses/{{ cert.id }}/delete" class="inline">
                 <button type="submit" class="text-red-600 hover:text-red-800">Delete</button>
               </form>
             </div>
@@ -170,7 +170,7 @@ function loadLicenses() {
   const searchTerm = document.getElementById('licenseSearch').value;
   const doctorId = document.getElementById('doctorFilter').value;
   
-  fetch(`/dashboard/licenses/search?page=${currentPage}&search=${encodeURIComponent(searchTerm)}&doctor=${encodeURIComponent(doctorId)}&status=${currentStatusFilter}`)
+  fetch(`/radmapping/licenses/search?page=${currentPage}&search=${encodeURIComponent(searchTerm)}&doctor=${encodeURIComponent(doctorId)}&status=${currentStatusFilter}`)
     .then(response => response.json())
     .then(data => {
       updateTable(data.certifications);
@@ -233,7 +233,7 @@ function updateTable(certifications) {
       <td class="px-6 py-4 border">
         <div class="view-mode">
           <button onclick="toggleEditMode('${cert.id}')" class="text-blue-600 hover:text-blue-900 mr-3">Edit</button>
-          <form method="POST" action="/dashboard/doctors/${cert.radiologist_id}/licenses/${cert.id}/delete" class="inline">
+          <form method="POST" action="/radmapping/doctors/${cert.radiologist_id}/licenses/${cert.id}/delete" class="inline">
             <button type="submit" class="text-red-600 hover:text-red-800">Delete</button>
           </form>
         </div>
@@ -313,7 +313,7 @@ function saveLicense(licenseId) {
   formData.append('tags', row.querySelectorAll('input[type="text"]')[2].value);
   formData.append('expiration_date', row.querySelector('input[type="date"]').value);
 
-  fetch(`/dashboard/licenses/${licenseId}/update`, {
+  fetch(`/radmapping/licenses/${licenseId}/update`, {
     method: 'POST',
     body: formData
   }).then(() => {

@@ -60,7 +60,7 @@ def create_app():
 
     # Register blueprints
     app.register_blueprint(auth_bp, url_prefix='/auth')
-    app.register_blueprint(dashboard_bp, url_prefix='/dashboard')
+    app.register_blueprint(dashboard_bp, url_prefix='/radmapping')
 
     # Redirect root URL to login or landing page
     @app.route('/')

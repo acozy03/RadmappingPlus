@@ -9,7 +9,7 @@
 </head>
 <body class="bg-gray-100 text-gray-800">
 
-    {% if session.user %}
+    {% if session.user and request.endpoint != 'auth.login' %}
     <!-- ✅ NAVIGATION HEADER -->
     <nav class="bg-white border-b border-gray-200">
       <div class="max-w-10xl mx-auto px-4">
@@ -44,11 +44,14 @@
     </nav>
     {% endif %}
   
-
   <!-- ✅ MAIN CONTENT -->
-  <div class="max-w-10xl mx-auto mt-8 p-6 bg-white rounded shadow">
-    {% block content %}{% endblock %}
-  </div>
+  {% if request.endpoint == 'auth.login' %}
+    {% block login_content %}{% endblock %}
+  {% else %}
+    <div class="max-w-10xl mx-auto mt-8 p-6 bg-white rounded shadow">
+      {% block content %}{% endblock %}
+    </div>
+  {% endif %}
 
   {% if session.user %}
     {% include 'chatbot.html' %}
