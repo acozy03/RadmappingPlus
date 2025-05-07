@@ -54,10 +54,9 @@
                             <td class="sticky left-0 bg-white z-20 w-48 px-4 py-2 font-medium text-left">
                                 <div class="flex items-center gap-2">
                                     {% if doctor.id in pinned_doctors %}
-                                  
                                         <span title="Pinned Doctor" class="text-yellow-500 text-sm">⭐</span>
                                     {% endif %}
-                                    <a href="{{ url_for('dashboard.doctor_profile', rad_id=doctor.id) }}" class="text-blue-600 hover:underline">
+                                    <a href="{{ url_for('dashboard.doctor_profile', rad_id=doctor.id) }}" target="_blank" class="text-blue-600 hover:underline">
                                         {{ doctor.name }}
                                     </a>
                                     {% if doctor.reads_routines %}

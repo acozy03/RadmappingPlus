@@ -74,7 +74,7 @@
             data-doctor-id="{{ cert.radiologist_id }}">
           <td class="px-6 py-4 border">
             <span class="view-mode">
-              <a href="/radmapping/doctors/{{ cert.radiologist_id }}" class="text-blue-700 hover:underline">
+              <a href="/radmapping/doctors/{{ cert.radiologist_id }}" target="_blank" class="text-blue-700 hover:underline">
                 {{ cert.radiologists.name }}
               </a>
             </span>
@@ -203,7 +203,7 @@ function updateTable(certifications) {
     row.innerHTML = `
       <td class="px-6 py-4 border">
         <span class="view-mode">
-          <a href="/radmapping/doctors/${cert.radiologist_id}" class="text-blue-700 hover:underline">
+          <a href="/radmapping/doctors/${cert.radiologist_id}" target="_blank" class="text-blue-700 hover:underline">
             ${cert.radiologists.name}
           </a>
         </span>
