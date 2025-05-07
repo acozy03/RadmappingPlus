@@ -139,10 +139,10 @@
 
     <!-- Pagination Controls -->
     <div class="flex justify-between items-center mt-4 px-4">
-        <div class="text-gray-600">
+        <!-- <div class="text-gray-600">
             Page {{ (start_doctor // 15) + 1 }} of {{ total_pages }}
             ({{ total_doctors }} total doctors)
-        </div>
+        </div> -->
         <div class="flex gap-2">
             {% if start_doctor > 0 %}
                 <a href="{{ url_for('dashboard.monthly', year=year, month=month, start_day=1, start_doctor=start_doctor - 15) }}" 
@@ -421,146 +421,17 @@ const serverToday = "{{ today_str }}";  // from Jinja
 let searchTimeout;
 
 function handleSearch() {
-    clearTimeout(searchTimeout);
-    searchTimeout = setTimeout(() => {
-        const searchTerm = document.getElementById('searchInput').value;
-        if (searchTerm.length === 0) {
-            // If search is empty, reload the page to show all doctors
-            window.location.href = `{{ url_for('dashboard.monthly') }}?year={{ year }}&month={{ month }}&start_doctor=0`;
-            return;
+    const searchTerm = document.getElementById('searchInput').value.toLowerCase();
+    const rows = document.querySelectorAll('tbody tr');
+    
+    rows.forEach(row => {
+        const doctorName = row.querySelector('td:first-child').textContent.toLowerCase();
+        if (doctorName.includes(searchTerm)) {
+            row.style.display = '';
+        } else {
+            row.style.display = 'none';
         }
-        
-        // Make a request to the server to search all doctors
-        fetch(`/radmapping/monthly/search?search=${encodeURIComponent(searchTerm)}`)
-            .then(response => response.json())
-            .then(data => {
-                const tbody = document.querySelector('tbody');
-                tbody.innerHTML = '';
-                
-                data.doctors.forEach(doctor => {
-                    const tr = document.createElement('tr');
-                    tr.className = 'hover:bg-gray-50';
-                    tr.style.height = '32px';
-                    
-                    // Add doctor name cell
-                    const nameCell = document.createElement('td');
-                    nameCell.className = 'px-6 py-5 font-medium';
-                    nameCell.style.cssText = 'min-width: 180px; position: sticky; left: 0; background: white; z-index: 1; height: 32px;';
-                    
-                    const nameDiv = document.createElement('div');
-                    nameDiv.className = 'flex items-center gap-2';
-                    
-                    const nameLink = document.createElement('a');
-                    nameLink.href = `/radmapping/doctors/${doctor.id}`;
-                    nameLink.className = 'text-blue-600 hover:underline text-base';
-                    nameLink.textContent = doctor.name;
-                    
-                    nameDiv.appendChild(nameLink);
-                    if (doctor.reads_routines) {
-                        const routineSpan = document.createElement('span');
-                        routineSpan.className = 'inline-flex items-center justify-center text-xs font-bold text-purple-700 bg-purple-100 h-5 px-2 rounded';
-                        routineSpan.title = 'Routines';
-                        routineSpan.textContent = 'R';
-                        nameDiv.appendChild(routineSpan);
-                    }
-                    
-                    nameCell.appendChild(nameDiv);
-                    tr.appendChild(nameCell);
-                    
-                    // Add schedule cells for each day
-                    for (let day = 1; day <= daysInMonth; day++) {
-                        const date = new Date(year, month - 1, day);
-                        const dateStr = date.toISOString().split('T')[0];
-                        const dateCell = document.createElement('td');
-                        dateCell.className = 'px-6 py-1 align-top';
-                        dateCell.style.cssText = 'min-width: 220px; height: 32px;';
-                        
-                        if (dateStr === serverToday) {
-                            dateCell.classList.add('today-col');
-                        }
-                        
-                        const schedule = calendar[dateStr]?.[doctor.id];
-                        if (schedule) {
-                            const cellContent = document.createElement('div');
-                            cellContent.className = 'cell-content';
-                            cellContent.style.cursor = 'pointer';
-                            cellContent.onclick = () => openScheduleModal(
-                                doctor.id,
-                                dateStr,
-                                schedule.start_time || '',
-                                schedule.end_time || '',
-                                schedule.schedule_details || ''
-                            );
-                            
-                            const timeSpan = document.createElement('span');
-                            timeSpan.className = 'cell-time';
-                            
-                            const details = schedule.schedule_details || '';
-                            const detailsUpper = details.toUpperCase();
-                            
-                            if (detailsUpper === 'OFF') {
-                                timeSpan.innerHTML = '<span class="text-black">OFF</span>';
-                            } else if (detailsUpper === 'VACATION') {
-                                timeSpan.innerHTML = '<span class="text-black">VACATION</span>';
-                            } else if (detailsUpper === 'REACH AS NEEDED') {
-                                timeSpan.innerHTML = '<span class="text-black">REACH AS NEEDED</span>';
-                            } else {
-                                timeSpan.textContent = `${schedule.start_time || ''} - ${schedule.end_time || ''}`;
-                            }
-                            
-                            const descSpan = document.createElement('span');
-                            descSpan.className = 'cell-desc';
-                            descSpan.style.display = 'none';
-                            descSpan.textContent = details;
-                            
-                            cellContent.appendChild(timeSpan);
-                            cellContent.appendChild(descSpan);
-                            dateCell.appendChild(cellContent);
-                            
-                            if (isAdmin) {
-                                const deleteForm = document.createElement('form');
-                                deleteForm.method = 'POST';
-                                deleteForm.action = `/radmapping/doctors/${doctor.id}/delete_schedule`;
-                                deleteForm.className = 'mt-1';
-                                
-                                const inputs = [
-                                    { name: 'date', value: dateStr },
-                                    { name: 'year', value: year },
-                                    { name: 'month', value: month },
-                                    { name: 'start_day', value: 1 }
-                                ];
-                                
-                                inputs.forEach(input => {
-                                    const inputEl = document.createElement('input');
-                                    inputEl.type = 'hidden';
-                                    inputEl.name = input.name;
-                                    inputEl.value = input.value;
-                                    deleteForm.appendChild(inputEl);
-                                });
-                                
-                                const deleteButton = document.createElement('button');
-                                deleteButton.type = 'submit';
-                                deleteButton.className = 'text-red-600 hover:text-red-800 text-base font-semibold';
-                                deleteButton.textContent = 'Delete';
-                                
-                                deleteForm.appendChild(deleteButton);
-                                dateCell.appendChild(deleteForm);
-                            }
-                        } else if (isAdmin) {
-                            const addDiv = document.createElement('div');
-                            addDiv.onclick = () => openScheduleModal(doctor.id, dateStr, '', '', '');
-                            addDiv.className = 'w-full h-full cursor-pointer text-center text-blue-600 hover:text-blue-800 text-base font-semibold';
-                            addDiv.innerHTML = '&nbsp;';
-                            dateCell.appendChild(addDiv);
-                        }
-                        
-                        tr.appendChild(dateCell);
-                    }
-                    
-                    tbody.appendChild(tr);
-                });
-            });
-    }, 300);
+    });
 }
 
 function openScheduleModal(doctorId, date, startTime, endTime, details) {

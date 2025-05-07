@@ -909,7 +909,7 @@ def monthly():
 
     # Get pagination parameters for doctors
     start_doctor = request.args.get('start_doctor', default=0, type=int)
-    doctors_per_page = 15
+    doctors_per_page = 70
 
     # Get all doctors first
     all_doctors_res = supabase.table("radiologists") \
