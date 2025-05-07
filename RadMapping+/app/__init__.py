@@ -2,6 +2,7 @@ from flask import Flask, session, redirect, url_for
 from config import Config
 from datetime import datetime
 from dotenv import load_dotenv
+from .admin_required import admin_required
 
 
 def create_app():
@@ -10,7 +11,7 @@ def create_app():
     app.config.from_object(Config)
 
     from .auth.routes import auth_bp
-    from .dashboard.routes import dashboard_bp
+    from .general_routes.routes import dashboard_bp
 
     # Inject session into Jinja templates
     @app.context_processor

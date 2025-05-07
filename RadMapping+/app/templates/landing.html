@@ -15,7 +15,7 @@
         <div class="bg-white rounded-lg shadow-lg p-6">
             <h2 class="text-xl font-semibold text-blue-800 mb-4">Daily Operations</h2>
             <div class="space-y-3">
-                <a href="{{ url_for('dashboard.home') }}" class="block p-3 bg-blue-50 rounded-lg hover:bg-blue-100 transition-colors duration-200">
+                <a href="{{ url_for('dashboard.daily') }}" class="block p-3 bg-blue-50 rounded-lg hover:bg-blue-100 transition-colors duration-200">
                     <div class="flex items-center">
                         <i class="fas fa-calendar-day text-blue-600 text-xl mr-3"></i>
                         <div>
@@ -24,7 +24,7 @@
                         </div>
                     </div>
                 </a>
-                <a href="{{ url_for('dashboard.schedule') }}" class="block p-3 bg-blue-50 rounded-lg hover:bg-blue-100 transition-colors duration-200">
+                <a href="{{ url_for('dashboard.monthly') }}" class="block p-3 bg-blue-50 rounded-lg hover:bg-blue-100 transition-colors duration-200">
                     <div class="flex items-center">
                         <i class="fas fa-calendar-alt text-blue-600 text-xl mr-3"></i>
                         <div>
@@ -99,7 +99,7 @@
                         <p class="text-sm text-gray-600">View and manage today's radiologist assignments</p>
                     </div>
                 </div>
-                <a href="{{ url_for('dashboard.home') }}" class="text-blue-600 hover:text-blue-800">View Schedule →</a>
+                <a href="{{ url_for('dashboard.daily') }}" class="text-blue-600 hover:text-blue-800">View Schedule →</a>
             </div>
         </div>
     </div>

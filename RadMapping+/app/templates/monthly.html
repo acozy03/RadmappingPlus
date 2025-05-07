@@ -17,8 +17,8 @@
                 <option value="time">Time Only</option>
                 <option value="desc">Description Only</option>
             </select>
-            <a href="{{ url_for('dashboard.schedule', year=year if month > 1 else year-1, month=month-1 if month > 1 else 12, start_day=1) }}" class="text-blue-600 hover:underline">← Previous Month</a>
-            <a href="{{ url_for('dashboard.schedule', year=year if month < 12 else year+1, month=month+1 if month < 12 else 1, start_day=1) }}" class="text-blue-600 hover:underline">Next Month →</a>
+            <a href="{{ url_for('dashboard.monthly', year=year if month > 1 else year-1, month=month-1 if month > 1 else 12, start_day=1) }}" class="text-blue-600 hover:underline">← Previous Month</a>
+            <a href="{{ url_for('dashboard.monthly', year=year if month < 12 else year+1, month=month+1 if month < 12 else 1, start_day=1) }}" class="text-blue-600 hover:underline">Next Month →</a>
             {% if session.user.role == 'admin' %}
                 <button onclick="openToolsModal()" class="bg-blue-600 text-white px-4 py-2 rounded hover:bg-blue-700">
                     Scheduling Tools
@@ -146,13 +146,13 @@
         </div>
         <div class="flex gap-2">
             {% if start_doctor > 0 %}
-                <a href="{{ url_for('dashboard.schedule', year=year, month=month, start_day=1, start_doctor=start_doctor - 15) }}" 
+                <a href="{{ url_for('dashboard.monthly', year=year, month=month, start_day=1, start_doctor=start_doctor - 15) }}" 
                    class="px-4 py-2 border rounded hover:bg-gray-100 text-blue-600">
                     ← Previous Page
                 </a>
             {% endif %}
             {% if (start_doctor // 15) + 1 < total_pages %}
-                <a href="{{ url_for('dashboard.schedule', year=year, month=month, start_day=1, start_doctor=start_doctor + 15) }}" 
+                <a href="{{ url_for('dashboard.monthly', year=year, month=month, start_day=1, start_doctor=start_doctor + 15) }}" 
                    class="px-4 py-2 border rounded hover:bg-gray-100 text-blue-600">
                     Next Page →
                 </a>
@@ -427,12 +427,12 @@ function handleSearch() {
         const searchTerm = document.getElementById('searchInput').value;
         if (searchTerm.length === 0) {
             // If search is empty, reload the page to show all doctors
-            window.location.href = `{{ url_for('dashboard.schedule') }}?year={{ year }}&month={{ month }}&start_doctor=0`;
+            window.location.href = `{{ url_for('dashboard.monthly') }}?year={{ year }}&month={{ month }}&start_doctor=0`;
             return;
         }
         
         // Make a request to the server to search all doctors
-        fetch(`/dashboard/schedule/search?search=${encodeURIComponent(searchTerm)}`)
+        fetch(`/dashboard/monthly/search?search=${encodeURIComponent(searchTerm)}`)
             .then(response => response.json())
             .then(data => {
                 const tbody = document.querySelector('tbody');
@@ -737,7 +737,7 @@ function savePinnedDoctors() {
     return;
   }
 
-  fetch('/dashboard/schedule/pin', {
+  fetch('/dashboard/monthly/pin', {
     method: 'POST',
     headers: {
       'Content-Type': 'application/json',

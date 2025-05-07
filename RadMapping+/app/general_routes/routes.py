@@ -1,5 +1,5 @@
 from flask import Blueprint, render_template, session, redirect, url_for, request, jsonify
-from app.decorators import admin_required
+from app.admin_required import admin_required
 from app.supabase_client import supabase
 from datetime import datetime, timedelta
 from calendar import monthrange
@@ -20,9 +20,9 @@ def login_required(view_func):
     wrapper.__name__ = view_func.__name__
     return wrapper
 
-@dashboard_bp.route('/home')
+@dashboard_bp.route('/daily')
 @login_required
-def home():
+def daily():
     from collections import defaultdict
     from datetime import datetime, timedelta
 
@@ -184,7 +184,7 @@ def home():
         else:
             slot['day_label'] = slot['date']
 
-    return render_template("home.html",
+    return render_template("daily.html",
         user=user,
         today=today,
         prev_date=prev_date,
@@ -431,7 +431,7 @@ def update_schedule(rad_id):
     year = request.form.get("year")
     month = request.form.get("month")
     start_day = request.form.get("start_day")
-    return redirect(url_for("dashboard.schedule", year=year, month=month, start_day=start_day))
+    return redirect(url_for("dashboard.monthly", year=year, month=month, start_day=start_day))
 
 
 @dashboard_bp.route('/doctors/<string:rad_id>/delete_schedule', methods=["POST"])
@@ -447,7 +447,7 @@ def delete_schedule(rad_id):
     supabase.table("monthly_schedule").delete() \
         .eq("radiologist_id", rad_id).eq("start_date", date).eq("end_date", date).execute()
 
-    return redirect(url_for("dashboard.schedule", year=year, month=month, start_day=start_day))
+    return redirect(url_for("dashboard.monthly", year=year, month=month, start_day=start_day))
 
 
 @dashboard_bp.route('/doctors/<string:rad_id>/bulk_update_schedule', methods=["POST"])
@@ -944,9 +944,9 @@ def chat():
     return jsonify({'response': response_text})
 
 
-@dashboard_bp.route('/schedule')
+@dashboard_bp.route('/monthly')
 @login_required
-def schedule():
+def monthly():
     now = datetime.now()
     year = request.args.get("year", default=now.year, type=int)
     month = request.args.get("month", default=now.month, type=int)
@@ -1046,7 +1046,7 @@ def schedule():
         total_pages = (total_doctors + doctors_per_page - 1) // doctors_per_page
 
 
-    return render_template("schedule.html",
+    return render_template("monthly.html",
         doctors=doctors,
         window_dates=window_dates,
         year=year,
@@ -1066,7 +1066,7 @@ def schedule():
         all_doctors=all_doctors,
         pinned_doctors=pinned_doctor_ids)
 
-@dashboard_bp.route('/schedule/pin', methods=['POST'])
+@dashboard_bp.route('/monthly/pin', methods=['POST'])
 @login_required
 def pin_doctors():
     data = request.get_json()
@@ -1094,7 +1094,7 @@ def pin_doctors():
     
     return jsonify({'success': True})
 
-@dashboard_bp.route('/schedule/search', methods=["GET"])
+@dashboard_bp.route('/monthly/search', methods=["GET"])
 @login_required
 def search_schedule():
     page = request.args.get('page', 1, type=int)
@@ -1126,7 +1126,7 @@ def search_schedule():
         'per_page': per_page
     })
 
-@dashboard_bp.route('/schedule/bulk', methods=['POST'])
+@dashboard_bp.route('/monthly/bulk', methods=['POST'])
 @login_required
 def bulk_schedule():
     if session["user"]["role"] != "admin":
@@ -1191,9 +1191,9 @@ def bulk_schedule():
 
         current += timedelta(days=1)
 
-    return redirect(url_for("dashboard.schedule"))
+    return redirect(url_for("dashboard.monthly"))
 
-@dashboard_bp.route('/schedule/pattern', methods=['POST'])
+@dashboard_bp.route('/monthly/pattern', methods=['POST'])
 @login_required
 def pattern_schedule():
     if session["user"]["role"] != "admin":
@@ -1262,7 +1262,7 @@ def pattern_schedule():
 
         current += timedelta(days=1)
 
-    return redirect(url_for("dashboard.schedule"))
+    return redirect(url_for("dashboard.monthly"))
 
 @dashboard_bp.route('/info')
 @login_required

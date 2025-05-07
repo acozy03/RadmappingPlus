@@ -330,7 +330,7 @@ function savePinnedDoctors() {
     alert('You can only pin up to 15 doctors.');
     return;
   }
-  fetch('/dashboard/schedule/pin', {
+  fetch('/dashboard/monthly/pin', {
     method: 'POST',
     headers: {
       'Content-Type': 'application/json',
