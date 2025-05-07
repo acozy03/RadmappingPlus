@@ -11,11 +11,6 @@
 {% block content %}
 <div class="flex justify-between items-center mb-6 border-b pb-2">
   <h2 class="text-2xl font-semibold">Doctor Directory</h2>
-  {% if session.user.role == 'admin' %}
-  <button onclick="openAddDoctorModal()" class="bg-blue-600 text-white px-4 py-2 rounded text-sm font-medium">
-    Add Doctor
-  </button>
-  {% endif %}
 </div>
 
 <!-- Search and Status Filter Row -->
@@ -35,7 +30,7 @@
       All
     </button>
     <button onclick="filterByStatus('active')"
-            class="px-4 py-2 rounded text-sm font-medium bg-gray-100 hover:bg-gray-200 active-filter bg-blue-600 text-white"
+            class="px-4 py-2 rounded text-sm font-medium bg-blue-600 text-white active-filter"
             data-status="active">
       Active
     </button>
@@ -89,80 +84,10 @@
   </div>
 </div>
 
-<!-- Add Doctor Modal -->
-<div id="addDoctorModal" class="fixed inset-0 z-50 hidden bg-black bg-opacity-50 flex items-center justify-center">
-  <div class="bg-white rounded-lg shadow-lg w-[90%] max-w-2xl max-h-[90vh] overflow-y-auto p-6 relative">
-    <button onclick="closeAddDoctorModal()" class="absolute top-2 right-2 text-2xl font-bold text-gray-500 hover:text-black">×</button>
-    <h3 class="text-xl font-semibold mb-4">Add New Doctor</h3>
-
-    <form method="POST" action="{{ url_for('dashboard.add_doctor') }}" class="space-y-4">
-      <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
-        <label class="block">
-          <span class="text-sm font-medium text-gray-700">Name*</span>
-          <input type="text" name="name" required class="mt-1 w-full border rounded px-3 py-2 text-sm">
-        </label>
-
-        <label class="block">
-          <span class="text-sm font-medium text-gray-700">Email*</span>
-          <input type="email" name="email" required class="mt-1 w-full border rounded px-3 py-2 text-sm">
-        </label>
-
-        <label class="block">
-          <span class="text-sm font-medium text-gray-700">Phone</span>
-          <input type="tel" name="phone" class="mt-1 w-full border rounded px-3 py-2 text-sm">
-        </label>
-
-        <label class="block">
-          <span class="text-sm font-medium text-gray-700">PACS</span>
-          <input type="text" name="pacs" class="mt-1 w-full border rounded px-3 py-2 text-sm">
-        </label>
-
-        <label class="block">
-          <span class="text-sm font-medium text-gray-700">Primary Contact Method</span>
-          <select name="primary_contact_method" class="mt-1 w-full border rounded px-3 py-2 text-sm">
-            <option value="">Select method...</option>
-            <option value="email">Email</option>
-            <option value="phone">Phone</option>
-            <option value="pacs">PACS</option>
-          </select>
-        </label>
-
-        <label class="block">
-          <span class="text-sm font-medium text-gray-700">Timezone</span>
-          <input type="text" name="timezone" placeholder="EST" class="mt-1 w-full border rounded px-3 py-2 text-sm">
-        </label>
-
-        <label class="block col-span-2">
-          <span class="text-sm font-medium text-gray-700">Modalities</span>
-          <input type="text" name="modalities" placeholder="e.g., CT, MRI, X-Ray" class="mt-1 w-full border rounded px-3 py-2 text-sm">
-        </label>
-
-        <label class="block col-span-2">
-          <span class="text-sm font-medium text-gray-700">Additional Info</span>
-          <textarea name="additional_info" rows="3" class="mt-1 w-full border rounded px-3 py-2 text-sm"></textarea>
-        </label>
-
-        <div class="col-span-2">
-          <label class="flex items-center space-x-2">
-            <input type="checkbox" name="active_status" value="true" checked class="form-checkbox h-5 w-5 text-blue-600">
-            <span class="text-sm font-medium">Active Status</span>
-          </label>
-        </div>
-      </div>
-
-      <div class="flex justify-end pt-4 border-t">
-        <button type="submit" class="bg-blue-600 text-white px-4 py-2 rounded text-sm font-medium">
-          Add Doctor
-        </button>
-      </div>
-    </form>
-  </div>
-</div>
-
 <script>
-let currentPage = {{ current_page }};
-const itemsPerPage = {{ per_page }};
-let totalCount = {{ total_count }};
+let currentPage = parseInt("{{ current_page }}", 10);
+const itemsPerPage = parseInt("{{ per_page }}", 10);
+let totalCount = parseInt("{{ total_count }}", 10);
 let searchTimeout;
 let currentStatusFilter = 'active';
 
@@ -179,7 +104,9 @@ function filterByStatus(status) {
   // Update button styles
   document.querySelectorAll('[data-status]').forEach(button => {
     button.classList.remove('active-filter', 'bg-blue-600', 'text-white');
+    button.classList.add('bg-gray-100', 'text-black');
     if (button.dataset.status === status) {
+      button.classList.remove('bg-gray-100', 'text-black');
       button.classList.add('active-filter', 'bg-blue-600', 'text-white');
     }
   });
@@ -274,14 +201,6 @@ function hidePopup(element) {
     popup.classList.remove('opacity-100');
     popup.classList.add('opacity-0');
   }
-}
-
-function openAddDoctorModal() {
-  document.getElementById('addDoctorModal').classList.remove('hidden');
-}
-
-function closeAddDoctorModal() {
-  document.getElementById('addDoctorModal').classList.add('hidden');
 }
 
 window.addEventListener('DOMContentLoaded', () => {
