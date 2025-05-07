@@ -362,95 +362,86 @@ function applyDateTimeFilter() {
 }
 
 function filterDoctors() {
-  filterByCustomRange();
   const searchTerm = document.getElementById('doctorSearch').value.toLowerCase();
+  const startSelect = document.getElementById("startHour");
+  const endSelect = document.getElementById("endHour");
+
   const isToday = "{{ today }}" === new Date().toISOString().split('T')[0];
   const currentHour = new Date().getHours();
-  
-  // Get the current hour range filter values
-  const startHour = parseInt(document.getElementById("startHour").value, 10);
-  const endHour = parseInt(document.getElementById("endHour").value, 10);
-  
-  // Search in timezone popups
-  const doctorItems = document.querySelectorAll('.doctor-item');
-  doctorItems.forEach(item => {
-    const doctorName = item.querySelector('.doctor-name').textContent.toLowerCase();
-    if (doctorName.includes(searchTerm)) {
-      item.style.display = '';
-    } else {
-      item.style.display = 'none';
+
+  if (searchTerm) {
+    // Expand hour range to full day on search
+    if (startSelect.value !== "0" || endSelect.value !== "23") {
+      startSelect.value = "0";
+      endSelect.value = "23";
+      filterByCustomRange();
     }
+  } else {
+    // Reset to original hour range
+    if (isToday) {
+      setInitialHourFilter();
+    } else {
+      startSelect.value = "0";
+      endSelect.value = "23";
+      filterByCustomRange();
+    }
+  }
+
+
+  const startHour = parseInt(startSelect.value, 10);
+  const endHour = parseInt(endSelect.value, 10);
+
+  // Filter timezone popups
+  document.querySelectorAll('.doctor-item').forEach(item => {
+    const doctorName = item.querySelector('.doctor-name').textContent.toLowerCase();
+    item.style.display = doctorName.includes(searchTerm) ? '' : 'none';
   });
 
-  // Search in main schedule
+  // Filter main schedule
   const scheduleItems = document.querySelectorAll('[id^="hour-"] li');
   scheduleItems.forEach(item => {
     const doctorName = item.querySelector('a').textContent.toLowerCase();
     const hourBlock = item.closest('[id^="hour-"]');
+    item.style.display = doctorName.includes(searchTerm) ? '' : 'none';
     if (doctorName.includes(searchTerm)) {
-      item.style.display = '';
-      if (hourBlock) {
-        hourBlock.style.display = 'block';
-      }
-    } else {
-      item.style.display = 'none';
+      hourBlock.style.display = 'block';
     }
   });
 
-  // Handle hour blocks visibility
+  // Adjust hour block visibility
   document.querySelectorAll('[id^="hour-"]').forEach(hourBlock => {
-    const visibleItems = hourBlock.querySelectorAll('li[style=""]').length;
+    const visibleItems = hourBlock.querySelectorAll('li:not([style*="display: none"])').length;
     const hourIndex = parseInt(hourBlock.id.split('-')[1]);
-    
-    // Check if this hour is within the current filter range
-    const isInRange = startHour <= endHour ? 
-      (hourIndex >= startHour && hourIndex <= endHour) : 
-      (hourIndex >= startHour || hourIndex <= endHour);
-    
+
+    const isInRange = startHour <= endHour
+      ? (hourIndex >= startHour && hourIndex <= endHour)
+      : (hourIndex >= startHour || hourIndex <= endHour);
+
     if (!isInRange) {
       hourBlock.style.display = 'none';
       return;
     }
-    
-    // Always show current hour block if it's today and in range
+
     if (isToday && hourIndex === currentHour) {
       hourBlock.style.display = 'block';
       hourBlock.classList.add("ring-2", "ring-blue-200", "ring-offset-2");
-      
-      // If there's a search term and no visible items, show a message
-      if (searchTerm && visibleItems === 0) {
+
+      const existingMsg = hourBlock.querySelector('.no-results-message');
+      if (searchTerm && visibleItems === 0 && !existingMsg) {
         const noResultsMsg = document.createElement('p');
-        noResultsMsg.className = 'text-sm italic text-gray-400';
+        noResultsMsg.className = 'text-sm italic text-gray-400 no-results-message';
         noResultsMsg.textContent = 'No matching doctors in this hour.';
-        
-        // Remove any existing message
-        const existingMsg = hourBlock.querySelector('.no-results-message');
-        if (existingMsg) {
-          existingMsg.remove();
-        }
-        
-        noResultsMsg.classList.add('no-results-message');
         hourBlock.appendChild(noResultsMsg);
-      } else {
-        // Remove the message if there are results
-        const existingMsg = hourBlock.querySelector('.no-results-message');
-        if (existingMsg) {
-          existingMsg.remove();
-        }
+      } else if (visibleItems > 0 && existingMsg) {
+        existingMsg.remove();
       }
     } else {
-      // For other hour blocks, hide if empty
-      if (visibleItems === 0) {
-        hourBlock.style.display = 'none';
-      } else {
-        hourBlock.style.display = 'block';
-      }
-      // Remove highlighting from non-current hours
       hourBlock.classList.remove("ring-2", "ring-blue-200", "ring-offset-2");
+      hourBlock.style.display = visibleItems > 0 ? 'block' : 'none';
     }
   });
-
 }
+
 
 </script>
 
