@@ -1871,3 +1871,15 @@ def assign_radiologist(facility_id):
      }
      supabase.table("doctor_facility_assignments").insert(data).execute()
      return redirect(url_for("dashboard.facility_profile", facility_id=facility_id))
+
+@dashboard_bp.route('/facilities/<facility_id>/remove', methods=['POST'])
+@admin_required
+def remove_facility(facility_id):
+    supabase.table('facilities').delete().eq('id', facility_id).execute()
+    return redirect(url_for('dashboard.facilities'))
+
+@dashboard_bp.route('/doctors/<rad_id>/remove', methods=['POST'])
+@admin_required
+def remove_doctor(rad_id):
+    supabase.table('radiologists').delete().eq('id', rad_id).execute()
+    return redirect(url_for('dashboard.doctor_list'))

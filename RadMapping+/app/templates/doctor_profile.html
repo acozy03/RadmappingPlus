@@ -683,6 +683,15 @@
   }
   </style>
 
+  {% if session.user.role == 'admin' %}
+  <form method="POST" action="{{ url_for('dashboard.remove_doctor', rad_id=doctor.id) }}" onsubmit="return confirm('Are you sure you want to remove this doctor? This action cannot be undone.');" class="mt-4">
+    <button type="submit" class="inline-flex items-center gap-2 px-5 py-2 bg-red-600 text-white rounded-lg shadow hover:bg-red-700 transition text-base font-semibold focus:outline-none focus:ring-2 focus:ring-red-400">
+      <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/></svg>
+      Remove Doctor
+    </button>
+  </form>
+  {% endif %}
+
 </div>
 
 {% endblock %}
