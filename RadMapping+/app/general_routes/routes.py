@@ -1097,34 +1097,57 @@ def pin_doctors():
 @dashboard_bp.route('/monthly/search', methods=["GET"])
 @login_required
 def search_schedule():
+    from collections import defaultdict
+    import calendar as pycalendar
+
     page = request.args.get('page', 1, type=int)
     per_page = 25
     offset = (page - 1) * per_page
-    
-    # Get search term
-    search_term = request.args.get('search', '')
-    
-    # Build query
+
+    search_term = request.args.get('search', '').strip()
+    year = request.args.get('year', datetime.now().year, type=int)
+    month = request.args.get('month', datetime.now().month, type=int)
+
+    # Build base query
     query = supabase.table("radiologists").select("*")
-    
+
     if search_term:
         query = query.ilike('name', f'%{search_term}%')
+
+    # Get all matching doctors (for calendar filtering)
+    full_result = query.execute()
+    all_matches = full_result.data
+    total_count = len(all_matches)
+
+    # Paginate for the UI
+    paginated_matches = sorted(all_matches, key=lambda d: d['name'])[offset:offset + per_page]
+
+    matched_ids = [doc["id"] for doc in paginated_matches]
     
-    # Get total count for pagination
-    count_res = query.execute()
-    total_count = len(count_res.data)
+    # Get calendar range
+    first_day = datetime(year, month, 1).date()
+    last_day = datetime(year, month, pycalendar.monthrange(year, month)[1]).date()
+
+    # Fetch monthly schedule for matched doctors
+    schedule_resp = supabase.table("monthly_schedule") \
+        .select("*") \
+        .gte("start_date", first_day.isoformat()) \
+        .lte("start_date", last_day.isoformat()) \
+        .in_("radiologist_id", matched_ids) \
+        .execute()
     
-    # Get paginated results
-    query = query.order("name") \
-                .range(offset, offset + per_page - 1)
-    results = query.execute()
-    
+    calendar_data = defaultdict(dict)
+    for row in schedule_resp.data:
+        calendar_data[row['start_date']][row['radiologist_id']] = row
+
     return jsonify({
-        'doctors': results.data,
+        'doctors': paginated_matches,
         'total_count': total_count,
         'current_page': page,
-        'per_page': per_page
+        'per_page': per_page,
+        'calendar': calendar_data
     })
+
 
 @dashboard_bp.route('/monthly/bulk', methods=['POST'])
 @login_required

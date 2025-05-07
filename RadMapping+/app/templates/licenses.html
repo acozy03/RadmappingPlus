@@ -73,7 +73,11 @@
             class="hover:bg-opacity-80 {% if is_expired %}bg-red-50{% else %}bg-green-50{% endif %}"
             data-doctor-id="{{ cert.radiologist_id }}">
           <td class="px-6 py-4 border">
-            <span class="view-mode">{{ cert.radiologists.name }}</span>
+            <span class="view-mode">
+              <a href="/radmapping/doctors/{{ cert.radiologist_id }}" class="text-blue-700 hover:underline">
+                {{ cert.radiologists.name }}
+              </a>
+            </span>
             <select class="edit-mode hidden w-full px-2 py-1 border rounded">
               {% for rad in radiologists %}
               <option value="{{ rad.id }}" {% if rad.id == cert.radiologist_id %}selected{% endif %}>{{ rad.name }}</option>
@@ -197,9 +201,12 @@ function updateTable(certifications) {
     ).join('');
     
     row.innerHTML = `
-   
       <td class="px-6 py-4 border">
-        <span class="view-mode">${cert.radiologists.name}</span>
+        <span class="view-mode">
+          <a href="/radmapping/doctors/${cert.radiologist_id}" class="text-blue-700 hover:underline">
+            ${cert.radiologists.name}
+          </a>
+        </span>
         <select class="edit-mode hidden w-full px-2 py-1 border rounded">
           ${doctorOptions}
         </select>
@@ -229,7 +236,7 @@ function updateTable(certifications) {
         <span class="view-mode">${cert.expiration_date}</span>
         <input type="date" class="edit-mode hidden w-full px-2 py-1 border rounded" value="${cert.expiration_date}">
       </td>
-       {% if session.user.role == 'admin' %}
+      {% if session.user.role == 'admin' %}
       <td class="px-6 py-4 border">
         <div class="view-mode">
           <button onclick="toggleEditMode('${cert.id}')" class="text-blue-600 hover:text-blue-900 mr-3">Edit</button>

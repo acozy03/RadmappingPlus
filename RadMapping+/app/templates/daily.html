@@ -67,6 +67,15 @@
      
     </div>
 
+    <!-- Search Box -->
+    <div class="flex-1 max-w-md">
+      <input type="text"
+             id="doctorSearch"
+             placeholder="Search doctors..."
+             class="w-full p-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+             onkeyup="filterDoctors()" />
+    </div>
+
     <!-- Timezone Display -->
     <div class="flex flex-wrap gap-2 sm:gap-3 w-full md:w-auto">
       {% for zone in ["EST", "CST", "PST", "UTC"] %}
@@ -84,8 +93,8 @@
             {% if tz_docs %}
               <ul class="space-y-2 max-h-60 overflow-y-auto">
                 {% for doc in tz_docs %}
-                <li class="text-sm">
-                  <a href="{{ url_for('dashboard.doctor_profile', rad_id=doc.id) }}" target="_blank" class="hover:underline text-blue-700 font-medium">
+                <li class="text-sm doctor-item">
+                  <a href="{{ url_for('dashboard.doctor_profile', rad_id=doc.id) }}" target="_blank" class="hover:underline text-blue-700 font-medium doctor-name">
                     {{ doc.name }}
                   </a>
                   {% if doc.id in doctors_currently_on_shift_ids %}
@@ -354,6 +363,97 @@ function applyDateTimeFilter() {
   }
   // Optionally, add logic to filter the hour slots here
   // ...
+}
+
+function filterDoctors() {
+  filterByCustomRange();
+  const searchTerm = document.getElementById('doctorSearch').value.toLowerCase();
+  const isToday = "{{ today }}" === new Date().toISOString().split('T')[0];
+  const currentHour = new Date().getHours();
+  
+  // Get the current hour range filter values
+  const startHour = parseInt(document.getElementById("startHour").value, 10);
+  const endHour = parseInt(document.getElementById("endHour").value, 10);
+  
+  // Search in timezone popups
+  const doctorItems = document.querySelectorAll('.doctor-item');
+  doctorItems.forEach(item => {
+    const doctorName = item.querySelector('.doctor-name').textContent.toLowerCase();
+    if (doctorName.includes(searchTerm)) {
+      item.style.display = '';
+    } else {
+      item.style.display = 'none';
+    }
+  });
+
+  // Search in main schedule
+  const scheduleItems = document.querySelectorAll('[id^="hour-"] li');
+  scheduleItems.forEach(item => {
+    const doctorName = item.querySelector('a').textContent.toLowerCase();
+    const hourBlock = item.closest('[id^="hour-"]');
+    if (doctorName.includes(searchTerm)) {
+      item.style.display = '';
+      if (hourBlock) {
+        hourBlock.style.display = 'block';
+      }
+    } else {
+      item.style.display = 'none';
+    }
+  });
+
+  // Handle hour blocks visibility
+  document.querySelectorAll('[id^="hour-"]').forEach(hourBlock => {
+    const visibleItems = hourBlock.querySelectorAll('li[style=""]').length;
+    const hourIndex = parseInt(hourBlock.id.split('-')[1]);
+    
+    // Check if this hour is within the current filter range
+    const isInRange = startHour <= endHour ? 
+      (hourIndex >= startHour && hourIndex <= endHour) : 
+      (hourIndex >= startHour || hourIndex <= endHour);
+    
+    if (!isInRange) {
+      hourBlock.style.display = 'none';
+      return;
+    }
+    
+    // Always show current hour block if it's today and in range
+    if (isToday && hourIndex === currentHour) {
+      hourBlock.style.display = 'block';
+      hourBlock.classList.add("ring-2", "ring-blue-200", "ring-offset-2");
+      
+      // If there's a search term and no visible items, show a message
+      if (searchTerm && visibleItems === 0) {
+        const noResultsMsg = document.createElement('p');
+        noResultsMsg.className = 'text-sm italic text-gray-400';
+        noResultsMsg.textContent = 'No matching doctors in this hour.';
+        
+        // Remove any existing message
+        const existingMsg = hourBlock.querySelector('.no-results-message');
+        if (existingMsg) {
+          existingMsg.remove();
+        }
+        
+        noResultsMsg.classList.add('no-results-message');
+        hourBlock.appendChild(noResultsMsg);
+      } else {
+        // Remove the message if there are results
+        const existingMsg = hourBlock.querySelector('.no-results-message');
+        if (existingMsg) {
+          existingMsg.remove();
+        }
+      }
+    } else {
+      // For other hour blocks, hide if empty
+      if (visibleItems === 0) {
+        hourBlock.style.display = 'none';
+      } else {
+        hourBlock.style.display = 'block';
+      }
+      // Remove highlighting from non-current hours
+      hourBlock.classList.remove("ring-2", "ring-blue-200", "ring-offset-2");
+    }
+  });
+
 }
 
 </script>
