@@ -7,10 +7,19 @@
     <div class="mb-8">
         <h1 class="text-3xl font-bold text-blue-800 mb-2">General Information</h1>
         <p class="text-gray-600">Important information and guidelines for the radiology department.</p>
+        
+        <!-- Search Bar -->
+        <div class="mt-4">
+            <input type="text" 
+                   id="infoSearch" 
+                   placeholder="Search information..." 
+                   class="w-full p-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                   onkeyup="filterInfo()">
+        </div>
     </div>
 
     <!-- Information Sections -->
-    <div class="space-y-8">
+    <div class="space-y-8" id="infoSections">
         <!-- Weekend Cosigns -->
         <section class="bg-white rounded-lg shadow p-6">
             <h2 class="text-xl font-semibold text-blue-800 mb-4">Weekend Cosigns</h2>
@@ -169,4 +178,32 @@
         </section>
     </div>
 </div>
+
+<script>
+function filterInfo() {
+    const searchTerm = document.getElementById('infoSearch').value.toLowerCase();
+    const sections = document.querySelectorAll('#infoSections > section');
+    
+    sections.forEach(section => {
+        const title = section.querySelector('h2').textContent.toLowerCase();
+        const content = section.textContent.toLowerCase();
+        
+        if (title.includes(searchTerm) || content.includes(searchTerm)) {
+            section.style.display = 'block';
+            
+            // Highlight matching text if there's a search term
+            if (searchTerm) {
+                const paragraphs = section.querySelectorAll('p, li');
+                paragraphs.forEach(p => {
+                    const text = p.textContent;
+                    const regex = new RegExp(searchTerm, 'gi');
+                    p.innerHTML = text.replace(regex, match => `<span class="bg-yellow-200">${match}</span>`);
+                });
+            }
+        } else {
+            section.style.display = 'none';
+        }
+    });
+}
+</script>
 {% endblock %} 

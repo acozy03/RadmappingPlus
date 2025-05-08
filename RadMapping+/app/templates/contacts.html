@@ -7,6 +7,15 @@
     <div class="mb-8">
         <h1 class="text-3xl font-bold text-blue-800 mb-2">Contact Information</h1>
         <p class="text-gray-600">Important contact information for Vesta departments and support teams.</p>
+        
+        <!-- Search Bar -->
+        <div class="mt-4">
+            <input type="text" 
+                   id="contactSearch" 
+                   placeholder="Search contacts..." 
+                   class="w-full p-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                   onkeyup="filterContacts()">
+        </div>
     </div>
 
     {% if session["user"]["role"] == "admin" %}
@@ -20,7 +29,7 @@
     {% endif %}
 
     <!-- Contact Sections -->
-    <div class="space-y-8">
+    <div class="space-y-8" id="contactSections">
         {% for department in departments %}
         <section class="bg-white rounded-lg shadow p-6">
             <h2 class="text-xl font-semibold text-blue-800 mb-4">{{ department }}</h2>
@@ -187,6 +196,44 @@ function deleteContact(contactId) {
             window.location.reload();
         });
     }
+}
+
+function filterContacts() {
+    const searchTerm = document.getElementById('contactSearch').value.toLowerCase();
+    const sections = document.querySelectorAll('#contactSections > section');
+    
+    sections.forEach(section => {
+        const rows = section.querySelectorAll('tbody tr');
+        let hasVisibleRows = false;
+        
+        rows.forEach(row => {
+            const cells = row.querySelectorAll('td');
+            let isVisible = false;
+            
+            cells.forEach(cell => {
+                const text = cell.textContent.toLowerCase();
+                if (text.includes(searchTerm)) {
+                    isVisible = true;
+                    
+                    // Highlight matching text if there's a search term
+                    if (searchTerm) {
+                        const viewMode = cell.querySelector('.view-mode');
+                        if (viewMode) {
+                            const text = viewMode.textContent;
+                            const regex = new RegExp(searchTerm, 'gi');
+                            viewMode.innerHTML = text.replace(regex, match => `<span class="bg-yellow-200">${match}</span>`);
+                        }
+                    }
+                }
+            });
+            
+            row.style.display = isVisible ? '' : 'none';
+            if (isVisible) hasVisibleRows = true;
+        });
+        
+        // Show/hide the entire section based on whether it has any visible rows
+        section.style.display = hasVisibleRows ? '' : 'none';
+    });
 }
 </script>
 {% endblock %} 
