@@ -23,7 +23,7 @@ def login():
 
         if user["password"] == password:
             session["user"] = {"email": user["email"], "role": user["role"]}
-            return redirect(url_for("dashboard.daily"))
+            return redirect(url_for("daily.daily"))
 
         return "Invalid credentials", 401
 

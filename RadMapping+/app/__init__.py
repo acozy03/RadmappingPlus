@@ -10,15 +10,26 @@ def create_app():
     app = Flask(__name__)
     app.config.from_object(Config)
 
-    from .auth.routes import auth_bp
-    from .general_routes.routes import dashboard_bp
+    from .routes import (
+        daily_bp,
+        monthly_bp,
+        doctors_bp,
+        facilities_bp,
+        specialties_bp,
+        chat_bp,
+        vacations_bp,
+        info_bp,
+        landing_bp,
+        contacts_bp,
+        visualize_bp,
+        licenses_bp,
+        auth_bp
+    )
 
     # Inject session into Jinja templates
     @app.context_processor
     def inject_session():
         return dict(session=session)
-
-
 
     # Inject 'now' into Jinja templates
     @app.context_processor
@@ -60,13 +71,24 @@ def create_app():
 
     # Register blueprints
     app.register_blueprint(auth_bp, url_prefix='/auth')
-    app.register_blueprint(dashboard_bp, url_prefix='/radmapping')
+    app.register_blueprint(daily_bp, url_prefix='/radmapping')
+    app.register_blueprint(monthly_bp, url_prefix='/radmapping')
+    app.register_blueprint(doctors_bp, url_prefix='/radmapping')
+    app.register_blueprint(facilities_bp, url_prefix='/radmapping')
+    app.register_blueprint(specialties_bp, url_prefix='/radmapping')
+    app.register_blueprint(chat_bp, url_prefix='/radmapping')
+    app.register_blueprint(vacations_bp, url_prefix='/radmapping')
+    app.register_blueprint(info_bp, url_prefix='/radmapping')
+    app.register_blueprint(landing_bp, url_prefix='/radmapping')
+    app.register_blueprint(contacts_bp, url_prefix='/radmapping')
+    app.register_blueprint(visualize_bp, url_prefix='/radmapping')
+    app.register_blueprint(licenses_bp, url_prefix='/radmapping')
 
     # Redirect root URL to login or landing page
     @app.route('/')
     def index():
         if "user" in session:
-            return redirect(url_for("dashboard.landing"))
+            return redirect(url_for("landing.landing"))
         return redirect(url_for("auth.login"))
 
     return app

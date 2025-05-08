@@ -75,7 +75,7 @@
 <div id="addVacationModal" class="fixed inset-0 z-50 hidden bg-black bg-opacity-50 flex items-center justify-center">
     <div class="bg-white rounded-lg shadow-lg w-[90%] max-w-md p-6">
         <h3 class="text-lg font-semibold mb-4">Add Vacation</h3>
-        <form method="POST" action="{{ url_for('dashboard.add_vacation') }}" class="space-y-4">
+        <form method="POST" action="{{ url_for('vacations.add_vacation') }}" class="space-y-4">
             <div>
                 <label class="block text-sm font-medium text-gray-700">Doctor</label>
                 <select name="radiologist_id" required class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500">
@@ -113,7 +113,7 @@
 <div id="editVacationModal" class="fixed inset-0 z-50 hidden bg-black bg-opacity-50 flex items-center justify-center">
     <div class="bg-white rounded-lg shadow-lg w-[90%] max-w-md p-6">
         <h3 class="text-lg font-semibold mb-4">Edit Vacation</h3>
-        <form method="POST" action="{{ url_for('dashboard.update_vacation') }}" class="space-y-4">
+        <form method="POST" action="{{ url_for('vacations.update_vacation') }}" class="space-y-4">
             <input type="hidden" name="vacation_id" id="editVacationId">
             <div>
                 <label class="block text-sm font-medium text-gray-700">Doctor</label>
@@ -168,7 +168,7 @@ function closeEditVacationModal() {
 
 function deleteVacation(vacationId) {
     if (confirm('Are you sure you want to delete this vacation?')) {
-        fetch(`{{ url_for('dashboard.delete_vacation') }}`, {
+        fetch(`{{ url_for('vacations.delete_vacation') }}`, {
             method: 'POST',
             headers: {
                 'Content-Type': 'application/json',

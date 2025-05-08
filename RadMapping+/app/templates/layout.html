@@ -16,23 +16,23 @@
         <div class="flex h-16 items-center justify-between">
           <!-- Logo -->
           <div class="flex-shrink-0">
-            <a href="{{ url_for('dashboard.landing') }}" class="text-lg font-medium text-blue-600">
+            <a href="{{ url_for('landing.landing') }}" class="text-lg font-medium text-blue-600">
               RadMapping+
             </a>
           </div>
 
           <!-- Navigation Links -->
           <div class="hidden md:flex items-center space-x-6">
-            <a href="{{ url_for('dashboard.daily') }}" class="px-2 py-2 text-sm font-medium {% if request.endpoint == 'dashboard.daily' %}text-blue-600 border-b-2 border-blue-600{% else %}text-gray-500 hover:text-blue-600 hover:border-b-2 hover:border-blue-600{% endif %}">Daily Schedule</a>
-            <a href="{{ url_for('dashboard.monthly') }}" class="px-2 py-2 text-sm font-medium {% if request.endpoint == 'dashboard.monthly' %}text-blue-600 border-b-2 border-blue-600{% else %}text-gray-500 hover:text-blue-600 hover:border-b-2 hover:border-blue-600{% endif %}">Monthly Schedule</a>
-            <a href="{{ url_for('dashboard.doctor_list') }}" class="px-2 py-2 text-sm font-medium {% if request.endpoint == 'dashboard.doctor_list' %}text-blue-600 border-b-2 border-blue-600{% else %}text-gray-500 hover:text-blue-600 hover:border-b-2 hover:border-blue-600{% endif %}">Doctors</a>
-            <a href="{{ url_for('dashboard.facilities') }}" class="px-2 py-2 text-sm font-medium {% if request.endpoint == 'dashboard.facilities' %}text-blue-600 border-b-2 border-blue-600{% else %}text-gray-500 hover:text-blue-600 hover:border-b-2 hover:border-blue-600{% endif %}">Facilities</a>
-            <a href="{{ url_for('dashboard.specialties') }}" class="px-2 py-2 text-sm font-medium {% if request.endpoint == 'dashboard.specialties' %}text-blue-600 border-b-2 border-blue-600{% else %}text-gray-500 hover:text-blue-600 hover:border-b-2 hover:border-blue-600{% endif %}">Specialties</a>
-            <a href="{{ url_for('dashboard.licenses_page') }}" class="px-2 py-2 text-sm font-medium {% if request.endpoint == 'dashboard.licenses_page' %}text-blue-600 border-b-2 border-blue-600{% else %}text-gray-500 hover:text-blue-600 hover:border-b-2 hover:border-blue-600{% endif %}">Licenses</a>
-            <a href="{{ url_for('dashboard.vacations_page') }}" class="px-2 py-2 text-sm font-medium {% if request.endpoint == 'dashboard.vacations_page' %}text-blue-600 border-b-2 border-blue-600{% else %}text-gray-500 hover:text-blue-600 hover:border-b-2 hover:border-blue-600{% endif %}">Vacations</a>
-            <a href="{{ url_for('dashboard.info') }}" class="px-2 py-2 text-sm font-medium {% if request.endpoint == 'dashboard.info' %}text-blue-600 border-b-2 border-blue-600{% else %}text-gray-500 hover:text-blue-600 hover:border-b-2 hover:border-blue-600{% endif %}">Information</a>
-            <!-- <a href="{{ url_for('dashboard.visualize') }}" class="px-2 py-2 text-sm font-medium {% if request.endpoint == 'dashboard.visualize' %}text-blue-600 border-b-2 border-blue-600{% else %}text-gray-500 hover:text-blue-600 hover:border-b-2 hover:border-blue-600{% endif %}">Visualize</a> -->
-            <a href="{{ url_for('dashboard.contacts') }}" class="px-2 py-2 text-sm font-medium {% if request.endpoint == 'dashboard.contacts' %}text-blue-600 border-b-2 border-blue-600{% else %}text-gray-500 hover:text-blue-600 hover:border-b-2 hover:border-blue-600{% endif %}">Contacts</a>
+            <a href="{{ url_for('daily.daily') }}" class="px-2 py-2 text-sm font-medium {% if request.endpoint == 'daily.daily' %}text-blue-600 border-b-2 border-blue-600{% else %}text-gray-500 hover:text-blue-600 hover:border-b-2 hover:border-blue-600{% endif %}">Daily Schedule</a>
+            <a href="{{ url_for('monthly.monthly') }}" class="px-2 py-2 text-sm font-medium {% if request.endpoint == 'monthly.monthly' %}text-blue-600 border-b-2 border-blue-600{% else %}text-gray-500 hover:text-blue-600 hover:border-b-2 hover:border-blue-600{% endif %}">Monthly Schedule</a>
+            <a href="{{ url_for('doctors.doctor_list') }}" class="px-2 py-2 text-sm font-medium {% if request.endpoint == 'doctors.doctor_list' %}text-blue-600 border-b-2 border-blue-600{% else %}text-gray-500 hover:text-blue-600 hover:border-b-2 hover:border-blue-600{% endif %}">Doctors</a>
+            <a href="{{ url_for('facilities.facilities') }}" class="px-2 py-2 text-sm font-medium {% if request.endpoint == 'facilities.facilities' %}text-blue-600 border-b-2 border-blue-600{% else %}text-gray-500 hover:text-blue-600 hover:border-b-2 hover:border-blue-600{% endif %}">Facilities</a>
+            <a href="{{ url_for('specialties.specialties') }}" class="px-2 py-2 text-sm font-medium {% if request.endpoint == 'specialties.specialties' %}text-blue-600 border-b-2 border-blue-600{% else %}text-gray-500 hover:text-blue-600 hover:border-b-2 hover:border-blue-600{% endif %}">Specialties</a>
+            <a href="{{ url_for('licenses.licenses_page') }}" class="px-2 py-2 text-sm font-medium {% if request.endpoint == 'licenses.licenses_page' %}text-blue-600 border-b-2 border-blue-600{% else %}text-gray-500 hover:text-blue-600 hover:border-b-2 hover:border-blue-600{% endif %}">Licenses</a>
+            <a href="{{ url_for('vacations.vacations_page') }}" class="px-2 py-2 text-sm font-medium {% if request.endpoint == 'vacations.vacations_page' %}text-blue-600 border-b-2 border-blue-600{% else %}text-gray-500 hover:text-blue-600 hover:border-b-2 hover:border-blue-600{% endif %}">Vacations</a>
+            <a href="{{ url_for('info.info') }}" class="px-2 py-2 text-sm font-medium {% if request.endpoint == 'info.info' %}text-blue-600 border-b-2 border-blue-600{% else %}text-gray-500 hover:text-blue-600 hover:border-b-2 hover:border-blue-600{% endif %}">Information</a>
+            <!-- <a href="{{ url_for('visualize.visualize') }}" class="px-2 py-2 text-sm font-medium {% if request.endpoint == 'visualize.visualize' %}text-blue-600 border-b-2 border-blue-600{% else %}text-gray-500 hover:text-blue-600 hover:border-b-2 hover:border-blue-600{% endif %}">Visualize</a> -->
+            <a href="{{ url_for('contacts.contacts') }}" class="px-2 py-2 text-sm font-medium {% if request.endpoint == 'contacts.contacts' %}text-blue-600 border-b-2 border-blue-600{% else %}text-gray-500 hover:text-blue-600 hover:border-b-2 hover:border-blue-600{% endif %}">Contacts</a>
           </div>
 
           <!-- Logout -->

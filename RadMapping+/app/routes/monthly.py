@@ -1,0 +1,412 @@
+from flask import Blueprint, render_template, session, redirect, url_for, request, jsonify
+from app.admin_required import admin_required
+from app.supabase_client import supabase
+from datetime import datetime, timedelta
+from calendar import monthrange
+from collections import defaultdict
+import uuid
+import calendar as pycalendar
+
+monthly_bp = Blueprint('monthly', __name__)
+
+def login_required(view_func):
+    def wrapper(*args, **kwargs):
+        if not session.get("user"):
+            return redirect(url_for("auth.login"))
+        return view_func(*args, **kwargs)
+    wrapper.__name__ = view_func.__name__
+    return wrapper
+
+@monthly_bp.route('/monthly')
+@login_required
+def monthly():
+    now = datetime.now()
+    year = request.args.get("year", default=now.year, type=int)
+    month = request.args.get("month", default=now.month, type=int)
+    start_day = request.args.get("start_day", default=1, type=int)
+    days_in_month = monthrange(year, month)[1]
+
+    # Show the full month
+    window_dates = [datetime(year, month, d) for d in range(1, days_in_month + 1)]
+    start_day = 1
+    end_day = days_in_month
+
+    # Get pagination parameters for doctors
+    start_doctor = request.args.get('start_doctor', default=0, type=int)
+    doctors_per_page = 70
+
+    # Get all doctors first
+    all_doctors_res = supabase.table("radiologists") \
+        .select("*") \
+        .eq("active_status", True) \
+        .order("name") \
+        .execute()
+    all_doctors = all_doctors_res.data
+    total_doctors = len(all_doctors)
+
+    # Get pinned doctors for the current user using their email
+    user_email = session["user"]["email"]
+    pinned_res = supabase.table("pinned_doctors") \
+        .select("doctor_id") \
+        .eq("user_id", user_email) \
+        .execute()
+    pinned_doctor_ids = [p["doctor_id"] for p in pinned_res.data]
+
+    # Separate pinned and unpinned doctors
+    pinned_doctors = [doc for doc in all_doctors if doc["id"] in pinned_doctor_ids]
+    unpinned_doctors = [doc for doc in all_doctors if doc["id"] not in pinned_doctor_ids]
+
+    # Handle pagination
+    if start_doctor == 0:
+        # First page: Show pinned doctors + fill remaining slots with unpinned
+        if pinned_doctors:
+            remaining_slots = doctors_per_page - len(pinned_doctors)
+            if remaining_slots > 0:
+                doctors = pinned_doctors + unpinned_doctors[:remaining_slots]
+            else:
+                doctors = pinned_doctors[:doctors_per_page]
+        else:
+            doctors = unpinned_doctors[:doctors_per_page]
+    else:
+        # Subsequent pages: Show unpinned doctors starting after those shown on first page
+        if pinned_doctors:
+            # Calculate how many unpinned doctors were shown on first page
+            first_page_unpinned = max(0, doctors_per_page - len(pinned_doctors))
+            # Start index for unpinned doctors
+            unpinned_start = first_page_unpinned + (start_doctor - doctors_per_page)
+            doctors = unpinned_doctors[unpinned_start:unpinned_start + doctors_per_page]
+        else:
+            # If no pinned doctors, regular pagination
+            doctors = unpinned_doctors[start_doctor:start_doctor + doctors_per_page]
+
+    # Get all schedules for the full month
+    start_str = window_dates[0].strftime("%Y-%m-%d")
+    end_str = window_dates[-1].strftime("%Y-%m-%d")
+    visible_doctor_ids = [str(d["id"]) for d in doctors]
+
+    schedule_res = supabase.table("monthly_schedule") \
+        .select("*, radiologists(*)") \
+        .in_("radiologist_id", visible_doctor_ids) \
+        .lte("start_date", end_str) \
+        .gte("end_date", start_str) \
+        .execute()
+
+    # Create a calendar dictionary for easy lookup
+    calendar = defaultdict(dict)
+    for entry in schedule_res.data:
+        start = datetime.strptime(entry["start_date"], "%Y-%m-%d")
+        end = datetime.strptime(entry["end_date"], "%Y-%m-%d")
+        for n in range((end - start).days + 1):
+            date = (start + timedelta(days=n)).strftime("%Y-%m-%d")
+            doc_id = str(entry["radiologist_id"]).strip()
+            calendar[date][doc_id] = entry
+
+    month_name = pycalendar.month_name[month]
+
+    # Calculate total pages for pagination
+    if pinned_doctors:
+        # If we have pinned doctors, they take up the first page
+        # Remaining unpinned doctors are spread across subsequent pages
+        remaining_unpinned = len(unpinned_doctors)
+        if len(pinned_doctors) < doctors_per_page:
+            # Some unpinned doctors appear on first page
+            remaining_unpinned -= (doctors_per_page - len(pinned_doctors))
+        total_pages = 1 + max(0, (remaining_unpinned + doctors_per_page - 1) // doctors_per_page)
+    else:
+        # Regular pagination if no pinned doctors
+        total_pages = (total_doctors + doctors_per_page - 1) // doctors_per_page
+
+    return render_template("monthly.html",
+        doctors=doctors,
+        window_dates=window_dates,
+        year=year,
+        month=month,
+        month_name=month_name,
+        start_day=start_day,
+        end_day=end_day,
+        days_in_month=days_in_month,
+        prev_start=1,
+        next_start=1,
+        calendar=calendar,
+        datetime=datetime,
+        start_doctor=start_doctor,
+        total_doctors=total_doctors,
+        total_pages=total_pages,
+        min=min,
+        all_doctors=all_doctors,
+        pinned_doctors=pinned_doctor_ids)
+
+@monthly_bp.route('/monthly/pin', methods=['POST'])
+@login_required
+def pin_doctors():
+    data = request.get_json()
+    doctor_ids = data.get('doctor_ids', [])
+    user_email = session["user"]["email"]
+    
+    if len(doctor_ids) > 15:
+        return jsonify({'success': False, 'error': 'Cannot pin more than 15 doctors'})
+    
+    # Delete existing pins for this user
+    supabase.table("pinned_doctors") \
+        .delete() \
+        .eq("user_id", user_email) \
+        .execute()
+    
+    # Add new pins
+    if doctor_ids:
+        pins = [{
+            "id": str(uuid.uuid4()),
+            "user_id": user_email,
+            "doctor_id": doctor_id
+        } for doctor_id in doctor_ids]
+        
+        supabase.table("pinned_doctors").insert(pins).execute()
+    
+    return jsonify({'success': True})
+
+@monthly_bp.route('/monthly/search', methods=["GET"])
+@login_required
+def search_schedule():
+    from collections import defaultdict
+    import calendar as pycalendar
+
+    page = request.args.get('page', 1, type=int)
+    per_page = 25
+    offset = (page - 1) * per_page
+
+    search_term = request.args.get('search', '').strip()
+    year = request.args.get('year', datetime.now().year, type=int)
+    month = request.args.get('month', datetime.now().month, type=int)
+
+    # Build base query
+    query = supabase.table("radiologists").select("*")
+
+    if search_term:
+        query = query.ilike('name', f'%{search_term}%')
+
+    # Get all matching doctors (for calendar filtering)
+    full_result = query.execute()
+    all_matches = full_result.data
+    total_count = len(all_matches)
+
+    # Paginate for the UI
+    paginated_matches = sorted(all_matches, key=lambda d: d['name'])[offset:offset + per_page]
+
+    matched_ids = [doc["id"] for doc in paginated_matches]
+    
+    # Get calendar range
+    first_day = datetime(year, month, 1).date()
+    last_day = datetime(year, month, pycalendar.monthrange(year, month)[1]).date()
+
+    # Fetch monthly schedule for matched doctors
+    schedule_resp = supabase.table("monthly_schedule") \
+        .select("*") \
+        .gte("start_date", first_day.isoformat()) \
+        .lte("start_date", last_day.isoformat()) \
+        .in_("radiologist_id", matched_ids) \
+        .execute()
+    
+    calendar_data = defaultdict(dict)
+    for row in schedule_resp.data:
+        calendar_data[row['start_date']][row['radiologist_id']] = row
+
+    return jsonify({
+        'doctors': paginated_matches,
+        'total_count': total_count,
+        'current_page': page,
+        'per_page': per_page,
+        'calendar': calendar_data
+    })
+
+@monthly_bp.route('/monthly/bulk', methods=['POST'])
+@login_required
+def bulk_schedule():
+    if session["user"]["role"] != "admin":
+        return "Unauthorized", 403
+
+    print("Bulk Schedule Form Data:", request.form)
+    
+    doctor_id = request.form.get("doctor")
+    start_date = request.form.get("start_date")
+    end_date = request.form.get("end_date")
+    start_time = request.form.get("start_time")
+    end_time = request.form.get("end_time")
+    notes = request.form.get("schedule_details")
+
+    print(f"Doctor ID: {doctor_id}")
+    print(f"Start Date: {start_date}")
+    print(f"End Date: {end_date}")
+    print(f"Start Time: {start_time}")
+    print(f"End Time: {end_time}")
+    print(f"Notes: {notes}")
+
+    # Check if it's a special case (OFF, VACATION, REACH AS NEEDED)
+    is_special_case = notes in ['OFF', 'VACATION', 'REACH AS NEEDED']
+
+    if not all([doctor_id, start_date, end_date]) or (not is_special_case and not all([start_time, end_time])):
+        return "Missing data", 400
+
+    # Convert dates to datetime objects
+    start = datetime.strptime(start_date, "%Y-%m-%d")
+    end = datetime.strptime(end_date, "%Y-%m-%d")
+    current = start
+
+    while current <= end:
+        date_str = current.strftime("%Y-%m-%d")
+        print(f"Processing date: {date_str}")
+        
+        # Check if schedule already exists
+        existing = supabase.table("monthly_schedule") \
+            .select("id") \
+            .eq("radiologist_id", doctor_id) \
+            .eq("start_date", date_str) \
+            .eq("end_date", date_str).execute()
+
+        payload = {
+            "radiologist_id": doctor_id,
+            "start_date": date_str,
+            "end_date": date_str,
+            "start_time": start_time if not is_special_case else None,
+            "end_time": end_time if not is_special_case else None,
+            "schedule_details": notes
+        }
+
+        print(f"Payload: {payload}")
+
+        if existing.data:
+            print(f"Updating existing schedule for {date_str}")
+            supabase.table("monthly_schedule").update(payload) \
+                .eq("id", existing.data[0]["id"]).execute()
+        else:
+            print(f"Creating new schedule for {date_str}")
+            supabase.table("monthly_schedule").insert(payload).execute()
+
+        current += timedelta(days=1)
+
+    return redirect(url_for("monthly.monthly"))
+
+@monthly_bp.route('/monthly/pattern', methods=['POST'])
+@login_required
+def pattern_schedule():
+    if session["user"]["role"] != "admin":
+        return "Unauthorized", 403
+
+    print("Pattern Schedule Form Data:", request.form)
+    
+    doctor_id = request.form.get("doctor")
+    start_date = request.form.get("start_date")
+    end_date = request.form.get("end_date")
+    start_time = request.form.get("start_time")
+    end_time = request.form.get("end_time")
+    days = request.form.getlist("days")  # Get list of selected days
+    notes = request.form.get("schedule_details")
+
+    print(f"Doctor ID: {doctor_id}")
+    print(f"Start Date: {start_date}")
+    print(f"End Date: {end_date}")
+    print(f"Start Time: {start_time}")
+    print(f"End Time: {end_time}")
+    print(f"Days: {days}")
+    print(f"Notes: {notes}")
+
+    # Check if it's a special case (OFF, VACATION, REACH AS NEEDED)
+    is_special_case = notes in ['OFF', 'VACATION', 'REACH AS NEEDED']
+
+    if not all([doctor_id, start_date, end_date, days]) or (not is_special_case and not all([start_time, end_time])):
+        return "Missing data", 400
+
+    # Convert dates to datetime objects
+    start = datetime.strptime(start_date, "%Y-%m-%d")
+    end = datetime.strptime(end_date, "%Y-%m-%d")
+    current = start
+
+    while current <= end:
+        # Check if current day is in selected days
+        if str(current.weekday()) in days:
+            date_str = current.strftime("%Y-%m-%d")
+            print(f"Processing date: {date_str}")
+            
+            # Check if schedule already exists
+            existing = supabase.table("monthly_schedule") \
+                .select("id") \
+                .eq("radiologist_id", doctor_id) \
+                .eq("start_date", date_str) \
+                .eq("end_date", date_str).execute()
+
+            payload = {
+                "radiologist_id": doctor_id,
+                "start_date": date_str,
+                "end_date": date_str,
+                "start_time": start_time if not is_special_case else None,
+                "end_time": end_time if not is_special_case else None,
+                "schedule_details": notes
+            }
+
+            print(f"Payload: {payload}")
+
+            if existing.data:
+                print(f"Updating existing schedule for {date_str}")
+                supabase.table("monthly_schedule").update(payload) \
+                    .eq("id", existing.data[0]["id"]).execute()
+            else:
+                print(f"Creating new schedule for {date_str}")
+                supabase.table("monthly_schedule").insert(payload).execute()
+
+        current += timedelta(days=1)
+
+    return redirect(url_for("monthly.monthly"))
+
+@monthly_bp.route('/monthly/<string:rad_id>/delete_schedule', methods=["POST"])
+@login_required
+def delete_schedule(rad_id):
+    if session["user"]["role"] != "admin":
+        return "Unauthorized", 403
+
+    date = request.form.get("date")
+    year = request.form.get("year")
+    month = request.form.get("month")
+    start_day = request.form.get("start_day")
+    supabase.table("monthly_schedule").delete() \
+        .eq("radiologist_id", rad_id).eq("start_date", date).eq("end_date", date).execute()
+
+    return redirect(url_for("monthly.monthly", year=year, month=month, start_day=start_day))
+
+@monthly_bp.route('/monthly/<string:rad_id>/update_schedule', methods=["POST"])
+@login_required
+def update_schedule(rad_id):
+    if session["user"]["role"] != "admin":
+        return "Unauthorized", 403
+
+    date = request.form.get("date")
+    start_time = request.form.get("start_time")
+    end_time = request.form.get("end_time")
+    details = request.form.get("schedule_details")
+
+    data = {
+        "start_time": start_time or None,
+        "end_time": end_time or None,
+        "schedule_details": details or None
+    }
+
+    # Check if a schedule entry already exists for this doctor on this date
+    existing = supabase.table("monthly_schedule") \
+        .select("id") \
+        .eq("radiologist_id", rad_id) \
+        .eq("start_date", date) \
+        .eq("end_date", date).execute()
+
+    if existing.data:
+        # Update existing entry
+        supabase.table("monthly_schedule").update(data) \
+            .eq("id", existing.data[0]["id"]).execute()
+    else:
+        # Insert new entry
+        data["radiologist_id"] = rad_id
+        data["start_date"] = date
+        data["end_date"] = date
+        supabase.table("monthly_schedule").insert(data).execute()
+
+    year = request.form.get("year")
+    month = request.form.get("month")
+    start_day = request.form.get("start_day")
+    return redirect(url_for("monthly.monthly", year=year, month=month, start_day=start_day)) 

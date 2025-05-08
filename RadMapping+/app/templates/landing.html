@@ -3,79 +3,92 @@
 
 {% block content %}
 <div class="max-w-7xl mx-auto">
-    <!-- Hero Section -->
-    <div class="relative bg-gradient-to-r from-blue-50 to-blue-100 rounded-2xl shadow-lg p-10 mb-12 overflow-hidden">
-        <div class="absolute inset-0 opacity-10 bg-[url('https://www.transparenttextures.com/patterns/cubes.png')]"></div>
-        <div class="relative z-10 text-center">
-            <h1 class="text-5xl font-semibold text-blue-800 mb-4 drop-shadow-lg">Welcome to RadMapping+</h1>
-            <p class="text-2xl text-blue-700 mb-6">Your comprehensive radiology department management system</p>
-            <div class="flex flex-wrap justify-center gap-4">
-                <a href="{{ url_for('dashboard.daily') }}" class="inline-block px-6 py-3 bg-blue-600 text-white rounded-lg shadow hover:bg-blue-700 font-semibold transition">Go to Dashboard</a>
-                <a href="{{ url_for('dashboard.info') }}" class="inline-block px-6 py-3 bg-white text-blue-700 border border-blue-600 rounded-lg shadow hover:bg-blue-50 font-semibold transition">Department Info</a>
+    <!-- Welcome Header -->
+    <div class="text-center mb-12">
+        <h1 class="text-4xl font-bold text-blue-800 mb-4">Welcome to RadMapping+</h1>
+        <p class="text-xl text-gray-600">Your comprehensive radiology department management system</p>
+    </div>
+
+    <!-- Quick Access Grid -->
+    <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 mb-12">
+        <!-- Daily Operations -->
+        <div class="bg-white rounded-lg shadow-lg p-6">
+            <h2 class="text-xl font-semibold text-blue-800 mb-4">Daily Operations</h2>
+            <div class="space-y-3">
+                <a href="{{ url_for('daily.daily') }}" class="block p-3 bg-blue-50 rounded-lg hover:bg-blue-100 transition-colors duration-200">
+                    <div class="flex items-center">
+                        <i class="fas fa-calendar-day text-blue-600 text-xl mr-3"></i>
+                        <div>
+                            <h3 class="font-medium text-gray-900">Daily Schedule</h3>
+                            <p class="text-sm text-gray-600">View and manage today's radiologist assignments</p>
+                        </div>
+                    </div>
+                </a>
+                <a href="{{ url_for('monthly.monthly') }}" class="block p-3 bg-blue-50 rounded-lg hover:bg-blue-100 transition-colors duration-200">
+                    <div class="flex items-center">
+                        <i class="fas fa-calendar-alt text-blue-600 text-xl mr-3"></i>
+                        <div>
+                            <h3 class="font-medium text-gray-900">Monthly Schedule</h3>
+                            <p class="text-sm text-gray-600">Plan and view monthly radiologist schedules</p>
+                        </div>
+                    </div>
+                </a>
+            </div>
+        </div>
+
+        <!-- Staff Management -->
+        <div class="bg-white rounded-lg shadow-lg p-6">
+            <h2 class="text-xl font-semibold text-blue-800 mb-4">Staff Management</h2>
+            <div class="space-y-3">
+                <a href="{{ url_for('doctors.doctor_list') }}" class="block p-3 bg-blue-50 rounded-lg hover:bg-blue-100 transition-colors duration-200">
+                    <div class="flex items-center">
+                        <i class="fas fa-user-md text-blue-600 text-xl mr-3"></i>
+                        <div>
+                            <h3 class="font-medium text-gray-900">Doctor Directory</h3>
+                            <p class="text-sm text-gray-600">Access radiologist profiles and information</p>
+                        </div>
+                    </div>
+                </a>
+                <a href="{{ url_for('licenses.licenses_page') }}" class="block p-3 bg-blue-50 rounded-lg hover:bg-blue-100 transition-colors duration-200">
+                    <div class="flex items-center">
+                        <i class="fas fa-id-card text-blue-600 text-xl mr-3"></i>
+                        <div>
+                            <h3 class="font-medium text-gray-900">License Management</h3>
+                            <p class="text-sm text-gray-600">Track and manage radiologist certifications</p>
+                        </div>
+                    </div>
+                </a>
+            </div>
+        </div>
+
+        <!-- Time Off Management -->
+        <div class="bg-white rounded-lg shadow-lg p-6">
+            <h2 class="text-xl font-semibold text-blue-800 mb-4">Other</h2>
+            <div class="space-y-3">
+                <a href="{{ url_for('vacations.vacations_page') }}" class="block p-3 bg-blue-50 rounded-lg hover:bg-blue-100 transition-colors duration-200">
+                    <div class="flex items-center">
+                        <i class="fas fa-umbrella-beach text-blue-600 text-xl mr-3"></i>
+                        <div>
+                            <h3 class="font-medium text-gray-900">Vacations</h3>
+                            <p class="text-sm text-gray-600">Manage radiologist time off and coverage</p>
+                        </div>
+                    </div>
+                </a>
+                <a href="{{ url_for('info.info') }}" class="block p-3 bg-blue-50 rounded-lg hover:bg-blue-100 transition-colors duration-200">
+                    <div class="flex items-center">
+                        <i class="fas fa-info-circle text-blue-600 text-xl mr-3"></i>
+                        <div>
+                            <h3 class="font-medium text-gray-900">Vesta Info</h3>
+                            <p class="text-sm text-gray-600">Access department guidelines and information</p>
+                        </div>
+                    </div>
+                </a>
             </div>
         </div>
     </div>
 
-    <!-- Quick Access Grid -->
-    <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8 mb-12">
-        <!-- Daily Schedule -->
-        <a href="{{ url_for('dashboard.daily') }}" class="group bg-white rounded-xl shadow-lg p-6 hover:shadow-2xl transition flex flex-col items-center text-center border-t-4 border-blue-200 hover:border-blue-600">
-            <i class="fas fa-calendar-day text-blue-600 text-4xl mb-3 group-hover:scale-110 transition-transform"></i>
-            <h3 class="text-xl font-semibold text-gray-900 mb-1">Daily Schedule</h3>
-            <p class="text-gray-600">View and manage today's radiologist assignments</p>
-        </a>
-        <!-- Monthly Schedule -->
-        <a href="{{ url_for('dashboard.monthly') }}" class="group bg-white rounded-xl shadow-lg p-6 hover:shadow-2xl transition flex flex-col items-center text-center border-t-4 border-blue-200 hover:border-blue-600">
-            <i class="fas fa-calendar-alt text-blue-600 text-4xl mb-3 group-hover:scale-110 transition-transform"></i>
-            <h3 class="text-xl font-semibold text-gray-900 mb-1">Monthly Schedule</h3>
-            <p class="text-gray-600">Plan and view monthly radiologist schedules</p>
-        </a>
-        <!-- Doctors -->
-        <a href="{{ url_for('dashboard.doctor_list') }}" class="group bg-white rounded-xl shadow-lg p-6 hover:shadow-2xl transition flex flex-col items-center text-center border-t-4 border-blue-200 hover:border-blue-600">
-            <i class="fas fa-user-md text-blue-600 text-4xl mb-3 group-hover:scale-110 transition-transform"></i>
-            <h3 class="text-xl font-semibold text-gray-900 mb-1">Doctors</h3>
-            <p class="text-gray-600">Access radiologist profiles and information</p>
-        </a>
-        <!-- Facilities -->
-        <a href="{{ url_for('dashboard.facilities') }}" class="group bg-white rounded-xl shadow-lg p-6 hover:shadow-2xl transition flex flex-col items-center text-center border-t-4 border-blue-200 hover:border-blue-600">
-            <i class="fas fa-hospital text-blue-600 text-4xl mb-3 group-hover:scale-110 transition-transform"></i>
-            <h3 class="text-xl font-semibold text-gray-900 mb-1">Facilities</h3>
-            <p class="text-gray-600">Manage and view facility information</p>
-        </a>
-        <!-- Specialties -->
-        <a href="{{ url_for('dashboard.specialties') }}" class="group bg-white rounded-xl shadow-lg p-6 hover:shadow-2xl transition flex flex-col items-center text-center border-t-4 border-blue-200 hover:border-blue-600">
-            <i class="fas fa-stethoscope text-blue-600 text-4xl mb-3 group-hover:scale-110 transition-transform"></i>
-            <h3 class="text-xl font-semibold text-gray-900 mb-1">Specialties</h3>
-            <p class="text-gray-600">View and manage radiology specialties</p>
-        </a>
-        <!-- Licenses -->
-        <a href="{{ url_for('dashboard.licenses_page') }}" class="group bg-white rounded-xl shadow-lg p-6 hover:shadow-2xl transition flex flex-col items-center text-center border-t-4 border-blue-200 hover:border-blue-600">
-            <i class="fas fa-id-card text-blue-600 text-4xl mb-3 group-hover:scale-110 transition-transform"></i>
-            <h3 class="text-xl font-semibold text-gray-900 mb-1">Licenses</h3>
-            <p class="text-gray-600">Track and manage radiologist certifications</p>
-        </a>
-        <!-- Vacations -->
-        <a href="{{ url_for('dashboard.vacations_page') }}" class="group bg-white rounded-xl shadow-lg p-6 hover:shadow-2xl transition flex flex-col items-center text-center border-t-4 border-blue-200 hover:border-blue-600">
-            <i class="fas fa-umbrella-beach text-blue-600 text-4xl mb-3 group-hover:scale-110 transition-transform"></i>
-            <h3 class="text-xl font-semibold text-gray-900 mb-1">Vacations</h3>
-            <p class="text-gray-600">Manage radiologist time off and coverage</p>
-        </a>
-        <!-- Information -->
-        <a href="{{ url_for('dashboard.info') }}" class="group bg-white rounded-xl shadow-lg p-6 hover:shadow-2xl transition flex flex-col items-center text-center border-t-4 border-blue-200 hover:border-blue-600">
-            <i class="fas fa-info-circle text-blue-600 text-4xl mb-3 group-hover:scale-110 transition-transform"></i>
-            <h3 class="text-xl font-semibold text-gray-900 mb-1">Department Info</h3>
-            <p class="text-gray-600">Access department guidelines and information</p>
-        </a>
-        <!-- Contacts -->
-        <a href="{{ url_for('dashboard.contacts') }}" class="group bg-white rounded-xl shadow-lg p-6 hover:shadow-2xl transition flex flex-col items-center text-center border-t-4 border-blue-200 hover:border-blue-600">
-            <i class="fas fa-address-book text-blue-600 text-4xl mb-3 group-hover:scale-110 transition-transform"></i>
-            <h3 class="text-xl font-semibold text-gray-900 mb-1">Contacts</h3>
-            <p class="text-gray-600">Find and manage department contacts</p>
-        </a>
-    </div>
-
-    <!-- Recent Activity (Optional) -->
-    <div class="bg-white rounded-lg shadow-lg p-6 mt-12">
+    <!-- Recent Activity -->
+    <div class="bg-white rounded-lg shadow-lg p-6">
         <h2 class="text-xl font-semibold text-blue-800 mb-4">Recent Activity</h2>
         <div class="space-y-4">
             <div class="flex items-center justify-between p-3 bg-gray-50 rounded-lg">
@@ -86,7 +99,7 @@
                         <p class="text-sm text-gray-600">View and manage today's radiologist assignments</p>
                     </div>
                 </div>
-                <a href="{{ url_for('dashboard.daily') }}" class="text-blue-600 hover:text-blue-800">View Schedule →</a>
+                <a href="{{ url_for('daily.daily') }}" class="text-blue-600 hover:text-blue-800">View Schedule →</a>
             </div>
         </div>
     </div>
