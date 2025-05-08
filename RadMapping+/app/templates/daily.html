@@ -2,6 +2,17 @@
 {% block title %}Daily Schedule{% endblock %}
 
 {% block content %}
+<!-- Add these hidden elements at the top of your template -->
+<script type="application/json" id="doctors-by-timezone">
+  {{ doctors_by_timezone | tojson | safe }}
+</script>
+<script type="application/json" id="doctors-currently-on-shift">
+  {{ doctors_currently_on_shift_ids | tojson | safe }}
+</script>
+<script type="application/json" id="doctors-on-shift">
+  {{ doctors_on_shift_ids | tojson | safe }}
+</script>
+
 <div class="bg-white rounded-lg shadow-sm p-4 sm:p-6 mb-6 w-full">
   <div class="flex flex-col md:flex-row items-center justify-between gap-4">
     <!-- Date Navigation -->
@@ -77,41 +88,31 @@
     </div>
 
     <!-- Timezone Display -->
-    <div class="flex flex-wrap gap-2 sm:gap-3 w-full md:w-auto">
-      {% for zone in ["EST", "CST", "PST", "UTC"] %}
-        <div class="bg-gray-50 hover:bg-gray-100 border border-gray-200 rounded-lg px-3 sm:px-4 py-2 shadow-sm relative timezone-tile transition-colors"
-             onmouseenter="showTimezonePopup(this)"
-             onmouseleave="hideTimezonePopup(this)">
-          <div class="flex items-center gap-2">
-            <span class="text-sm font-medium text-gray-700">{{ zone }}</span>
-            <span id="tz-{{ zone|lower }}" class="text-sm text-gray-600">...</span>
-          </div>
-          <div class="timezone-popup fixed z-10 mt-2 bg-white border rounded-lg shadow-lg p-4 text-left w-64 sm:w-72 opacity-0 transition-all duration-200 pointer-events-auto transform scale-95"
-               style="left: 50%; transform: translateX(-50%) scale(0.95);">
-            <h5 class="font-medium text-gray-900 mb-3">Doctors in {{ zone }}</h5>
-            {% set tz_docs = doctors_by_timezone.get(zone, []) %}
-            {% if tz_docs %}
-              <ul class="space-y-2 max-h-60 overflow-y-auto">
-                {% for doc in tz_docs %}
-                <li class="text-sm doctor-item">
-                  <a href="{{ url_for('dashboard.doctor_profile', rad_id=doc.id) }}" target="_blank" class="hover:underline text-blue-700 font-medium doctor-name">
-                    {{ doc.name }}
-                  </a>
-                  {% if doc.id in doctors_currently_on_shift_ids %}
-                    <span class="text-xs bg-blue-100 text-blue-800 px-2 py-0.5 rounded-full ml-2">On shift now</span>
-                  {% elif doc.id in doctors_on_shift_ids %}
-                    <span class="text-xs bg-green-100 text-green-800 px-2 py-0.5 rounded-full ml-2">Scheduled Today</span>
-                  {% endif %}
-                </li>
-                {% endfor %}
-              </ul>
-            {% else %}
-              <p class="text-sm italic text-gray-500">No doctors in this timezone.</p>
-            {% endif %}
-          </div>
-        </div>
-      {% endfor %}
+<div class="flex flex-wrap gap-2 sm:gap-3 w-full md:w-auto">
+  {% for zone in ["EST", "CST", "PST", "UTC"] %}
+    <div class="bg-gray-50 hover:bg-gray-100 px-3 py-2 rounded-lg shadow-sm timezone-tile transition-colors cursor-pointer"
+         onclick="openTimezonePopup('{{ zone }}')">
+      <div class="flex items-center gap-2">
+        <span class="text-sm font-medium text-gray-700">{{ zone }}</span>
+        <span id="tz-{{ zone|lower }}" class="text-sm text-gray-600">...</span>
+      </div>
     </div>
+  {% endfor %}
+</div>
+
+<!-- ✅ Modal should go here, once only -->
+<div id="timezoneModal" class="fixed inset-0 bg-black bg-opacity-30 flex items-center justify-center z-50 hidden">
+  <div class="bg-white w-full max-w-md p-6 rounded-lg shadow-lg relative">
+    <button onclick="closeTimezonePopup()" class="absolute top-2 right-2 text-gray-500 hover:text-gray-700 text-xl">
+      &times;
+    </button>
+    <h3 id="modalTimezoneTitle" class="text-lg font-semibold mb-4"></h3>
+    <div id="modalTimezoneContent" class="space-y-2 max-h-72 overflow-y-auto text-sm">
+      <!-- Filled dynamically -->
+    </div>
+  </div>
+</div>
+
   </div>
 </div>
 
@@ -122,9 +123,8 @@
     <div id="hour-{{ loop.index0 }}" class="bg-white border rounded shadow p-4" data-slot-datetime="{{ slot.datetime.isoformat() }}">
       <h4 class="text-md font-semibold text-blue-800 border-b pb-1 mb-2">
         {{ slot.label }}
-        <span class="text-xs text-gray-500 ml-2">({{ slot.date }})</span>
-        {% if selected_timezone != 'UTC' %}
-          <span class="text-sm text-gray-500 ml-2">({{ (slot.hour - timezone_offset)|int }}:00 {{ selected_timezone }})</span>
+        {% if selected_timezone != "sST" %}
+          <span class="text-sm text-gray-500 ml-1">({{ (slot.hour - timezone_offset)|int }}:00 {{ selected_timezone }})</span>
         {% endif %}
       </h4>
 
@@ -146,9 +146,7 @@
               </div>
               <div class="text-sm text-gray-600 mt-1">
                 Shift: {{ doc.start_time | ampm }} – {{ doc.end_time | ampm }}
-                {% if selected_timezone != doc.timezone %}
-                  <span class="text-gray-500">({{ doc.start_time | convert_timezone(selected_timezone) }} – {{ doc.end_time | convert_timezone(selected_timezone) }})</span>
-                {% endif %}
+
               </div>
               <div class="text-sm text-gray-500 mt-1">
                 {% if doc.modalities %}
@@ -442,8 +440,55 @@ function filterDoctors() {
   });
 }
 
+function openTimezonePopup(zone) {
+  const modal = document.getElementById("timezoneModal");
+  const title = document.getElementById("modalTimezoneTitle");
+  const content = document.getElementById("modalTimezoneContent");
 
+  title.textContent = `Doctors in ${zone}`;
+  content.innerHTML = "";
+
+  // Parse the JSON data from the template variables
+  const tzDocs = JSON.parse(document.getElementById('doctors-by-timezone').textContent);
+  const docIdsNow = JSON.parse(document.getElementById('doctors-currently-on-shift').textContent);
+  const docIdsToday = JSON.parse(document.getElementById('doctors-on-shift').textContent);
+
+  const docs = tzDocs[zone] || [];
+  if (docs.length === 0) {
+    content.innerHTML = `<p class="italic text-gray-500">No doctors in this timezone.</p>`;
+  } else {
+    docs.forEach(doc => {
+      const status = docIdsNow.includes(doc.id)
+        ? `<span class="text-xs bg-blue-100 text-blue-800 px-2 py-0.5 rounded-full ml-2">On shift now</span>`
+        : docIdsToday.includes(doc.id)
+        ? `<span class="text-xs bg-green-100 text-green-800 px-2 py-0.5 rounded-full ml-2">Scheduled Today</span>`
+        : '';
+
+      const html = `
+        <div class="text-sm mb-2">
+          <a href="/radmapping/doctors/${doc.id}" target="_blank" class="text-blue-700 font-medium hover:underline">
+            ${doc.name}
+          </a>
+          ${status}
+        </div>`;
+      content.innerHTML += html;
+    });
+  }
+
+  modal.classList.remove("hidden");
+}
+
+function closeTimezonePopup() {
+  document.getElementById("timezoneModal").classList.add("hidden");
+}
+
+// Close modal if clicking outside it
+document.addEventListener("click", function (e) {
+  const modal = document.getElementById("timezoneModal");
+  const box = modal.querySelector("div.bg-white");
+  if (!box.contains(e.target) && !e.target.closest(".timezone-tile")) {
+    modal.classList.add("hidden");
+  }
+});
 </script>
-
-
 {% endblock %}

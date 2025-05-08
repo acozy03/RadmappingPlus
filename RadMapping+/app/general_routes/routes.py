@@ -114,21 +114,24 @@ def daily():
 
     # All doctors by timezone
     all_doctors_res = supabase.table("radiologists").select("*").execute()
-    all_doctors = all_doctors_res.data
+    all_doctors = all_doctors_res.data or []
     doctors_by_timezone = defaultdict(list)
     for doctor in all_doctors:
         tz = doctor.get("timezone", "Unknown")
+        if tz is None:
+            tz = "Unknown"
         doctors_by_timezone[tz].append(doctor)
 
-    doctors_on_shift_ids = {doc["id"] for doc in doctors_on_shift}
+    doctors_on_shift_ids = {doc["id"] for doc in doctors_on_shift if doc.get("id") is not None}
     doctors_currently_on_shift_ids = set()
     current_hour = datetime.now().hour
     for doc in doctors_on_shift:
         try:
-            start_hour = int(doc["start_time"].split(":")[0])
-            end_hour = int(doc["end_time"].split(":")[0])
-            if start_hour <= current_hour < end_hour:
-                doctors_currently_on_shift_ids.add(doc["id"])
+            if doc.get("start_time") and doc.get("end_time"):
+                start_hour = int(doc["start_time"].split(":")[0])
+                end_hour = int(doc["end_time"].split(":")[0])
+                if start_hour <= current_hour < end_hour and doc.get("id") is not None:
+                    doctors_currently_on_shift_ids.add(doc["id"])
         except Exception as e:
             print("Error checking current shift:", e)
 
@@ -139,9 +142,9 @@ def daily():
         next_date=next_date,
         doctors_on_shift=doctors_on_shift,
         doctors_by_hour=doctors_by_hour,
-        doctors_by_timezone=doctors_by_timezone,
-        doctors_on_shift_ids=doctors_on_shift_ids,
-        doctors_currently_on_shift_ids=doctors_currently_on_shift_ids,
+        doctors_by_timezone=dict(doctors_by_timezone),  # Convert defaultdict to dict
+        doctors_on_shift_ids=list(doctors_on_shift_ids),  # Convert set to list
+        doctors_currently_on_shift_ids=list(doctors_currently_on_shift_ids),  # Convert set to list
         selected_timezone=selected_timezone,
         timezone_offset=timezone_offset,
         hour_slots=hour_slots
