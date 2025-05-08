@@ -59,6 +59,16 @@ def daily():
                 end_dt = datetime.strptime(f"{end_date} {entry['end_time']}", "%Y-%m-%d %H:%M:%S")
                 if end_dt < start_dt:
                     end_dt += timedelta(days=1)
+                
+                # Handle break times
+                break_start_dt = None
+                break_end_dt = None
+                if entry.get("break_start") and entry.get("break_end"):
+                    break_start_dt = datetime.strptime(f"{start_date} {entry['break_start']}", "%Y-%m-%d %H:%M:%S")
+                    break_end_dt = datetime.strptime(f"{start_date} {entry['break_end']}", "%Y-%m-%d %H:%M:%S")
+                    if break_end_dt < break_start_dt:
+                        break_end_dt += timedelta(days=1)
+
                 doc.update({
                     "start_time": entry["start_time"],
                     "end_time": entry["end_time"],
@@ -66,7 +76,9 @@ def daily():
                     "start_date": start_date,
                     "end_date": end_date,
                     "start_dt": start_dt,
-                    "end_dt": end_dt
+                    "end_dt": end_dt,
+                    "break_start_dt": break_start_dt,
+                    "break_end_dt": break_end_dt
                 })
                 doctors_on_shift.append(doc)
                 if end_dt > max_end_dt:
@@ -133,7 +145,14 @@ def daily():
         for slot in hour_slots:
             slot_start = slot["datetime"]
             slot_end = slot_start + timedelta(hours=1)
-            if doc["start_dt"] < slot_end and doc["end_dt"] > slot_start:
+            
+            # Check if doctor is on break during this slot
+            is_on_break = False
+            if doc.get("break_start_dt") and doc.get("break_end_dt"):
+                is_on_break = (doc["break_start_dt"] < slot_end and doc["break_end_dt"] > slot_start)
+            
+            # Only add doctor if they're on shift and not on break
+            if doc["start_dt"] < slot_end and doc["end_dt"] > slot_start and not is_on_break:
                 doctors_by_hour[slot_start].append(doc)
 
     # All doctors by timezone
