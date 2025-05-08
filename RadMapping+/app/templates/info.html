@@ -190,16 +190,6 @@ function filterInfo() {
         
         if (title.includes(searchTerm) || content.includes(searchTerm)) {
             section.style.display = 'block';
-            
-            // Highlight matching text if there's a search term
-            if (searchTerm) {
-                const paragraphs = section.querySelectorAll('p, li');
-                paragraphs.forEach(p => {
-                    const text = p.textContent;
-                    const regex = new RegExp(searchTerm, 'gi');
-                    p.innerHTML = text.replace(regex, match => `<span class="bg-yellow-200">${match}</span>`);
-                });
-            }
         } else {
             section.style.display = 'none';
         }

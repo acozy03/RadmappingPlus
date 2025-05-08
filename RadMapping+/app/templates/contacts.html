@@ -214,16 +214,6 @@ function filterContacts() {
                 const text = cell.textContent.toLowerCase();
                 if (text.includes(searchTerm)) {
                     isVisible = true;
-                    
-                    // Highlight matching text if there's a search term
-                    if (searchTerm) {
-                        const viewMode = cell.querySelector('.view-mode');
-                        if (viewMode) {
-                            const text = viewMode.textContent;
-                            const regex = new RegExp(searchTerm, 'gi');
-                            viewMode.innerHTML = text.replace(regex, match => `<span class="bg-yellow-200">${match}</span>`);
-                        }
-                    }
                 }
             });
             

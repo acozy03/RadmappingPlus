@@ -40,7 +40,7 @@ def daily():
     base_date = datetime.strptime(today, "%Y-%m-%d")
     max_end_dt = base_date.replace(hour=0, minute=0, second=0, microsecond=0)
 
-    # Pre-fetch schedule data
+    # Pre-fetch schedule data for today
     shift_res = supabase.table("monthly_schedule") \
         .select("*, radiologists(*)") \
         .lte("start_date", today) \
@@ -73,6 +73,36 @@ def daily():
                     max_end_dt = end_dt
             except Exception as e:
                 print(f"Error parsing datetime for doc {doc.get('name', 'Unknown')}: {e}")
+
+    # Now fetch tomorrow's shifts up until max_end_dt
+    tomorrow_shift_res = supabase.table("monthly_schedule") \
+        .select("*, radiologists(*)") \
+        .eq("start_date", next_date) \
+        .execute()
+
+    for entry in tomorrow_shift_res.data:
+        if entry.get("radiologists") and entry.get("start_time") and entry.get("end_time"):
+            doc = entry["radiologists"]
+            try:
+                start_dt = datetime.strptime(f"{next_date} {entry['start_time']}", "%Y-%m-%d %H:%M:%S")
+                end_dt = datetime.strptime(f"{next_date} {entry['end_time']}", "%Y-%m-%d %H:%M:%S")
+                if end_dt < start_dt:
+                    end_dt += timedelta(days=1)
+                
+                # Only include shifts that overlap with today's display range
+                if start_dt < max_end_dt:
+                    doc.update({
+                        "start_time": entry["start_time"],
+                        "end_time": entry["end_time"],
+                        "schedule_details": entry.get("schedule_details", ""),
+                        "start_date": next_date,
+                        "end_date": next_date,
+                        "start_dt": start_dt,
+                        "end_dt": end_dt
+                    })
+                    doctors_on_shift.append(doc)
+            except Exception as e:
+                print(f"Error parsing datetime for tomorrow's doc {doc.get('name', 'Unknown')}: {e}")
 
     # Build hour slots
     hour_slots = []
