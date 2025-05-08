@@ -15,7 +15,7 @@
         <div class="bg-white rounded-lg shadow-lg p-6">
             <h2 class="text-xl font-semibold text-blue-800 mb-4">Daily Operations</h2>
             <div class="space-y-3">
-                <a href="{{ url_for('dashboard.daily') }}" class="block p-3 bg-blue-50 rounded-lg hover:bg-blue-100 transition-colors duration-200">
+                <a href="{{ url_for('daily.daily') }}" class="block p-3 bg-blue-50 rounded-lg hover:bg-blue-100 transition-colors duration-200">
                     <div class="flex items-center">
                         <i class="fas fa-calendar-day text-blue-600 text-xl mr-3"></i>
                         <div>
@@ -24,7 +24,7 @@
                         </div>
                     </div>
                 </a>
-                <a href="{{ url_for('dashboard.monthly') }}" class="block p-3 bg-blue-50 rounded-lg hover:bg-blue-100 transition-colors duration-200">
+                <a href="{{ url_for('monthly.monthly') }}" class="block p-3 bg-blue-50 rounded-lg hover:bg-blue-100 transition-colors duration-200">
                     <div class="flex items-center">
                         <i class="fas fa-calendar-alt text-blue-600 text-xl mr-3"></i>
                         <div>
@@ -40,7 +40,7 @@
         <div class="bg-white rounded-lg shadow-lg p-6">
             <h2 class="text-xl font-semibold text-blue-800 mb-4">Staff Management</h2>
             <div class="space-y-3">
-                <a href="{{ url_for('dashboard.doctor_list') }}" class="block p-3 bg-blue-50 rounded-lg hover:bg-blue-100 transition-colors duration-200">
+                <a href="{{ url_for('doctors.doctor_list') }}" class="block p-3 bg-blue-50 rounded-lg hover:bg-blue-100 transition-colors duration-200">
                     <div class="flex items-center">
                         <i class="fas fa-user-md text-blue-600 text-xl mr-3"></i>
                         <div>
@@ -49,7 +49,7 @@
                         </div>
                     </div>
                 </a>
-                <a href="{{ url_for('dashboard.licenses_page') }}" class="block p-3 bg-blue-50 rounded-lg hover:bg-blue-100 transition-colors duration-200">
+                <a href="{{ url_for('licenses.licenses_page') }}" class="block p-3 bg-blue-50 rounded-lg hover:bg-blue-100 transition-colors duration-200">
                     <div class="flex items-center">
                         <i class="fas fa-id-card text-blue-600 text-xl mr-3"></i>
                         <div>
@@ -65,7 +65,7 @@
         <div class="bg-white rounded-lg shadow-lg p-6">
             <h2 class="text-xl font-semibold text-blue-800 mb-4">Other</h2>
             <div class="space-y-3">
-                <a href="{{ url_for('dashboard.vacations_page') }}" class="block p-3 bg-blue-50 rounded-lg hover:bg-blue-100 transition-colors duration-200">
+                <a href="{{ url_for('vacations.vacations_page') }}" class="block p-3 bg-blue-50 rounded-lg hover:bg-blue-100 transition-colors duration-200">
                     <div class="flex items-center">
                         <i class="fas fa-umbrella-beach text-blue-600 text-xl mr-3"></i>
                         <div>
@@ -74,11 +74,11 @@
                         </div>
                     </div>
                 </a>
-                <a href="{{ url_for('dashboard.info') }}" class="block p-3 bg-blue-50 rounded-lg hover:bg-blue-100 transition-colors duration-200">
+                <a href="{{ url_for('info.info') }}" class="block p-3 bg-blue-50 rounded-lg hover:bg-blue-100 transition-colors duration-200">
                     <div class="flex items-center">
                         <i class="fas fa-info-circle text-blue-600 text-xl mr-3"></i>
                         <div>
-                            <h3 class="font-medium text-gray-900">Department Info</h3>
+                            <h3 class="font-medium text-gray-900">Vesta Info</h3>
                             <p class="text-sm text-gray-600">Access department guidelines and information</p>
                         </div>
                     </div>
@@ -99,7 +99,7 @@
                         <p class="text-sm text-gray-600">View and manage today's radiologist assignments</p>
                     </div>
                 </div>
-                <a href="{{ url_for('dashboard.daily') }}" class="text-blue-600 hover:text-blue-800">View Schedule →</a>
+                <a href="{{ url_for('daily.daily') }}" class="text-blue-600 hover:text-blue-800">View Schedule →</a>
             </div>
         </div>
     </div>

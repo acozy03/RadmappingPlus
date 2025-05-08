@@ -1,0 +1,259 @@
+from flask import Blueprint, render_template, session, redirect, url_for, request, jsonify
+from app.admin_required import admin_required
+from app.supabase_client import supabase
+import uuid
+
+facilities_bp = Blueprint('facilities', __name__)
+
+def login_required(view_func):
+    def wrapper(*args, **kwargs):
+        if not session.get("user"):
+            return redirect(url_for("auth.login"))
+        return view_func(*args, **kwargs)
+    wrapper.__name__ = view_func.__name__
+    return wrapper
+
+@facilities_bp.route('/facilities')
+@login_required
+def facilities():
+    # Get pagination parameters
+    page = request.args.get('page', 1, type=int)
+    per_page = 25
+    offset = (page - 1) * per_page
+
+    # Get total count for pagination
+    count_res = supabase.table("facilities").select("*", count='exact').execute()
+    total_count = count_res.count
+
+    # Fetch paginated facilities
+    res = supabase.table("facilities") \
+        .select("*") \
+        .order("name") \
+        .range(offset, offset + per_page - 1) \
+        .execute()
+    facilities = res.data
+
+    return render_template("facility_list.html", 
+                         facilities=facilities,
+                         total_count=total_count,
+                         current_page=page,
+                         per_page=per_page)
+
+@facilities_bp.route('/facilities/search', methods=["GET"])
+@login_required
+def search_facilities():
+    search_term = request.args.get('search', '')
+    page = int(request.args.get('page', 1))
+    per_page = int(request.args.get('per_page', 25))
+    status = request.args.get('status', 'all')
+    
+    offset = (page - 1) * per_page
+    
+    # Build the query
+    query = supabase.table("facilities").select("*", count='exact')
+    
+    # Add search condition if search term exists
+    if search_term:
+        query = query.ilike('name', f'%{search_term}%')
+    
+    # Add status filter
+    if status == 'active':
+        query = query.eq('active_status', 'true')
+    elif status == 'inactive':
+        query = query.eq('active_status', 'false')
+    
+    # Add pagination
+    query = query.range(offset, offset + per_page - 1)
+    
+    # Execute query
+    result = query.execute()
+    
+    return jsonify({
+        'facilities': result.data,
+        'total_count': result.count,
+        'current_page': page,
+        'per_page': per_page
+    })
+
+@facilities_bp.route('/facilities/<string:facility_id>')
+@login_required
+def facility_profile(facility_id):
+    # Get facility info
+    fac = supabase.table("facilities").select("*").eq("id", facility_id).single().execute().data
+
+    # Get doctor assignments
+    assignment_res = supabase.table("doctor_facility_assignments") \
+        .select("*, radiologists(*)") \
+        .eq("facility_id", facility_id).execute()
+
+    assigned_radiologist_ids = {a["radiologist_id"] for a in assignment_res.data}
+ 
+     # Get all radiologists
+    all_rads_res = supabase.table("radiologists").select("id, name").order("name").execute()
+    all_radiologists = all_rads_res.data or []
+    available_radiologists = [r for r in all_radiologists if r["id"] not in assigned_radiologist_ids]
+    # Get facility contacts
+    contacts_res = supabase.table("facility_contact_assignments") \
+        .select("*") \
+        .eq("facility_id", facility_id) \
+        .order("role") \
+        .execute()
+    
+    return render_template("facility_profile.html",
+        facility=fac,
+        doctor_assignments=assignment_res.data,
+        facility_contacts=contacts_res.data,
+        available_radiologists=available_radiologists
+    )
+
+@facilities_bp.route('/facilities/<string:facility_id>/contacts/add', methods=['POST'])
+@login_required
+@admin_required
+def add_facility_contact(facility_id):
+    data = {
+        "id": str(uuid.uuid4()),
+        "facility_id": facility_id,
+        "contact_name": request.form.get("contact_name"),
+        "role": request.form.get("role"),
+        "email": request.form.get("email"),
+        "phone": request.form.get("phone"),
+        "comments": request.form.get("comments")
+    }
+    
+    supabase.table("facility_contact_assignments").insert(data).execute()
+    return redirect(url_for("facilities.facility_profile", facility_id=facility_id))
+
+@facilities_bp.route('/facilities/<string:facility_id>/contacts/<string:contact_id>', methods=['POST'])
+@login_required
+@admin_required
+def edit_facility_contact(facility_id, contact_id):
+    data = {
+        "contact_name": request.form.get("contact_name"),
+        "role": request.form.get("role"),
+        "email": request.form.get("email"),
+        "phone": request.form.get("phone"),
+        "comments": request.form.get("comments")
+    }
+    
+    supabase.table("facility_contact_assignments").update(data).eq("id", contact_id).execute()
+    return redirect(url_for("facilities.facility_profile", facility_id=facility_id))
+
+@facilities_bp.route('/facility/<string:facility_id>/contact/<string:contact_id>', methods=['DELETE'])
+@login_required
+@admin_required
+def delete_facility_contact_api(facility_id, contact_id):
+    try:
+        print(f"Attempting to delete contact {contact_id} from facility {facility_id}")
+        
+        # First verify the contact exists and belongs to the facility
+        verify = supabase.table("facility_contact_assignments")\
+            .select("*")\
+            .eq("id", contact_id)\
+            .eq("facility_id", facility_id)\
+            .execute()
+            
+        print(f"Verification result: {verify.data}")
+        
+        if not verify.data:
+            print("Contact not found or doesn't belong to this facility")
+            return jsonify({"success": False, "error": "Contact not found"}), 404
+
+        # Proceed with deletion
+        result = supabase.table("facility_contact_assignments")\
+            .delete()\
+            .eq("id", contact_id)\
+            .eq("facility_id", facility_id)\
+            .execute()
+            
+        print(f"Delete result: {result.data}")
+        
+        if result.data:
+            return jsonify({"success": True})
+        else:
+            return jsonify({"success": False, "error": "Delete operation failed"}), 500
+            
+    except Exception as e:
+        print(f"Error deleting contact: {str(e)}")
+        return jsonify({"success": False, "error": str(e)}), 500
+    
+@facilities_bp.route('/facilities/add', methods=['POST'])
+@login_required
+@admin_required
+def add_facility():
+    data = request.get_json()
+    
+    # Generate a new UUID for the facility
+    new_id = str(uuid.uuid4())
+    
+    # Add the ID to the data
+    data['id'] = new_id
+    
+    # Insert the new facility into the database
+    supabase.table("facilities").insert(data).execute()
+    
+    return jsonify({"status": "success", "id": new_id})
+
+@facilities_bp.route('/facilities/<facility_id>/bulk_update_assignments', methods=['POST'])
+@login_required
+@admin_required
+def bulk_update_assignments(facility_id):
+     assignment_ids = request.form.getlist('assignment_ids')
+     for assignment_id in assignment_ids:
+         can_read = f'can_read_{assignment_id}' in request.form
+         does_stats = f'does_stats_{assignment_id}' in request.form
+         does_routines = f'does_routines_{assignment_id}' in request.form
+         stipulations = request.form.get(f'stipulations_{assignment_id}', '')
+         notes = request.form.get(f'notes_{assignment_id}', '')
+         supabase.table('doctor_facility_assignments').update({
+             'can_read': can_read,
+             'does_stats': does_stats,
+             'does_routines': does_routines,
+             'stipulations': stipulations,
+             'notes': notes
+         }).eq('id', assignment_id).execute()
+     return redirect(url_for('facilities.facility_profile', facility_id=facility_id))
+
+@facilities_bp.route('/facilities/<facility_id>/assign_radiologist', methods=['POST'])
+@login_required
+@admin_required
+def assign_radiologist(facility_id):
+     data = {
+         "id": str(uuid.uuid4()),
+         "radiologist_id": request.form.get("radiologist_id"),
+         "facility_id": facility_id,
+         "can_read": "can_read" in request.form,
+         "does_stats": "does_stats" in request.form,
+         "does_routines": "does_routines" in request.form,
+         "stipulations": request.form.get("stipulations", ""),
+         "notes": request.form.get("notes", "")
+     }
+     supabase.table("doctor_facility_assignments").insert(data).execute()
+     return redirect(url_for("facilities.facility_profile", facility_id=facility_id))
+
+@facilities_bp.route('/facilities/<facility_id>/remove', methods=['POST'])
+@admin_required
+def remove_facility(facility_id):
+    supabase.table('facilities').delete().eq('id', facility_id).execute()
+    return redirect(url_for('facilities.facilities'))
+
+@facilities_bp.route('/radmapping/facility/<facility_id>/update', methods=['POST'])
+@login_required
+def update_facility(facility_id):
+    form = request.form
+    supabase.table('facilities').update({
+        'location': form.get('location'),
+        'pacs': form.get('pacs'),
+        'tat_definition': form.get('tat_definition'),
+        'modalities_assignment_period': form.get('assignment_period'),
+        'modalities': form.get('assignment_type'),
+        'active_status': 'true' if form.get('active_status') == 'true' else 'false',
+    }).eq('id', facility_id).execute()
+    return redirect(url_for('facilities.facility_profile', facility_id=facility_id))
+
+@facilities_bp.route('/facilities/<string:facility_id>/assignments/<string:assignment_id>/remove', methods=['POST'])
+@login_required
+@admin_required
+def remove_assignment(facility_id, assignment_id):
+    # Delete the assignment
+    supabase.table("doctor_facility_assignments").delete().eq("id", assignment_id).execute()
+    return redirect(url_for("facilities.facility_profile", facility_id=facility_id))

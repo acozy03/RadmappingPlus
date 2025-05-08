@@ -17,14 +17,14 @@
   <div class="flex flex-col md:flex-row items-center justify-between gap-4">
     <!-- Date Navigation -->
     <div class="flex items-center gap-4">
-      <a href="{{ url_for('dashboard.daily') }}?date={{ prev_date }}" 
+      <a href="{{ url_for('daily.daily') }}?date={{ prev_date }}" 
          class="p-2 hover:bg-gray-100 rounded-full transition-colors">
         <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6 text-gray-600" fill="none" viewBox="0 0 24 24" stroke="currentColor">
           <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 19l-7-7 7-7" />
         </svg>
       </a>
       
-      <form method="get" action="{{ url_for('dashboard.daily') }}" class="flex items-center gap-4">
+      <form method="get" action="{{ url_for('daily.daily') }}" class="flex items-center gap-4">
         <button
           type="button"
           class="flex items-center gap-2 bg-blue-50 hover:bg-blue-100 text-blue-700 px-4 py-2 rounded-lg transition-colors"
@@ -54,7 +54,7 @@
         <option value="PST" {% if selected_timezone == 'PST' %}selected{% endif %}>Pacific Time (PST)</option>
   
       </select>
-       <a href="{{ url_for('dashboard.daily') }}?date={{ next_date }}" 
+       <a href="{{ url_for('daily.daily') }}?date={{ next_date }}" 
          class="p-2 hover:bg-gray-100 rounded-full transition-colors">
         <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6 text-gray-600" fill="none" viewBox="0 0 24 24" stroke="currentColor">
           <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7" />
@@ -139,7 +139,7 @@
               data-end-dt="{{ doc.end_dt.isoformat() }}"
               data-schedule-details="{{ doc.schedule_details or '' }}">
               <div class="flex items-center justify-between">
-                <a href="{{ url_for('dashboard.doctor_profile', rad_id=doc.id) }}" target="_blank" class="text-blue-700 font-semibold hover:underline">
+                <a href="{{ url_for('doctors.doctor_profile', rad_id=doc.id) }}" target="_blank" class="text-blue-700 font-semibold hover:underline">
                   {{ doc.name }}
                 </a>
                 <span class="text-sm text-gray-500">{{ doc.timezone or '—' }}</span>

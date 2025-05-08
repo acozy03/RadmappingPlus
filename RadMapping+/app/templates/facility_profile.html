@@ -69,7 +69,7 @@
   </div>
 
   <div x-show="editing" class="mb-8">
-    <form method="POST" action="{{ url_for('dashboard.update_facility', facility_id=facility.id) }}" class="bg-white rounded-lg shadow p-6 border grid grid-cols-1 sm:grid-cols-2 gap-6">
+    <form method="POST" action="{{ url_for('facilities.update_facility', facility_id=facility.id) }}" class="bg-white rounded-lg shadow p-6 border grid grid-cols-1 sm:grid-cols-2 gap-6">
       <label class="block">
         <span class="font-semibold">Location</span>
         <input type="text" name="location" value="{{ facility.location or '' }}" class="input w-full border rounded px-3 py-2 text-sm" />
@@ -173,13 +173,16 @@
                 <th class="px-4 py-2 border-b">Does Routines</th>
                 <th class="px-4 py-2 border-b">Stipulations</th>
                 <th class="px-4 py-2 border-b">Notes</th>
+                {% if session.user.role == 'admin' %}
+                <th class="px-4 py-2 border-b">Actions</th>
+                {% endif %}
               </tr>
             </thead>
             <tbody>
               {% for assignment in doctor_assignments %}
               <tr class="hover:bg-blue-50 radiologist-item">
                 <td class="px-4 py-2 border-b">
-                  <a href="{{ url_for('dashboard.doctor_profile', rad_id=assignment.radiologists.id) }}"
+                  <a href="{{ url_for('doctors.doctor_profile', rad_id=assignment.radiologists.id) }}"
                      target="_blank"
                      class="text-blue-700 hover:underline">
                     {{ assignment.radiologists.name }}
@@ -190,6 +193,15 @@
                 <td class="px-4 py-2 border-b">{{ "✅" if assignment.does_routines else "❌" }}</td>
                 <td class="px-4 py-2 border-b">{{ assignment.stipulations or "—" }}</td>
                 <td class="px-4 py-2 border-b">{{ assignment.notes or "—" }}</td>
+                {% if session.user.role == 'admin' %}
+                <td class="px-4 py-2 border-b">
+                  <form action="{{ url_for('facilities.remove_assignment', facility_id=facility.id, assignment_id=assignment.id) }}" method="POST" style="display: inline;">
+                    <button type="submit" class="bg-red-100 text-red-700 px-3 py-1 rounded hover:bg-red-200 text-sm" onclick="return confirm('Are you sure you want to remove this assignment?')">
+                      Remove
+                    </button>
+                  </form>
+                </td>
+                {% endif %}
               </tr>
               {% endfor %}
             </tbody>
@@ -208,7 +220,7 @@
     <button onclick="closeAddContactModal()" class="absolute top-2 right-2 text-2xl font-bold text-gray-500 hover:text-black">×</button>
     <h3 class="text-xl font-semibold mb-4">Add New Contact</h3>
     
-    <form method="POST" action="{{ url_for('dashboard.add_facility_contact', facility_id=facility.id) }}" class="space-y-4">
+    <form method="POST" action="{{ url_for('facilities.add_facility_contact', facility_id=facility.id) }}" class="space-y-4">
       <div>
         <label class="block text-sm font-medium text-gray-700">Role</label>
         <input type="text" name="role" required class="mt-1 block w-full border rounded-md shadow-sm py-2 px-3 text-sm ">
@@ -287,7 +299,7 @@
   <div class="bg-white rounded-lg shadow-lg w-[90%] max-w-2xl max-h-[80vh] overflow-y-auto p-6 relative">
     <button onclick="closeRadiologistModal()" class="absolute top-2 right-2 text-2xl font-bold text-gray-500 hover:text-black">×</button>
     <h3 class="text-xl font-semibold mb-4">Assign Radiologist to Facility</h3>
-    <form method="POST" action="{{ url_for('dashboard.assign_radiologist', facility_id=facility.id) }}" class="space-y-4">
+    <form method="POST" action="{{ url_for('facilities.assign_radiologist', facility_id=facility.id) }}" class="space-y-4">
       <div>
         <label class="block text-sm font-medium text-gray-700 mb-1">Select Radiologist</label>
         <select name="radiologist_id" required class="w-full border rounded px-3 py-2 text-sm">
@@ -332,7 +344,7 @@
   <div class="bg-white rounded-lg shadow-lg w-[95%] max-w-4xl max-h-[90vh] overflow-y-auto p-6 relative">
     <button onclick="closeBulkEditAssignmentsModal()" class="absolute top-2 right-2 text-2xl font-bold text-gray-500 hover:text-black">×</button>
     <h3 class="text-xl font-semibold mb-4">Bulk Edit Assigned Radiologists</h3>
-    <form method="POST" action="{{ url_for('dashboard.bulk_update_assignments', facility_id=facility.id) }}" class="space-y-4">
+    <form method="POST" action="{{ url_for('facilities.bulk_update_assignments', facility_id=facility.id) }}" class="space-y-4">
       <div class="overflow-x-auto">
         <table class="min-w-full bg-white border border-gray-200 text-sm rounded">
           <thead class="bg-gray-100">
@@ -408,7 +420,7 @@
   function editContact(contact) {
     const form = document.getElementById('editContactForm');
 
-    form.action = "{{ url_for('dashboard.edit_facility_contact', facility_id=facility.id, contact_id='CONTACT_ID') }}".replace('CONTACT_ID', contact.id);
+    form.action = "{{ url_for('facilities.edit_facility_contact', facility_id=facility.id, contact_id='CONTACT_ID') }}".replace('CONTACT_ID', contact.id);
 
     form.querySelector('[name="contact_name"]').value = contact.contact_name || '';
     form.querySelector('[name="role"]').value = contact.role || '';
@@ -493,7 +505,7 @@
 </script>
 
 {% if session.user.role == 'admin' %}
-<form method="POST" action="{{ url_for('dashboard.remove_facility', facility_id=facility.id) }}" onsubmit="return confirm('Are you sure you want to remove this facility? This action cannot be undone.');" class="mt-4">
+<form method="POST" action="{{ url_for('facilities.remove_facility', facility_id=facility.id) }}" onsubmit="return confirm('Are you sure you want to remove this facility? This action cannot be undone.');" class="mt-4">
   <button type="submit" class="inline-flex items-center gap-2 px-5 py-2 bg-red-600 text-white rounded-lg shadow hover:bg-red-700 transition text-base font-semibold focus:outline-none focus:ring-2 focus:ring-red-400">
     <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/></svg>
     Remove Facility
