@@ -215,8 +215,8 @@
 </div>
 
 <!-- Add Contact Modal -->
-<div id="addContactModal" class="fixed inset-0 z-50 hidden bg-black bg-opacity-50 flex items-center justify-center">
-  <div class="bg-white rounded-lg shadow-lg w-[90%] max-w-xl max-h-[80vh] overflow-y-auto p-6 relative">
+<div id="addContactModal" class="fixed inset-0 z-50 hidden bg-black bg-opacity-50 flex items-center justify-center" onclick="if(event.target === this) closeAddContactModal();">
+  <div class="bg-white rounded-lg shadow-lg w-[90%] max-w-xl max-h-[80vh] overflow-y-auto p-6 relative" onclick="event.stopPropagation();">
     <button onclick="closeAddContactModal()" class="absolute top-2 right-2 text-2xl font-bold text-gray-500 hover:text-black">×</button>
     <h3 class="text-xl font-semibold mb-4">Add New Contact</h3>
     
@@ -255,8 +255,8 @@
 </div>
 
 <!-- Edit Contact Modal -->
-<div id="editContactModal" class="fixed inset-0 z-50 hidden bg-black bg-opacity-50 flex items-center justify-center">
-  <div class="bg-white rounded-lg shadow-lg w-[90%] max-w-xl max-h-[80vh] overflow-y-auto p-6 relative">
+<div id="editContactModal" class="fixed inset-0 z-50 hidden bg-black bg-opacity-50 flex items-center justify-center" onclick="if(event.target === this) closeEditContactModal();">
+  <div class="bg-white rounded-lg shadow-lg w-[90%] max-w-xl max-h-[80vh] overflow-y-auto p-6 relative" onclick="event.stopPropagation();">
     <button onclick="closeEditContactModal()" class="absolute top-2 right-2 text-2xl font-bold text-gray-500 hover:text-black">×</button>
     <h3 class="text-xl font-semibold mb-4">Edit Contact</h3>
     
@@ -295,8 +295,8 @@
 </div>
 
 <!-- Radiologist Assignment Modal -->
-<div id="radiologistModal" class="fixed inset-0 z-50 hidden bg-black bg-opacity-50 flex items-center justify-center">
-  <div class="bg-white rounded-lg shadow-lg w-[90%] max-w-2xl max-h-[80vh] overflow-y-auto p-6 relative">
+<div id="radiologistModal" class="fixed inset-0 z-50 hidden bg-black bg-opacity-50 flex items-center justify-center" onclick="if(event.target === this) closeRadiologistModal();">
+  <div class="bg-white rounded-lg shadow-lg w-[90%] max-w-2xl max-h-[80vh] overflow-y-auto p-6 relative" onclick="event.stopPropagation();">
     <button onclick="closeRadiologistModal()" class="absolute top-2 right-2 text-2xl font-bold text-gray-500 hover:text-black">×</button>
     <h3 class="text-xl font-semibold mb-4">Assign Radiologist to Facility</h3>
     <form method="POST" action="{{ url_for('facilities.assign_radiologist', facility_id=facility.id) }}" class="space-y-4">
@@ -340,8 +340,8 @@
 </div>
 
 <!-- Bulk Edit Assignments Modal -->
-<div id="bulkEditAssignmentsModal" class="fixed inset-0 z-50 hidden bg-black bg-opacity-50 flex items-center justify-center">
-  <div class="bg-white rounded-lg shadow-lg w-[95%] max-w-4xl max-h-[90vh] overflow-y-auto p-6 relative">
+<div id="bulkEditAssignmentsModal" class="fixed inset-0 z-50 hidden bg-black bg-opacity-50 flex items-center justify-center" onclick="if(event.target === this) closeBulkEditAssignmentsModal();">
+  <div class="bg-white rounded-lg shadow-lg w-[95%] max-w-4xl max-h-[90vh] overflow-y-auto p-6 relative" onclick="event.stopPropagation();">
     <button onclick="closeBulkEditAssignmentsModal()" class="absolute top-2 right-2 text-2xl font-bold text-gray-500 hover:text-black">×</button>
     <h3 class="text-xl font-semibold mb-4">Bulk Edit Assigned Radiologists</h3>
     <form method="POST" action="{{ url_for('facilities.bulk_update_assignments', facility_id=facility.id) }}" class="space-y-4">

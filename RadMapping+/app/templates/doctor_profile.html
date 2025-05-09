@@ -388,8 +388,8 @@
     </div>
   </div>
 
-  <div id="certModal" class="fixed inset-0 z-50 hidden bg-black bg-opacity-50 flex items-center justify-center">
-    <div class="bg-white rounded-lg shadow-lg w-[90%] max-w-3xl max-h-[80vh] overflow-y-auto p-6 relative">
+  <div id="certModal" class="fixed inset-0 z-50 hidden bg-black bg-opacity-50 flex items-center justify-center" onclick="if(event.target === this) closeCertModal();">
+    <div class="bg-white rounded-lg shadow-lg w-[90%] max-w-3xl max-h-[80vh] overflow-y-auto p-6 relative" onclick="event.stopPropagation();">
       <button onclick="closeCertModal()" class="absolute top-2 right-2 text-2xl font-bold text-gray-500 hover:text-black">×</button>
       <h3 class="text-xl font-semibold mb-4 flex items-center gap-2">
         <span class="inline-flex items-center justify-center w-8 h-8 bg-green-100 text-green-600 rounded-full">
@@ -481,8 +481,8 @@
     }
     </script>
     
-  <div id="facilityModal" x-data="{ editMode: false, expanded: {} }" class="fixed inset-0 z-50 hidden bg-black bg-opacity-50 flex items-center justify-center">
-    <div class="bg-white rounded-lg shadow-lg w-[98%] max-w-5xl max-h-[90vh] overflow-y-auto p-8 relative">
+  <div id="facilityModal" x-data="{ editMode: false, expanded: {} }" class="fixed inset-0 z-50 hidden bg-black bg-opacity-50 flex items-center justify-center" onclick="if(event.target === this) closeFacilityModal();">
+    <div class="bg-white rounded-lg shadow-lg w-[98%] max-w-5xl max-h-[90vh] overflow-y-auto p-8 relative" onclick="event.stopPropagation();">
       <button onclick="closeFacilityModal()" class="absolute top-2 right-2 text-2xl font-bold text-gray-500 hover:text-black">×</button>
       <h3 class="text-xl font-semibold mb-4 flex items-center gap-2">
         <span class="inline-flex items-center justify-center w-8 h-8 bg-purple-100 text-purple-600 rounded-full">
