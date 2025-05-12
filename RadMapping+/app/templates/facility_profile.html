@@ -127,7 +127,15 @@
                 <button onclick="toggleContactDetails('{{ contact.id }}')" class="text-blue-600 text-sm hover:underline">View Details</button>
                 {% if session.user.role == 'admin' %}
                   <div class="flex gap-2">
-                    <button onclick="editContact({{ contact|tojson|safe }})" class="bg-blue-100 text-blue-700 px-3 py-1 rounded hover:bg-blue-200">Edit</button>
+                    <button 
+                      class="bg-blue-100 text-blue-700 px-3 py-1 rounded hover:bg-blue-200 edit-contact-btn"
+                      data-contact-id="{{ contact.id }}"
+                      data-contact-name="{{ contact.contact_name }}"
+                      data-contact-role="{{ contact.role }}"
+                      data-contact-email="{{ contact.email }}"
+                      data-contact-phone="{{ contact.phone }}"
+                      data-contact-comments="{{ contact.comments }}"
+                    >Edit</button>
                     <button onclick="deleteContact('{{ contact.id }}', '{{ facility.id }}')" class="bg-red-100 text-red-700 px-3 py-1 rounded hover:bg-red-200">Delete</button>
                   </div>
                 {% endif %}
@@ -260,7 +268,7 @@
     <button onclick="closeEditContactModal()" class="absolute top-2 right-2 text-2xl font-bold text-gray-500 hover:text-black">×</button>
     <h3 class="text-xl font-semibold mb-4">Edit Contact</h3>
     
-    <form id="editContactForm" method="POST" class="space-y-4">
+    <form id="editContactForm" method="POST" action="{{ url_for('facilities.edit_facility_contact', facility_id=facility.id, contact_id='') }}" class="space-y-4">
       <div>
         <label class="block text-sm font-medium text-gray-700">Role</label>
         <input type="text" name="role" required class="mt-1 block w-full border rounded-md shadow-sm py-2 px-3 text-sm bg-blue-50">
@@ -417,16 +425,16 @@
     document.getElementById('editContactModal').classList.remove('hidden');
   }
 
-  function editContact(contact) {
+  function editContact(id, name, role, email, phone, comments) {
     const form = document.getElementById('editContactForm');
+    const baseUrl = form.action.split('/contact/')[0];
+    form.action = `${baseUrl}/contact/${id}`;
 
-    form.action = "{{ url_for('facilities.edit_facility_contact', facility_id=facility.id, contact_id='CONTACT_ID') }}".replace('CONTACT_ID', contact.id);
-
-    form.querySelector('[name="contact_name"]').value = contact.contact_name || '';
-    form.querySelector('[name="role"]').value = contact.role || '';
-    form.querySelector('[name="email"]').value = contact.email || '';
-    form.querySelector('[name="phone"]').value = contact.phone || '';
-    form.querySelector('[name="comments"]').value = contact.comments || '';
+    form.querySelector('[name="contact_name"]').value = name || '';
+    form.querySelector('[name="role"]').value = role || '';
+    form.querySelector('[name="email"]').value = email || '';
+    form.querySelector('[name="phone"]').value = phone || '';
+    form.querySelector('[name="comments"]').value = comments || '';
 
     openEditContactModal();
   }
@@ -502,6 +510,25 @@
   function closeBulkEditAssignmentsModal() {
     document.getElementById('bulkEditAssignmentsModal').classList.add('hidden');
   }
+
+  document.addEventListener('DOMContentLoaded', function() {
+    // Add click handlers for edit buttons
+    document.querySelectorAll('.edit-contact-btn').forEach(button => {
+      button.addEventListener('click', function() {
+        const form = document.getElementById('editContactForm');
+        const facilityId = '{{ facility.id }}';
+        form.action = `/radmapping/facilities/${facilityId}/contacts/${this.dataset.contactId}`;
+
+        form.querySelector('[name="contact_name"]').value = this.dataset.contactName || '';
+        form.querySelector('[name="role"]').value = this.dataset.contactRole || '';
+        form.querySelector('[name="email"]').value = this.dataset.contactEmail || '';
+        form.querySelector('[name="phone"]').value = this.dataset.contactPhone || '';
+        form.querySelector('[name="comments"]').value = this.dataset.contactComments || '';
+
+        openEditContactModal();
+      });
+    });
+  });
 </script>
 
 {% if session.user.role == 'admin' %}
