@@ -1,4 +1,4 @@
-from flask import Blueprint, request, redirect, render_template, session, url_for
+from flask import Blueprint, request, redirect, render_template, session, url_for, flash
 from app.supabase_client import supabase
 import logging 
 import sys 
@@ -17,7 +17,8 @@ def login():
         print("some debug message", file=sys.stderr, flush=True)
         result = supabase.table("users").select("*").eq("email", email).execute()
         if not result.data:
-            return "User not found", 401
+            flash('User not found', 'error')
+            return render_template("login.html")
 
         user = result.data[0]
 
@@ -25,7 +26,8 @@ def login():
             session["user"] = {"email": user["email"], "role": user["role"]}
             return redirect(url_for("daily.daily"))
 
-        return "Invalid credentials", 401
+        flash('Invalid credentials', 'error')
+        return render_template("login.html")
 
     return render_template("login.html")
 
