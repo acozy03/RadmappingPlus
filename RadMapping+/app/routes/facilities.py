@@ -113,11 +113,8 @@ def add_facility_contact(facility_id):
     data = {
         "id": str(uuid.uuid4()),
         "facility_id": facility_id,
-        "contact_name": request.form.get("contact_name"),
-        "role": request.form.get("role"),
-        "email": request.form.get("email"),
-        "phone": request.form.get("phone"),
-        "comments": request.form.get("comments")
+        "text": request.form.get("text"),
+        "role": request.form.get("role")
     }
     
     supabase.table("facility_contact_assignments").insert(data).execute()
@@ -128,11 +125,8 @@ def add_facility_contact(facility_id):
 @admin_required
 def edit_facility_contact(facility_id, contact_id):
     data = {
-        "contact_name": request.form.get("contact_name"),
-        "role": request.form.get("role"),
-        "email": request.form.get("email"),
-        "phone": request.form.get("phone"),
-        "comments": request.form.get("comments")
+        "text": request.form.get("text"),
+        "role": request.form.get("role")
     }
     
     supabase.table("facility_contact_assignments").update(data).eq("id", contact_id).execute()
@@ -241,6 +235,7 @@ def remove_facility(facility_id):
 def update_facility(facility_id):
     form = request.form
     supabase.table('facilities').update({
+        'name': form.get('name'),
         'location': form.get('location'),
         'pacs': form.get('pacs'),
         'tat_definition': form.get('tat_definition'),
