@@ -136,8 +136,8 @@
 </div>
 
 <!-- Modal for doctors with this specialty -->
-<div id="specialtyDoctorsModal" class="fixed inset-0 z-50 hidden bg-black bg-opacity-50 flex items-center justify-center">
-  <div class="bg-white rounded-lg shadow-lg w-[90%] max-w-lg p-6 relative">
+<div id="specialtyDoctorsModal" class="fixed inset-0 z-50 hidden bg-black bg-opacity-50 flex items-center justify-center" onclick="if(event.target === this) closeSpecialtyDoctorsModal();">
+  <div class="bg-white rounded-lg shadow-lg w-[90%] max-w-lg p-6 relative" onclick="event.stopPropagation();">
     <button onclick="closeSpecialtyDoctorsModal()" class="absolute top-2 right-2 text-2xl font-bold text-gray-500 hover:text-black">×</button>
     <h3 id="specialtyDoctorsTitle" class="text-xl font-semibold mb-4">Doctors with this Specialty</h3>
     <input type="text" id="specialtyDoctorsSearch" placeholder="Search doctors..." 

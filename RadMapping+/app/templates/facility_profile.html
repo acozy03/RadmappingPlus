@@ -71,6 +71,10 @@
   <div x-show="editing" class="mb-8">
     <form method="POST" action="{{ url_for('facilities.update_facility', facility_id=facility.id) }}" class="bg-white rounded-lg shadow p-6 border grid grid-cols-1 sm:grid-cols-2 gap-6">
       <label class="block">
+        <span class="font-semibold">Facility Name</span>
+        <input type="text" name="name" value="{{ facility.name }}" class="input w-full border rounded px-3 py-2 text-sm" />
+      </label>
+      <label class="block">
         <span class="font-semibold">Location</span>
         <input type="text" name="location" value="{{ facility.location or '' }}" class="input w-full border rounded px-3 py-2 text-sm" />
       </label>
@@ -119,22 +123,20 @@
             <div class="border rounded-lg shadow-sm bg-gray-50 p-4 contact-item flex flex-col h-full">
               <p class="text-blue-600 font-bold text-xl mb-3 pb-2 border-b">{{ contact.role }}</p>
               <div class="space-y-2 flex-grow">
-                <p><strong>Name:</strong> <span class="searchable">{{ contact.contact_name }}</span></p>
-                <p><strong>Email:</strong> <a href="mailto:{{ contact.email }}" class="text-blue-600 hover:underline searchable">{{ contact.email }}</a></p>
-                <p><strong>Phone:</strong> <span class="searchable">{{ contact.phone }}</span></p>
+                <div class="whitespace-pre-line">{{ contact.text }}</div>
               </div>
               <div class="mt-3 pt-3 border-t flex items-center justify-between">
-                <button onclick="toggleContactDetails('{{ contact.id }}')" class="text-blue-600 text-sm hover:underline">View Details</button>
                 {% if session.user.role == 'admin' %}
                   <div class="flex gap-2">
-                    <button onclick="editContact({{ contact|tojson|safe }})" class="bg-blue-100 text-blue-700 px-3 py-1 rounded hover:bg-blue-200">Edit</button>
+                    <button 
+                      class="bg-blue-100 text-blue-700 px-3 py-1 rounded hover:bg-blue-200 edit-contact-btn"
+                      data-contact-id="{{ contact.id }}"
+                      data-contact-text="{{ contact.text }}"
+                      data-contact-role="{{ contact.role }}"
+                    >Edit</button>
                     <button onclick="deleteContact('{{ contact.id }}', '{{ facility.id }}')" class="bg-red-100 text-red-700 px-3 py-1 rounded hover:bg-red-200">Delete</button>
                   </div>
                 {% endif %}
-              </div>
-              <div id="details-{{ contact.id }}" class="hidden mt-2 pt-2 border-t">
-                <p><strong>Comments:</strong></p>
-                <div class="whitespace-pre-line mt-2 text-sm">{{ contact.comments or "—" }}</div>
               </div>
             </div>
           {% endfor %}
@@ -215,35 +217,20 @@
 </div>
 
 <!-- Add Contact Modal -->
-<div id="addContactModal" class="fixed inset-0 z-50 hidden bg-black bg-opacity-50 flex items-center justify-center">
-  <div class="bg-white rounded-lg shadow-lg w-[90%] max-w-xl max-h-[80vh] overflow-y-auto p-6 relative">
+<div id="addContactModal" class="fixed inset-0 z-50 hidden bg-black bg-opacity-50 flex items-center justify-center" onclick="if(event.target === this) closeAddContactModal();">
+  <div class="bg-white rounded-lg shadow-lg w-[90%] max-w-xl max-h-[80vh] overflow-y-auto p-6 relative" onclick="event.stopPropagation();">
     <button onclick="closeAddContactModal()" class="absolute top-2 right-2 text-2xl font-bold text-gray-500 hover:text-black">×</button>
     <h3 class="text-xl font-semibold mb-4">Add New Contact</h3>
     
     <form method="POST" action="{{ url_for('facilities.add_facility_contact', facility_id=facility.id) }}" class="space-y-4">
       <div>
         <label class="block text-sm font-medium text-gray-700">Role</label>
-        <input type="text" name="role" required class="mt-1 block w-full border rounded-md shadow-sm py-2 px-3 text-sm ">
+        <input type="text" name="role" required class="mt-1 block w-full border rounded-md shadow-sm py-2 px-3 text-sm">
       </div>
       
       <div>
-        <label class="block text-sm font-medium text-gray-700">Name</label>
-        <input type="text" name="contact_name" required class="mt-1 block w-full border rounded-md shadow-sm py-2 px-3 text-sm">
-      </div>
-      
-      <div>
-        <label class="block text-sm font-medium text-gray-700">Email</label>
-        <input type="email" name="email" class="mt-1 block w-full border rounded-md shadow-sm py-2 px-3 text-sm">
-      </div>
-      
-      <div>
-        <label class="block text-sm font-medium text-gray-700">Phone</label>
-        <input type="tel" name="phone" class="mt-1 block w-full border rounded-md shadow-sm py-2 px-3 text-sm">
-      </div>
-      
-      <div>
-        <label class="block text-sm font-medium text-gray-700">Comments</label>
-        <textarea name="comments" rows="3" class="mt-1 block w-full border rounded-md shadow-sm py-2 px-3 text-sm"></textarea>
+        <label class="block text-sm font-medium text-gray-700">Contact Information</label>
+        <textarea name="text" rows="4" required class="mt-1 block w-full border rounded-md shadow-sm py-2 px-3 text-sm"></textarea>
       </div>
       
       <div class="flex justify-end gap-3">
@@ -255,35 +242,20 @@
 </div>
 
 <!-- Edit Contact Modal -->
-<div id="editContactModal" class="fixed inset-0 z-50 hidden bg-black bg-opacity-50 flex items-center justify-center">
-  <div class="bg-white rounded-lg shadow-lg w-[90%] max-w-xl max-h-[80vh] overflow-y-auto p-6 relative">
+<div id="editContactModal" class="fixed inset-0 z-50 hidden bg-black bg-opacity-50 flex items-center justify-center" onclick="if(event.target === this) closeEditContactModal();">
+  <div class="bg-white rounded-lg shadow-lg w-[90%] max-w-xl max-h-[80vh] overflow-y-auto p-6 relative" onclick="event.stopPropagation();">
     <button onclick="closeEditContactModal()" class="absolute top-2 right-2 text-2xl font-bold text-gray-500 hover:text-black">×</button>
     <h3 class="text-xl font-semibold mb-4">Edit Contact</h3>
     
-    <form id="editContactForm" method="POST" class="space-y-4">
+    <form id="editContactForm" method="POST" action="{{ url_for('facilities.edit_facility_contact', facility_id=facility.id, contact_id='') }}" class="space-y-4">
       <div>
         <label class="block text-sm font-medium text-gray-700">Role</label>
-        <input type="text" name="role" required class="mt-1 block w-full border rounded-md shadow-sm py-2 px-3 text-sm bg-blue-50">
+        <input type="text" name="role" required class="mt-1 block w-full border rounded-md shadow-sm py-2 px-3 text-sm">
       </div>
       
       <div>
-        <label class="block text-sm font-medium text-gray-700">Name</label>
-        <input type="text" name="contact_name" required class="mt-1 block w-full border rounded-md shadow-sm py-2 px-3 text-sm">
-      </div>
-      
-      <div>
-        <label class="block text-sm font-medium text-gray-700">Email</label>
-        <input type="email" name="email" class="mt-1 block w-full border rounded-md shadow-sm py-2 px-3 text-sm">
-      </div>
-      
-      <div>
-        <label class="block text-sm font-medium text-gray-700">Phone</label>
-        <input type="tel" name="phone" class="mt-1 block w-full border rounded-md shadow-sm py-2 px-3 text-sm">
-      </div>
-      
-      <div>
-        <label class="block text-sm font-medium text-gray-700">Comments</label>
-        <textarea name="comments" rows="3" class="mt-1 block w-full border rounded-md shadow-sm py-2 px-3 text-sm"></textarea>
+        <label class="block text-sm font-medium text-gray-700">Contact Information</label>
+        <textarea name="text" rows="4" required class="mt-1 block w-full border rounded-md shadow-sm py-2 px-3 text-sm"></textarea>
       </div>
       
       <div class="flex justify-end gap-3">
@@ -295,8 +267,8 @@
 </div>
 
 <!-- Radiologist Assignment Modal -->
-<div id="radiologistModal" class="fixed inset-0 z-50 hidden bg-black bg-opacity-50 flex items-center justify-center">
-  <div class="bg-white rounded-lg shadow-lg w-[90%] max-w-2xl max-h-[80vh] overflow-y-auto p-6 relative">
+<div id="radiologistModal" class="fixed inset-0 z-50 hidden bg-black bg-opacity-50 flex items-center justify-center" onclick="if(event.target === this) closeRadiologistModal();">
+  <div class="bg-white rounded-lg shadow-lg w-[90%] max-w-2xl max-h-[80vh] overflow-y-auto p-6 relative" onclick="event.stopPropagation();">
     <button onclick="closeRadiologistModal()" class="absolute top-2 right-2 text-2xl font-bold text-gray-500 hover:text-black">×</button>
     <h3 class="text-xl font-semibold mb-4">Assign Radiologist to Facility</h3>
     <form method="POST" action="{{ url_for('facilities.assign_radiologist', facility_id=facility.id) }}" class="space-y-4">
@@ -340,8 +312,8 @@
 </div>
 
 <!-- Bulk Edit Assignments Modal -->
-<div id="bulkEditAssignmentsModal" class="fixed inset-0 z-50 hidden bg-black bg-opacity-50 flex items-center justify-center">
-  <div class="bg-white rounded-lg shadow-lg w-[95%] max-w-4xl max-h-[90vh] overflow-y-auto p-6 relative">
+<div id="bulkEditAssignmentsModal" class="fixed inset-0 z-50 hidden bg-black bg-opacity-50 flex items-center justify-center" onclick="if(event.target === this) closeBulkEditAssignmentsModal();">
+  <div class="bg-white rounded-lg shadow-lg w-[95%] max-w-4xl max-h-[90vh] overflow-y-auto p-6 relative" onclick="event.stopPropagation();">
     <button onclick="closeBulkEditAssignmentsModal()" class="absolute top-2 right-2 text-2xl font-bold text-gray-500 hover:text-black">×</button>
     <h3 class="text-xl font-semibold mb-4">Bulk Edit Assigned Radiologists</h3>
     <form method="POST" action="{{ url_for('facilities.bulk_update_assignments', facility_id=facility.id) }}" class="space-y-4">
@@ -417,16 +389,16 @@
     document.getElementById('editContactModal').classList.remove('hidden');
   }
 
-  function editContact(contact) {
+  function editContact(id, name, role, email, phone, comments) {
     const form = document.getElementById('editContactForm');
+    const baseUrl = form.action.split('/contact/')[0];
+    form.action = `${baseUrl}/contact/${id}`;
 
-    form.action = "{{ url_for('facilities.edit_facility_contact', facility_id=facility.id, contact_id='CONTACT_ID') }}".replace('CONTACT_ID', contact.id);
-
-    form.querySelector('[name="contact_name"]').value = contact.contact_name || '';
-    form.querySelector('[name="role"]').value = contact.role || '';
-    form.querySelector('[name="email"]').value = contact.email || '';
-    form.querySelector('[name="phone"]').value = contact.phone || '';
-    form.querySelector('[name="comments"]').value = contact.comments || '';
+    form.querySelector('[name="contact_name"]').value = name || '';
+    form.querySelector('[name="role"]').value = role || '';
+    form.querySelector('[name="email"]').value = email || '';
+    form.querySelector('[name="phone"]').value = phone || '';
+    form.querySelector('[name="comments"]').value = comments || '';
 
     openEditContactModal();
   }
@@ -502,6 +474,22 @@
   function closeBulkEditAssignmentsModal() {
     document.getElementById('bulkEditAssignmentsModal').classList.add('hidden');
   }
+
+  document.addEventListener('DOMContentLoaded', function() {
+    // Add click handlers for edit buttons
+    document.querySelectorAll('.edit-contact-btn').forEach(button => {
+      button.addEventListener('click', function() {
+        const form = document.getElementById('editContactForm');
+        const facilityId = '{{ facility.id }}';
+        form.action = `/radmapping/facilities/${facilityId}/contacts/${this.dataset.contactId}`;
+
+        form.querySelector('[name="role"]').value = this.dataset.contactRole || '';
+        form.querySelector('[name="text"]').value = this.dataset.contactText || '';
+
+        openEditContactModal();
+      });
+    });
+  });
 </script>
 
 {% if session.user.role == 'admin' %}
