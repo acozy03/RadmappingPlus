@@ -225,6 +225,7 @@ def chat():
         - Do not assume someone is working just because a start_date and end_date exist.
         - A doctor is only working if both start_time and end_time are present.
         - Exclude shifts marked as 'Off' or 'Vacation' or 'Not Scheduled' or other cases like that (case-insensitive, trimmed).
+        - When asked a shift duration question, always account for 24 hour time and the fact that the shift may span over midnight.
 
 
     If the question is about the schema or general information, provide a helpful response.
@@ -260,7 +261,7 @@ def chat():
 
                 english_results = format_results_to_english(result.data)
 
-                # Second pass: verify if the result looks reasonable
+                # Second pass: validate result
                 review_prompt = f"""
 Original question: {question}
 
@@ -273,13 +274,11 @@ Result:
 {json.dumps(result.data, indent=2)}
 
 Does this result fully answer the question? If yes, say: '✅ Query looks good. No changes needed.'
-
 If not, explain the issue and return a corrected SQL query only.
-
-Check for issues like missing wildcards, incorrect null handling, unnecessary joins, or logic errors in WHERE/HAVING clauses.
-
+Hint: Check for issues like missing wildcards, incorrect null handling, unnecessary joins, or logic errors in WHERE/HAVING clauses.
 IMPORTANT: Do not reference SELECT aliases (like `avg_rvus_per_month`) in the HAVING clause. Use the full expression again instead.
-
+IMPORTANT: Use only valid PostgreSQL syntax. Do NOT use functions like TIME_DIFF — use EXTRACT(EPOCH FROM ...) instead. For overnight shifts, adjust by adding INTERVAL '1 day' to end_time if it is less than start_time.
+IMPORTANT: If you receive a negative number, with regards to the shift duration, it means the shift is overnight and miscalculated.
 """
                 review_response = client.chat.completions.create(
                     model="gpt-3.5-turbo",
@@ -308,10 +307,59 @@ IMPORTANT: Do not reference SELECT aliases (like `avg_rvus_per_month`) in the HA
 
                     revised_english = format_results_to_english(revised_result.data)
 
-                    return jsonify({
-                        'response': revised_english,
-                        'results': revised_result.data
-                    })
+                    # Third pass: compare first and second SQL, and decide if second makes sense
+                    third_prompt = f"""
+Original question: {question}
+
+First SQL query:
+```sql
+{sql_query}
+```
+
+Second SQL query:
+```sql
+{revised_query}
+```
+
+Second query result:
+{json.dumps(revised_result.data, indent=2)}
+IMPORTANT: Use only valid PostgreSQL syntax. Do NOT use functions like TIME_DIFF — use EXTRACT(EPOCH FROM ...) instead. For overnight shifts, adjust by adding INTERVAL '1 day' to end_time if it is less than start_time.
+If you receive a negative number, with regards to the shift duration, it means the shift is overnight and miscalculated.
+Explain what changed between the two queries. If the second query still does not correctly answer the original question or provided an incorrect result, try and correct it. Otherwise, say '✅ Second query is valid.
+
+With the end result, can you output it in a user-friendly format?'
+"""
+                    third_response = client.chat.completions.create(
+                        model="gpt-3.5-turbo",
+                        messages=[
+                            {"role": "system", "content": "You are a SQL difference reviewer."},
+                            {"role": "user", "content": third_prompt}
+                        ]
+                    )
+                    third_text = third_response.choices[0].message.content
+
+                    if '✅' in third_text or 'valid' in third_text:
+                        return jsonify({
+                            'response': revised_english,
+                            'results': revised_result.data
+                        })
+                    elif '```sql' in third_text:
+                        final_query = third_text.split('```sql')[1].split('```')[0].strip().rstrip(';')
+                        print(f"Executing final SQL query: {final_query}")
+                        final_result = supabase.rpc('execute_sql', {'query': final_query}).execute()
+
+                        if final_result.data is None:
+                            return jsonify({
+                                'error': 'Final query executed but returned no data.',
+                                'response': third_text
+                            }), 404
+
+                        final_english = format_results_to_english(final_result.data)
+
+                        return jsonify({
+                            'response': final_english,
+                            'results': final_result.data
+                        })
 
             except Exception as e:
                 print(f"Error executing query: {str(e)}")

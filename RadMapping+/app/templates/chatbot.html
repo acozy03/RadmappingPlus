@@ -91,7 +91,7 @@ async function sendMessage(event) {
       addMessage(data.response, 'assistant');
       
       // If there's a SQL query, show it in a code block
-      if (data.sql_query) {
+      if (data.sql_query) { 
         addMessage(`SQL Query: \`\`\`sql\n${data.sql_query}\n\`\`\``, 'assistant');
       }
     }
