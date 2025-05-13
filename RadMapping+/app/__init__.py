@@ -87,8 +87,7 @@ def create_app():
     # Redirect root URL to login or landing page
     @app.route('/')
     def index():
-        if "user" in session:
-            return redirect(url_for("landing.landing"))
+       
         return redirect(url_for("auth.login"))
 
     return app

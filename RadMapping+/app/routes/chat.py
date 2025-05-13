@@ -36,7 +36,7 @@ def format_results_to_english(results):
             elif isinstance(value, (list, dict)):
                 summary += f"{column.replace('_', ' ').title()}: {json.dumps(value)}\n"
 
-
+    print(summary)
     return summary
 
 
@@ -202,16 +202,20 @@ def chat():
     
     Question: {question}
     
-    If the question requires querying the database, respond with a SQL query that can be executed.
-    The SQL query should:
-    1. Use proper table names and column names exactly as shown in the schema
-    2. Include necessary JOINs when querying related tables using the correct foreign key relationships
-    3. Use proper PostgreSQL syntax and formatting
-    4. Be wrapped in ```sql``` code blocks
-    5. Consider data types (uuid, text, date, time, bool, timestamptz) when writing conditions
-    6. DO NOT include semicolons at the end of queries
-    
+    If the question requires querying the database, respond with a SQL query that can be executed.  
+    The SQL query should:  
+    1. Use proper table names and column names exactly as shown in the schema  
+    2. Include necessary JOINs when querying related tables using the correct foreign key relationships  
+    3. Use proper PostgreSQL syntax and formatting  
+    4. Be wrapped in ```sql code blocks  
+    5. Consider data types (uuid, text, date, time, bool, timestamptz) when writing conditions  
+    6. DO NOT include semicolons at the end of queries  
+    7. Use DISTINCT to avoid duplicate rows when JOINs may produce multiple matches  
+    8. When asked a scheduling question, always account for the possibility that the doctor might not be working on a given day even if the start date and end date are filled in. Do not assume a radiologist is working unless both start_time and end_time are present 
+    9. NEVER return UUIDs — only return meaningful text fields such as name, email, specialty, or schedule_details  
+
     If the question is about the schema or general information, provide a helpful response.
+
     """
     
     try:
@@ -253,10 +257,15 @@ def chat():
                 
                 # Return both the SQL query and the natural language response
                 return jsonify({
-                    'response': english_results,
+                    'response': f"""Here is the SQL query I generated and executed for your question:
+{sql_query}
+```
+
+Results:
+{english_results}""",
+                    
                     'results': result.data
                 })
-
             except Exception as e:
                 print(f"Error executing query: {str(e)}")
                 return jsonify({
