@@ -9,8 +9,203 @@ import pandas as pd
 import os
 from app.supabase_client import get_supabase_client
 from app.middleware import with_supabase_auth
+from llama_index.core import (
+    VectorStoreIndex,
+    SimpleDirectoryReader,
+    Settings,
+    StorageContext,
+    load_index_from_storage,
+)
+from llama_index.llms.openai import OpenAI as LlamaOpenAI
+from llama_index.core.query_engine import RetrieverQueryEngine
+from llama_index.core.retrievers import VectorIndexRetriever
+from llama_index.core.postprocessor import SimilarityPostprocessor
+import json
+
 chat_bp = Blueprint('chat', __name__)
 
+# Initialize LlamaIndex components
+def initialize_llama_index():
+    # Create storage directory if it doesn't exist
+    if not os.path.exists("index_store"):
+        os.makedirs("index_store")
+    
+    # Check if we have a stored index
+    if os.path.exists("index_store/index.json"):
+        # Load existing index
+        storage_context = StorageContext.from_defaults(persist_dir="index_store")
+        index = load_index_from_storage(storage_context)
+    else:
+        # Create schema description
+        schema = """
+        Tables in the database:
+        1. rad_avg_monthly_rvu (
+            radiologist_id uuid,
+            jan float8,
+            feb float8,
+            mar float8,
+            apr float8,
+            may float8,
+            jun float8,
+            jul float8,
+            aug float8,
+            sep float8,
+            oct float8,
+            nov float8,
+            dec float8
+        )
+
+        2. vesta_contacts (
+            id uuid,
+            name text,
+            department text,
+            contact_number text,
+            extension_number text,
+            email text,
+            additional_info text,
+            created_at timestamptz,
+            updated_at timestamptz
+        )
+
+        3. certifications (
+            id uuid,
+            radiologist_id uuid REFERENCES radiologists(id),
+            state text,
+            expiration_date date,
+            status text,
+            specialty text,
+            tags text
+        )
+
+        4. monthly_schedule (
+            id uuid,
+            radiologist_id uuid REFERENCES radiologists(id),
+            start_time time,
+            end_time time,
+            schedule_details text,
+            start_date date,
+            end_date date,
+            break_start time,
+            break_end time
+        )
+
+        5. users (
+            id uuid,
+            email text,
+            password text,
+            role text
+        )
+
+        6. radiologists (
+            id uuid,
+            name text,
+            pacs text,
+            primary_contact_method text,
+            phone text,
+            email text,
+            active_status bool,
+            schedule_info_est text,
+            additional_info text,
+            credentialing_contact text,
+            rad_guidelines text,
+            modalities text,
+            timezone text,
+            reads_routines bool
+        )
+
+        7. capacity_per_hour (
+            date date,
+            hour int4,
+            total_rvus float8
+        )
+
+        8. doctor_facility_assignments (
+            id uuid,
+            radiologist_id uuid REFERENCES radiologists(id),
+            facility_id uuid REFERENCES facilities(id),
+            can_read bool,
+            stipulations text,
+            does_stats bool,
+            does_routines bool,
+            notes text
+        )
+
+        9. specialty_permissions (
+            id uuid,
+            radiologist_id uuid REFERENCES radiologists(id),
+            specialty_id uuid REFERENCES specialty_studies(id),
+            can_read bool
+        )
+
+        10. specialty_studies (
+            id uuid,
+            name text,
+            description text
+        )
+
+        11. vacations (
+            id uuid,
+            radiologist_id uuid REFERENCES radiologists(id),
+            start_date date,
+            end_date date,
+            comments text
+        )
+
+        12. facilities (
+            id uuid,
+            name text,
+            pacs text,
+            location text,
+            modalities_assignment_period text,
+            tat_definition text,
+            active_status text,
+            modalities text
+        )
+
+        13. facility_contact_assignments (
+            id uuid,
+            facility_id uuid REFERENCES facilities(id),
+            contact_name text,
+            email text,
+            phone text,
+            comments text,
+            role text
+        )
+
+        14. pinned_doctors (
+            id uuid,
+            user_id uuid REFERENCES users(id),
+            doctor_id uuid REFERENCES radiologists(id),
+            created_at timestamptz
+        )
+        """
+        
+        # Create a document with the schema
+        with open("schema.txt", "w") as f:
+            f.write(schema)
+        
+        # Initialize LlamaIndex components
+        llm = LlamaOpenAI(
+            model="gpt-3.5-turbo",
+            temperature=0,
+            api_key=os.getenv("OPENAI_API_KEY"),
+            organization=os.getenv("OPENAI_ORG_ID")
+        )
+        
+        service_context = llm
+        
+        # Create and store the index
+        documents = SimpleDirectoryReader(input_files=["schema.txt"]).load_data()
+        index = VectorStoreIndex.from_documents(documents, service_context=service_context)
+        index.storage_context.persist(persist_dir="index_store")
+        
+        # Clean up temporary file
+        os.remove("schema.txt")
+    
+    return index
+
+# Initialize the index when the module loads
+index = initialize_llama_index()
 
 def format_results_to_english(results):
     if not results:
@@ -39,7 +234,6 @@ def format_results_to_english(results):
     print(summary)
     return summary
 
-
 @chat_bp.route('/chat', methods=['POST'])
 @with_supabase_auth
 def chat():
@@ -47,206 +241,49 @@ def chat():
     data = request.get_json()
     question = data.get('question', '')
     
-    # Create schema description with accurate table information
-    schema = """
-    Tables in the database:
-    1. rad_avg_monthly_rvu (
-        radiologist_id uuid,
-        jan float8,
-        feb float8,
-        mar float8,
-        apr float8,
-        may float8,
-        jun float8,
-        jul float8,
-        aug float8,
-        sep float8,
-        oct float8,
-        nov float8,
-        dec float8
-    )
-
-    2. vesta_contacts (
-        id uuid,
-        name text,
-        department text,
-        contact_number text,
-        extension_number text,
-        email text,
-        additional_info text,
-        created_at timestamptz,
-        updated_at timestamptz
-    )
-
-    3. certifications (
-        id uuid,
-        radiologist_id uuid REFERENCES radiologists(id),
-        state text,
-        expiration_date date,
-        status text,
-        specialty text,
-        tags text
-    )
-
-    4. monthly_schedule (
-        id uuid,
-        radiologist_id uuid REFERENCES radiologists(id),
-        start_time time,
-        end_time time,
-        schedule_details text,
-        start_date date,
-        end_date date,
-        break_start time,
-        break_end time
-    )
-
-    5. users (
-        id uuid,
-        email text,
-        password text,
-        role text
-    )
-
-    6. radiologists (
-        id uuid,
-        name text,
-        pacs text,
-        primary_contact_method text,
-        phone text,
-        email text,
-        active_status bool,
-        schedule_info_est text,
-        additional_info text,
-        credentialing_contact text,
-        rad_guidelines text,
-        modalities text,
-        timezone text,
-        reads_routines bool
-    )
-
-    7. capacity_per_hour (
-        date date,
-        hour int4,
-        total_rvus float8
-    )
-
-    8. doctor_facility_assignments (
-        id uuid,
-        radiologist_id uuid REFERENCES radiologists(id),
-        facility_id uuid REFERENCES facilities(id),
-        can_read bool,
-        stipulations text,
-        does_stats bool,
-        does_routines bool,
-        notes text
-    )
-
-    9. specialty_permissions (
-        id uuid,
-        radiologist_id uuid REFERENCES radiologists(id),
-        specialty_id uuid REFERENCES specialty_studies(id),
-        can_read bool
-    )
-
-    10. specialty_studies (
-        id uuid,
-        name text,
-        description text
-    )
-
-    11. vacations (
-        id uuid,
-        radiologist_id uuid REFERENCES radiologists(id),
-        start_date date,
-        end_date date,
-        comments text
-    )
-
-    12. facilities (
-        id uuid,
-        name text,
-        pacs text,
-        location text,
-        modalities_assignment_period text,
-        tat_definition text,
-        active_status text,
-        modalities text
-    )
-
-    13. facility_contact_assignments (
-        id uuid,
-        facility_id uuid REFERENCES facilities(id),
-        contact_name text,
-        email text,
-        phone text,
-        comments text,
-        role text
-    )
-
-    14. pinned_doctors (
-        id uuid,
-        user_id uuid REFERENCES users(id),
-        doctor_id uuid REFERENCES radiologists(id),
-        created_at timestamptz
-    )
-    """
-    
-    # Format the schema as a string
-    schema_str = f"Here is the database schema:\n{schema}"
-    
-    # Build the prompt
-    prompt = f"""You are a helpful assistant for a medical radiology management system. 
-    Use the following schema to answer questions about the database:
-    
-    {schema_str}
-    
-    Question: {question}
-    
-    If the question requires querying the database, respond with a SQL query that can be executed.
-
-        Follow these rules when writing SQL:
-
-        ### Table and Field Naming
-        1. Use exact table and column names as defined in the schema.
-        2. Join tables using their correct foreign key relationships.
-
-        ### SQL Formatting
-        3. Use valid PostgreSQL syntax.
-        4. Wrap your queries inside ```sql code blocks (no semicolon at the end).
-        5. Use DISTINCT to avoid duplicate rows when JOINs are involved.
-
-        ### Filtering and Conditions
-        6. Consider data types (uuid, text, date, time, bool, timestamptz) when writing WHERE clauses.
-        7. Do not return UUIDs — only return meaningful text fields like name, email, specialty, or schedule_details.
-        8. You must use ILIKE AND wildcards (e.g. '%value%') when the users asks about a specific name or text.
-
-        ### Schedule Logic
-        9. When asked a scheduling question:
-        - Do not assume someone is working just because a start_date and end_date exist.
-        - A doctor is only working if both start_time and end_time are present.
-        - Exclude shifts marked as 'Off' or 'Vacation' or 'Not Scheduled' or other cases like that (case-insensitive, trimmed).
-        - When asked a shift duration question, always account for 24 hour time and the fact that the shift may span over midnight.
-
-
-    If the question is about the schema or general information, provide a helpful response.
-
-    """
-    
     try:
-        client = OpenAI(
-            api_key=os.getenv("OPENAI_API_KEY"),
-            organization=os.getenv("OPENAI_ORG_ID")
+        # Use LlamaIndex to understand the query and generate SQL
+        query_engine = index.as_query_engine(
+            similarity_top_k=3,
+            response_mode="tree_summarize"
         )
-
-        initial_response = client.chat.completions.create(
-            model="gpt-3.5-turbo",
-            messages=[
-                {"role": "system", "content": "You are a helpful assistant for a medical radiology management system."},
-                {"role": "user", "content": prompt}
-            ]
-        )
-        response_text = initial_response.choices[0].message.content
-
+        
+        # Create a prompt that guides LlamaIndex to generate SQL
+        prompt = f"""Given the database schema and the following question, generate a SQL query that answers the question.
+        Follow these rules:
+        1. Use exact table and column names as defined in the schema
+        2. Use valid PostgreSQL syntax
+        3. When using DISTINCT with ORDER BY:
+           - Either include the ORDER BY expression in the SELECT list
+           - Or use a subquery/CTE to calculate the ordering
+        4. Consider data types (uuid, text, date, time, bool, timestamptz) when writing WHERE clauses
+        5. Do not return UUIDs — only return meaningful text fields
+        6. Use ILIKE AND wildcards (e.g. '%value%') when searching for specific names or text
+        7. For schedule logic:
+            - A doctor is scheduled ONLY if both start_time AND end_time are present
+            - Ignore rows where schedule_details contains 'off', 'vacation', or 'not scheduled'
+            - For time calculations, cast times to TIMESTAMP before subtracting
+            - When calculating shift duration, use:
+              CASE 
+                WHEN end_time < start_time 
+                THEN (CURRENT_DATE + end_time + INTERVAL '1 day') - (CURRENT_DATE + start_time)
+                ELSE (CURRENT_DATE + end_time) - (CURRENT_DATE + start_time)
+              END as shift_duration
+        
+        8. When answering questions about average RVUs:
+              - The rad_avg_monthly_rvu table contains monthly data in individual columns (jan, feb, ..., dec).
+              - Do NOT refer to a column called total_rvus – it does not exist.
+              - Each monthly column is the average RVU score for that doctor for that month, and there are months that will be NULL so Use COALESCE() on each month before adding them. 
+              - To calculate average RVU per month, sum the 12 monthly columns and divide by 12.
+        
+        Question: {question}
+        
+        Respond with ONLY the SQL query, wrapped in ```sql code blocks."""
+        
+        # Get SQL query from LlamaIndex
+        response = query_engine.query(prompt)
+        response_text = str(response)
+        
         if '```sql' in response_text:
             try:
                 sql_query = response_text.split('```sql')[1].split('```')[0].strip().rstrip(';')
@@ -259,105 +296,37 @@ def chat():
                         'response': response_text
                     }), 404
 
-                english_results = format_results_to_english(result.data)
-
-                # Second pass: validate result
-                review_prompt = f"""
-Original question: {question}
-
-SQL query:
-```sql
-{sql_query}
-```
-
-Result:
-{json.dumps(result.data, indent=2)}
-
-Does this result fully answer the question? If yes, say: '✅ Query looks good. No changes needed.'
-If not, explain the issue and return a corrected SQL query only.
-Hint: Check for issues like missing wildcards, incorrect null handling, unnecessary joins, or logic errors in WHERE/HAVING clauses.
-IMPORTANT: Do not reference SELECT aliases in HAVING. Use full expressions instead.
-IMPORTANT: Use only valid PostgreSQL syntax. Do NOT use functions like TIME_DIFF. For overnight shifts, adjust by adding INTERVAL '1 day' to end_time if it is less than start_time.
-If shift duration is negative, it is likely miscalculated.
-"""
-                review_response = client.chat.completions.create(
+                # Use OpenAI only for formatting the results in natural language
+                client = OpenAI(
+                    api_key=os.getenv("OPENAI_API_KEY"),
+                    organization=os.getenv("OPENAI_ORG_ID")
+                )
+                
+                format_prompt = f"""
+                Original question: {question}
+                
+                Query results:
+                {json.dumps(result.data, indent=2)}
+                
+                Format these results into a clear, natural language response that directly answers the original question.
+                Focus on making the response easy to understand and relevant to what was asked.
+                If there are many results, summarize them appropriately.
+                """
+                
+                format_response = client.chat.completions.create(
                     model="gpt-3.5-turbo",
                     messages=[
-                        {"role": "system", "content": "You are a SQL review assistant."},
-                        {"role": "user", "content": review_prompt}
+                        {"role": "system", "content": "You are a helpful assistant that formats database query results into clear, natural language responses."},
+                        {"role": "user", "content": format_prompt}
                     ]
                 )
-                review_text = review_response.choices[0].message.content
-
-                if 'No changes needed' in review_text:
-                    return jsonify({
-                        'response': english_results,
-                        'results': result.data
-                    })
-                elif '```sql' in review_text:
-                    revised_query = review_text.split('```sql')[1].split('```')[0].strip().rstrip(';')
-                    print(f"Executing revised SQL query: {revised_query}")
-                    revised_result = supabase.rpc('execute_sql', {'query': revised_query}).execute()
-
-                    if revised_result.data is None:
-                        return jsonify({
-                            'error': 'Revised query executed but returned no data.',
-                            'response': review_text
-                        }), 404
-
-                    revised_english = format_results_to_english(revised_result.data)
-
-                    # Third pass: compare first and second SQL, and decide if second makes sense
-                    third_prompt = f"""
-Original question: {question}
-
-First SQL query:
-```sql
-{sql_query}
-```
-
-Second SQL query:
-```sql
-{revised_query}
-```
-
-Second query result:
-{json.dumps(revised_result.data, indent=2)}
-IMPORTANT: Use only valid PostgreSQL syntax. Do NOT use functions like TIME_DIFF. Handle overnight shifts with INTERVAL '1 day'.
-Explain what changed between the two queries. If the second query is still incorrect, generate a corrected SQL query. Otherwise, say '✅ Second query is valid.'
-Also generate a user-friendly explanation of the result.
-"""
-                    third_response = client.chat.completions.create(
-                        model="gpt-3.5-turbo",
-                        messages=[
-                            {"role": "system", "content": "You are a SQL difference reviewer."},
-                            {"role": "user", "content": third_prompt}
-                        ]
-                    )
-                    third_text = third_response.choices[0].message.content
-
-                    if '✅' in third_text or 'valid' in third_text:
-                        return jsonify({
-                            'response': revised_english,
-                            'results': revised_result.data
-                        })
-                    elif '```sql' in third_text:
-                        final_query = third_text.split('```sql')[1].split('```')[0].strip().rstrip(';')
-                        print(f"Executing final SQL query: {final_query}")
-                        final_result = supabase.rpc('execute_sql', {'query': final_query}).execute()
-
-                        if final_result.data is None:
-                            return jsonify({
-                                'error': 'Final query executed but returned no data.',
-                                'response': third_text
-                            }), 404
-
-                        final_english = format_results_to_english(final_result.data)
-
-                        return jsonify({
-                            'response': final_english,
-                            'results': final_result.data
-                        })
+                
+                formatted_response = format_response.choices[0].message.content
+                
+                return jsonify({
+                    'response': formatted_response,
+                    'results': result.data
+                })
 
             except Exception as e:
                 print(f"Error executing query: {str(e)}")
@@ -369,8 +338,7 @@ Also generate a user-friendly explanation of the result.
         return jsonify({'response': response_text})
 
     except Exception as e:
-        print(f"Error with OpenAI API: {str(e)}")
+        print(f"Error with LlamaIndex or OpenAI API: {str(e)}")
         return jsonify({
             'error': f'I encountered an error while processing your request: {str(e)}'
         }), 500
-
