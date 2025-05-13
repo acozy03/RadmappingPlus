@@ -202,17 +202,30 @@ def chat():
     
     Question: {question}
     
-    If the question requires querying the database, respond with a SQL query that can be executed.  
-    The SQL query should:  
-    1. Use proper table names and column names exactly as shown in the schema  
-    2. Include necessary JOINs when querying related tables using the correct foreign key relationships  
-    3. Use proper PostgreSQL syntax and formatting  
-    4. Be wrapped in ```sql code blocks  
-    5. Consider data types (uuid, text, date, time, bool, timestamptz) when writing conditions  
-    6. DO NOT include semicolons at the end of queries  
-    7. Use DISTINCT to avoid duplicate rows when JOINs may produce multiple matches  
-    8. When asked a scheduling question, always account for the possibility that the doctor might not be working on a given day even if the start date and end date are filled in. Do not assume a radiologist is working unless both start_time and end_time are present 
-    9. NEVER return UUIDs — only return meaningful text fields such as name, email, specialty, or schedule_details  
+    If the question requires querying the database, respond with a SQL query that can be executed.
+
+        Follow these rules when writing SQL:
+
+        ### Table and Field Naming
+        1. Use exact table and column names as defined in the schema.
+        2. Join tables using their correct foreign key relationships.
+
+        ### SQL Formatting
+        3. Use valid PostgreSQL syntax.
+        4. Wrap your queries inside ```sql code blocks (no semicolon at the end).
+        5. Use DISTINCT to avoid duplicate rows when JOINs are involved.
+
+        ### Filtering and Conditions
+        6. Consider data types (uuid, text, date, time, bool, timestamptz) when writing WHERE clauses.
+        7. Do not return UUIDs — only return meaningful text fields like name, email, specialty, or schedule_details.
+        8. You must use ILIKE AND wildcards (e.g. '%value%') when the users asks about a specific name or text.
+
+        ### Schedule Logic
+        9. When asked a scheduling question:
+        - Do not assume someone is working just because a start_date and end_date exist.
+        - A doctor is only working if both start_time and end_time are present.
+        - Exclude shifts marked as 'Off' or 'Vacation' or 'Not Scheduled' or other cases like that (case-insensitive, trimmed).
+
 
     If the question is about the schema or general information, provide a helpful response.
 
@@ -221,62 +234,97 @@ def chat():
     try:
         client = OpenAI(
             api_key=os.getenv("OPENAI_API_KEY"),
-            organization=os.getenv("OPENAI_ORG_ID")  # Make sure this is set correctly
+            organization=os.getenv("OPENAI_ORG_ID")
         )
-        response = client.chat.completions.create(
+
+        initial_response = client.chat.completions.create(
             model="gpt-3.5-turbo",
             messages=[
                 {"role": "system", "content": "You are a helpful assistant for a medical radiology management system."},
                 {"role": "user", "content": prompt}
             ]
         )
-        response_text = response.choices[0].message.content
+        response_text = initial_response.choices[0].message.content
 
-
-        
-        # Check if the response contains a SQL query
         if '```sql' in response_text:
             try:
-                # Extract the SQL query from the response and remove semicolon if present
-                sql_query = response_text.split('```sql')[1].split('```')[0].strip()
-                sql_query = sql_query.rstrip(';')  # Remove trailing semicolon if present
-                
-                # Log the query for debugging
+                sql_query = response_text.split('```sql')[1].split('```')[0].strip().rstrip(';')
                 print(f"Executing SQL query: {sql_query}")
-                
-                # Execute the query using the execute_sql function
                 result = supabase.rpc('execute_sql', {'query': sql_query}).execute()
+
                 if result.data is None:
                     return jsonify({
                         'error': 'Query executed but returned no data.',
                         'response': response_text
                     }), 404
-    
-                # Format the results in plain English
+
                 english_results = format_results_to_english(result.data)
-                
-                # Return both the SQL query and the natural language response
-                return jsonify({
-                    'response': f"""Here is the SQL query I generated and executed for your question:
+
+                # Second pass: verify if the result looks reasonable
+                review_prompt = f"""
+Original question: {question}
+
+SQL query:
+```sql
 {sql_query}
 ```
 
-Results:
-{english_results}""",
-                    
-                    'results': result.data
-                })
+Result:
+{json.dumps(result.data, indent=2)}
+
+Does this result fully answer the question? If yes, say: '✅ Query looks good. No changes needed.'
+
+If not, explain the issue and return a corrected SQL query only.
+
+Check for issues like missing wildcards, incorrect null handling, unnecessary joins, or logic errors in WHERE/HAVING clauses.
+
+IMPORTANT: Do not reference SELECT aliases (like `avg_rvus_per_month`) in the HAVING clause. Use the full expression again instead.
+
+"""
+                review_response = client.chat.completions.create(
+                    model="gpt-3.5-turbo",
+                    messages=[
+                        {"role": "system", "content": "You are a SQL review assistant."},
+                        {"role": "user", "content": review_prompt}
+                    ]
+                )
+                review_text = review_response.choices[0].message.content
+
+                if 'No changes needed' in review_text:
+                    return jsonify({
+                        'response': english_results,
+                        'results': result.data
+                    })
+                elif '```sql' in review_text:
+                    revised_query = review_text.split('```sql')[1].split('```')[0].strip().rstrip(';')
+                    print(f"Executing revised SQL query: {revised_query}")
+                    revised_result = supabase.rpc('execute_sql', {'query': revised_query}).execute()
+
+                    if revised_result.data is None:
+                        return jsonify({
+                            'error': 'Revised query executed but returned no data.',
+                            'response': review_text
+                        }), 404
+
+                    revised_english = format_results_to_english(revised_result.data)
+
+                    return jsonify({
+                        'response': revised_english,
+                        'results': revised_result.data
+                    })
+
             except Exception as e:
                 print(f"Error executing query: {str(e)}")
                 return jsonify({
                     'error': f'I encountered an error while trying to find the information: {str(e)}',
                     'response': response_text
                 }), 500
-        
+
         return jsonify({'response': response_text})
-        
+
     except Exception as e:
         print(f"Error with OpenAI API: {str(e)}")
         return jsonify({
             'error': f'I encountered an error while processing your request: {str(e)}'
         }), 500
+
