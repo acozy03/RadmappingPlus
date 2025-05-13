@@ -276,9 +276,9 @@ Result:
 Does this result fully answer the question? If yes, say: '✅ Query looks good. No changes needed.'
 If not, explain the issue and return a corrected SQL query only.
 Hint: Check for issues like missing wildcards, incorrect null handling, unnecessary joins, or logic errors in WHERE/HAVING clauses.
-IMPORTANT: Do not reference SELECT aliases (like `avg_rvus_per_month`) in the HAVING clause. Use the full expression again instead.
-IMPORTANT: Use only valid PostgreSQL syntax. Do NOT use functions like TIME_DIFF — use EXTRACT(EPOCH FROM ...) instead. For overnight shifts, adjust by adding INTERVAL '1 day' to end_time if it is less than start_time.
-IMPORTANT: If you receive a negative number, with regards to the shift duration, it means the shift is overnight and miscalculated.
+IMPORTANT: Do not reference SELECT aliases in HAVING. Use full expressions instead.
+IMPORTANT: Use only valid PostgreSQL syntax. Do NOT use functions like TIME_DIFF. For overnight shifts, adjust by adding INTERVAL '1 day' to end_time if it is less than start_time.
+If shift duration is negative, it is likely miscalculated.
 """
                 review_response = client.chat.completions.create(
                     model="gpt-3.5-turbo",
@@ -323,11 +323,9 @@ Second SQL query:
 
 Second query result:
 {json.dumps(revised_result.data, indent=2)}
-IMPORTANT: Use only valid PostgreSQL syntax. Do NOT use functions like TIME_DIFF — use EXTRACT(EPOCH FROM ...) instead. For overnight shifts, adjust by adding INTERVAL '1 day' to end_time if it is less than start_time.
-If you receive a negative number, with regards to the shift duration, it means the shift is overnight and miscalculated.
-Explain what changed between the two queries. If the second query still does not correctly answer the original question or provided an incorrect result, try and correct it. Otherwise, say '✅ Second query is valid.
-
-With the end result, can you output it in a user-friendly format?'
+IMPORTANT: Use only valid PostgreSQL syntax. Do NOT use functions like TIME_DIFF. Handle overnight shifts with INTERVAL '1 day'.
+Explain what changed between the two queries. If the second query is still incorrect, generate a corrected SQL query. Otherwise, say '✅ Second query is valid.'
+Also generate a user-friendly explanation of the result.
 """
                     third_response = client.chat.completions.create(
                         model="gpt-3.5-turbo",
