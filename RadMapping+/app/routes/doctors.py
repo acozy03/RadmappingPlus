@@ -311,9 +311,11 @@ def update_doctor(rad_id):
         # Remove None values to avoid overwriting with nulls
         data = {k: v for k, v in data.items() if v is not None}
         
+
         result = supabase.table("radiologists").update(data).eq("id", rad_id).execute()
-      
-        
+
+    
+
         return redirect(url_for("doctors.doctor_profile", rad_id=rad_id))
     except Exception as e:
     

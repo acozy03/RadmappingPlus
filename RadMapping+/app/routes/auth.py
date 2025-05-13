@@ -1,6 +1,5 @@
 from flask import Blueprint, request, redirect, render_template, session, url_for, flash
 from app.supabase_client import supabase
-import logging
 
 auth_bp = Blueprint('auth', __name__)
 
@@ -9,10 +8,6 @@ def login():
     if request.method == 'POST':
         email = request.form['email']
         password = request.form['password']
-
-        logging.basicConfig(level=logging.INFO)
-        logger = logging.getLogger(__name__)
-        logger.info("Logging in with email: %s", email)
         
         try:
             # Sign in with Supabase
@@ -34,9 +29,8 @@ def login():
                 db_response = supabase.table("users").select("role").eq("id", user.id).single().execute()
                 if db_response.data:
                     role = db_response.data.get("role", "user")
-                logger.info(f"Fetched role from users table: {role}")
             except Exception as e:
-                logger.warning(f"Could not fetch role from users table: {str(e)}")
+                pass
 
             # 🧠 Optionally: sync it into metadata for JWT visibility (not used for access control)
             try:
@@ -47,9 +41,8 @@ def login():
                     user.id,
                     {"user_metadata": updated_metadata}
                 )
-                logger.info(f"Updated user_metadata with role: {updated_metadata}")
             except Exception as e:
-                logger.warning(f"Failed to sync role to metadata: {str(e)}")
+                pass
 
             # ✅ Store session with correct role
             session["user"] = {
@@ -60,13 +53,9 @@ def login():
                 "refresh_token": refresh_token
             }
 
-            logger.info(f"User logged in with role: {role}")
-            logger.info(f"Session data: {session['user']}")
-
             return redirect(url_for("daily.daily"))
 
         except Exception as e:
-            logger.error("Login error: %s", str(e))
             flash('Invalid credentials', 'error')
             return render_template("login.html")
 
@@ -77,8 +66,8 @@ def login():
 def logout():
     try:
         supabase.auth.sign_out()
-    except Exception as e:
-        logging.error("Logout error: %s", str(e))
+    except Exception:
+        pass
 
     session.clear()
     return redirect(url_for("auth.login"))

@@ -88,7 +88,7 @@ async function sendMessage(event) {
       addMessage(`Error: ${data.error}`, 'assistant');
     } else {
       // Add assistant's response
-      addMessage(data.answer, 'assistant');
+      addMessage(data.response, 'assistant');
       
       // If there's a SQL query, show it in a code block
       if (data.sql_query) {

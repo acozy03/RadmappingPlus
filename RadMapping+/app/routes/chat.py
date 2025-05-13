@@ -1,9 +1,10 @@
-from flask import Blueprint, render_template, session, redirect, url_for, request, jsonify
+from flask import Blueprint, json, render_template, session, redirect, url_for, request, jsonify
 from app.admin_required import admin_required
 from app.supabase_client import supabase
 from datetime import datetime
 import uuid
 import openai
+from openai import OpenAI
 import pandas as pd
 import os
 from app.supabase_client import get_supabase_client
@@ -12,31 +13,32 @@ chat_bp = Blueprint('chat', __name__)
 
 
 def format_results_to_english(results):
-    """Convert query results into a natural language response."""
     if not results:
         return "I couldn't find any matching records."
-    
-    # Convert to pandas DataFrame for easier processing
+
+    # Unwrap first-level JSON arrays if present
+    if isinstance(results, list) and len(results) == 1 and isinstance(results[0], dict):
+        only_value = list(results[0].values())[0]
+        if isinstance(only_value, list):
+            results = only_value
+
     df = pd.DataFrame(results)
-    
-    # Get the number of results
     num_results = len(df)
-    
-    # Create a natural language summary
-    if num_results == 1:
-        summary = "I found 1 result:\n"
-    else:
-        summary = f"I found {num_results} results:\n"
-    
-    # Add details for each result
+
+    summary = f"I found {num_results} result{'s' if num_results != 1 else ''}:\n"
+
     for idx, row in df.iterrows():
         summary += "\n"
         for column in df.columns:
             value = row[column]
-            if pd.notna(value):  # Only include non-null values
+            if not isinstance(value, (list, dict)) and pd.notna(value):
                 summary += f"{column.replace('_', ' ').title()}: {value}\n"
-    
+            elif isinstance(value, (list, dict)):
+                summary += f"{column.replace('_', ' ').title()}: {json.dumps(value)}\n"
+
+
     return summary
+
 
 @chat_bp.route('/chat', methods=['POST'])
 @with_supabase_auth
@@ -213,8 +215,10 @@ def chat():
     """
     
     try:
-        client = openai.OpenAI(api_key=os.getenv("OPENAI_API_KEY"))
-
+        client = OpenAI(
+            api_key=os.getenv("OPENAI_API_KEY"),
+            organization=os.getenv("OPENAI_ORG_ID")  # Make sure this is set correctly
+        )
         response = client.chat.completions.create(
             model="gpt-3.5-turbo",
             messages=[
@@ -238,23 +242,21 @@ def chat():
                 
                 # Execute the query using the execute_sql function
                 result = supabase.rpc('execute_sql', {'query': sql_query}).execute()
-                
+                if result.data is None:
+                    return jsonify({
+                        'error': 'Query executed but returned no data.',
+                        'response': response_text
+                    }), 404
+    
                 # Format the results in plain English
                 english_results = format_results_to_english(result.data)
                 
                 # Return both the SQL query and the natural language response
                 return jsonify({
-                    'response': f"""Here is the SQL query I generated and executed for your question:
-
-```sql
-{sql_query}
-```
-
-Results:
-{english_results}""",
-                    'sql_query': sql_query,
+                    'response': english_results,
                     'results': result.data
                 })
+
             except Exception as e:
                 print(f"Error executing query: {str(e)}")
                 return jsonify({
