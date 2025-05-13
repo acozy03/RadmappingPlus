@@ -20,9 +20,37 @@ from llama_index.llms.openai import OpenAI as LlamaOpenAI
 from llama_index.core.query_engine import RetrieverQueryEngine
 from llama_index.core.retrievers import VectorIndexRetriever
 from llama_index.core.postprocessor import SimilarityPostprocessor
+from llama_index.core.memory import ChatMemoryBuffer
 import json
 
 chat_bp = Blueprint('chat', __name__)
+
+def get_chat_memory():
+    """Get or create chat memory for the current session."""
+    if 'chat_memory' not in session:
+        session['chat_memory'] = []
+    return session['chat_memory']
+
+def add_to_chat_memory(role, content):
+    """Add a message to the chat memory."""
+    memory = get_chat_memory()
+    memory.append({"role": role, "content": content})
+    # Keep only last 10 messages to prevent session from getting too large
+    if len(memory) > 10:
+        memory = memory[-10:]
+    session['chat_memory'] = memory
+    return memory
+
+def format_chat_history():
+    """Format chat history for the prompt."""
+    memory = get_chat_memory()
+    if not memory:
+        return ""
+    
+    history = "Previous conversation:\n"
+    for msg in memory:
+        history += f"{msg['role']}: {msg['content']}\n"
+    return history
 
 # Initialize LlamaIndex components
 def initialize_llama_index():
@@ -241,6 +269,9 @@ def chat():
     data = request.get_json()
     question = data.get('question', '')
     
+    # Add user question to chat memory
+    add_to_chat_memory("user", question)
+    
     try:
         # Use LlamaIndex to understand the query and generate SQL
         query_engine = index.as_query_engine(
@@ -269,12 +300,13 @@ def chat():
                 THEN (CURRENT_DATE + end_time + INTERVAL '1 day') - (CURRENT_DATE + start_time)
                 ELSE (CURRENT_DATE + end_time) - (CURRENT_DATE + start_time)
               END as shift_duration
-        
         8. When answering questions about average RVUs:
-              - The rad_avg_monthly_rvu table contains monthly data in individual columns (jan, feb, ..., dec).
-              - Do NOT refer to a column called total_rvus – it does not exist.
-              - Each monthly column is the average RVU score for that doctor for that month, and there are months that will be NULL so Use COALESCE() on each month before adding them. 
-              - To calculate average RVU per month, sum the 12 monthly columns and divide by 12.
+               - The rad_avg_monthly_rvu table contains monthly data in individual columns (jan, feb, ..., dec).
+               - Do NOT refer to a column called total_rvus – it does not exist.
+               - Each monthly column is the average RVU score for that doctor for that month, and there are months that will be NULL so Use COALESCE() on each month before adding them. 
+               - To calculate average RVU per month, sum the 12 monthly columns and divide by 12.
+        9. When searching for a doctor by name, you must search only by last name and use wildcards, do not search by first name or full name.
+        {format_chat_history()}
         
         Question: {question}
         
@@ -323,6 +355,9 @@ def chat():
                 
                 formatted_response = format_response.choices[0].message.content
                 
+                # Add assistant response to chat memory
+                add_to_chat_memory("assistant", formatted_response)
+                
                 return jsonify({
                     'response': formatted_response,
                     'results': result.data
@@ -330,8 +365,10 @@ def chat():
 
             except Exception as e:
                 print(f"Error executing query: {str(e)}")
+                error_response = f'I encountered an error while trying to find the information: {str(e)}'
+                add_to_chat_memory("assistant", error_response)
                 return jsonify({
-                    'error': f'I encountered an error while trying to find the information: {str(e)}',
+                    'error': error_response,
                     'response': response_text
                 }), 500
 
@@ -339,6 +376,8 @@ def chat():
 
     except Exception as e:
         print(f"Error with LlamaIndex or OpenAI API: {str(e)}")
+        error_response = f'I encountered an error while processing your request: {str(e)}'
+        add_to_chat_memory("assistant", error_response)
         return jsonify({
-            'error': f'I encountered an error while processing your request: {str(e)}'
+            'error': error_response
         }), 500

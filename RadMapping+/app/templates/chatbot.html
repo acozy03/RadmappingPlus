@@ -1,9 +1,17 @@
 <!-- Chatbot Component -->
-<div id="chatbot" class="fixed bottom-4 right-4 z-50">
+<div id="chatbot" class="fixed bottom-4 right-4 z-50" x-data="{ isDragging: false, startX: 0, startY: 0, width: 384, height: 500, posX: 0, posY: 0 }">
+  
   <!-- Chat Button -->
   <button id="chatButton" 
           class="bg-blue-600 text-white rounded-full p-4 shadow-lg hover:bg-blue-700 transition-colors"
-          onclick="toggleChat()">
+          @click="
+            const chatWindow = document.getElementById('chatWindow');
+            chatWindow.classList.toggle('hidden');
+            if (!chatWindow.classList.contains('hidden')) {
+              posX = 0;
+              posY = 0;
+            }
+          ">
     <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
       <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 10h.01M12 10h.01M16 10h.01M9 16H5a2 2 0 01-2-2V6a2 2 0 012-2h14a2 2 0 012 2v8a2 2 0 01-2 2h-5l-5 5v-5z" />
     </svg>
@@ -11,15 +19,71 @@
 
   <!-- Chat Window -->
   <div id="chatWindow" 
-       class="hidden fixed bottom-20 right-4 w-96 h-[500px] bg-white rounded-lg shadow-xl flex flex-col">
+       class="hidden fixed bottom-20 right-4 bg-white rounded-lg shadow-xl flex flex-col select-none"
+       :style="`width: ${width}px; height: ${height}px; transform: translate(${posX}px, ${posY}px);`"
+       @mousedown="
+        if ($event.target.closest('.chat-header')) {
+          $event.preventDefault();
+          isDragging = true;
+          startX = $event.clientX;
+          startY = $event.clientY;
+      
+          const onMouseMove = (e) => {
+            if (!isDragging) return;
+            posX += e.clientX - startX;
+            posY += e.clientY - startY;
+            startX = e.clientX;
+            startY = e.clientY;
+          };
+      
+          const onMouseUp = () => {
+            isDragging = false;
+            document.removeEventListener('mousemove', onMouseMove);
+            document.removeEventListener('mouseup', onMouseUp);
+          };
+      
+          document.addEventListener('mousemove', onMouseMove);
+          document.addEventListener('mouseup', onMouseUp);
+        }
+      ">
     <!-- Chat Header -->
-    <div class="bg-blue-600 text-white p-4 rounded-t-lg flex justify-between items-center">
+    <div class="chat-header bg-blue-600 text-white p-4 rounded-t-lg flex justify-between items-center cursor-move">
       <h3 class="font-semibold">Veston</h3>
-      <button onclick="toggleChat()" class="text-white hover:text-gray-200">
-        <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12" />
-        </svg>
-      </button>
+      <div class="flex items-center space-x-2">
+        <!-- Resize Handle -->
+        <div class="resize-handle cursor-se-resize" 
+             @mousedown.stop.prevent="
+               const startWidth = width;
+               const startHeight = height;
+               const startX = $event.clientX;
+               const startY = $event.clientY;
+               const onMouseMove = (e) => {
+                 const deltaX = startX - e.clientX;
+                 const deltaY = startY - e.clientY;
+                 width = Math.max(300, startWidth + deltaX);
+                 height = Math.max(400, startHeight + deltaY);
+               };
+               const onMouseUp = () => {
+                 document.removeEventListener('mousemove', onMouseMove);
+                 document.removeEventListener('mouseup', onMouseUp);
+               };
+               document.addEventListener('mousemove', onMouseMove);
+               document.addEventListener('mouseup', onMouseUp);
+             ">
+          <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 8h16M4 16h16" />
+          </svg>
+        </div>
+        <!-- Close Button -->
+        <button @click="
+          const chatWindow = document.getElementById('chatWindow');
+          chatWindow.classList.add('hidden');
+        " class="text-white hover:text-gray-200">
+          <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12" />
+          </svg>
+        </button>
+      </div>
     </div>
 
     <!-- Chat Messages -->
@@ -47,14 +111,6 @@
 </div>
 
 <script>
-let isChatOpen = false;
-
-function toggleChat() {
-  const chatWindow = document.getElementById('chatWindow');
-  isChatOpen = !isChatOpen;
-  chatWindow.classList.toggle('hidden');
-}
-
 async function sendMessage(event) {
   event.preventDefault();
   
@@ -137,4 +193,39 @@ function removeLoadingMessage() {
     loadingMessage.parentElement.remove();
   }
 }
-</script> 
+
+// Check if user is logged in before showing chatbot
+document.addEventListener('DOMContentLoaded', function() {
+  const chatbot = document.getElementById('chatbot');
+  if (window.location.pathname === '/auth/login') {
+    chatbot.style.display = 'none';
+  }
+});
+</script>
+
+<style>
+.resize-handle {
+  width: 20px;
+  height: 20px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: white;
+  opacity: 0.7;
+  transition: opacity 0.2s;
+}
+
+.resize-handle:hover {
+  opacity: 1;
+}
+
+#chatWindow {
+  min-width: 300px;
+  min-height: 400px;
+  user-select: none;
+}
+
+.chat-header {
+  user-select: none;
+}
+</style> 
