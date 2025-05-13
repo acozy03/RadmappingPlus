@@ -71,7 +71,7 @@
                                     <span class="view-mode">{{ contact.additional_info or '-' }}</span>
                                     <textarea class="edit-mode hidden w-full px-2 py-1 border rounded">{{ contact.additional_info or '' }}</textarea>
                                 </td>
-                                {% if session.user.role == 'admin' %}
+                                {% if session['user']['role'] == 'admin' %}
                                 <td class="px-6 py-4 whitespace-nowrap text-sm font-medium">
                                     <div class="view-mode">
                                         <button onclick="toggleEditMode('{{ contact.id }}')" class="text-blue-600 hover:text-blue-900 mr-3">Edit</button>

@@ -6,20 +6,15 @@ from calendar import monthrange
 from collections import defaultdict
 import uuid
 import calendar as pycalendar
-
+from app.middleware import with_supabase_auth
+from app.supabase_client import get_supabase_client
 monthly_bp = Blueprint('monthly', __name__)
 
-def login_required(view_func):
-    def wrapper(*args, **kwargs):
-        if not session.get("user"):
-            return redirect(url_for("auth.login"))
-        return view_func(*args, **kwargs)
-    wrapper.__name__ = view_func.__name__
-    return wrapper
 
 @monthly_bp.route('/monthly')
-@login_required
+@with_supabase_auth
 def monthly():
+    supabase = get_supabase_client()
     now = datetime.now()
     year = request.args.get("year", default=now.year, type=int)
     month = request.args.get("month", default=now.month, type=int)
@@ -137,8 +132,9 @@ def monthly():
         pinned_doctors=pinned_doctor_ids)
 
 @monthly_bp.route('/monthly/pin', methods=['POST'])
-@login_required
+@with_supabase_auth
 def pin_doctors():
+    supabase = get_supabase_client()
     data = request.get_json()
     doctor_ids = data.get('doctor_ids', [])
     user_email = session["user"]["email"]
@@ -165,8 +161,9 @@ def pin_doctors():
     return jsonify({'success': True})
 
 @monthly_bp.route('/monthly/search', methods=["GET"])
-@login_required
+@with_supabase_auth
 def search_schedule():
+    supabase = get_supabase_client()
     from collections import defaultdict
     import calendar as pycalendar
 
@@ -219,12 +216,13 @@ def search_schedule():
     })
 
 @monthly_bp.route('/monthly/bulk', methods=['POST'])
-@login_required
+@with_supabase_auth
 def bulk_schedule():
+    supabase = get_supabase_client()
     if session["user"]["role"] != "admin":
         return "Unauthorized", 403
 
-    print("Bulk Schedule Form Data:", request.form)
+ 
     
     doctor_id = request.form.get("doctor")
     start_date = request.form.get("start_date")
@@ -233,12 +231,7 @@ def bulk_schedule():
     end_time = request.form.get("end_time")
     notes = request.form.get("schedule_details")
 
-    print(f"Doctor ID: {doctor_id}")
-    print(f"Start Date: {start_date}")
-    print(f"End Date: {end_date}")
-    print(f"Start Time: {start_time}")
-    print(f"End Time: {end_time}")
-    print(f"Notes: {notes}")
+
 
     # Check if it's a special case (OFF, VACATION, REACH AS NEEDED)
     is_special_case = notes in ['OFF', 'VACATION', 'REACH AS NEEDED']
@@ -253,7 +246,7 @@ def bulk_schedule():
 
     while current <= end:
         date_str = current.strftime("%Y-%m-%d")
-        print(f"Processing date: {date_str}")
+      
         
         # Check if schedule already exists
         existing = supabase.table("monthly_schedule") \
@@ -271,14 +264,13 @@ def bulk_schedule():
             "schedule_details": notes
         }
 
-        print(f"Payload: {payload}")
-
+       
         if existing.data:
-            print(f"Updating existing schedule for {date_str}")
+       
             supabase.table("monthly_schedule").update(payload) \
                 .eq("id", existing.data[0]["id"]).execute()
         else:
-            print(f"Creating new schedule for {date_str}")
+          
             supabase.table("monthly_schedule").insert(payload).execute()
 
         current += timedelta(days=1)
@@ -286,12 +278,13 @@ def bulk_schedule():
     return redirect(url_for("monthly.monthly"))
 
 @monthly_bp.route('/monthly/pattern', methods=['POST'])
-@login_required
+@with_supabase_auth
 def pattern_schedule():
+    supabase = get_supabase_client()
     if session["user"]["role"] != "admin":
         return "Unauthorized", 403
 
-    print("Pattern Schedule Form Data:", request.form)
+
     
     doctor_id = request.form.get("doctor")
     start_date = request.form.get("start_date")
@@ -301,13 +294,7 @@ def pattern_schedule():
     days = request.form.getlist("days")  # Get list of selected days
     notes = request.form.get("schedule_details")
 
-    print(f"Doctor ID: {doctor_id}")
-    print(f"Start Date: {start_date}")
-    print(f"End Date: {end_date}")
-    print(f"Start Time: {start_time}")
-    print(f"End Time: {end_time}")
-    print(f"Days: {days}")
-    print(f"Notes: {notes}")
+
 
     # Check if it's a special case (OFF, VACATION, REACH AS NEEDED)
     is_special_case = notes in ['OFF', 'VACATION', 'REACH AS NEEDED']
@@ -324,7 +311,7 @@ def pattern_schedule():
         # Check if current day is in selected days
         if str(current.weekday()) in days:
             date_str = current.strftime("%Y-%m-%d")
-            print(f"Processing date: {date_str}")
+   
             
             # Check if schedule already exists
             existing = supabase.table("monthly_schedule") \
@@ -342,14 +329,14 @@ def pattern_schedule():
                 "schedule_details": notes
             }
 
-            print(f"Payload: {payload}")
+         
 
             if existing.data:
-                print(f"Updating existing schedule for {date_str}")
+              
                 supabase.table("monthly_schedule").update(payload) \
                     .eq("id", existing.data[0]["id"]).execute()
             else:
-                print(f"Creating new schedule for {date_str}")
+               
                 supabase.table("monthly_schedule").insert(payload).execute()
 
         current += timedelta(days=1)
@@ -357,8 +344,9 @@ def pattern_schedule():
     return redirect(url_for("monthly.monthly"))
 
 @monthly_bp.route('/monthly/<string:rad_id>/delete_schedule', methods=["POST"])
-@login_required
+@with_supabase_auth
 def delete_schedule(rad_id):
+    supabase = get_supabase_client()
     if session["user"]["role"] != "admin":
         return "Unauthorized", 403
 
@@ -372,8 +360,9 @@ def delete_schedule(rad_id):
     return redirect(url_for("monthly.monthly", year=year, month=month, start_day=start_day))
 
 @monthly_bp.route('/monthly/<string:rad_id>/update_schedule', methods=["POST"])
-@login_required
+@with_supabase_auth
 def update_schedule(rad_id):
+    supabase = get_supabase_client()
     if session["user"]["role"] != "admin":
         return "Unauthorized", 403
 

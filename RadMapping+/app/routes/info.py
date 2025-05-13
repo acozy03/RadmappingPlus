@@ -3,18 +3,14 @@ from app.admin_required import admin_required
 from app.supabase_client import supabase
 from datetime import datetime
 import uuid
-
+from app.middleware import with_supabase_auth
+from app.supabase_client import get_supabase_client
 info_bp = Blueprint('info', __name__)
 
-def login_required(view_func):
-    def wrapper(*args, **kwargs):
-        if not session.get("user"):
-            return redirect(url_for("auth.login"))
-        return view_func(*args, **kwargs)
-    wrapper.__name__ = view_func.__name__
-    return wrapper
+
 
 @info_bp.route('/info')
-@login_required
+@with_supabase_auth
 def info():
+    supabase = get_supabase_client()
     return render_template("info.html")

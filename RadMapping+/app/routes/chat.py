@@ -5,18 +5,11 @@ from datetime import datetime
 import uuid
 import openai
 import pandas as pd
-from tabulate import tabulate
 import os
-
+from app.supabase_client import get_supabase_client
+from app.middleware import with_supabase_auth
 chat_bp = Blueprint('chat', __name__)
 
-def login_required(view_func):
-    def wrapper(*args, **kwargs):
-        if not session.get("user"):
-            return redirect(url_for("auth.login"))
-        return view_func(*args, **kwargs)
-    wrapper.__name__ = view_func.__name__
-    return wrapper
 
 def format_results_to_english(results):
     """Convert query results into a natural language response."""
@@ -46,8 +39,9 @@ def format_results_to_english(results):
     return summary
 
 @chat_bp.route('/chat', methods=['POST'])
-@login_required
+@with_supabase_auth
 def chat():
+    supabase = get_supabase_client()
     data = request.get_json()
     question = data.get('question', '')
     

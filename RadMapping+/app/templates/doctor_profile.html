@@ -494,9 +494,12 @@
         <input type="text" placeholder="Search facilities..." oninput="filterFacilities(this.value)"
                class="w-full mr-4 px-3 py-2 border rounded text-sm">
         <div class="flex gap-2">
+          {% if session.user.role == 'admin' %}
           <button x-show="!editMode" @click="editMode = true" class="bg-yellow-500 text-white px-4 py-2 rounded text-sm font-medium">Edit Assignments</button>
           <button x-show="editMode" @click="editMode = false" class="bg-gray-300 text-gray-800 px-4 py-2 rounded text-sm font-medium">Cancel Edit</button>
+          
           <button onclick="openAddFacilityModal()" class="bg-blue-600 text-white px-4 py-2 rounded text-sm font-medium">Add Facility</button>
+          {% endif %}
         </div>
       </div>
       <ul id="facilityList" class="space-y-4 text-sm">

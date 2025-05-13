@@ -3,20 +3,15 @@ from app.admin_required import admin_required
 from app.supabase_client import supabase
 from datetime import datetime, timedelta
 from collections import defaultdict
-
+from app.supabase_client import get_supabase_client
+from app.middleware import with_supabase_auth
 daily_bp = Blueprint('daily', __name__)
 
-def login_required(view_func):
-    def wrapper(*args, **kwargs):
-        if not session.get("user"):
-            return redirect(url_for("auth.login"))
-        return view_func(*args, **kwargs)
-    wrapper.__name__ = view_func.__name__
-    return wrapper
 
 @daily_bp.route('/daily')
-@login_required
+@with_supabase_auth
 def daily():
+    supabase = get_supabase_client()
     from collections import defaultdict
     from datetime import datetime, timedelta
 

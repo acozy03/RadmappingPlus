@@ -3,20 +3,15 @@ from app.admin_required import admin_required
 from app.supabase_client import supabase
 from datetime import datetime, timedelta
 import uuid
-
+from app.middleware import with_supabase_auth
+from app.supabase_client import get_supabase_client
 licenses_bp = Blueprint('licenses', __name__)
 
-def login_required(view_func):
-    def wrapper(*args, **kwargs):
-        if not session.get("user"):
-            return redirect(url_for("auth.login"))
-        return view_func(*args, **kwargs)
-    wrapper.__name__ = view_func.__name__
-    return wrapper
 
 @licenses_bp.route('/doctors/<string:rad_id>/licenses/<string:cert_id>/delete', methods=["POST"])
-@login_required
+@with_supabase_auth
 def delete_certification(rad_id, cert_id):
+    supabase = get_supabase_client()
     if session["user"]["role"] != "admin":
         return "Unauthorized", 403
 
@@ -25,9 +20,10 @@ def delete_certification(rad_id, cert_id):
     return redirect(url_for('doctors.doctor_profile', rad_id=rad_id))
 
 @licenses_bp.route('/licenses/<string:license_id>/update', methods=["POST"])
-@login_required
+@with_supabase_auth
 @admin_required
 def update_license(license_id):
+    supabase = get_supabase_client()
     data = {
         "radiologist_id": request.form.get("radiologist_id"),
         "state": request.form.get("state"),
@@ -40,8 +36,9 @@ def update_license(license_id):
     return jsonify({"status": "success"})
 
 @licenses_bp.route('/licenses/search', methods=["GET"])
-@login_required
+@with_supabase_auth
 def search_licenses():
+    supabase = get_supabase_client()
     page = request.args.get('page', 1, type=int)
     per_page = 25
     offset = (page - 1) * per_page
@@ -78,8 +75,9 @@ def search_licenses():
     })
 
 @licenses_bp.route('/licenses', methods=["GET", "POST"])
-@login_required
+@with_supabase_auth
 def licenses_page():
+    supabase = get_supabase_client()
     # Fetch all radiologists for the doctor dropdown
     rads_res = supabase.table("radiologists").select("id, name").order("name").execute()
     radiologists = rads_res.data or []

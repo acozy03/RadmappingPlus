@@ -3,20 +3,16 @@ from app.admin_required import admin_required
 from app.supabase_client import supabase
 from datetime import datetime, timedelta
 import uuid
+from app.middleware import with_supabase_auth
+from app.supabase_client import get_supabase_client
 
 vacations_bp = Blueprint('vacations', __name__)
 
-def login_required(view_func):
-    def wrapper(*args, **kwargs):
-        if not session.get("user"):
-            return redirect(url_for("auth.login"))
-        return view_func(*args, **kwargs)
-    wrapper.__name__ = view_func.__name__
-    return wrapper
 
 @vacations_bp.route('/vacations')
-@login_required
+@with_supabase_auth
 def vacations_page():
+    supabase = get_supabase_client()
     # Fetch all doctors
     doctors_res = supabase.table("radiologists").select("*").order("name").execute()
     doctors = doctors_res.data
@@ -28,9 +24,10 @@ def vacations_page():
     return render_template("vacations.html", doctors=doctors, vacations=vacations)
 
 @vacations_bp.route('/vacations/add', methods=['POST'])
-@login_required
+@with_supabase_auth
 @admin_required
 def add_vacation():
+    supabase = get_supabase_client()
     data = {
         "id": str(uuid.uuid4()),
         "radiologist_id": request.form.get("radiologist_id"),
@@ -42,9 +39,10 @@ def add_vacation():
     return redirect(url_for("vacations.vacations_page"))
 
 @vacations_bp.route('/vacations/update', methods=['POST'])
-@login_required
+@with_supabase_auth
 @admin_required
 def update_vacation():
+    supabase = get_supabase_client()
     vacation_id = request.form.get("vacation_id")
     data = {
         "radiologist_id": request.form.get("radiologist_id"),
@@ -56,9 +54,10 @@ def update_vacation():
     return redirect(url_for("vacations.vacations_page"))
 
 @vacations_bp.route('/vacations/delete', methods=['POST'])
-@login_required
+@with_supabase_auth
 @admin_required
 def delete_vacation():
+    supabase = get_supabase_client()
     vacation_id = request.json.get("vacation_id")
     supabase.table("vacations").delete().eq("id", vacation_id).execute()
     return jsonify({"status": "success"})

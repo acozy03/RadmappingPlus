@@ -2,20 +2,17 @@ from flask import Blueprint, render_template, session, redirect, url_for, reques
 from app.admin_required import admin_required
 from app.supabase_client import supabase
 import uuid
+from app.middleware import with_supabase_auth
+from app.supabase_client import get_supabase_client
 
 facilities_bp = Blueprint('facilities', __name__)
 
-def login_required(view_func):
-    def wrapper(*args, **kwargs):
-        if not session.get("user"):
-            return redirect(url_for("auth.login"))
-        return view_func(*args, **kwargs)
-    wrapper.__name__ = view_func.__name__
-    return wrapper
+
 
 @facilities_bp.route('/facilities')
-@login_required
+@with_supabase_auth
 def facilities():
+    supabase = get_supabase_client()
     # Get pagination parameters
     page = request.args.get('page', 1, type=int)
     per_page = 25
@@ -40,8 +37,9 @@ def facilities():
                          per_page=per_page)
 
 @facilities_bp.route('/facilities/search', methods=["GET"])
-@login_required
+@with_supabase_auth
 def search_facilities():
+    supabase = get_supabase_client()
     search_term = request.args.get('search', '')
     page = int(request.args.get('page', 1))
     per_page = int(request.args.get('per_page', 25))
@@ -76,8 +74,9 @@ def search_facilities():
     })
 
 @facilities_bp.route('/facilities/<string:facility_id>')
-@login_required
+@with_supabase_auth
 def facility_profile(facility_id):
+    supabase = get_supabase_client()
     # Get facility info
     fac = supabase.table("facilities").select("*").eq("id", facility_id).single().execute().data
 
@@ -107,9 +106,10 @@ def facility_profile(facility_id):
     )
 
 @facilities_bp.route('/facilities/<string:facility_id>/contacts/add', methods=['POST'])
-@login_required
+@with_supabase_auth
 @admin_required
 def add_facility_contact(facility_id):
+    supabase = get_supabase_client()
     data = {
         "id": str(uuid.uuid4()),
         "facility_id": facility_id,
@@ -121,9 +121,10 @@ def add_facility_contact(facility_id):
     return redirect(url_for("facilities.facility_profile", facility_id=facility_id))
 
 @facilities_bp.route('/facilities/<string:facility_id>/contacts/<string:contact_id>', methods=['POST'])
-@login_required
+@with_supabase_auth
 @admin_required
 def edit_facility_contact(facility_id, contact_id):
+    supabase = get_supabase_client()
     data = {
         "text": request.form.get("text"),
         "role": request.form.get("role")
@@ -133,11 +134,12 @@ def edit_facility_contact(facility_id, contact_id):
     return redirect(url_for("facilities.facility_profile", facility_id=facility_id))
 
 @facilities_bp.route('/facility/<string:facility_id>/contact/<string:contact_id>', methods=['DELETE'])
-@login_required
+@with_supabase_auth
 @admin_required
 def delete_facility_contact_api(facility_id, contact_id):
     try:
-        print(f"Attempting to delete contact {contact_id} from facility {facility_id}")
+        supabase = get_supabase_client()
+        
         
         # First verify the contact exists and belongs to the facility
         verify = supabase.table("facility_contact_assignments")\
@@ -146,10 +148,10 @@ def delete_facility_contact_api(facility_id, contact_id):
             .eq("facility_id", facility_id)\
             .execute()
             
-        print(f"Verification result: {verify.data}")
+      
         
         if not verify.data:
-            print("Contact not found or doesn't belong to this facility")
+        
             return jsonify({"success": False, "error": "Contact not found"}), 404
 
         # Proceed with deletion
@@ -159,7 +161,7 @@ def delete_facility_contact_api(facility_id, contact_id):
             .eq("facility_id", facility_id)\
             .execute()
             
-        print(f"Delete result: {result.data}")
+ 
         
         if result.data:
             return jsonify({"success": True})
@@ -167,13 +169,13 @@ def delete_facility_contact_api(facility_id, contact_id):
             return jsonify({"success": False, "error": "Delete operation failed"}), 500
             
     except Exception as e:
-        print(f"Error deleting contact: {str(e)}")
         return jsonify({"success": False, "error": str(e)}), 500
     
 @facilities_bp.route('/facilities/add', methods=['POST'])
-@login_required
+@with_supabase_auth
 @admin_required
 def add_facility():
+    supabase = get_supabase_client()
     data = request.get_json()
     
     # Generate a new UUID for the facility
@@ -188,9 +190,10 @@ def add_facility():
     return jsonify({"status": "success", "id": new_id})
 
 @facilities_bp.route('/facilities/<facility_id>/bulk_update_assignments', methods=['POST'])
-@login_required
+@with_supabase_auth
 @admin_required
 def bulk_update_assignments(facility_id):
+     supabase = get_supabase_client()
      assignment_ids = request.form.getlist('assignment_ids')
      for assignment_id in assignment_ids:
          can_read = f'can_read_{assignment_id}' in request.form
@@ -208,9 +211,10 @@ def bulk_update_assignments(facility_id):
      return redirect(url_for('facilities.facility_profile', facility_id=facility_id))
 
 @facilities_bp.route('/facilities/<facility_id>/assign_radiologist', methods=['POST'])
-@login_required
+@with_supabase_auth
 @admin_required
 def assign_radiologist(facility_id):
+     supabase = get_supabase_client()
      data = {
          "id": str(uuid.uuid4()),
          "radiologist_id": request.form.get("radiologist_id"),
@@ -225,14 +229,18 @@ def assign_radiologist(facility_id):
      return redirect(url_for("facilities.facility_profile", facility_id=facility_id))
 
 @facilities_bp.route('/facilities/<facility_id>/remove', methods=['POST'])
+@with_supabase_auth
 @admin_required
 def remove_facility(facility_id):
+    supabase = get_supabase_client()
     supabase.table('facilities').delete().eq('id', facility_id).execute()
     return redirect(url_for('facilities.facilities'))
 
 @facilities_bp.route('/radmapping/facility/<facility_id>/update', methods=['POST'])
-@login_required
+@with_supabase_auth
+@admin_required
 def update_facility(facility_id):
+    supabase = get_supabase_client()
     form = request.form
     supabase.table('facilities').update({
         'name': form.get('name'),
@@ -246,9 +254,10 @@ def update_facility(facility_id):
     return redirect(url_for('facilities.facility_profile', facility_id=facility_id))
 
 @facilities_bp.route('/facilities/<string:facility_id>/assignments/<string:assignment_id>/remove', methods=['POST'])
-@login_required
+@with_supabase_auth
 @admin_required
 def remove_assignment(facility_id, assignment_id):
+    supabase = get_supabase_client()
     # Delete the assignment
     supabase.table("doctor_facility_assignments").delete().eq("id", assignment_id).execute()
     return redirect(url_for("facilities.facility_profile", facility_id=facility_id))

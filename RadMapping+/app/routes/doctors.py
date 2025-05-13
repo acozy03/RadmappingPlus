@@ -1,23 +1,18 @@
 from flask import Blueprint, render_template, session, redirect, url_for, request, jsonify
 from app.admin_required import admin_required
-from app.supabase_client import supabase
+from app.supabase_client import get_supabase_client
+from app.middleware import with_supabase_auth
 from datetime import datetime, timedelta
 from calendar import monthrange
 import uuid
 
+
 doctors_bp = Blueprint('doctors', __name__)
 
-def login_required(view_func):
-    def wrapper(*args, **kwargs):
-        if not session.get("user"):
-            return redirect(url_for("auth.login"))
-        return view_func(*args, **kwargs)
-    wrapper.__name__ = view_func.__name__
-    return wrapper
-
 @doctors_bp.route('/doctors')
-@login_required
+@with_supabase_auth
 def doctor_list():
+    supabase = get_supabase_client()
     # Get pagination parameters
     page = request.args.get('page', 1, type=int)
     per_page = 25
@@ -51,8 +46,9 @@ def doctor_list():
                          all_doctors=all_doctors)
 
 @doctors_bp.route('/doctors/search', methods=["GET"])
-@login_required
+@with_supabase_auth
 def search_doctors():
+    supabase = get_supabase_client()
     page = request.args.get('page', 1, type=int)
     per_page = 25
     offset = (page - 1) * per_page
@@ -108,14 +104,15 @@ def search_doctors():
     })
 
 @doctors_bp.route('/doctors/<string:rad_id>')
-@login_required
+@with_supabase_auth
 def doctor_profile(rad_id):
+    supabase = get_supabase_client()
     now = datetime.now()
     today_str = datetime.now().strftime("%Y-%m-%d")
     # Grab query params or fallback to current
     year = request.args.get("year", default=now.year, type=int)
     month = request.args.get("month", default=now.month, type=int)
-    print(now)
+    
     # Get month calendar navigation
     prev_month = month - 1 if month > 1 else 12
     prev_year = year - 1 if month == 1 else year
@@ -145,15 +142,12 @@ def doctor_profile(rad_id):
             calendar[date] = entry
 
     certs_res = supabase.table("certifications") \
-    .select("*") \
-    .eq("radiologist_id", rad_id) \
-    .order("expiration_date", desc=True) \
-    .execute()
+        .select("*") \
+        .eq("radiologist_id", rad_id) \
+        .order("expiration_date", desc=True) \
+        .execute()
 
-    from pprint import pprint
-    #pprint(certs_res.model_dump())
     certifications = certs_res.data
-    #print(certifications)
 
     # Extract the most recent non-empty specialty from certifications
     doctor_specialty = None
@@ -171,8 +165,8 @@ def doctor_profile(rad_id):
     doctor_specialties = [perm["specialty_studies"] for perm in specialty_perms if perm.get("specialty_studies")]
 
     facility_res = supabase.table("doctor_facility_assignments") \
-    .select("*, facilities(*)") \
-    .eq("radiologist_id", rad_id).execute()
+        .select("*, facilities(*)") \
+        .eq("radiologist_id", rad_id).execute()
 
     assigned_facilities = facility_res.data
 
@@ -205,11 +199,10 @@ def doctor_profile(rad_id):
     )
 
 @doctors_bp.route('/doctors/<string:rad_id>/update_schedule', methods=["POST"])
-@login_required
+@with_supabase_auth
+@admin_required
 def update_schedule(rad_id):
-    if session["user"]["role"] != "admin":
-        return "Unauthorized", 403
-
+    supabase = get_supabase_client()
     date = request.form.get("date")
     start_time = request.form.get("start_time")
     end_time = request.form.get("end_time")
@@ -245,11 +238,10 @@ def update_schedule(rad_id):
     return redirect(url_for("monthly.monthly", year=year, month=month, start_day=start_day))
 
 @doctors_bp.route('/doctors/<string:rad_id>/delete_schedule', methods=["POST"])
-@login_required
+@with_supabase_auth
+@admin_required
 def delete_schedule(rad_id):
-    if session["user"]["role"] != "admin":
-        return "Unauthorized", 403
-
+    supabase = get_supabase_client()
     date = request.form.get("date")
     year = request.form.get("year")
     month = request.form.get("month")
@@ -260,11 +252,10 @@ def delete_schedule(rad_id):
     return redirect(url_for("monthly.monthly", year=year, month=month, start_day=start_day))
 
 @doctors_bp.route('/doctors/<string:rad_id>/bulk_update_schedule', methods=["POST"])
-@login_required
+@with_supabase_auth
+@admin_required
 def bulk_update_schedule(rad_id):
-    if session["user"]["role"] != "admin":
-        return "Unauthorized", 403
-
+    supabase = get_supabase_client()
     dates = request.form.get("dates", "").split(",")
     start_time = request.form.get("start_time")
     end_time = request.form.get("end_time")
@@ -300,29 +291,39 @@ def bulk_update_schedule(rad_id):
     return redirect(url_for("doctors.doctor_profile", rad_id=rad_id))
 
 @doctors_bp.route('/doctors/<string:rad_id>/update', methods=["POST"])
-@login_required
+@with_supabase_auth
+@admin_required
 def update_doctor(rad_id):
-    if session["user"]["role"] != "admin":
-        return "Unauthorized", 403
-
-    data = {
-        "email": request.form.get("email"),
-        "phone": request.form.get("phone"),
-        "pacs": request.form.get("pacs"),
-        "modalities": request.form.get("modalities"),
-        "primary_contact_method": request.form.get("primary_contact_method"),
-        "timezone": request.form.get("timezone"),
-        "active_status": True if request.form.get("active_status") == "true" else False
-    }
-
-    supabase.table("radiologists").update(data).eq("id", rad_id).execute()
-
-    return redirect(url_for("doctors.doctor_profile", rad_id=rad_id))
+    try:
+        supabase = get_supabase_client()
+      
+        
+        data = {
+            "email": request.form.get("email"),
+            "phone": request.form.get("phone"),
+            "pacs": request.form.get("pacs"),
+            "modalities": request.form.get("modalities"),
+            "primary_contact_method": request.form.get("primary_contact_method"),
+            "timezone": request.form.get("timezone"),
+            "active_status": True if request.form.get("active_status") == "true" else False
+        }
+        
+        # Remove None values to avoid overwriting with nulls
+        data = {k: v for k, v in data.items() if v is not None}
+        
+        result = supabase.table("radiologists").update(data).eq("id", rad_id).execute()
+      
+        
+        return redirect(url_for("doctors.doctor_profile", rad_id=rad_id))
+    except Exception as e:
+    
+        return f"Error updating doctor: {str(e)}", 500
 
 @doctors_bp.route('/doctors/add', methods=['POST'])
-@login_required
+@with_supabase_auth
 @admin_required
 def add_doctor():
+    supabase = get_supabase_client()
     # Generate a new UUID for the doctor
     new_id = str(uuid.uuid4())
     
@@ -345,15 +346,18 @@ def add_doctor():
     return redirect(url_for("doctors.doctor_profile", rad_id=new_id))
 
 @doctors_bp.route('/doctors/<rad_id>/remove', methods=['POST'])
+@with_supabase_auth
 @admin_required
 def remove_doctor(rad_id):
+    supabase = get_supabase_client()
     supabase.table('radiologists').delete().eq('id', rad_id).execute()
     return redirect(url_for('doctors.doctor_list'))
 
 @doctors_bp.route('/doctors/<string:rad_id>/add_facility', methods=['POST'])
-@login_required
+@with_supabase_auth
 @admin_required
 def add_facility_assignment(rad_id):
+    supabase = get_supabase_client()
     data = {
         "id": str(uuid.uuid4()),
         "radiologist_id": rad_id,
@@ -369,9 +373,10 @@ def add_facility_assignment(rad_id):
     return redirect(url_for("doctors.doctor_profile", rad_id=rad_id))
 
 @doctors_bp.route('/doctors/<string:doctor_id>/specialties')
-@login_required
+@with_supabase_auth
 @admin_required
 def get_doctor_specialties(doctor_id):
+    supabase = get_supabase_client()
     # Get all specialties
     specialties_res = supabase.table("specialty_studies").select("*").order("name").execute()
     specialties = specialties_res.data
@@ -393,9 +398,10 @@ def get_doctor_specialties(doctor_id):
     return jsonify({'specialties': result})
 
 @doctors_bp.route('/doctors/<string:doctor_id>/specialties/update', methods=['POST'])
-@login_required
+@with_supabase_auth
 @admin_required
 def update_doctor_specialties(doctor_id):
+    supabase = get_supabase_client()
     data = request.get_json()
     specialty_ids = set(data.get('specialty_ids', []))
     # Get all specialties
@@ -422,21 +428,18 @@ def update_doctor_specialties(doctor_id):
     return jsonify({"status": "success"})
 
 @doctors_bp.route('/doctors/<string:rad_id>/licenses/<string:cert_id>/delete', methods=["POST"])
-@login_required
+@with_supabase_auth
+@admin_required
 def delete_certification(rad_id, cert_id):
-    if session["user"]["role"] != "admin":
-        return "Unauthorized", 403
-
+    supabase = get_supabase_client()
     supabase.table("certifications").delete().eq("id", cert_id).execute()
-
     return redirect(url_for('doctors.doctor_profile', rad_id=rad_id))
 
 @doctors_bp.route('/doctors/<string:rad_id>/add_certification', methods=['POST'])
-@login_required
+@with_supabase_auth
+@admin_required
 def add_certification(rad_id):
-    if session["user"]["role"] != "admin":
-        return "Unauthorized", 403
-
+    supabase = get_supabase_client()
     data = {
         "id": str(uuid.uuid4()),
         "radiologist_id": rad_id,
@@ -447,37 +450,81 @@ def add_certification(rad_id):
         "tags": request.form.get('tags', ''),
     }
     supabase.table("certifications").insert(data).execute()
-
     return redirect(url_for('doctors.doctor_profile', rad_id=rad_id))
 
-@doctors_bp.route('/doctors/assignments/<string:assignment_id>/update', methods=['POST'])
-@login_required
+@doctors_bp.route('/doctors/assignments/<string:assignment_id>/update', methods=["POST"])
+@with_supabase_auth
+@admin_required
 def update_assignment(assignment_id):
-    if session["user"]["role"] != "admin":
-        return "Unauthorized", 403
+    try:
+    
+        supabase = get_supabase_client()
+        
+        # First get the current assignment to ensure we have the radiologist_id
+        current = supabase.table("doctor_facility_assignments") \
+            .select("*") \
+            .eq("id", assignment_id) \
+            .single() \
+            .execute()
+            
+       
+        
+            
+        # Always map explicitly:
+        can_read = 'can_read' in request.form  # True if checkbox was checked, False if missing
+        does_stats = 'does_stats' in request.form
+        does_routines = 'does_routines' in request.form
+        
+        # Handle string "None" values
+        stipulations = request.form.get('stipulations')
+        notes = request.form.get('notes')
+        
+        # Convert string "None" to actual None
+        stipulations = None if stipulations == "None" else stipulations
+        notes = None if notes == "None" else notes
 
-    # Always map explicitly:
-    can_read = 'can_read' in request.form  # True if checkbox was checked, False if missing
-    does_stats = 'does_stats' in request.form
-    does_routines = 'does_routines' in request.form
-    stipulations = request.form.get('stipulations', '')
-    notes = request.form.get('notes', '')
+        update_data = {
+            "can_read": can_read,
+            "does_stats": does_stats,
+            "does_routines": does_routines,
+            "stipulations": stipulations,
+            "notes": notes,
+            "radiologist_id": current.data["radiologist_id"]  # Preserve the radiologist_id
+        }
 
-    supabase.table("doctor_facility_assignments").update({
-        "can_read": can_read,
-        "does_stats": does_stats,
-        "does_routines": does_routines,
-        "stipulations": stipulations,
-        "notes": notes,
-    }).eq("id", assignment_id).execute()
+  
+        
+            
+        # Try the update
+        result = supabase.table("doctor_facility_assignments") \
+            .update(update_data) \
+            .eq("id", assignment_id) \
+            .execute()
+            
+    
+        
+        
+        return redirect(request.referrer or url_for('doctors.doctor_profile'))
+    except Exception as e:
+    
+        return f"Error updating assignment: {str(e)}", 500
 
-    return redirect(request.referrer or url_for('doctors.doctor_profile'))
-
-@doctors_bp.route('/doctors/assignments/<string:assignment_id>/delete', methods=['POST'])
-@login_required
+@doctors_bp.route('/doctors/assignments/<string:assignment_id>/delete', methods=["POST"])
+@with_supabase_auth
+@admin_required
 def delete_assignment(assignment_id):
-    if session["user"]["role"] != "admin":
-        return "Unauthorized", 403
-
-    supabase.table("doctor_facility_assignments").delete().eq("id", assignment_id).execute()
-    return redirect(request.referrer or url_for('doctors.doctor_profile')) 
+    try:
+        supabase = get_supabase_client()
+    
+        
+        result = supabase.table("doctor_facility_assignments") \
+            .delete() \
+            .eq("id", assignment_id) \
+            .execute()
+            
+     
+        
+        return redirect(request.referrer or url_for('doctors.doctor_profile'))
+    except Exception as e:
+      
+        return f"Error deleting assignment: {str(e)}", 500 

@@ -2,20 +2,15 @@ from flask import Blueprint, render_template, session, redirect, url_for, reques
 from app.admin_required import admin_required
 from app.supabase_client import supabase
 import uuid
-
+from app.middleware import with_supabase_auth
+from app.supabase_client import get_supabase_client
 specialties_bp = Blueprint('specialties', __name__)
 
-def login_required(view_func):
-    def wrapper(*args, **kwargs):
-        if not session.get("user"):
-            return redirect(url_for("auth.login"))
-        return view_func(*args, **kwargs)
-    wrapper.__name__ = view_func.__name__
-    return wrapper
 
 @specialties_bp.route('/specialties')
-@login_required
+@with_supabase_auth
 def specialties():
+    supabase = get_supabase_client()
     user_email = session["user"]["email"]
     pinned_res = supabase.table("pinned_doctors") \
         .select("doctor_id") \
@@ -75,9 +70,10 @@ def specialties():
 
 
 @specialties_bp.route('/specialties/add', methods=['POST'])
-@login_required
+@with_supabase_auth
 @admin_required
 def add_specialty():
+    supabase = get_supabase_client()
     data = {
         "id": str(uuid.uuid4()),
         "name": request.form.get("name"),
@@ -87,9 +83,10 @@ def add_specialty():
     return redirect(url_for("specialties.specialties"))
 
 @specialties_bp.route('/specialties/<string:specialty_id>/delete', methods=['POST'])
-@login_required
+@with_supabase_auth
 @admin_required
 def delete_specialty(specialty_id):
+    supabase = get_supabase_client()
     # First delete all permissions for this specialty
     supabase.table("specialty_permissions").delete().eq("specialty_id", specialty_id).execute()
     # Then delete the specialty itself
@@ -97,8 +94,9 @@ def delete_specialty(specialty_id):
     return redirect(url_for("specialties.specialties"))
 
 @specialties_bp.route('/specialties/<string:specialty_id>/doctors')
-@login_required
+@with_supabase_auth
 def doctors_for_specialty(specialty_id):
+    supabase = get_supabase_client()
     # Get all permissions for this specialty where can_read is True
     permissions_res = supabase.table("specialty_permissions") \
         .select("*, radiologists(id, name, email, active_status)") \
@@ -109,9 +107,10 @@ def doctors_for_specialty(specialty_id):
     return jsonify(doctors)
 
 @specialties_bp.route('/specialties/permissions/update', methods=['POST'])
-@login_required
+@with_supabase_auth
 @admin_required
 def update_specialty_permission():
+    supabase = get_supabase_client()
     radiologist_id = request.form.get("radiologist_id")
     specialty_id = request.form.get("specialty_id")
     can_read = request.form.get("can_read") == "true"
@@ -140,8 +139,9 @@ def update_specialty_permission():
     return jsonify({"status": "success"})
 
 @specialties_bp.route('/specialties/search', methods=["GET"])
-@login_required
+@with_supabase_auth
 def search_specialties_doctors():
+    supabase = get_supabase_client()
     user_email = session["user"]["email"]
     pinned_res = supabase.table("pinned_doctors") \
         .select("doctor_id") \
@@ -191,9 +191,10 @@ def search_specialties_doctors():
 
 
 @specialties_bp.route('/specialties/<string:specialty_id>/doctors/all')
-@login_required
+@with_supabase_auth
 @admin_required
 def get_all_specialty_doctors(specialty_id):
+    supabase = get_supabase_client()
     # Get all doctors
     doctors_res = supabase.table("radiologists").select("*").order("name").execute()
     doctors = doctors_res.data
@@ -215,9 +216,10 @@ def get_all_specialty_doctors(specialty_id):
     return jsonify({'doctors': result})
 
 @specialties_bp.route('/specialties/<string:specialty_id>/doctors/update', methods=['POST'])
-@login_required
+@with_supabase_auth
 @admin_required
 def update_specialty_doctors(specialty_id):
+    supabase = get_supabase_client()
     data = request.get_json()
     doctor_ids = set(data.get('doctor_ids', []))
     # Get all doctors
