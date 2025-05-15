@@ -307,6 +307,19 @@ def chat():
                - To calculate average RVU per month, sum the 12 monthly columns and divide by 12.
         9. When searching for a doctor by name, you must search only by last name and use wildcards, do not search by first name or full name.
         10. When asked a question about specialties and specialty permissions, you must check the can_read attribute in the specialty_permissions table before assuming a radiologist can read a certain specialty, it is a boolean column.
+        11. When looking up expected capacity from the capacity_per_hour table:
+
+            - Match rows from the previous month only.
+
+            - Match the same day of the week as the current date (e.g., Monday).
+
+            - Match the same ordinal week of the month (e.g., 2nd Tuesday), using FLOOR((EXTRACT(DAY FROM date) - 1) / 7) + 1.
+
+            - Match the same hour (e.g., hour = 14).
+
+            - Do not use date = CURRENT_DATE - INTERVAL '1 month' when matching historical capacity data. Instead, filter by EXTRACT(MONTH FROM date) and EXTRACT(YEAR FROM date) to match the previous month while allowing the exact date to vary by weekday and week-of-month.
+
+            Return a single row, do not sum or average.
         {format_chat_history()}
         
         Question: {question}

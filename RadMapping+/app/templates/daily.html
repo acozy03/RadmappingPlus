@@ -216,7 +216,7 @@
                   </div>
                 {% endif %}
                 <span class="font-semibold text-gray-800">RVU:</span>
-                <span class="text-blue-700 font-semibold">
+                <span class="text-gray-800 ">
                   {% set doc_rvu = None %}
                   {% if doc.id in rvu_rows %}
                     {% set doc_rvu = rvu_rows[doc.id]|default({}) %}
@@ -233,6 +233,7 @@
                 <div class="space-y-2">
                   <p class="text-sm"><span class="font-medium">Phone:</span> <span class="text-gray-700">{{ doc.phone or 'N/A' }}</span></p>
                   <p class="text-sm"><span class="font-medium">Email:</span> <span class="text-gray-700">{{ doc.email or 'N/A' }}</span></p>
+                  <p class="text-sm"><span class="font-medium">PACS:</span> <span class="text-gray-700">{{ doc.pacs or 'N/A' }}</span></p>
                   {% if doc.schedule_details %}
                     <p class="text-sm"><span class="font-medium">Schedule Notes:</span> <span class="text-gray-700">{{ doc.schedule_details }}</span></p>
                   {% endif %}
