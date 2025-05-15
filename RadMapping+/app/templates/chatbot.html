@@ -10,6 +10,7 @@
             if (!chatWindow.classList.contains('hidden')) {
               posX = 0;
               posY = 0;
+              loadChatHistory();
             }
           ">
     <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
@@ -48,32 +49,39 @@
       ">
     <!-- Chat Header -->
     <div class="chat-header bg-blue-600 text-white p-4 rounded-t-lg flex justify-between items-center cursor-move">
+      <div class="resize-handle cursor-se-resize" 
+      @mousedown.stop.prevent="
+        const startWidth = width;
+        const startHeight = height;
+        const startX = $event.clientX;
+        const startY = $event.clientY;
+        const onMouseMove = (e) => {
+          const deltaX = startX - e.clientX;
+          const deltaY = startY - e.clientY;
+          width = Math.max(300, startWidth + deltaX);
+          height = Math.max(400, startHeight + deltaY);
+        };
+        const onMouseUp = () => {
+          document.removeEventListener('mousemove', onMouseMove);
+          document.removeEventListener('mouseup', onMouseUp);
+        };
+        document.addEventListener('mousemove', onMouseMove);
+        document.addEventListener('mouseup', onMouseUp);
+      ">
+   <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 8h16M4 16h16" />
+   </svg>
+ </div>
       <h3 class="font-semibold">Veston</h3>
       <div class="flex items-center space-x-2">
-        <!-- Resize Handle -->
-        <div class="resize-handle cursor-se-resize" 
-             @mousedown.stop.prevent="
-               const startWidth = width;
-               const startHeight = height;
-               const startX = $event.clientX;
-               const startY = $event.clientY;
-               const onMouseMove = (e) => {
-                 const deltaX = startX - e.clientX;
-                 const deltaY = startY - e.clientY;
-                 width = Math.max(300, startWidth + deltaX);
-                 height = Math.max(400, startHeight + deltaY);
-               };
-               const onMouseUp = () => {
-                 document.removeEventListener('mousemove', onMouseMove);
-                 document.removeEventListener('mouseup', onMouseUp);
-               };
-               document.addEventListener('mousemove', onMouseMove);
-               document.addEventListener('mouseup', onMouseUp);
-             ">
-          <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 8h16M4 16h16" />
+        <!-- Clear History Button -->
+        <button @click="clearHistory()" 
+                class="text-white hover:text-gray-200 p-1 rounded-full hover:bg-blue-700 transition-colors"
+                title="Clear chat history">
+          <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
           </svg>
-        </div>
+        </button>
         <!-- Close Button -->
         <button @click="
           const chatWindow = document.getElementById('chatWindow');
@@ -88,9 +96,7 @@
 
     <!-- Chat Messages -->
     <div id="chatMessages" class="flex-1 overflow-y-auto p-4 space-y-4">
-      <div class="bg-gray-100 rounded-lg p-3 max-w-[80%]">
-        <p class="text-sm">Hello, I'm Veston, your Vesta AI assistant. What can I help you with today?</p>
-      </div>
+      <!-- Messages will be loaded here -->
     </div>
 
     <!-- Chat Input -->
@@ -111,6 +117,34 @@
 </div>
 
 <script>
+async function loadChatHistory() {
+  try {
+    const response = await fetch('/radmapping/chat/history');
+    const data = await response.json();
+    
+    // Clear existing messages
+    const messagesDiv = document.getElementById('chatMessages');
+    messagesDiv.innerHTML = '';
+    
+    // If no history, show welcome message
+    if (!data.history || data.history.length === 0) {
+      addMessage("Hello, I'm Veston, your Vesta AI assistant. What can I help you with today?", 'assistant');
+      return;
+    }
+    
+    // Display chat history
+    data.history.forEach(msg => {
+      addMessage(msg.content, msg.role);
+    });
+    
+    // Scroll to bottom
+    messagesDiv.scrollTop = messagesDiv.scrollHeight;
+  } catch (error) {
+    console.error('Error loading chat history:', error);
+    addMessage("Hello, I'm Veston, your Vesta AI assistant. What can I help you with today?", 'assistant');
+  }
+}
+
 async function sendMessage(event) {
   event.preventDefault();
   
@@ -179,7 +213,8 @@ function addMessage(text, sender, isLoading = false) {
       </div>
     `;
   } else {
-    messageContent.textContent = text;
+    // Replace newlines with <br> tags and preserve whitespace
+    messageContent.innerHTML = text.replace(/\n/g, '<br>');
   }
   
   messageDiv.appendChild(messageContent);
@@ -191,6 +226,26 @@ function removeLoadingMessage() {
   const loadingMessage = document.getElementById('loadingMessage');
   if (loadingMessage) {
     loadingMessage.parentElement.remove();
+  }
+}
+
+async function clearHistory() {
+  try {
+    const response = await fetch('/radmapping/chat/clear', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+      }
+    });
+    
+    if (response.ok) {
+      // Clear messages and show welcome message
+      const messagesDiv = document.getElementById('chatMessages');
+      messagesDiv.innerHTML = '';
+      addMessage("Hello, I'm Veston, your Vesta AI assistant. What can I help you with today?", 'assistant');
+    }
+  } catch (error) {
+    console.error('Error clearing chat history:', error);
   }
 }
 

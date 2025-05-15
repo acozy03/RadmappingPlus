@@ -306,6 +306,7 @@ def chat():
                - Each monthly column is the average RVU score for that doctor for that month, and there are months that will be NULL so Use COALESCE() on each month before adding them. 
                - To calculate average RVU per month, sum the 12 monthly columns and divide by 12.
         9. When searching for a doctor by name, you must search only by last name and use wildcards, do not search by first name or full name.
+        10. When asked a question about specialties and specialty permissions, you must check the can_read attribute in the specialty_permissions table before assuming a radiologist can read a certain specialty, it is a boolean column.
         {format_chat_history()}
         
         Question: {question}
@@ -341,7 +342,7 @@ def chat():
                 {json.dumps(result.data, indent=2)}
                 
                 Format these results into a clear, natural language response that directly answers the original question.
-                Focus on making the response easy to understand and relevant to what was asked.
+                Focus on making the response easy to understand and relevant to what was asked, and if the response returns multiple rows, separate each row with a new line.
                 If there are many results, summarize them appropriately.
                 """
                 
@@ -354,7 +355,7 @@ def chat():
                 )
                 
                 formatted_response = format_response.choices[0].message.content
-                
+                print(formatted_response)
                 # Add assistant response to chat memory
                 add_to_chat_memory("assistant", formatted_response)
                 
@@ -381,3 +382,17 @@ def chat():
         return jsonify({
             'error': error_response
         }), 500
+
+@chat_bp.route('/chat/history', methods=['GET'])
+@with_supabase_auth
+def get_chat_history():
+    """Get the chat history for the current session."""
+    memory = get_chat_memory()
+    return jsonify({'history': memory})
+
+@chat_bp.route('/chat/clear', methods=['POST'])
+@with_supabase_auth
+def clear_chat_history():
+    """Clear the chat history for the current session."""
+    session['chat_memory'] = []
+    return jsonify({'success': True})
