@@ -5,6 +5,8 @@ from datetime import datetime, timedelta
 from collections import defaultdict
 from app.supabase_client import get_supabase_client
 from app.middleware import with_supabase_auth
+from calendar import monthrange
+
 daily_bp = Blueprint('daily', __name__)
 
 
@@ -173,6 +175,33 @@ def daily():
         except Exception as e:
             print("Error checking current shift:", e)
 
+    # Fetch all RVU rows for all doctors
+    rvu_res = supabase.table("rad_avg_monthly_rvu").select("*").execute()
+    rvu_rows = {row["radiologist_id"]: row for row in (rvu_res.data or [])}
+
+    # Build hourly_rvu_stats: {slot_datetime: {"historical": val, "current": val}}
+    hourly_rvu_stats = {}
+    for slot in hour_slots:
+        slot_dt = slot["datetime"]
+        # 1. Historical RVU
+        prev_date, prev_hour = get_prev_month_same_dow_and_hour(slot_dt)
+        historical_rvu = None
+        if prev_date is not None:
+            cap_res = supabase.table("capacity_per_hour").select("total_rvus").eq("date", prev_date).eq("hour", prev_hour).execute()
+            if cap_res.data and len(cap_res.data) > 0:
+                historical_rvu = cap_res.data[0]["total_rvus"]
+        # 2. Current total RVU
+        slot_doctors = doctors_by_hour.get(slot_dt, [])
+        current_total_rvu = 0
+        for doc in slot_doctors:
+            rvu_row = rvu_rows.get(doc["id"])
+            if rvu_row:
+                current_total_rvu += get_latest_nonzero_rvu(rvu_row)
+        hourly_rvu_stats[slot_dt] = {
+            "historical": historical_rvu,
+            "current": current_total_rvu
+        }
+
     return render_template("daily.html",
         user=user,
         today=today,
@@ -185,5 +214,53 @@ def daily():
         doctors_currently_on_shift_ids=list(doctors_currently_on_shift_ids),  # Convert set to list
         selected_timezone=selected_timezone,
         timezone_offset=timezone_offset,
-        hour_slots=hour_slots
-    ) 
+        hour_slots=hour_slots,
+        hourly_rvu_stats=hourly_rvu_stats,
+        rvu_rows=rvu_rows,
+        get_latest_nonzero_rvu=get_latest_nonzero_rvu
+    )
+
+# Helper: Find the same day-of-week and hour in the previous month
+def get_prev_month_same_dow_and_hour(dt):
+    # dt: datetime object for the current slot
+    # Find the previous month
+    year = dt.year
+    month = dt.month
+    day = dt.day
+    hour = dt.hour
+    # Go to previous month
+    if month == 1:
+        prev_month = 12
+        prev_year = year - 1
+    else:
+        prev_month = month - 1
+        prev_year = year
+    # Find all days in prev month with same weekday as dt
+    first_day_prev_month = datetime(prev_year, prev_month, 1)
+    days_in_prev_month = monthrange(prev_year, prev_month)[1]
+    candidates = []
+    for d in range(1, days_in_prev_month + 1):
+        candidate = datetime(prev_year, prev_month, d)
+        if candidate.weekday() == dt.weekday():
+            candidates.append(candidate)
+    # Pick the candidate closest to the same day-of-month, or just the first if none
+    if not candidates:
+        return None, hour
+    # Try to match the same week of the month
+    week_of_month = (dt.day - 1) // 7
+    if week_of_month < len(candidates):
+        chosen = candidates[week_of_month]
+    else:
+        chosen = candidates[-1]
+    return chosen.date().isoformat(), hour
+
+# Helper: Get latest non-zero monthly RVU for a doctor
+def get_latest_nonzero_rvu(rvu_row):
+    # rvu_row: dict with keys jan, feb, ..., dec
+    # Find the latest non-zero value, starting from dec to jan
+    months = ["dec", "nov", "oct", "sep", "aug", "jul", "jun", "may", "apr", "mar", "feb", "jan"]
+    for m in months:
+        val = rvu_row.get(m)
+        if val is not None and val != 0:
+            return val
+    return 0 
