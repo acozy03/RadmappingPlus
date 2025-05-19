@@ -11,6 +11,7 @@ from .contacts import contacts_bp
 from .visualize import visualize_bp
 from .licenses import licenses_bp
 from .auth import auth_bp
+from .shifts import shifts_bp
 __all__ = [
     'daily_bp',
     'monthly_bp',
@@ -24,5 +25,6 @@ __all__ = [
     'contacts_bp',
     'visualize_bp',
     'licenses_bp',
-    'auth_bp'
+    'auth_bp',  
+    'shifts_bp'
 ] 

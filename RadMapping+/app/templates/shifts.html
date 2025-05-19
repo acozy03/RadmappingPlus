@@ -1,0 +1,193 @@
+{# RadMapping+/app/templates/shifts.html #}
+
+{% extends "layout.html" %}
+{% block title %}Shifts Needing Attention{% endblock %}
+
+{% block content %}
+
+<h1 class="text-3xl font-bold text-gray-800 mb-6">Shifts Needing Attention - Week of {{ start_date }} to {{ end_date }}</h1>
+
+<div class="space-y-4">
+    {% for day, color_grouped_slots in weekly_data_by_day_and_color.items() %}
+        <div x-data="{ open: false }">
+            <div class="flex items-center justify-between cursor-pointer bg-gray-200 hover:bg-gray-300 rounded p-4 mt-4" @click="open = !open">
+                {# Access the day_label from the first slot in the first color group #}
+                {% set first_color_group = color_grouped_slots.values() | first %}
+                {% set first_slot_of_day = first_color_group | first if first_color_group %}
+                {% if first_slot_of_day %}
+                    <h2 class="text-xl font-semibold text-gray-700">{{ first_slot_of_day.day_label }} - {{ day.strftime("%Y-%m-%d") }}</h2>
+                {% endif %}
+                <span class="transform transition-transform" :class="{ 'rotate-180': open }">
+                    <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6 text-gray-600" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7" />
+                    </svg>
+                </span>
+            </div>
+
+            <div x-show="open" x-collapse class="space-y-4 mt-2">
+                {% for color_class, slots_in_color_group in color_grouped_slots.items() %}
+                    <h3 class="text-md font-semibold text-gray-600 mt-4 mb-2">
+                        {% if color_class == 'bg-red-100' %}
+                            Below 60% of Expected Capacity
+                        {% elif color_class == 'bg-yellow-100' %}
+                            60% to 90% of Expected Capacity
+                        {% elif color_class == 'bg-green-100' %}
+                            Above 90% of Expected Capacity
+                        {% else %}
+                            No RVU Data
+                        {% endif %}
+                    </h3>
+                    <div class="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4">
+                        {% for slot in slots_in_color_group %}
+                            {% set stats = hourly_rvu_stats[slot.datetime] %}
+                            {% set current = stats['current'] if stats else None %}
+                            {% set expected = stats['historical'] if stats else None %}
+                            {% set ratio = (current / expected) if current is not none and expected and expected > 0 else None %}
+
+                            <div class="{{ color_class }} border border-gray-200 rounded shadow p-4" x-data="{ open: false }">
+                                <div class="flex items-center justify-between cursor-pointer" @click="open = !open">
+                                    <h4 class="text-md font-semibold text-gray-800">
+                                        <span>{{ slot.label }}</span>
+                                    </h4>
+                                    <span class="flex items-center text-sm text-gray-700 relative" style="gap: 0.25rem;">
+                                        <span class="relative group">
+                                            <span class="text-blue-700 font-semibold text-base">
+                                                {{ (current | round(1)) if current is not none else '—' }}
+                                            </span>
+                                            <span class="absolute left-1/2 -translate-x-1/2 bottom-full mb-2 w-max bg-white border border-gray-300 rounded shadow-lg px-3 py-2 text-xs text-blue-700 opacity-0 group-hover:opacity-100 pointer-events-none transition-opacity z-50 whitespace-nowrap">
+                                                    Hourly RVU Sum
+                                            </span>
+                                        </span>
+                                        <span class="mx-1 text-gray-400">vs</span>
+                                        <span class="relative group">
+                                            <span class="text-green-700 font-semibold text-base">
+                                                {{ (expected | round(1)) if expected is not none else '—' }}
+                                            </span>
+                                            <span class="absolute left-1/2 -translate-x-1/2 bottom-full mb-2 w-max bg-white border border-gray-300 rounded shadow-lg px-3 py-2 text-xs text-green-700 opacity-0 group-hover:opacity-100 pointer-events-none transition-opacity z-50 whitespace-nowrap">
+                                                    Expected Capacity In RVU
+                                            </span>
+                                        </span>
+
+                                        {% if ratio is not none %}
+                                          {% if ratio <= 0.6 %}
+                                            <span class="ml-2 relative">
+                                              <span class="text-red-600 text-2xl font-bold align-middle relative group" style="position: relative; top: -0.1em; pointer-events: auto; cursor: pointer;">
+                                                &#9679;
+                                                <span class="absolute left-1/2 -translate-x-1/2 bottom-full mb-2 w-max bg-white border border-gray-300 rounded shadow-lg px-3 py-2 text-xs text-red-700 opacity-0 group-hover:opacity-100 pointer-events-none transition-opacity z-50 whitespace-nowrap">
+                                                 Current RVU is at or below 60% of expected capacity
+                                                </span>
+                                              </span>
+                                            </span>
+                                          {% elif ratio <= 0.9 %}
+                                            <span class="ml-2 relative">
+                                              <span class="text-yellow-500 text-2xl font-bold align-middle relative group" style="position: relative; top: -0.1em; pointer-events: auto; cursor: pointer;">
+                                                &#9679;
+                                                <span class="absolute left-1/2 -translate-x-1/2 bottom-full mb-2 w-max bg-white border border-gray-300 rounded shadow-lg px-3 py-2 text-xs text-yellow-700 opacity-0 group-hover:opacity-100 pointer-events-none transition-opacity z-50 whitespace-nowrap">
+                                                  <b>Notice:</b> Current RVU is between 60% and 90% of expected capacity.
+                                                </span>
+                                              </span>
+                                            </span>
+                                          {% else %}
+                                            <span class="ml-2 relative">
+                                              <span class="text-green-600 text-2xl font-bold align-middle relative group" style="position: relative; top: -0.1em; pointer-events: auto; cursor: pointer;">
+                                                &#9679;
+                                                <span class="absolute left-1/2 -translate-x-1/2 bottom-full mb-2 w-max bg-white border border-gray-300 rounded shadow-lg px-3 py-2 text-xs text-green-700 opacity-0 group-hover:opacity-100 pointer-events-none transition-opacity z-50 whitespace-nowrap">
+                                                  <b>Good:</b> Current RVU is above 90% of expected capacity.
+                                                </span>
+                                              </span>
+                                            </span>
+                                          {% endif %}
+                                        {% endif %}
+                                         <span class="ml-2 transform transition-transform" :class="{ 'rotate-180': open }">
+                                            <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 text-gray-500" viewBox="0 0 20 20" fill="currentColor">
+                                                <path fill-rule="evenodd" d="M5.293 7.293a1 1 0 011.414 0L10 10.586l3.293-3.293a1 1 0 111.414 1.414l-4 4a1 1 0 01-1.414 0l-4-4a1 1 0 010-1.414z" clip-rule="evenodd" />
+                                            </svg>
+                                        </span>
+                                    </span>
+                                </div>
+
+                                <div x-show="open" x-collapse>
+                                    {% set slot_doctors = doctors_by_hour.get(slot.datetime, []) %}
+                                    {% if slot_doctors %}
+                                        <ul class="space-y-1 mt-2">
+                                            {% for doc in slot_doctors %}
+                                                <li class="text-sm text-gray-700 relative border p-2 rounded bg-gray-50 hover:bg-gray-100 transition-colors duration-200"
+                                                    onmouseenter="showDoctorPopup(this)"
+                                                    onmouseleave="hideDoctorPopup(this)">
+                                                    <a href="{{ url_for('doctors.doctor_profile', rad_id=doc.id) }}" target="_blank" class="text-blue-700 font-semibold hover:underline">
+                                                        {{ doc.name }}
+                                                    </a>
+                                                    ({% if doc.start_dt.date() == slot.datetime.date() %}{{ doc.start_time | ampm }}{% else %}Prev Day{% endif %} - {% if doc.end_dt.date() == slot.datetime.date() %}{{ doc.end_time | ampm }}{% else %}Next Day{% endif %})
+
+                                                    <div class="doctor-popup absolute left-full top-0 ml-2 w-[20rem] bg-white border p-4 rounded-lg shadow-lg text-left pointer-events-none opacity-0 transition-all duration-200 z-50 transform scale-95">
+                                                        <h4 class="font-medium text-lg text-gray-900 mb-2">{{ doc.name }}</h4>
+                                                        <div class="space-y-2">
+                                                            <p class="text-sm"><span class="font-medium">Phone:</span> <span class="text-gray-700">{{ doc.phone or 'N/A' }}</span></p>
+                                                            <p class="text-sm"><span class="font-medium">Email:</span> <span class="text-gray-700">{{ doc.email or 'N/A' }}</span></p>
+                                                            <p class="text-sm"><span class="font-medium">PACS:</span> <span class="text-gray-700">{{ doc.pacs or 'N/A' }}</span></p>
+                                                            {% if doc.modalities %}
+                                                                <p class="text-sm"><span class="font-medium">Modalities:</span> <span class="text-gray-700">{{ doc.modalities }}</span></p>
+                                                            {% endif %}
+                                                            {# Add other relevant doctor details here if needed #}
+                                                        </div>
+                                                    </div>
+                                                </li>
+                                            {% endfor %}
+                                        </ul>
+                                    {% else %}
+                                        <p class="text-sm italic text-gray-400 mt-2">No doctors scheduled.</p>
+                                    {% endif %}
+                                </div>
+                            </div>
+                        {% else %}
+                            <p class="text-gray-600">No hourly RVU data or scheduled doctors for this color group.</p>
+                        {% endfor %}
+                    </div>
+                {% else %}
+                    <p class="text-gray-600">No hourly RVU data or scheduled doctors for this day.</p>
+                {% endfor %}
+            </div>
+        </div>
+    {% else %}
+        <p class="text-gray-600">No hourly RVU data or scheduled doctors for this week.</p>
+    {% endfor %}
+</div>
+
+<script>
+  function showDoctorPopup(parent) {
+    const popup = parent.querySelector('.doctor-popup');
+    if (popup) {
+      const rect = parent.getBoundingClientRect();
+      const viewportWidth = window.innerWidth;
+      
+      // Check if popup would go off screen to the right
+      if (rect.right + 340 > viewportWidth) {  // 340 = popup width (320) + margin (20)
+        popup.style.left = 'auto';
+        popup.style.right = '100%';
+        popup.style.marginLeft = '0';
+        popup.style.marginRight = '0.5rem';
+      } else {
+        // Position to the right
+        popup.style.left = '100%';
+        popup.style.right = 'auto';
+        popup.style.marginLeft = '0.5rem';
+        popup.style.marginRight = '0';
+      }
+      // Vertical positioning - align top of popup with top of list item
+      popup.style.top = '0';
+
+      popup.classList.remove('opacity-0', 'scale-95');
+      popup.classList.add('opacity-100', 'scale-100');
+    }
+  }
+
+  function hideDoctorPopup(parent) {
+    const popup = parent.querySelector('.doctor-popup');
+    if (popup) {
+      popup.classList.remove('opacity-100', 'scale-100');
+      popup.classList.add('opacity-0', 'scale-95');
+    }
+  }
+</script>
+
+{% endblock %} 
