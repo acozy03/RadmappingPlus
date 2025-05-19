@@ -228,23 +228,30 @@
                   {% endif %}
                 </span>
               </div>
-              <div class="doctor-popup absolute left-full top-0 ml-2 w-[20rem] bg-white border p-4 rounded-lg shadow-lg text-left pointer-events-none opacity-0 transition-all duration-200 z-50 transform scale-95">
-                <h4 class="font-medium text-lg text-gray-900 mb-2">{{ doc.name }}</h4>
-                <div class="space-y-2">
-                  <p class="text-sm"><span class="font-medium">Phone:</span> <span class="text-gray-700">{{ doc.phone or 'N/A' }}</span></p>
-                  <p class="text-sm"><span class="font-medium">Email:</span> <span class="text-gray-700">{{ doc.email or 'N/A' }}</span></p>
-                  <p class="text-sm"><span class="font-medium">PACS:</span> <span class="text-gray-700">{{ doc.pacs or 'N/A' }}</span></p>
-                  {% if doc.schedule_details %}
-                    <p class="text-sm"><span class="font-medium">Schedule Notes:</span> <span class="text-gray-700">{{ doc.schedule_details }}</span></p>
-                  {% endif %}
-                </div>
-              </div>
+              <div class="doctor-popup-placeholder" data-popup-id="{{ doc.id }}"></div>
+
             </li>
           {% endfor %}
         </ul>
       {% else %}
         <p class="text-sm italic text-gray-400">No doctors on shift.</p>
       {% endif %}
+    </div>
+  {% endfor %}
+</div>
+<!-- Doctor popup templates (only rendered once) -->
+<div id="all-doctor-popups" class="hidden">
+  {% for doc in unique_doctors.values() %}
+    <div id="popup-{{ doc.id }}" class="doctor-popup bg-white border p-4 rounded-lg shadow-lg w-[20rem]">
+      <h4 class="font-medium text-lg text-gray-900 mb-2">{{ doc.name }}</h4>
+      <div class="space-y-2 text-sm text-left">
+        <p><strong>Phone:</strong> {{ doc.phone or 'N/A' }}</p>
+        <p><strong>Email:</strong> {{ doc.email or 'N/A' }}</p>
+        <p><strong>PACS:</strong> {{ doc.pacs or 'N/A' }}</p>
+        {% if doc.schedule_details %}
+        <p><strong>Schedule:</strong> {{ doc.schedule_details }}</p>
+        {% endif %}
+      </div>
     </div>
   {% endfor %}
 </div>
@@ -271,31 +278,28 @@
   }
 
   function showDoctorPopup(parent) {
-    const popup = parent.querySelector('.doctor-popup');
-    if (popup) {
-      const rect = parent.getBoundingClientRect();
-      const viewportWidth = window.innerWidth;
-      
-      // Check if popup would go off screen to the right
-      if (rect.right + 340 > viewportWidth) {  // 340 = popup width (320) + margin (20)
-        popup.style.left = 'auto';
-        popup.style.right = '100%';
-        popup.style.marginLeft = '0';
-        popup.style.marginRight = '0.5rem';
-      }
-      
-      popup.classList.remove('opacity-0', 'scale-95');
-      popup.classList.add('opacity-100', 'scale-100');
-    }
-  }
+  const placeholder = parent.querySelector('.doctor-popup-placeholder');
+  if (!placeholder) return;
 
-  function hideDoctorPopup(parent) {
-    const popup = parent.querySelector('.doctor-popup');
-    if (popup) {
-      popup.classList.remove('opacity-100', 'scale-100');
-      popup.classList.add('opacity-0', 'scale-95');
-    }
-  }
+  const docId = placeholder.dataset.popupId;
+  const template = document.querySelector(`#popup-${docId}`);
+  if (!template) return;
+
+  const clone = template.cloneNode(true);
+  clone.classList.add("absolute", "left-full", "top-0", "ml-2", "z-50", "opacity-100", "scale-100", "active-popup");
+
+  // Remove any previous popup
+  const existing = parent.querySelector('.active-popup');
+  if (existing) existing.remove();
+
+  parent.appendChild(clone);
+}
+
+function hideDoctorPopup(parent) {
+  const popup = parent.querySelector('.active-popup');
+  if (popup) popup.remove();
+}
+
 
   function updateTimezoneClocks() {
     const zoneMap = {
