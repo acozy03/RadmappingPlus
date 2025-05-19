@@ -48,24 +48,24 @@
 </div>
 
 <div class="overflow-x-auto">
-    <div class="grid grid-cols-7 gap-4 min-w-[1400px]">
+    <div class="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-5 xl:grid-cols-7 gap-4">
         {% for day, color_grouped_slots in weekly_data_by_day_and_color.items() %}
-            <div class="flex flex-col">
+            <div class="flex flex-col min-w-0">
                 {# Day Header #}
                 {% set first_color_group = color_grouped_slots.values() | first %}
                 {% set first_slot_of_day = first_color_group | first if first_color_group %}
                 {% if first_slot_of_day %}
-                    <div class="bg-gray-200 p-4 rounded-t-lg">
-                        <h2 class="text-xl font-semibold text-gray-700">{{ first_slot_of_day.day_label }}</h2>
-                        <p class="text-sm text-gray-600">{{ day.strftime("%Y-%m-%d") }}</p>
+                    <div class="bg-gray-200 p-4 rounded-t-lg text-center">
+                        <h2 class="text-base md:text-xl font-semibold text-gray-700">{{ first_slot_of_day.day_label }}</h2>
+                        <p class="text-xs md:text-sm text-gray-600">{{ day.strftime("%Y-%m-%d") }}</p>
                     </div>
                 {% endif %}
 
                 {# Color Groups #}
-                <div class="flex-1 bg-white rounded-b-lg border border-gray-200 p-4">
+                <div class="flex-1 bg-white rounded-b-lg border border-gray-200 p-2 md:p-4">
                     {% for color_class, slots_in_color_group in color_grouped_slots.items() %}
                         <div class="mb-4 capacity-section {{ color_class }} rounded-lg p-2">
-                            <h3 class="text-sm font-semibold text-gray-700 mb-2">
+                            <h3 class="text-xs md:text-sm font-semibold text-gray-700 mb-2">
                                 {% if color_class == 'bg-red-100' %}
                                     
                                 {% elif color_class == 'bg-yellow-100' %}
@@ -84,26 +84,26 @@
                                     {% set ratio = (current / expected) if current is not none and expected and expected > 0 else None %}
                                     {% set slot_doctors = doctors_by_hour.get(slot.datetime, []) %}
 
-                                    <div class="rounded-md p-3 shadow-sm border border-gray-300 {{ color_class }} relative group{% if slot_doctors %} cursor-pointer{% endif %}" style="background-color: inherit;">
-                                        <div class="flex items-center justify-between">
-                                            <h4 class="text-sm font-semibold text-gray-800">
+                                    <div class="rounded-md p-2 md:p-3 shadow-sm border border-gray-300 {{ color_class }} relative group{% if slot_doctors %} cursor-pointer{% endif %}" style="background-color: inherit; min-width: 0;">
+                                        <div class="flex flex-col md:flex-row md:items-center md:justify-between gap-1 md:gap-0">
+                                            <h4 class="text-xs md:text-sm font-semibold text-gray-800">
                                                 <span>{{ slot.label }}</span>
                                             </h4>
-                                            <span class="flex items-center text-xs text-gray-700 relative" style="gap: 0.25rem;">
+                                            <span class="flex flex-wrap items-center text-xs text-gray-700 relative gap-x-1 gap-y-0.5 md:gap-x-2" style="min-width:0;">
                                                 <span class="text-blue-700 font-semibold">
                                                     {{ (current | round(1)) if current is not none else '—' }}
                                                 </span>
-                                                <span class="mx-1 text-gray-400">vs</span>
+                                                <span class="text-gray-400">vs</span>
                                                 <span class="text-green-700 font-semibold">
                                                     {{ (expected | round(1)) if expected is not none else '—' }}
                                                 </span>
                                                 {% if ratio is not none %}
-                                                    <span class="ml-2 text-xs font-semibold text-gray-800">({{ (ratio * 100) | round(1) }}%)</span>
+                                                    <span class="text-xs font-semibold text-gray-800">({{ (ratio * 100) | round(1) }}%)</span>
                                                 {% endif %}
                                             </span>
                                         </div>
                                         {% if slot_doctors %}
-                                            <div class="absolute left-1/2 -translate-x-1/2 bottom-full mb-2 w-max bg-white border border-gray-300 rounded shadow-lg px-4 py-3 text-xs text-gray-900 opacity-0 group-hover:opacity-100 pointer-events-none transition-opacity z-50 whitespace-nowrap min-w-[12rem]">
+                                            <div class="absolute left-1/2 -translate-x-1/2 bottom-full mb-2 w-max bg-white border border-gray-300 rounded shadow-lg px-4 py-3 text-xs text-gray-900 opacity-0 group-hover:opacity-100 pointer-events-none transition-opacity z-50 whitespace-nowrap min-w-[8rem] md:min-w-[12rem]">
                                                 <div class="font-semibold mb-1">Scheduled Doctors:</div>
                                                 <ul class="space-y-1">
                                                     {% for doc in slot_doctors %}
