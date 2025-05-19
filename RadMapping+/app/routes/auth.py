@@ -6,7 +6,7 @@ auth_bp = Blueprint('auth', __name__)
 
 @auth_bp.route('/login')
 def login():
-    print("Login page accessed")
+
     return render_template(
         "login.html",
         SUPABASE_URL=os.environ.get("SUPABASE_URL"),
@@ -15,21 +15,20 @@ def login():
 
 @auth_bp.route('/logout')
 def logout():
-    print("Logout requested")
+ 
     session.clear()
     return redirect(url_for("auth.login"))
 
 
 @auth_bp.route('/session', methods=['POST'])
 def set_session():
-    print("Session endpoint called")
+  
     data = request.get_json()
     email = data.get("email")
     access_token = data.get("access_token")
     refresh_token = data.get("refresh_token")
 
-    print(f"Session data received - Email: {email}, Has access token: {bool(access_token)}, Has refresh token: {bool(refresh_token)}")
-
+   
     if not data or not email or not access_token or not refresh_token:
         logging.warning("Missing required session data")
         session.clear()

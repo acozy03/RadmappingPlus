@@ -11,7 +11,7 @@ key = os.getenv("SUPABASE_KEY", "").strip()
 print(f"Initializing Supabase client with URL: {url[:20]}... and key type: {'super' if 'super' in key.lower() else 'anon'}")
 
 if not url or not key:
-    print("Missing Supabase credentials")
+    logging.error("Missing Supabase credentials")
     raise RuntimeError("Missing Supabase credentials.")
 
 supabase: Client = create_client(url, key)
@@ -28,15 +28,15 @@ def get_supabase_client():
 
         if access_token and refresh_token:
             try:
-                print("Attempting to set Supabase session with tokens")
+                logging.debug("Attempting to set Supabase session with tokens")
                 supabase.auth.set_session(access_token, refresh_token)
                 g.supabase_session_set = True
-                print("Successfully set Supabase session")
+                logging.debug("Successfully set Supabase session")
             except Exception as e:
-                print(f"Supabase session setting failed: {e}")
+                logging.error(f"Supabase session setting failed: {e}")
                 session.clear()
         else:
-            print("Missing or invalid access/refresh token.")
+            logging.warning("Missing or invalid access/refresh token.")
             session.clear()
 
     if session.get("user"):
