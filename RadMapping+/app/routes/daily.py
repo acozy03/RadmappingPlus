@@ -83,6 +83,7 @@ def daily():
             except Exception as e:
                 print(f"Error parsing datetime for doc {doc.get('name', 'Unknown')}: {e}")
 
+    unique_doctors = {doc["id"]: doc for doc in doctors_on_shift if doc.get("id")}
     # Now fetch tomorrow's shifts up until max_end_dt
     tomorrow_shift_res = supabase.table("monthly_schedule") \
         .select("*, radiologists(*)") \
@@ -175,28 +176,46 @@ def daily():
         except Exception as e:
             print("Error checking current shift:", e)
 
-    # Fetch all RVU rows for all doctors
+    prev_date_hour_pairs = set()
+    for slot in hour_slots:
+        prev_date, prev_hour = get_prev_month_same_dow_and_hour(slot["datetime"])
+        if prev_date is not None:
+            prev_date_hour_pairs.add((prev_date, prev_hour))
+
+    # Separate into lists for .in_ query
+    dates_list = list({d for d, _ in prev_date_hour_pairs})
+    hours_list = list({h for _, h in prev_date_hour_pairs})
+
+    # Query capacity_per_hour in bulk
+    capacity_res = supabase.table("capacity_per_hour")\
+        .select("date", "hour", "total_rvus")\
+        .in_("date", dates_list)\
+        .in_("hour", hours_list)\
+        .execute()
+
+    capacity_lookup = {
+        (row["date"], int(row["hour"])): row["total_rvus"]
+        for row in (capacity_res.data or [])
+    }
+
+    # Fetch all RVU rows for all doctors 
     rvu_res = supabase.table("rad_avg_monthly_rvu").select("*").execute()
     rvu_rows = {row["radiologist_id"]: row for row in (rvu_res.data or [])}
 
-    # Build hourly_rvu_stats: {slot_datetime: {"historical": val, "current": val}}
+    # Step 3: Compute hourly_rvu_stats using lookup
     hourly_rvu_stats = {}
     for slot in hour_slots:
         slot_dt = slot["datetime"]
-        # 1. Historical RVU
         prev_date, prev_hour = get_prev_month_same_dow_and_hour(slot_dt)
-        historical_rvu = None
-        if prev_date is not None:
-            cap_res = supabase.table("capacity_per_hour").select("total_rvus").eq("date", prev_date).eq("hour", prev_hour).execute()
-            if cap_res.data and len(cap_res.data) > 0:
-                historical_rvu = cap_res.data[0]["total_rvus"]
-        # 2. Current total RVU
+        historical_rvu = capacity_lookup.get((prev_date, prev_hour)) if prev_date else None
+
         slot_doctors = doctors_by_hour.get(slot_dt, [])
         current_total_rvu = 0
         for doc in slot_doctors:
             rvu_row = rvu_rows.get(doc["id"])
             if rvu_row:
                 current_total_rvu += get_latest_nonzero_rvu(rvu_row)
+
         hourly_rvu_stats[slot_dt] = {
             "historical": historical_rvu,
             "current": current_total_rvu
@@ -217,7 +236,8 @@ def daily():
         hour_slots=hour_slots,
         hourly_rvu_stats=hourly_rvu_stats,
         rvu_rows=rvu_rows,
-        get_latest_nonzero_rvu=get_latest_nonzero_rvu
+        get_latest_nonzero_rvu=get_latest_nonzero_rvu,
+        unique_doctors=unique_doctors
     )
 
 # Helper: Find the same day-of-week and hour in the previous month
