@@ -54,36 +54,54 @@ def get_latest_nonzero_rvu(rvu_row):
             return val
     return 0
 
+# Helper: Determine background color class based on RVU ratio
+def get_rvu_bg_color_class(ratio):
+    if ratio is not None:
+        if ratio <= 0.6:
+            return 'bg-red-100'
+        elif ratio <= 0.9:
+            return 'bg-yellow-100'
+        else:
+            return 'bg-green-100'
+    return 'bg-gray-100' # Default color for no ratio
+
 
 @shifts_bp.route('/shifts')
 @with_supabase_auth
 def shifts():
     supabase = get_supabase_client()
     
-    # Get today's date
+    # Get today's date and calculate the start and end of the current week (Mon-Sun)
     now = datetime.now()
-    today = now.strftime("%Y-%m-%d")
-    base_date = datetime.strptime(today, "%Y-%m-%d")
+    # Find the most recent Monday (or today if today is Monday)
+    start_of_week = now - timedelta(days=now.weekday())
+    end_of_week = start_of_week + timedelta(days=6)
     
-    # Define hour slots for today (00:00 to 23:00)
-    hour_slots = []
-    current_hour = base_date.replace(hour=0, minute=0, second=0, microsecond=0)
-    while current_hour < base_date + timedelta(days=1):
-        hour_slots.append({
-            "datetime": current_hour,
-            "label": current_hour.strftime("%I %p").lstrip("0"),
-            "hour": current_hour.hour,
-            "date": current_hour.strftime("%Y-%m-%d"),
-            "day_label": "Today" # Since we only show today on this page
-        })
-        current_hour += timedelta(hours=1)
+    start_date_str = start_of_week.strftime("%Y-%m-%d")
+    end_date_str = end_of_week.strftime("%Y-%m-%d")
 
-    # Fetch monthly schedule data for today to get doctors on shift
+    # Define hour slots for the entire week (00:00 to 23:00 for each day)
+    hour_slots_by_day = defaultdict(list)
+    current_day = start_of_week.replace(hour=0, minute=0, second=0, microsecond=0)
+    while current_day <= end_of_week.replace(hour=0, minute=0, second=0, microsecond=0):
+        current_hour = current_day.replace(hour=0)
+        while current_hour < current_day + timedelta(days=1):
+            hour_slots_by_day[current_day.date()].append({
+                "datetime": current_hour,
+                "label": current_hour.strftime("%I %p").lstrip("0"),
+                "hour": current_hour.hour,
+                "date": current_hour.strftime("%Y-%m-%d"),
+                "day_label": current_day.strftime("%A") # Full weekday name
+            })
+            current_hour += timedelta(hours=1)
+        current_day += timedelta(days=1)
+
+    # Fetch monthly schedule data for the entire week to get doctors on shift
     query = supabase.table("monthly_schedule") \
         .select("*, radiologists(*)") \
-        .lte("start_date", today) \
-        .gte("end_date", today)
-    
+        .lte("start_date", end_date_str) \
+        .gte("end_date", start_date_str) # Consider shifts that span across the week
+
     shift_res = query.execute()
 
     doctors_on_shift = []
@@ -91,67 +109,100 @@ def shifts():
          if entry.get("radiologists") and entry.get("start_time") and entry.get("end_time"):
             doc = entry["radiologists"]
             
-            start_date = entry.get("start_date") or today
-            end_date = entry.get("end_date") or today
+            start_date = entry.get("start_date") or start_date_str # Default to week start if dates missing
+            end_date = entry.get("end_date") or end_date_str # Default to week end if dates missing
+
             try:
-                start_dt = datetime.strptime(f"{start_date} {entry['start_time']}", "%Y-%m-%d %H:%M:%S")
-                end_dt = datetime.strptime(f"{end_date} {entry['end_time']}", "%Y-%m-%d %H:%M:%S")
-                if end_dt < start_dt:
-                    end_dt += timedelta(days=1)
+                # Need to handle shifts that start before the week or end after the week
+                # and also shifts that span across midnight
                 
-                # Handle break times (though not used for RVU calculation here, good to have)
+                # Calculate actual start and end datetime objects, considering cross-midnight shifts
+                shift_start_dt = datetime.strptime(f"{start_date} {entry['start_time']}", "%Y-%m-%d %H:%M:%S")
+                shift_end_dt = datetime.strptime(f"{end_date} {entry['end_time']}", "%Y-%m-%d %H:%M:%S")
+                if shift_end_dt < shift_start_dt:
+                    shift_end_dt += timedelta(days=1) # Shift crosses midnight
+
+                # Handle break times, also considering cross-midnight if applicable
                 break_start_dt = None
                 break_end_dt = None
                 if entry.get("break_start") and entry.get("break_end"):
-                    break_start_dt = datetime.strptime(f"{start_date} {entry['break_start']}", "%Y-%m-%d %H:%M:%S")
-                    break_end_dt = datetime.strptime(f"{start_date} {entry['break_end']}", "%Y-%m-%d %H:%M:%S")
-                    if break_end_dt < break_start_dt:
-                        break_end_dt += timedelta(days=1)
+                     # Break times are usually within a single 24 hour period relative to the start of the shift day
+                    break_start_dt_candidate = datetime.strptime(f"{start_date} {entry['break_start']}", "%Y-%m-%d %H:%M:%S")
+                    break_end_dt_candidate = datetime.strptime(f"{start_date} {entry['break_end']}", "%Y-%m-%d %H:%M:%S")
+                    if break_end_dt_candidate < break_start_dt_candidate:
+                         break_end_dt_candidate += timedelta(days=1) # Break crosses midnight
 
-                doc.update({
+                    break_start_dt = break_start_dt_candidate
+                    break_end_dt = break_end_dt_candidate
+
+                doc_schedule_details = {
                     "start_time": entry["start_time"],
                     "end_time": entry["end_time"],
                     "start_date": start_date,
                     "end_date": end_date,
-                    "start_dt": start_dt,
-                    "end_dt": end_dt,
+                    "start_dt": shift_start_dt,
+                    "end_dt": shift_end_dt,
                     "break_start_dt": break_start_dt,
                     "break_end_dt": break_end_dt
-                })
-                doctors_on_shift.append(doc)
+                }
+                # Add the schedule details to the doctor object
+                full_doc_info = doc.copy()
+                full_doc_info.update(doc_schedule_details)
+                doctors_on_shift.append(full_doc_info)
+
             except Exception as e:
                 print(f"Error parsing datetime for doc {doc.get('name', 'Unknown')}: {e}")
 
-    # Fill doctor shifts by hour for today's slots
-    doctors_by_hour = defaultdict(list)
+    # Fill doctor shifts by hour for each day's slots
+    doctors_by_hour = defaultdict(list) # Key: datetime object for the hour slot
     for doc in doctors_on_shift:
-        for slot in hour_slots:
-            slot_start = slot["datetime"]
-            slot_end = slot_start + timedelta(hours=1)
-            
-            # Check if doctor is on break during this slot
-            is_on_break = False
-            if doc.get("break_start_dt") and doc.get("break_end_dt"):
-                is_on_break = (doc["break_start_dt"] < slot_end and doc["break_end_dt"] > slot_start)
-            
-            # Only add doctor if they're on shift and not on break
-            if doc["start_dt"] < slot_end and doc["end_dt"] > slot_start and not is_on_break:
-                doctors_by_hour[slot_start].append(doc)
+        for day, hour_slots in hour_slots_by_day.items():
+            for slot in hour_slots:
+                slot_start = slot["datetime"]
+                slot_end = slot_start + timedelta(hours=1)
+                
+                # Check if doctor is on break during this slot
+                is_on_break = False
+                if doc.get("break_start_dt") and doc.get("break_end_dt"):
+                    # Check if the hour slot overlaps with the doctor's break time.
+                    # Need to consider the date of the slot relative to the shift start date for breaks that cross midnight.
+                    # If the break crosses midnight, it applies to the day the shift started AND the following day.
+                    
+                    # Calculate the break start and end datetimes relative to the current slot's date
+                    break_start_on_slot_day = datetime.combine(slot_start.date(), doc["break_start_dt"].timetz())
+                    break_end_on_slot_day = datetime.combine(slot_start.date(), doc["break_end_dt"].timetz())
+                    
+                    if doc["break_end_dt"].date() > doc["break_start_dt"].date(): # Break crosses midnight relative to shift start day
+                        break_end_on_slot_day += timedelta(days=1)
+
+                    is_on_break = (break_start_on_slot_day < slot_end and break_end_on_slot_day > slot_start)
+
+
+                # Check if doctor is on shift during this slot
+                # A doctor is on shift during an hour slot if the slot overlaps with their shift time range.
+                is_on_shift = (doc["start_dt"] < slot_end and doc["end_dt"] > slot_start)
+
+                # Only add doctor if they're on shift and not on break during this specific hour slot
+                if is_on_shift and not is_on_break:
+                    doctors_by_hour[slot_start].append(doc)
+
 
     # Fetch all RVU rows for all doctors (consider filtering this too based on doctors_on_shift for efficiency)
     rvu_res = supabase.table("rad_avg_monthly_rvu").select("*").execute()
     rvu_rows = {row["radiologist_id"]: row for row in (rvu_res.data or [])}
 
     # Build hourly_rvu_stats: {slot_datetime: {"historical": val, "current": val}}
-    hourly_rvu_stats = {}
-    for slot in hour_slots:
+    hourly_rvu_stats = {} # Key: datetime object for the hour slot
+    all_hour_slots = [slot for day_slots in hour_slots_by_day.values() for slot in day_slots]
+
+    for slot in all_hour_slots:
         slot_dt = slot["datetime"]
         # 1. Historical RVU
-        prev_date, prev_hour = get_prev_month_same_dow_and_hour(slot_dt)
+        prev_date_str, prev_hour_int = get_prev_month_same_dow_and_hour(slot_dt)
         historical_rvu = None
-        if prev_date is not None:
+        if prev_date_str is not None:
             # Assuming 'capacity_per_hour' table has historical data
-            cap_res = supabase.table("capacity_per_hour").select("total_rvus").eq("date", prev_date).eq("hour", prev_hour).execute()
+            cap_res = supabase.table("capacity_per_hour").select("total_rvus").eq("date", prev_date_str).eq("hour", prev_hour_int).execute()
             if cap_res.data and len(cap_res.data) > 0:
                 historical_rvu = cap_res.data[0]["total_rvus"]
         # 2. Current total RVU (only sum RVU for doctors currently included after modality filter)
@@ -166,30 +217,55 @@ def shifts():
             "current": current_total_rvu
         }
 
-    # Sort hour_slots by the ratio of current RVU to historical capacity (ascending)
-    # Shifts needing most attention (lowest ratio or missing historical/current) first
-    def sort_key(slot):
-        stats = hourly_rvu_stats.get(slot["datetime"])
-        if not stats or stats["historical"] is None or stats["historical"] <= 0:
-            # Put hours with no historical data or zero expected capacity first (need attention)
-            if not stats or stats["current"] is None:
-                 # Also prioritize if no current data
-                 return -2 # Higher priority than just missing historical
-            return -1
-        if stats["current"] is None:
-             return -1 # Also prioritize if no current data but have historical
+    # Filter out hour slots where there are no doctors scheduled AND no RVU data exists
+    # Group and sort hour slots by day, then by RVU ratio within the day
+    # Then, group slots within each day by their calculated background color class
+    weekly_data_by_day_and_color = {} # Key: day (date object), Value: { color_class: [slot, slot, ...]}
+    for day, hour_slots in hour_slots_by_day.items():
+        # Filter slots for the current day
+        filtered_day_slots = [
+            slot for slot in hour_slots 
+            if doctors_by_hour.get(slot["datetime"]) or 
+               (hourly_rvu_stats.get(slot["datetime"]) and (hourly_rvu_stats[slot["datetime"]]['current'] is not None or hourly_rvu_stats[slot["datetime"]]['historical'] is not None))
+        ]
 
-        return (stats["current"] / stats["historical"]) # Sort by ratio
+        # Define sort key for slots within the day (by ratio)
+        def sort_key(slot):
+            stats = hourly_rvu_stats.get(slot["datetime"])
+            if not stats or stats["historical"] is None or stats["historical"] <= 0:
+                if not stats or stats["current"] is None:
+                     return -2
+                return -1
+            if stats["current"] is None:
+                 return -1
 
-    # Filter out hour slots where there are no doctors scheduled after applying the modality filter
-    # and no RVU data exists.
-    filtered_hour_slots = [slot for slot in hour_slots if doctors_by_hour.get(slot["datetime"]) or hourly_rvu_stats.get(slot["datetime"]) and (hourly_rvu_stats[slot["datetime"]]['current'] is not None or hourly_rvu_stats[slot["datetime"]]['historical'] is not None)]
+            return (stats["current"] / stats["historical"])
 
-    sorted_hour_slots = sorted(filtered_hour_slots, key=sort_key)
+        # Sort slots for the current day by ratio
+        sorted_day_slots = sorted(filtered_day_slots, key=sort_key)
+        
+        # Group sorted slots by background color class
+        grouped_slots_by_color = defaultdict(list)
+        for slot in sorted_day_slots:
+             stats = hourly_rvu_stats.get(slot["datetime"])
+             current = stats['current'] if stats else None
+             expected = stats['historical'] if stats else None
+             ratio = (current / expected) if current is not None and expected and expected > 0 else None
+             color_class = get_rvu_bg_color_class(ratio)
+             grouped_slots_by_color[color_class].append(slot)
+
+        # Add to the weekly data if there are any slots for this day
+        if grouped_slots_by_color:
+             weekly_data_by_day_and_color[day] = dict(grouped_slots_by_color) # Convert defaultdict to dict for template
+
+    # Sort the days of the week (dictionary keys are date objects)
+    sorted_days = sorted(weekly_data_by_day_and_color.keys())
+    sorted_weekly_data_by_day_and_color = {day: weekly_data_by_day_and_color[day] for day in sorted_days}
 
 
     return render_template('shifts.html', 
-                           hour_slots=sorted_hour_slots, 
+                           weekly_data_by_day_and_color=sorted_weekly_data_by_day_and_color, # Pass grouped and sorted data
                            hourly_rvu_stats=hourly_rvu_stats,
-                           today=today,
+                           start_date=start_of_week.strftime("%B %d, %Y"), # Pass week start date for header
+                           end_date=end_of_week.strftime("%B %d, %Y"), # Pass week end date for header
                            doctors_by_hour=doctors_by_hour) 
