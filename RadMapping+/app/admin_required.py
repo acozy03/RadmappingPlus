@@ -10,22 +10,26 @@ def admin_required(f):
             print("No user in session")
             abort(403)
 
-        user_id = user.get("id")
-        if not user_id:
-            print("No user ID in session")
+        if user.get("role") == "admin":
+            return f(*args, **kwargs)
+
+        email = user.get("email")
+        if not email:
+            print("No email in session")
             abort(403)
 
         supabase = get_supabase_client()
-   
         try:
-            response = supabase.table("users").select("role").eq("id", user_id).single().execute()
-            data = response.data
-            print("DATA:", data)
-            if not data or data.get("role") != "admin":
-                print("Role is not admin or missing")
+            response = supabase.table("users").select("role").eq("email", email).limit(1).execute()
+            role = response.data[0]["role"] if response.data else None
+            if role != "admin":
+                print(f"User {email} is not admin")
                 abort(403)
+
+            # Optionally cache role back to session
+            session["user"]["role"] = role
         except Exception as e:
-            print(f"Error fetching role: {e}")
+            print(f"Error fetching role for {email}: {e}")
             abort(403)
 
         return f(*args, **kwargs)
