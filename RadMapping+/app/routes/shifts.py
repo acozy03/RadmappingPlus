@@ -192,26 +192,50 @@ def shifts():
     rvu_rows = {row["radiologist_id"]: row for row in (rvu_res.data or [])}
 
     # Build hourly_rvu_stats: {slot_datetime: {"historical": val, "current": val}}
-    hourly_rvu_stats = {} # Key: datetime object for the hour slot
     all_hour_slots = [slot for day_slots in hour_slots_by_day.values() for slot in day_slots]
 
+    # 1. Batch calculate all previous date/hour lookups
+    prev_dates_hours_map = {}
+    for slot in all_hour_slots:
+        prev_date_str, prev_hour_int = get_prev_month_same_dow_and_hour(slot["datetime"])
+        if prev_date_str is not None:
+            prev_dates_hours_map[(slot["datetime"], (prev_date_str, prev_hour_int))] = True
+
+    # Extract unique (date, hour) combinations
+    unique_prev_keys = list({pair for _, pair in prev_dates_hours_map.keys()})
+
+    # 2. Bulk fetch from Supabase
+    historical_rvu_rows = supabase.table("capacity_per_hour")\
+        .select("date", "hour", "total_rvus")\
+        .in_("date", [d for d, _ in unique_prev_keys])\
+        .in_("hour", [h for _, h in unique_prev_keys])\
+        .execute()
+
+    print(f"Fetched {len(historical_rvu_rows.data or [])} RVU rows for batch lookup")
+
+          
+    # 3. Build lookup dictionary
+    historical_rvu_lookup = {
+        (row["date"], int(row["hour"])): row["total_rvus"]
+        for row in (historical_rvu_rows.data or [])
+    }
+
+    # 4. Calculate final hourly_rvu_stats
+    hourly_rvu_stats = {}
     for slot in all_hour_slots:
         slot_dt = slot["datetime"]
-        # 1. Historical RVU
         prev_date_str, prev_hour_int = get_prev_month_same_dow_and_hour(slot_dt)
         historical_rvu = None
         if prev_date_str is not None:
-            # Assuming 'capacity_per_hour' table has historical data
-            cap_res = supabase.table("capacity_per_hour").select("total_rvus").eq("date", prev_date_str).eq("hour", prev_hour_int).execute()
-            if cap_res.data and len(cap_res.data) > 0:
-                historical_rvu = cap_res.data[0]["total_rvus"]
-        # 2. Current total RVU (only sum RVU for doctors currently included after modality filter)
+            historical_rvu = historical_rvu_lookup.get((prev_date_str, prev_hour_int))
+
         slot_doctors = doctors_by_hour.get(slot_dt, [])
         current_total_rvu = 0
         for doc in slot_doctors:
             rvu_row = rvu_rows.get(doc["id"])
             if rvu_row:
                 current_total_rvu += get_latest_nonzero_rvu(rvu_row)
+
         hourly_rvu_stats[slot_dt] = {
             "historical": historical_rvu,
             "current": current_total_rvu

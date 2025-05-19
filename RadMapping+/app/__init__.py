@@ -85,7 +85,6 @@ def create_app():
     app.register_blueprint(visualize_bp, url_prefix='/radmapping')
     app.register_blueprint(licenses_bp, url_prefix='/radmapping')
     app.register_blueprint(shifts_bp, url_prefix='/radmapping')
-
     # Redirect root URL to login or landing page
     @app.route('/')
     def index():

@@ -97,7 +97,7 @@
                                 
                                 <td class="w-48 px-4 py-3 text-center {{ cell_class }}{% if date_str == today_str %} today-col bg-blue-50{% endif %}">
                                     {% if schedule %}
-                                        <div class="cell-content cursor-pointer" onclick="openScheduleModal('{{ doctor.id }}', '{{ date_str }}', '{{ schedule.start_time }}', '{{ schedule.end_time }}', `{{ schedule.schedule_details|e }}`)">
+                                        <div class="cell-content {% if session.user.role == 'admin' %}cursor-pointer{% endif %}" {% if session.user.role == 'admin' %}onclick="openScheduleModal('{{ doctor.id }}', '{{ date_str }}', '{{ schedule.start_time }}', '{{ schedule.end_time }}', `{{ schedule.schedule_details|e }}`){% endif %}">
                                             {% set is_off = schedule.schedule_details and schedule.schedule_details.strip().upper() == 'OFF' %}
                                             {% set is_vac = schedule.schedule_details and schedule.schedule_details.strip().upper() == 'VACATION' %}
                                             <span class="cell-time text-sm">

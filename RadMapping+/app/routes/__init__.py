@@ -25,6 +25,6 @@ __all__ = [
     'contacts_bp',
     'visualize_bp',
     'licenses_bp',
-    'auth_bp',
+    'auth_bp',  
     'shifts_bp'
 ] 

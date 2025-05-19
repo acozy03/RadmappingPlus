@@ -1,4 +1,4 @@
-from flask import Blueprint, json, render_template, session, redirect, url_for, request, jsonify
+from flask import Blueprint, json, render_template, session, redirect, url_for, request, jsonify, has_app_context
 from app.admin_required import admin_required
 from app.supabase_client import supabase
 from datetime import datetime
@@ -51,6 +51,19 @@ def format_chat_history():
     for msg in memory:
         history += f"{msg['role']}: {msg['content']}\n"
     return history
+
+
+def get_sample_rows():
+    supabase = get_supabase_client()
+    samples = {}
+    tables = ["radiologists", "facilities", "monthly_schedule", "specialty_studies", "rad_avg_monthly_rvu", "capacity_per_hour", "doctor_facility_assignments", "pinned_doctors", "certifications", "vesta_contacts", "vacations"]
+    for table in tables:
+        try:
+            result = supabase.table(table).select("*").limit(2).execute()
+            samples[table] = result.data
+        except Exception as e:
+            print(f"Error loading samples from {table}: {e}")
+    return samples
 
 # Initialize LlamaIndex components
 def initialize_llama_index():
@@ -207,7 +220,12 @@ def initialize_llama_index():
             created_at timestamptz
         )
         """
-        
+        if has_app_context(): 
+            sample_rows = get_sample_rows()
+            for table, rows in sample_rows.items():
+                schema += f"\n\nSample from {table}:\n"
+                for row in rows:
+                    schema += f"{json.dumps(row, indent=2)}\n"
         # Create a document with the schema
         with open("schema.txt", "w") as f:
             f.write(schema)
@@ -262,6 +280,16 @@ def format_results_to_english(results):
     print(summary)
     return summary
 
+@chat_bp.route('/chat/rebuild_index', methods=['POST'])
+@admin_required
+def rebuild_index():
+    global index
+    try:
+        index = initialize_llama_index(force_rebuild=True)
+        return jsonify({'success': True, 'message': 'Index rebuilt successfully.'})
+    except Exception as e:
+        return jsonify({'error': str(e)}), 500
+
 @chat_bp.route('/chat', methods=['POST'])
 @with_supabase_auth
 def chat():
@@ -276,7 +304,7 @@ def chat():
         # Use LlamaIndex to understand the query and generate SQL
         query_engine = index.as_query_engine(
             similarity_top_k=3,
-            response_mode="tree_summarize"
+            response_mode="tree_summarize",
         )
         
         # Create a prompt that guides LlamaIndex to generate SQL
@@ -300,7 +328,7 @@ def chat():
                 THEN (CURRENT_DATE + end_time + INTERVAL '1 day') - (CURRENT_DATE + start_time)
                 ELSE (CURRENT_DATE + end_time) - (CURRENT_DATE + start_time)
               END as shift_duration
-        8. When answering questions about average RVUs:
+        8. When answering questions about RVUs:
                - The rad_avg_monthly_rvu table contains monthly data in individual columns (jan, feb, ..., dec).
                - Do NOT refer to a column called total_rvus – it does not exist.
                - Each monthly column is the average RVU score for that doctor for that month, and there are months that will be NULL so Use COALESCE() on each month before adding them. 
@@ -345,7 +373,8 @@ def chat():
                 # Use OpenAI only for formatting the results in natural language
                 client = OpenAI(
                     api_key=os.getenv("OPENAI_API_KEY"),
-                    organization=os.getenv("OPENAI_ORG_ID")
+                    organization=os.getenv("OPENAI_ORG_ID"),
+    
                 )
                 
                 format_prompt = f"""
@@ -364,7 +393,8 @@ def chat():
                     messages=[
                         {"role": "system", "content": "You are a helpful assistant that formats database query results into clear, natural language responses."},
                         {"role": "user", "content": format_prompt}
-                    ]
+                    ],
+            
                 )
                 
                 formatted_response = format_response.choices[0].message.content
