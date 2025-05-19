@@ -16,11 +16,11 @@ def admin_required(f):
             abort(403)
 
         supabase = get_supabase_client()
-
+   
         try:
             response = supabase.table("users").select("role").eq("id", user_id).single().execute()
             data = response.data
-
+            print("DATA:", data)
             if not data or data.get("role") != "admin":
                 print("Role is not admin or missing")
                 abort(403)

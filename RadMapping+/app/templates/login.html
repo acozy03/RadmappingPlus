@@ -44,11 +44,13 @@
     const user = session.user
     const email = user?.email || ''
 
-    if (!email.endsWith('@vestatelemed.com')) {
-      alert("Access restricted to vestatelemed.com users only.")
+    const allowedDomains = ['@vestatelemed.com', '@vestasolutions.com']
+    if (!allowedDomains.some(domain => email.endsWith(domain))) {
+      alert("Access restricted to approved domains only.")
       await supabase.auth.signOut()
-      window.location.href = 'https://www.google.com'  // or a custom error page
-    } else {
+      window.location.href = 'https://www.google.com'
+    }
+ else {
             // Redirect to main app
             // Send session to Flask backend
       await fetch("/auth/session", {
