@@ -19,7 +19,7 @@
     hoveredFacility: '' 
 }">
 
-<h1 class="text-3xl font-bold text-gray-800 mb-6">Shifts Needing Attention - Week of {{ start_date }} to {{ end_date }}</h1>
+<h1 class="text-2xl font-bold text-gray-800 mb-6">Capacity Gaps</h1>
 
 {# Filter Controls #}
 <div x-data="{ 
@@ -31,7 +31,7 @@
             const isRed = section.classList.contains('bg-red-100');
             const isYellow = section.classList.contains('bg-yellow-100');
             const isGreen = section.classList.contains('bg-green-100');
-            
+
             if ((isRed && !this.showRed) || 
                 (isYellow && !this.showYellow) || 
                 (isGreen && !this.showGreen)) {
@@ -68,103 +68,102 @@
         {% for day, color_grouped_slots in weekly_data_by_day_and_color.items() %}
         {% set is_today = (day == today_date.value) %}
         <div class="{{ 'ring-2 ring-blue-300 ring-offset-1' if is_today else '' }} flex flex-col min-w-0 rounded-md bg-white">
-    
-   
-                {% set first_color_group = color_grouped_slots.values() | first %}
-                {% set first_slot_of_day = first_color_group | first if first_color_group %}
-                {% if first_slot_of_day %}
-                <div class="bg-gray-200 p-4 rounded-t-lg text-center mt-1">
-                    <h2 class="text-base md:text-xl font-semibold text-gray-700">{{ first_slot_of_day.day_label }}</h2>
-                    <p class="text-xs md:text-sm text-gray-600">{{ day.strftime("%Y-%m-%d") }}</p>
-                </div>
-            {% endif %}
-            
-
-                <div class="flex-1 bg-white rounded-b-lg border border-gray-200 p-2 md:p-4">
-                    {% for color_class, slots_in_color_group in color_grouped_slots.items() %}
-                        <div class="mb-4 capacity-section {{ color_class }} rounded-lg p-2">
-                            <h3 class="text-xs md:text-sm font-semibold text-gray-700 mb-2">
-                                {% if color_class == 'bg-red-100' %}
-                                {% elif color_class == 'bg-yellow-100' %}
-                                {% elif color_class == 'bg-green-100' %}
-                                {% else %}
-                                    No RVU Data
-                                {% endif %}
-                            </h3>
-                            <div class="space-y-2">
-                                {% for slot in slots_in_color_group %}
-                                    {% set stats = hourly_rvu_stats[slot.datetime] %}
-                                    {% set current = stats['current'] if stats else None %}
-                                    {% set expected = stats['historical'] if stats else None %}
-                                    {% set ratio = (current / expected) if current is not none and expected and expected > 0 else None %}
-                                    {% set slot_doctors = doctors_by_hour.get(slot.datetime, []) %}
-                                    {% set modal_doctors = [] %}
-                                    {% for doc in slot_doctors %}
-                                    {% set _ = modal_doctors.append({
-                                        'name': doc.name | trim,
-                                        'url': url_for('doctors.doctor_profile', rad_id=doc.id),
-                                        'modalities': doc.modalities | default('', true) | trim
-                                    }) %}
-                                    
-                                    {% endfor %}
-                                    {% set slot_key = slot.datetime.isoformat() %}
-                                    {% set uncovered_states = uncovered_states_by_hour.get(slot.datetime.isoformat(), []) %}
-                                    {% set covered_states = covered_states_by_hour.get(slot.datetime.isoformat(), []) %}
-                                    
-                                    {% set state_doctor_map = state_doctor_map_by_hour.get(slot_key, {}) %}
-
-
-                                    <div 
-                                    @click="
-                                        show = true;
-                                        doctors = JSON.parse($el.getAttribute('data-doctors'));
-                                        time = '{{ slot.label }}';
-                                        date = '{{ slot.datetime.strftime("%Y-%m-%d") }}';
-                                        uncoveredStates = JSON.parse($el.getAttribute('data-uncovered-states'));
-                                        coveredStates = JSON.parse($el.getAttribute('data-covered-states'));
-                                        const rawMap = $el.getAttribute('data-state-doctor-map');
-                                        stateDoctorMap = JSON.parse(rawMap);
-                                        stateQuery = '';
-                                        matchedStates = [];
-                                        hoveredState = '';
-                                        facilityDoctorMap = JSON.parse($el.getAttribute('data-facility-doctor-map'));
-
-                                    "
-                                    
-                                        data-doctors='{{ modal_doctors | tojson | escape }}'
-                                        data-uncovered-states='{{ uncovered_states | tojson | escape }}'
-                                        data-covered-states='{{ covered_states | tojson | escape }}'
-                                        data-state-doctor-map='{{ state_doctor_map | tojson | escape }}'
-                                        data-facility-doctor-map='{{ facility_doctor_map_by_hour.get(slot.datetime.isoformat(), {}) | tojson | escape }}'
-
-                                        class="group rounded-md p-2 md:p-3 shadow-sm border border-gray-300 {{ color_class }} relative cursor-pointer"
-                                        style="background-color: inherit; min-width: 0;"
-                                    >
-                                        <div class="flex flex-col md:flex-row md:items-center md:justify-between gap-1 md:gap-0">
-                                            <h4 class="text-xs md:text-sm font-semibold text-gray-800">
-                                                <span>{{ slot.label }}</span>
-                                            </h4>
-                                            <span class="flex flex-wrap items-center text-xs text-gray-700 relative gap-x-1 gap-y-0.5 md:gap-x-2" style="min-width:0;">
-                                                <span class="text-blue-700 font-semibold">
-                                                    {{ (current | round(1)) if current is not none else '—' }}
-                                                </span>
-                                                <span class="text-gray-400">vs</span>
-                                                <span class="text-green-700 font-semibold">
-                                                    {{ (expected | round(1)) if expected is not none else '—' }}
-                                                </span>
-                                                {% if ratio is not none %}
-                            
-                                                    <span class="text-xs font-semibold text-gray-800">({{ (ratio * 100) | round(1) }}%)</span>
-                                                {% endif %}
-                                            </span>
-                                        </div>
-                                    </div>
-                                {% endfor %}
-                            </div>
-                        </div>
-                    {% endfor %}
-                </div>
+            {% set first_color_group = color_grouped_slots.values() | first %}
+            {% set first_slot_of_day = first_color_group | first if first_color_group %}
+            {% if first_slot_of_day %}
+            <div class="bg-gray-200 p-4 rounded-t-lg text-center mt-1">
+                <h2 class="text-base md:text-xl font-semibold text-gray-700">{{ first_slot_of_day.day_label }}</h2>
+                <p class="text-xs md:text-sm text-gray-600">{{ day.strftime("%Y-%m-%d") }}</p>
             </div>
+            {% endif %}
+
+            <div class="flex-1 bg-white rounded-b-lg border border-gray-200 p-2 md:p-4">
+                {% for color_class, slots_in_color_group in color_grouped_slots.items() %}
+                <div class="mb-4 capacity-section {{ color_class }} rounded-lg p-2">
+                    <div class="space-y-2">
+                        {% for slot in slots_in_color_group %}
+  {% set stats = hourly_rvu_stats[slot.datetime] %}
+  {% set current = stats['current'] if stats else None %}
+  {% set expected = stats['historical'] if stats else None %}
+  {% set ratio = (current / expected) if current is not none and expected and expected > 0 else None %}
+  {% set ratio_percent = (ratio * 100) | round(1) if ratio is not none else None %}
+  {% set slot_key = slot.datetime.isoformat() %}
+  {% set uncovered_states = uncovered_states_by_hour.get(slot_key, []) %}
+  {% set covered_states = covered_states_by_hour.get(slot_key, []) %}
+  {% set state_doctor_map = state_doctor_map_by_hour.get(slot_key, {}) %}
+  {% set facility_doctor_map = facility_doctor_map_by_hour.get(slot_key, {}) %}
+  {% set modal_doctors = [] %}
+  {% for doc in doctors_by_hour.get(slot.datetime, []) %}
+    {% set _ = modal_doctors.append({
+      'name': doc.name | trim,
+      'url': url_for('doctors.doctor_profile', rad_id=doc.id),
+      'modalities': doc.modalities | default('', true) | trim
+    }) %}
+  {% endfor %}
+
+  <div class="relative group">
+    <div
+      @click="
+        show = true;
+        doctors = JSON.parse($el.getAttribute('data-doctors'));
+        time = '{{ slot.label }}';
+        date = '{{ slot.datetime.strftime('%Y-%m-%d') }}';
+        uncoveredStates = JSON.parse($el.getAttribute('data-uncovered-states'));
+        coveredStates = JSON.parse($el.getAttribute('data-covered-states'));
+        stateDoctorMap = JSON.parse($el.getAttribute('data-state-doctor-map'));
+        facilityDoctorMap = JSON.parse($el.getAttribute('data-facility-doctor-map'));
+        const rvu = JSON.parse($el.getAttribute('data-rvu'));
+        if (doctors.length > 0) {
+          doctors[0].current = rvu.current;
+          doctors[0].expected = rvu.expected;
+          doctors[0].ratio = rvu.ratio;
+        }
+      "
+      data-doctors='{{ modal_doctors | tojson | escape }}'
+      data-uncovered-states='{{ uncovered_states | tojson | escape }}'
+      data-covered-states='{{ covered_states | tojson | escape }}'
+      data-state-doctor-map='{{ state_doctor_map | tojson | escape }}'
+      data-facility-doctor-map='{{ facility_doctor_map | tojson | escape }}'
+      data-rvu='{{ {
+        "current": current,
+        "expected": expected,
+        "ratio": ratio
+      } | tojson | escape }}'
+      class="group rounded-md p-2 md:p-3 shadow-sm border border-gray-300 {{ color_class }} relative cursor-pointer"
+      style="background-color: inherit; min-width: 0;"
+    >
+      <div class="flex flex-col md:flex-row md:items-center md:justify-between gap-1 md:gap-0">
+        <h4 class="text-xs md:text-sm font-semibold text-gray-800">
+          <span>{{ slot.label }}</span>
+        </h4>
+        <span class="flex flex-wrap items-center text-xs text-gray-700 relative gap-x-1 gap-y-0.5 md:gap-x-2" style="min-width:0;">
+          <span class="text-blue-700 font-semibold">
+            {{ (current | round(1)) if current is not none else '—' }}
+          </span>
+          <span class="text-gray-400">vs</span>
+          <span class="text-green-700 font-semibold">
+            {{ (expected | round(1)) if expected is not none else '—' }}
+          </span>
+        </span>
+      </div>
+    </div>
+
+    {% if ratio_percent is not none %}
+    <div
+      class="absolute left-1/2 -translate-x-1/2 bottom-full mb-1 w-max bg-white border border-gray-300 rounded shadow-lg px-3 py-1 text-xs text-gray-900 opacity-0 group-hover:opacity-100 pointer-events-none transition-opacity z-50 whitespace-nowrap"
+    >
+      Capacity Ratio: {{ ratio_percent }}%
+    </div>
+    {% endif %}
+  </div>
+{% endfor %}
+
+                      
+                    </div>
+                </div>
+                {% endfor %}
+            </div>
+        </div>
         {% endfor %}
     </div>
 </div>
@@ -185,13 +184,29 @@
             aria-label="Close">
       &times;
     </button>
-
+    <p class="text-sm text-gray-700 mb-2" x-show="doctors.length && doctors[0].current !== undefined">
+   
+        <span class="text-blue-700 font-semibold" x-text="(doctors[0].current)?.toFixed(1) ?? '—'"></span>
+        vs 
+        <span class="text-green-700 font-semibold" x-text="(doctors[0].expected)?.toFixed(1) ?? '—'"></span>
+        <template x-if="doctors[0].ratio !== undefined">
+          <span class="text-gray-700 font-medium">
+            (
+            <span x-text="(doctors[0].ratio * 100).toFixed(1) + '%'"></span>
+            )
+          </span>
+        </template>
+      </p>
+      
+      
     <h2 class="text-sm font-semibold mb-2 text-gray-800">Scheduled Doctors
     <p class="text-sm text-gray-500 mb-2">
         <span x-text="date"></span>
         &nbsp;&mdash;&nbsp;
         <span x-text="time"></span>
       </p>
+    
+      
     </h2>
         <ul class="space-y-1 max-h-60 overflow-y-auto">
             <template x-for="doc in doctors" :key="doc.url">
@@ -216,7 +231,7 @@
                     id="state-search"
                     type="text"
                     x-model="stateQuery"
-                    placeholder="Enter state name (e.g. Texas)"
+                    placeholder="Enter state name"
                     class="w-full px-2 py-1 border rounded text-sm mb-2"
                     @input="
                         let q = stateQuery.trim().toLowerCase();
