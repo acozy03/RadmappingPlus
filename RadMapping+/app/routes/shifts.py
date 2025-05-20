@@ -342,7 +342,42 @@ def shifts():
         state_doctor_map_by_hour[slot_dt.isoformat()] = state_doctor_map
     
 
-        
+        # Build mapping: facility name -> list of doctor names per hour
+    # Get all doctor-facility assignments
+    facility_assignments_res = supabase.table("doctor_facility_assignments")\
+        .select("radiologist_id, facilities(name)")\
+        .execute()
+
+    facility_map = defaultdict(list)
+    for row in facility_assignments_res.data or []:
+        rad_id = str(row["radiologist_id"]).strip()
+        facility_name = row.get("facilities", {}).get("name")
+        if rad_id and facility_name:
+            facility_map[rad_id].append(facility_name.strip())
+
+    
+    # Step 1: Get all facility names
+    all_facilities_res = supabase.table("facilities").select("name").execute()
+    all_facility_names = sorted([
+        f["name"].strip() for f in (all_facilities_res.data or []) if f.get("name")
+    ])
+
+    # Step 2: Build full map with empty lists for uncovered facilities
+    facility_doctor_map_by_hour = {}
+    for slot in all_hour_slots:
+        slot_dt = slot["datetime"]
+        slot_doctors = doctors_by_hour.get(slot_dt, [])
+        fac_map = defaultdict(list)
+
+        for doc in slot_doctors:
+            doc_id = str(doc["id"]).strip()
+            doc_name = doc.get("name", "").strip()
+            for fac in facility_map.get(doc_id, []):
+                fac_map[fac].append(doc_name)
+
+        # Now include *all* facilities, even if uncovered
+        complete_map = {fac: fac_map.get(fac, []) for fac in all_facility_names}
+        facility_doctor_map_by_hour[slot_dt.isoformat()] = complete_map
 
 
     return render_template('shifts.html', 
@@ -353,4 +388,6 @@ def shifts():
                            doctors_by_hour=doctors_by_hour,
                            uncovered_states_by_hour=uncovered_states_by_hour,
                            covered_states_by_hour=covered_states_by_hour,
-                           state_doctor_map_by_hour=state_doctor_map_by_hour) 
+                           state_doctor_map_by_hour=state_doctor_map_by_hour,
+                           facility_doctor_map_by_hour=facility_doctor_map_by_hour
+) 

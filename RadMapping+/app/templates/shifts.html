@@ -2,7 +2,21 @@
 {% block title %}Shifts Needing Attention{% endblock %}
 
 {% block content %}
-<div x-data="{ show: false, doctors: [], time: '', uncoveredStates: [], coveredStates: [], stateDoctorMap: {}, stateQuery: '', matchedStates: [], hoveredState: '' }">
+<div x-data="{ 
+    show: false, 
+    doctors: [], 
+    time: '', 
+    uncoveredStates: [], 
+    coveredStates: [], 
+    stateDoctorMap: {}, 
+    stateQuery: '', 
+    matchedStates: [], 
+    hoveredState: '', 
+    facilityDoctorMap: {}, 
+    facilityQuery: '', 
+    matchedFacilities: [], 
+    hoveredFacility: '' 
+}">
 
 <h1 class="text-3xl font-bold text-gray-800 mb-6">Shifts Needing Attention - Week of {{ start_date }} to {{ end_date }}</h1>
 
@@ -101,12 +115,16 @@
                                         stateQuery = '';
                                         matchedStates = [];
                                         hoveredState = '';
+                                        facilityDoctorMap = JSON.parse($el.getAttribute('data-facility-doctor-map'));
+
                                     "
                                     
                                         data-doctors='{{ modal_doctors | tojson | escape }}'
                                         data-uncovered-states='{{ uncovered_states | tojson | escape }}'
                                         data-covered-states='{{ covered_states | tojson | escape }}'
                                         data-state-doctor-map='{{ state_doctor_map | tojson | escape }}'
+                                        data-facility-doctor-map='{{ facility_doctor_map_by_hour.get(slot.datetime.isoformat(), {}) | tojson | escape }}'
+
                                         class="group rounded-md p-2 md:p-3 shadow-sm border border-gray-300 {{ color_class }} relative cursor-pointer"
                                         style="background-color: inherit; min-width: 0;"
                                     >
@@ -159,39 +177,79 @@
                 </li>
             </template>
         </ul>
-        <div class="mt-4">
-            <label class="block text-xs font-semibold text-gray-700 mb-1" for="state-search">Check State Coverage:</label>
-            <input
-                id="state-search"
-                type="text"
-                x-model="stateQuery"
-                placeholder="Enter state name (e.g. Texas)"
-                class="w-full px-2 py-1 border rounded text-sm mb-2"
-                @input="
-                    let q = stateQuery.trim().toLowerCase();
-                    matchedStates = q ? [...coveredStates, ...uncoveredStates].filter(s => s.toLowerCase().includes(q)) : [];
-                    hoveredState = '';
-                "
-            >
-            <div class="flex flex-wrap gap-1">
-                <template x-for="state in matchedStates" :key="state">
-                  <span
-                    class="inline-block px-2 py-0.5 rounded text-xs font-semibold cursor-pointer transition relative group"
-                    :class="coveredStates.includes(state) ? 'bg-green-100 text-green-700' : 'bg-red-100 text-red-700'"
-                  >
-                    <span x-text="state"></span>
-                    <span
-                      class="absolute left-1/2 -translate-x-1/2 bottom-full mb-2 w-max bg-white border border-gray-300 rounded shadow-lg px-3 py-2 text-xs text-gray-900 opacity-0 group-hover:opacity-100 pointer-events-none transition-opacity z-50 whitespace-nowrap"
-                    >
+        <div class="mt-4 grid grid-cols-1 md:grid-cols-2 gap-6">
+            <!-- State Coverage Section -->
+            <div>
+                <label class="block text-xs font-semibold text-gray-700 mb-1" for="state-search">Check State Coverage:</label>
+                <input
+                    id="state-search"
+                    type="text"
+                    x-model="stateQuery"
+                    placeholder="Enter state name (e.g. Texas)"
+                    class="w-full px-2 py-1 border rounded text-sm mb-2"
+                    @input="
+                        let q = stateQuery.trim().toLowerCase();
+                        matchedStates = q ? [...coveredStates, ...uncoveredStates].filter(s => s.toLowerCase().includes(q)) : [];
+                        hoveredState = '';
+                    "
+                >
+                <div class="flex flex-wrap gap-1">
+                    <template x-for="state in matchedStates" :key="state">
+                      <span
+                        class="inline-block px-2 py-0.5 rounded text-xs font-semibold cursor-pointer transition relative group"
+                        :class="coveredStates.includes(state) ? 'bg-green-100 text-green-700' : 'bg-red-100 text-red-700'"
+                      >
+                        <span x-text="state"></span>
+                        <span
+                          class="absolute left-1/2 -translate-x-1/2 bottom-full mb-2 w-max bg-white border border-gray-300 rounded shadow-lg px-3 py-2 text-xs text-gray-900 opacity-0 group-hover:opacity-100 pointer-events-none transition-opacity z-50 whitespace-nowrap"
+                        >
+                          <template x-for="doc in stateDoctorMap[state]" :key="doc">
+                            <span class="block" x-text="doc"></span>
+                          </template>
+                        </span>
+                      </span>
+                    </template>
+                </div>
+            </div>
+        
+            <!-- Facility Coverage Section -->
+            
+                <label class="block text-xs font-semibold text-gray-700 mb-1" for="facility-search">Check Facility Coverage:</label>
+                <input
+                    id="facility-search"
+                    type="text"
+                    x-model="facilityQuery"
+                    placeholder="Enter facility name"
+                    class="w-full px-2 py-1 border rounded text-sm mb-2"
+                    @input="
+                        let fq = facilityQuery.trim().toLowerCase();
+                        matchedFacilities = fq ? Object.keys(facilityDoctorMap).filter(f => f.toLowerCase().includes(fq)) : [];
+                        hoveredFacility = '';
+                    "
+                >
+                <div class="flex flex-wrap gap-1">
+                    <template x-for="fac in matchedFacilities" :key="fac">
+                      <span
+                        class="inline-block px-2 py-0.5 rounded text-xs font-semibold cursor-pointer transition relative group"
+                        :class="facilityDoctorMap[fac] && facilityDoctorMap[fac].length > 0 ? 'bg-green-100 text-green-700' : 'bg-red-100 text-red-700'"
+                      >
+                        <span x-text="fac"></span>
+<template x-if="facilityDoctorMap[fac] && facilityDoctorMap[fac].length > 0">
+  <span
+    class="absolute left-1/2 -translate-x-1/2 bottom-full mb-2 w-max bg-white border border-gray-300 rounded shadow-lg px-3 py-2 text-xs text-gray-900 opacity-0 group-hover:opacity-100 pointer-events-none transition-opacity z-50 whitespace-nowrap"
+  >
+    <template x-for="doc in facilityDoctorMap[fac]" :key="doc">
+      <span class="block" x-text="doc"></span>
+    </template>
+  </span>
+</template>
 
-                      <template x-for="doc in stateDoctorMap[state]" :key="doc">
-                        <span class="block" x-text="doc"></span>
-                      </template>
-                    </span>
-                  </span>
-                </template>
+                      </span>
+                    </template>
+                </div>
             </div>
         </div>
+        
         <div class="text-xs text-gray-400 mt-2">
     
         </div>
