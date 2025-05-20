@@ -6,6 +6,7 @@
     show: false, 
     doctors: [], 
     time: '', 
+    date: '',
     uncoveredStates: [], 
     coveredStates: [], 
     stateDoctorMap: {}, 
@@ -93,8 +94,12 @@
                                     {% set slot_doctors = doctors_by_hour.get(slot.datetime, []) %}
                                     {% set modal_doctors = [] %}
                                     {% for doc in slot_doctors %}
-                                    {% set _ = modal_doctors.append({'name': doc.name | trim, 'url': url_for('doctors.doctor_profile', rad_id=doc.id)}) %}
-
+                                    {% set _ = modal_doctors.append({
+                                        'name': doc.name | trim,
+                                        'url': url_for('doctors.doctor_profile', rad_id=doc.id),
+                                        'modalities': doc.modalities | default('', true) | trim
+                                    }) %}
+                                    
                                     {% endfor %}
                                     {% set slot_key = slot.datetime.isoformat() %}
                                     {% set uncovered_states = uncovered_states_by_hour.get(slot.datetime.isoformat(), []) %}
@@ -108,6 +113,7 @@
                                         show = true;
                                         doctors = JSON.parse($el.getAttribute('data-doctors'));
                                         time = '{{ slot.label }}';
+                                        date = '{{ slot.datetime.strftime("%Y-%m-%d") }}';
                                         uncoveredStates = JSON.parse($el.getAttribute('data-uncovered-states'));
                                         coveredStates = JSON.parse($el.getAttribute('data-covered-states'));
                                         const rawMap = $el.getAttribute('data-state-doctor-map');
@@ -174,13 +180,24 @@
       &times;
     </button>
 
-    <h2 class="text-lg font-semibold mb-2 text-gray-800">Scheduled Doctors</h2>
-    <p class="text-sm text-gray-500 mb-4" x-text="time"></p>
+    <h2 class="text-sm font-semibold mb-2 text-gray-800">Scheduled Doctors
+    <p class="text-sm text-gray-500 mb-2">
+        <span x-text="date"></span>
+        &nbsp;&mdash;&nbsp;
+        <span x-text="time"></span>
+      </p>
+    </h2>
         <ul class="space-y-1 max-h-60 overflow-y-auto">
             <template x-for="doc in doctors" :key="doc.url">
                 <li :class="hoveredState && stateDoctorMap[hoveredState]?.some(n => n.trim().toLowerCase() === doc.name.trim().toLowerCase()) ? 'bg-green-100 font-bold' : ''">
                     <a :href="doc.url" target="_blank" class="text-blue-700 hover:underline font-medium">
-                        <span x-text="doc.name"></span>
+                        <span>
+                            <span x-text="doc.name" class="text-blue-700 hover:underline font-medium"></span>
+                            <template x-if="doc.modalities">
+                              <span class="text-gray-500 font-normal" x-text="` — ${doc.modalities}`"></span>
+                            </template>
+                          </span>
+                          
                     </a>
                 </li>
             </template>
