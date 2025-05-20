@@ -65,6 +65,15 @@ def get_rvu_bg_color_class(ratio):
             return 'bg-green-100'
     return 'bg-gray-100' # Default color for no ratio
 
+# Add this near the top, after imports
+US_STATES = [
+    'Alabama', 'Alaska', 'Arizona', 'Arkansas', 'California', 'Colorado', 'Connecticut', 'Delaware', 'Florida', 'Georgia',
+    'Hawaii', 'Idaho', 'Illinois', 'Indiana', 'Iowa', 'Kansas', 'Kentucky', 'Louisiana', 'Maine', 'Maryland', 'Massachusetts',
+    'Michigan', 'Minnesota', 'Mississippi', 'Missouri', 'Montana', 'Nebraska', 'Nevada', 'New Hampshire', 'New Jersey',
+    'New Mexico', 'New York', 'North Carolina', 'North Dakota', 'Ohio', 'Oklahoma', 'Oregon', 'Pennsylvania', 'Rhode Island',
+    'South Carolina', 'South Dakota', 'Tennessee', 'Texas', 'Utah', 'Vermont', 'Virginia', 'Washington', 'West Virginia',
+    'Wisconsin', 'Wyoming'
+]
 
 @shifts_bp.route('/shifts')
 @with_supabase_auth
@@ -211,9 +220,6 @@ def shifts():
         .in_("hour", [h for _, h in unique_prev_keys])\
         .execute()
 
-    print(f"Fetched {len(historical_rvu_rows.data or [])} RVU rows for batch lookup")
-
-          
     # 3. Build lookup dictionary
     historical_rvu_lookup = {
         (row["date"], int(row["hour"])): row["total_rvus"]
@@ -286,10 +292,65 @@ def shifts():
     sorted_days = sorted(weekly_data_by_day_and_color.keys())
     sorted_weekly_data_by_day_and_color = {day: weekly_data_by_day_and_color[day] for day in sorted_days}
 
+    # Fetch all certifications for doctors scheduled this week
+    doctor_ids = list({doc['id'] for doc in doctors_on_shift})
+    cert_res = supabase.table("certifications").select("radiologist_id,state").in_("radiologist_id", doctor_ids).execute()
+    certifications = cert_res.data or []
+    # Build a mapping: doctor_id -> set(states)
+    doctor_states = {}
+    for cert in certifications:
+        rid = str(cert['radiologist_id']).strip()  # Ensure string and trimmed
+        state = cert['state']
+        if rid not in doctor_states:
+            doctor_states[rid] = set()
+        if state:
+            doctor_states[rid].add(state.strip().title())  # Normalize state name
+
+    # For each hour slot, compute uncovered states
+    uncovered_states_by_hour = {}
+    for slot in all_hour_slots:
+        slot_doctors = doctors_by_hour.get(slot['datetime'], [])
+        covered_states = set()
+        for doc in slot_doctors:
+            doc_id = str(doc['id']).strip()  # Ensure string and trimmed
+            covered_states.update(doctor_states.get(doc_id, set()))
+        uncovered = sorted(set(US_STATES) - covered_states)
+        uncovered_states_by_hour[slot['datetime'].isoformat()] = uncovered
+
+    # For each hour slot, compute covered states as well
+    covered_states_by_hour = {}
+    for slot in all_hour_slots:
+        uncovered = uncovered_states_by_hour[slot['datetime'].isoformat()]
+        covered = sorted(set(US_STATES) - set(uncovered))
+        covered_states_by_hour[slot['datetime'].isoformat()] = covered
+
+    # For each hour slot, build a mapping: state name -> list of doctor names who cover that state
+    state_doctor_map_by_hour = {}
+    for slot in all_hour_slots:
+        slot_dt = slot['datetime']
+        slot_doctors = doctors_by_hour.get(slot_dt, [])  # Use datetime object
+        state_doctor_map = {}
+
+        for doc in slot_doctors:
+            doc_states = doctor_states.get(str(doc['id']).strip(), set())
+            for state in doc_states:
+                name = doc.get('name')
+                if name:
+                    state_doctor_map.setdefault(state, []).append(str(name).strip())
+
+        # Store under the string key
+        state_doctor_map_by_hour[slot_dt.isoformat()] = state_doctor_map
+    
+
+        
+
 
     return render_template('shifts.html', 
                            weekly_data_by_day_and_color=sorted_weekly_data_by_day_and_color, # Pass grouped and sorted data
                            hourly_rvu_stats=hourly_rvu_stats,
                            start_date=start_of_week.strftime("%B %d, %Y"), # Pass week start date for header
                            end_date=end_of_week.strftime("%B %d, %Y"), # Pass week end date for header
-                           doctors_by_hour=doctors_by_hour) 
+                           doctors_by_hour=doctors_by_hour,
+                           uncovered_states_by_hour=uncovered_states_by_hour,
+                           covered_states_by_hour=covered_states_by_hour,
+                           state_doctor_map_by_hour=state_doctor_map_by_hour) 
