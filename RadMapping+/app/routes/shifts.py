@@ -389,5 +389,6 @@ def shifts():
                            uncovered_states_by_hour=uncovered_states_by_hour,
                            covered_states_by_hour=covered_states_by_hour,
                            state_doctor_map_by_hour=state_doctor_map_by_hour,
-                           facility_doctor_map_by_hour=facility_doctor_map_by_hour
+                           facility_doctor_map_by_hour=facility_doctor_map_by_hour,
+                           datetime=datetime
 ) 
