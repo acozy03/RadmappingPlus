@@ -1,4 +1,4 @@
-from flask import Blueprint, render_template, session, redirect, url_for, request
+from flask import Blueprint, render_template, session, redirect, url_for, request, jsonify
 from app.admin_required import admin_required
 from app.supabase_client import supabase
 from datetime import datetime, timedelta
@@ -6,6 +6,7 @@ from collections import defaultdict
 from app.supabase_client import get_supabase_client
 from app.middleware import with_supabase_auth
 from calendar import monthrange
+from app.utils.schedule_sync import run_google_sheet_sync  
 
 daily_bp = Blueprint('daily', __name__)
 
@@ -284,3 +285,29 @@ def get_latest_nonzero_rvu(rvu_row):
         if val is not None and val != 0:
             return val
     return 0 
+
+@daily_bp.route("/daily/schedule-sync", methods=["POST"])
+def sync_schedule():
+    from flask import current_app
+    token = request.headers.get("Authorization")
+    sheet_name = request.json.get("sheet_name")
+
+    print(f"[📥] Incoming sync request for: {sheet_name}")
+    if token != "Bearer YOUR_SECRET_TOKEN":
+        print("❌ Unauthorized request")
+        return jsonify({"error": "unauthorized"}), 403
+
+    if not sheet_name:
+        print("❌ No sheet_name provided")
+        return jsonify({"error": "sheet_name not provided"}), 400
+
+    try:
+        result = run_google_sheet_sync(sheet_name=sheet_name)
+        print(f"✅ Sync successful for {sheet_name}: {result['rows_inserted']} rows inserted.")
+        return jsonify({"status": "success", "details": result}), 200
+    except Exception as e:
+        print(f"❌ Sync failed: {e}")
+        return jsonify({"status": "error", "message": str(e)}), 500
+
+
+
