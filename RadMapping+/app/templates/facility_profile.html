@@ -190,11 +190,34 @@
                     {{ assignment.radiologists.name }}
                   </a>
                 </td>
-                <td class="px-4 py-2 border-b">{{ "✅" if assignment.can_read else "❌" }}</td>
-                <td class="px-4 py-2 border-b">{{ "✅" if assignment.does_stats else "❌" }}</td>
-                <td class="px-4 py-2 border-b">{{ "✅" if assignment.does_routines else "❌" }}</td>
-                <td class="px-4 py-2 border-b">{{ assignment.stipulations or "—" }}</td>
-                <td class="px-4 py-2 border-b">{{ assignment.notes or "—" }}</td>
+                <td class="px-4 py-2 border-b">
+  {% if assignment.can_read == "true" %}
+    ✅
+  {% elif assignment.can_read == "pending" %}
+    ⏳
+  {% else %}
+    ❌
+  {% endif %}
+</td>
+
+                <td class="px-4 py-2 border-b">{{ "✅" if assignment.radiologists.reads_stats == 'YES' else "❌" }}</td>
+                <td class="px-4 py-2 border-b">{{ "✅" if assignment.radiologists.reads_routines == 'YES' else "❌" }}</td>
+                 
+                <td class="px-4 py-2 border-b">
+  {% set full = assignment.radiologists.stipulations or "—" %}
+  {% if full|length > 100 %}
+    <div x-data="{ expanded: false }">
+      <div x-show="!expanded">{{ full[:100] }}... <button @click="expanded = true" class="text-blue-600 underline text-sm">Show More</button></div>
+      <div x-show="expanded">
+        <div class="whitespace-pre-line">{{ full }}</div>
+        <button @click="expanded = false" class="text-blue-600 underline text-sm">Show Less</button>
+      </div>
+    </div>
+  {% else %}
+    <div class="whitespace-pre-line">{{ full }}</div>
+  {% endif %}
+</td>
+    <td class="px-4 py-2 border-b">{{ assignment.notes or "—" }}</td>
                 {% if session.user.role == 'admin' %}
                 <td class="px-4 py-2 border-b">
                   <form action="{{ url_for('facilities.remove_assignment', facility_id=facility.id, assignment_id=assignment.id) }}" method="POST" style="display: inline;">
@@ -266,12 +289,13 @@
   </div>
 </div>
 
-<!-- Radiologist Assignment Modal -->
 <div id="radiologistModal" class="fixed inset-0 z-50 hidden bg-black bg-opacity-50 flex items-center justify-center" onclick="if(event.target === this) closeRadiologistModal();">
-  <div class="bg-white rounded-lg shadow-lg w-[90%] max-w-2xl max-h-[80vh] overflow-y-auto p-6 relative" onclick="event.stopPropagation();">
+  <div class="bg-white rounded-lg shadow-lg w-[90%] max-w-2xl max-h-[90vh] overflow-y-auto p-6 relative" onclick="event.stopPropagation();">
     <button onclick="closeRadiologistModal()" class="absolute top-2 right-2 text-2xl font-bold text-gray-500 hover:text-black">×</button>
     <h3 class="text-xl font-semibold mb-4">Assign Radiologist to Facility</h3>
+
     <form method="POST" action="{{ url_for('facilities.assign_radiologist', facility_id=facility.id) }}" class="space-y-4">
+      <!-- Radiologist Selector -->
       <div>
         <label class="block text-sm font-medium text-gray-700 mb-1">Select Radiologist</label>
         <select name="radiologist_id" required class="w-full border rounded px-3 py-2 text-sm">
@@ -281,35 +305,32 @@
           {% endfor %}
         </select>
       </div>
-      <div class="flex items-center gap-4">
-        <label class="flex items-center">
-          <input type="checkbox" name="can_read" class="form-checkbox h-4 w-4 text-blue-600">
-          <span class="ml-2 text-sm">Can Read</span>
-        </label>
-        <label class="flex items-center">
-          <input type="checkbox" name="does_stats" class="form-checkbox h-4 w-4 text-blue-600">
-          <span class="ml-2 text-sm">Does Stats</span>
-        </label>
-        <label class="flex items-center">
-          <input type="checkbox" name="does_routines" class="form-checkbox h-4 w-4 text-blue-600">
-          <span class="ml-2 text-sm">Does Routines</span>
-        </label>
-      </div>
+
+      <!-- Approval Status -->
       <div>
-        <label class="block text-sm font-medium text-gray-700 mb-1">Stipulations</label>
-        <textarea name="stipulations" class="w-full border rounded px-3 py-2 text-sm" rows="2"></textarea>
+        <label class="block text-sm font-medium text-gray-700 mb-1">Approval Status</label>
+        <select name="can_read" required class="w-full border rounded px-3 py-2 text-sm">
+          <option value="true">Active</option>
+          <option value="pending">Pending</option>
+          <option value="false">Inactive</option>
+        </select>
       </div>
+
+      <!-- Notes -->
       <div>
         <label class="block text-sm font-medium text-gray-700 mb-1">Notes</label>
         <textarea name="notes" class="w-full border rounded px-3 py-2 text-sm" rows="2"></textarea>
       </div>
-      <div class="flex justify-end gap-3">
+
+      <!-- Action Buttons -->
+      <div class="flex justify-end gap-3 pt-2">
         <button type="button" onclick="closeRadiologistModal()" class="px-4 py-2 text-sm border rounded text-gray-700 hover:bg-gray-50">Cancel</button>
         <button type="submit" class="px-4 py-2 text-sm bg-blue-600 text-white rounded hover:bg-blue-700">Assign</button>
       </div>
     </form>
   </div>
 </div>
+
 
 <!-- Bulk Edit Assignments Modal -->
 <div id="bulkEditAssignmentsModal" class="fixed inset-0 z-50 hidden bg-black bg-opacity-50 flex items-center justify-center" onclick="if(event.target === this) closeBulkEditAssignmentsModal();">
@@ -319,7 +340,7 @@
     <form method="POST" action="{{ url_for('facilities.bulk_update_assignments', facility_id=facility.id) }}" class="space-y-4">
       <div class="overflow-x-auto">
         <table class="min-w-full bg-white border border-gray-200 text-sm rounded">
-          <thead class="bg-gray-100">
+          <thead class="bg-gray-100 sticky top-0 z-10">
             <tr class="text-left">
               <th class="px-4 py-2 border-b">Name</th>
               <th class="px-4 py-2 border-b">Can Read</th>
@@ -329,20 +350,38 @@
               <th class="px-4 py-2 border-b">Notes</th>
             </tr>
           </thead>
-          <tbody>
-            {% for assignment in doctor_assignments %}
-            <tr>
-              <td class="px-4 py-2 border-b font-medium">{{ assignment.radiologists.name }}</td>
-              <td class="px-4 py-2 border-b text-center"><input type="checkbox" name="can_read_{{ assignment.id }}" {% if assignment.can_read %}checked{% endif %}></td>
-              <td class="px-4 py-2 border-b text-center"><input type="checkbox" name="does_stats_{{ assignment.id }}" {% if assignment.does_stats %}checked{% endif %}></td>
-              <td class="px-4 py-2 border-b text-center"><input type="checkbox" name="does_routines_{{ assignment.id }}" {% if assignment.does_routines %}checked{% endif %}></td>
-              <td class="px-4 py-2 border-b"><textarea name="stipulations_{{ assignment.id }}" class="w-full border rounded px-2 py-1">{{ assignment.stipulations }}</textarea></td>
-              <td class="px-4 py-2 border-b"><textarea name="notes_{{ assignment.id }}" class="w-full border rounded px-2 py-1">{{ assignment.notes }}</textarea></td>
-              <input type="hidden" name="assignment_ids" value="{{ assignment.id }}">
-            </tr>
-            {% endfor %}
-          </tbody>
         </table>
+        <div class="overflow-y-auto" style="max-height: 50vh;">
+          <table class="min-w-full bg-white border border-gray-200 text-sm">
+            <tbody>
+              {% for assignment in doctor_assignments %}
+              <tr class="border-t">
+                <td class="px-4 py-2 border-b font-medium">{{ assignment.radiologists.name }}</td>
+                <td class="px-4 py-2 border-b text-center">
+                  <select name="can_read_{{ assignment.id }}" class="w-full border rounded px-2 py-1">
+                    <option value="true" {% if assignment.can_read == "true" %}selected{% endif %}>Active</option>
+                    <option value="pending" {% if assignment.can_read == "pending" %}selected{% endif %}>Pending</option>
+                    <option value="false" {% if assignment.can_read == "false" %}selected{% endif %}>Inactive</option>
+                  </select>
+                </td>
+                <td class="px-4 py-2 border-b text-center">
+                  <input type="checkbox" name="reads_stats_{{ assignment.radiologists.id }}" {% if assignment.radiologists.reads_stats == 'YES' %}checked{% endif %}>
+                </td>
+                <td class="px-4 py-2 border-b text-center">
+                  <input type="checkbox" name="reads_routines_{{ assignment.radiologists.id }}" {% if assignment.radiologists.reads_routines == 'YES' %}checked{% endif %}>
+                </td>
+                <td class="px-4 py-2 border-b">
+                  <textarea name="stipulations_{{ assignment.radiologists.id }}" class="w-full border rounded px-2 py-1">{{ assignment.radiologists.stipulations }}</textarea>
+                </td>
+                <td class="px-4 py-2 border-b">
+                  <textarea name="notes_{{ assignment.id }}" class="w-full border rounded px-2 py-1">{{ assignment.notes }}</textarea>
+                </td>
+                <input type="hidden" name="assignment_ids" value="{{ assignment.id }}">
+              </tr>
+              {% endfor %}
+            </tbody>
+          </table>
+        </div>
       </div>
       <div class="flex justify-end gap-3 mt-4">
         <button type="button" onclick="closeBulkEditAssignmentsModal()" class="px-4 py-2 text-sm border rounded text-gray-700 hover:bg-gray-50">Cancel</button>
@@ -351,6 +390,8 @@
     </form>
   </div>
 </div>
+
+
 
 <!-- Delete Contact Form (Hidden) -->
 <form id="deleteContactForm" method="POST" style="display: none;"></form>
