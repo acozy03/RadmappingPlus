@@ -286,14 +286,27 @@
   if (!template) return;
 
   const clone = template.cloneNode(true);
-  clone.classList.add("absolute", "left-full", "top-0", "ml-2", "z-50", "opacity-100", "scale-100", "active-popup");
+  clone.classList.add("absolute", "top-0", "z-50", "opacity-100", "scale-100", "active-popup");
 
   // Remove any previous popup
   const existing = parent.querySelector('.active-popup');
   if (existing) existing.remove();
 
+  // Detect if popup would overflow the screen
+  const parentRect = parent.getBoundingClientRect();
+  const willOverflowRight = (parentRect.right + 350) > window.innerWidth;
+
+  if (willOverflowRight) {
+    // Position to the left
+    clone.classList.add("right-full", "mr-2");
+  } else {
+    // Default position to the right
+    clone.classList.add("left-full", "ml-2");
+  }
+
   parent.appendChild(clone);
 }
+
 
 function hideDoctorPopup(parent) {
   const popup = parent.querySelector('.active-popup');

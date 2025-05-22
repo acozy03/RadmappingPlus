@@ -1,193 +1,310 @@
-{# RadMapping+/app/templates/shifts.html #}
-
 {% extends "layout.html" %}
-{% block title %}Shifts Needing Attention{% endblock %}
+{% block title %}Capacity Gaps{% endblock %}
 
 {% block content %}
+<div x-data="{ 
+    show: false, 
+    doctors: [], 
+    time: '', 
+    date: '',
+    uncoveredStates: [], 
+    coveredStates: [], 
+    stateDoctorMap: {}, 
+    stateQuery: '', 
+    matchedStates: [], 
+    hoveredState: '', 
+    facilityDoctorMap: {}, 
+    facilityQuery: '', 
+    matchedFacilities: [], 
+    hoveredFacility: '' 
+}">
 
-<h1 class="text-3xl font-bold text-gray-800 mb-6">Shifts Needing Attention - Week of {{ start_date }} to {{ end_date }}</h1>
+<h1 class="text-2xl font-bold text-gray-800 mb-6">Capacity Gaps</h1>
 
-<div class="space-y-4">
-    {% for day, color_grouped_slots in weekly_data_by_day_and_color.items() %}
-        <div x-data="{ open: false }">
-            <div class="flex items-center justify-between cursor-pointer bg-gray-200 hover:bg-gray-300 rounded p-4 mt-4" @click="open = !open">
-                {# Access the day_label from the first slot in the first color group #}
-                {% set first_color_group = color_grouped_slots.values() | first %}
-                {% set first_slot_of_day = first_color_group | first if first_color_group %}
-                {% if first_slot_of_day %}
-                    <h2 class="text-xl font-semibold text-gray-700">{{ first_slot_of_day.day_label }} - {{ day.strftime("%Y-%m-%d") }}</h2>
-                {% endif %}
-                <span class="transform transition-transform" :class="{ 'rotate-180': open }">
-                    <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6 text-gray-600" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7" />
-                    </svg>
-                </span>
+{# Filter Controls #}
+<div x-data="{ 
+    showRed: true, 
+    showYellow: true, 
+    showGreen: true,
+    updateFilters() {
+        document.querySelectorAll('.capacity-section').forEach(section => {
+            const isRed = section.classList.contains('bg-red-100');
+            const isYellow = section.classList.contains('bg-yellow-100');
+            const isGreen = section.classList.contains('bg-green-100');
+
+            if ((isRed && !this.showRed) || 
+                (isYellow && !this.showYellow) || 
+                (isGreen && !this.showGreen)) {
+                section.style.display = 'none';
+            } else {
+                section.style.display = 'block';
+            }
+        });
+    }
+}" class="mb-6 p-4 bg-white rounded-lg shadow-sm border border-gray-200">
+    <div class="flex items-center space-x-6">
+        <span class="text-sm font-medium text-gray-700">Show Sections:</span>
+        <div class="flex items-center space-x-4">
+            <label class="inline-flex items-center">
+                <input type="checkbox" class="form-checkbox h-4 w-4 text-red-600" checked x-model="showRed" @change="updateFilters()">
+                <span class="ml-2 text-sm text-gray-700">Below 60% Capacity</span>
+            </label>
+            <label class="inline-flex items-center">
+                <input type="checkbox" class="form-checkbox h-4 w-4 text-yellow-500" checked x-model="showYellow" @change="updateFilters()">
+                <span class="ml-2 text-sm text-gray-700">60-90% Capacity</span>
+            </label>
+            <label class="inline-flex items-center">
+                <input type="checkbox" class="form-checkbox h-4 w-4 text-green-600" checked x-model="showGreen" @change="updateFilters()">
+                <span class="ml-2 text-sm text-gray-700">Above 90% Capacity</span>
+            </label>
+        </div>
+    </div>
+</div>
+
+<div class="overflow-x-auto">
+    <div class="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-5 xl:grid-cols-7 gap-4 py-2">
+        {% set today_date = namespace(value=(datetime.utcnow().date())) %}
+
+        {% for day, color_grouped_slots in weekly_data_by_day_and_color.items() %}
+        {% set is_today = (day == today_date.value) %}
+        <div class="{{ 'ring-2 ring-blue-300 ring-offset-1' if is_today else '' }} flex flex-col min-w-0 rounded-md bg-white">
+            {% set first_color_group = color_grouped_slots.values() | first %}
+            {% set first_slot_of_day = first_color_group | first if first_color_group %}
+            {% if first_slot_of_day %}
+            <div class="bg-gray-200 p-4 rounded-t-lg text-center mt-1">
+                <h2 class="text-base md:text-xl font-semibold text-gray-700">{{ first_slot_of_day.day_label }}</h2>
+                <p class="text-xs md:text-sm text-gray-600">{{ day.strftime("%Y-%m-%d") }}</p>
             </div>
+            {% endif %}
 
-            <div x-show="open" x-collapse class="space-y-4 mt-2">
+            <div class="flex-1 bg-white rounded-b-lg border border-gray-200 p-2 md:p-4">
                 {% for color_class, slots_in_color_group in color_grouped_slots.items() %}
-                    <h3 class="text-md font-semibold text-gray-600 mt-4 mb-2">
-                        {% if color_class == 'bg-red-100' %}
-                            Below 60% of Expected Capacity
-                        {% elif color_class == 'bg-yellow-100' %}
-                            60% to 90% of Expected Capacity
-                        {% elif color_class == 'bg-green-100' %}
-                            Above 90% of Expected Capacity
-                        {% else %}
-                            No RVU Data
-                        {% endif %}
-                    </h3>
-                    <div class="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4">
+                <div class="mb-4 capacity-section {{ color_class }} rounded-lg p-2">
+                    <div class="space-y-2">
                         {% for slot in slots_in_color_group %}
-                            {% set stats = hourly_rvu_stats[slot.datetime] %}
-                            {% set current = stats['current'] if stats else None %}
-                            {% set expected = stats['historical'] if stats else None %}
-                            {% set ratio = (current / expected) if current is not none and expected and expected > 0 else None %}
+  {% set stats = hourly_rvu_stats[slot.datetime] %}
+  {% set current = stats['current'] if stats else None %}
+  {% set expected = stats['historical'] if stats else None %}
+  {% set ratio = (current / expected) if current is not none and expected and expected > 0 else None %}
+  {% set ratio_percent = (ratio * 100) | round(1) if ratio is not none else None %}
+  {% set slot_key = slot.datetime.isoformat() %}
+  {% set uncovered_states = uncovered_states_by_hour.get(slot_key, []) %}
+  {% set covered_states = covered_states_by_hour.get(slot_key, []) %}
+  {% set state_doctor_map = state_doctor_map_by_hour.get(slot_key, {}) %}
+  {% set facility_doctor_map = facility_doctor_map_by_hour.get(slot_key, {}) %}
+  {% set modal_doctors = [] %}
+  {% for doc in doctors_by_hour.get(slot.datetime, []) %}
+    {% set _ = modal_doctors.append({
+      'name': doc.name | trim,
+      'url': url_for('doctors.doctor_profile', rad_id=doc.id),
+      'modalities': doc.modalities | default('', true) | trim
+    }) %}
+  {% endfor %}
 
-                            <div class="{{ color_class }} border border-gray-200 rounded shadow p-4" x-data="{ open: false }">
-                                <div class="flex items-center justify-between cursor-pointer" @click="open = !open">
-                                    <h4 class="text-md font-semibold text-gray-800">
-                                        <span>{{ slot.label }}</span>
-                                    </h4>
-                                    <span class="flex items-center text-sm text-gray-700 relative" style="gap: 0.25rem;">
-                                        <span class="relative group">
-                                            <span class="text-blue-700 font-semibold text-base">
-                                                {{ (current | round(1)) if current is not none else '—' }}
-                                            </span>
-                                            <span class="absolute left-1/2 -translate-x-1/2 bottom-full mb-2 w-max bg-white border border-gray-300 rounded shadow-lg px-3 py-2 text-xs text-blue-700 opacity-0 group-hover:opacity-100 pointer-events-none transition-opacity z-50 whitespace-nowrap">
-                                                    Hourly RVU Sum
-                                            </span>
-                                        </span>
-                                        <span class="mx-1 text-gray-400">vs</span>
-                                        <span class="relative group">
-                                            <span class="text-green-700 font-semibold text-base">
-                                                {{ (expected | round(1)) if expected is not none else '—' }}
-                                            </span>
-                                            <span class="absolute left-1/2 -translate-x-1/2 bottom-full mb-2 w-max bg-white border border-gray-300 rounded shadow-lg px-3 py-2 text-xs text-green-700 opacity-0 group-hover:opacity-100 pointer-events-none transition-opacity z-50 whitespace-nowrap">
-                                                    Expected Capacity In RVU
-                                            </span>
-                                        </span>
+  <div class="relative group">
+    <div
+      @click="
+        show = true;
+        doctors = JSON.parse($el.getAttribute('data-doctors'));
+        time = '{{ slot.label }}';
+        date = '{{ slot.datetime.strftime('%Y-%m-%d') }}';
+        uncoveredStates = JSON.parse($el.getAttribute('data-uncovered-states'));
+        coveredStates = JSON.parse($el.getAttribute('data-covered-states'));
+        stateDoctorMap = JSON.parse($el.getAttribute('data-state-doctor-map'));
+        facilityDoctorMap = JSON.parse($el.getAttribute('data-facility-doctor-map'));
+        const rvu = JSON.parse($el.getAttribute('data-rvu'));
+        if (doctors.length > 0) {
+          doctors[0].current = rvu.current;
+          doctors[0].expected = rvu.expected;
+          doctors[0].ratio = rvu.ratio;
+        }
+      "
+      data-doctors='{{ modal_doctors | tojson | escape }}'
+      data-uncovered-states='{{ uncovered_states | tojson | escape }}'
+      data-covered-states='{{ covered_states | tojson | escape }}'
+      data-state-doctor-map='{{ state_doctor_map | tojson | escape }}'
+      data-facility-doctor-map='{{ facility_doctor_map | tojson | escape }}'
+      data-rvu='{{ {
+        "current": current,
+        "expected": expected,
+        "ratio": ratio
+      } | tojson | escape }}'
+      class="group rounded-md p-2 md:p-3 shadow-sm border border-gray-300 {{ color_class }} relative cursor-pointer"
+      style="background-color: inherit; min-width: 0;"
+    >
+      <div class="flex flex-col md:flex-row md:items-center md:justify-between gap-1 md:gap-0">
+        <h4 class="text-xs md:text-sm font-semibold text-gray-800">
+          <span>{{ slot.label }}</span>
+        </h4>
+        <span class="flex flex-wrap items-center text-xs text-gray-700 relative gap-x-1 gap-y-0.5 md:gap-x-2" style="min-width:0;">
+          <span class="text-blue-700 font-semibold">
+            {{ (current | round(1)) if current is not none else '—' }}
+          </span>
+          <span class="text-gray-400">vs</span>
+          <span class="text-green-700 font-semibold">
+            {{ (expected | round(1)) if expected is not none else '—' }}
+          </span>
+        </span>
+      </div>
+    </div>
 
-                                        {% if ratio is not none %}
-                                          {% if ratio <= 0.6 %}
-                                            <span class="ml-2 relative">
-                                              <span class="text-red-600 text-2xl font-bold align-middle relative group" style="position: relative; top: -0.1em; pointer-events: auto; cursor: pointer;">
-                                                &#9679;
-                                                <span class="absolute left-1/2 -translate-x-1/2 bottom-full mb-2 w-max bg-white border border-gray-300 rounded shadow-lg px-3 py-2 text-xs text-red-700 opacity-0 group-hover:opacity-100 pointer-events-none transition-opacity z-50 whitespace-nowrap">
-                                                 Current RVU is at or below 60% of expected capacity
-                                                </span>
-                                              </span>
-                                            </span>
-                                          {% elif ratio <= 0.9 %}
-                                            <span class="ml-2 relative">
-                                              <span class="text-yellow-500 text-2xl font-bold align-middle relative group" style="position: relative; top: -0.1em; pointer-events: auto; cursor: pointer;">
-                                                &#9679;
-                                                <span class="absolute left-1/2 -translate-x-1/2 bottom-full mb-2 w-max bg-white border border-gray-300 rounded shadow-lg px-3 py-2 text-xs text-yellow-700 opacity-0 group-hover:opacity-100 pointer-events-none transition-opacity z-50 whitespace-nowrap">
-                                                  <b>Notice:</b> Current RVU is between 60% and 90% of expected capacity.
-                                                </span>
-                                              </span>
-                                            </span>
-                                          {% else %}
-                                            <span class="ml-2 relative">
-                                              <span class="text-green-600 text-2xl font-bold align-middle relative group" style="position: relative; top: -0.1em; pointer-events: auto; cursor: pointer;">
-                                                &#9679;
-                                                <span class="absolute left-1/2 -translate-x-1/2 bottom-full mb-2 w-max bg-white border border-gray-300 rounded shadow-lg px-3 py-2 text-xs text-green-700 opacity-0 group-hover:opacity-100 pointer-events-none transition-opacity z-50 whitespace-nowrap">
-                                                  <b>Good:</b> Current RVU is above 90% of expected capacity.
-                                                </span>
-                                              </span>
-                                            </span>
-                                          {% endif %}
-                                        {% endif %}
-                                         <span class="ml-2 transform transition-transform" :class="{ 'rotate-180': open }">
-                                            <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 text-gray-500" viewBox="0 0 20 20" fill="currentColor">
-                                                <path fill-rule="evenodd" d="M5.293 7.293a1 1 0 011.414 0L10 10.586l3.293-3.293a1 1 0 111.414 1.414l-4 4a1 1 0 01-1.414 0l-4-4a1 1 0 010-1.414z" clip-rule="evenodd" />
-                                            </svg>
-                                        </span>
-                                    </span>
-                                </div>
+    {% if ratio_percent is not none %}
+    <div
+      class="absolute left-1/2 -translate-x-1/2 bottom-full mb-1 w-max bg-white border border-gray-300 rounded shadow-lg px-3 py-1 text-xs text-gray-900 opacity-0 group-hover:opacity-100 pointer-events-none transition-opacity z-50 whitespace-nowrap"
+    >
+      Capacity Ratio: {{ ratio_percent }}%
+    </div>
+    {% endif %}
+  </div>
+{% endfor %}
 
-                                <div x-show="open" x-collapse>
-                                    {% set slot_doctors = doctors_by_hour.get(slot.datetime, []) %}
-                                    {% if slot_doctors %}
-                                        <ul class="space-y-1 mt-2">
-                                            {% for doc in slot_doctors %}
-                                                <li class="text-sm text-gray-700 relative border p-2 rounded bg-gray-50 hover:bg-gray-100 transition-colors duration-200"
-                                                    onmouseenter="showDoctorPopup(this)"
-                                                    onmouseleave="hideDoctorPopup(this)">
-                                                    <a href="{{ url_for('doctors.doctor_profile', rad_id=doc.id) }}" target="_blank" class="text-blue-700 font-semibold hover:underline">
-                                                        {{ doc.name }}
-                                                    </a>
-                                                    ({% if doc.start_dt.date() == slot.datetime.date() %}{{ doc.start_time | ampm }}{% else %}Prev Day{% endif %} - {% if doc.end_dt.date() == slot.datetime.date() %}{{ doc.end_time | ampm }}{% else %}Next Day{% endif %})
-
-                                                    <div class="doctor-popup absolute left-full top-0 ml-2 w-[20rem] bg-white border p-4 rounded-lg shadow-lg text-left pointer-events-none opacity-0 transition-all duration-200 z-50 transform scale-95">
-                                                        <h4 class="font-medium text-lg text-gray-900 mb-2">{{ doc.name }}</h4>
-                                                        <div class="space-y-2">
-                                                            <p class="text-sm"><span class="font-medium">Phone:</span> <span class="text-gray-700">{{ doc.phone or 'N/A' }}</span></p>
-                                                            <p class="text-sm"><span class="font-medium">Email:</span> <span class="text-gray-700">{{ doc.email or 'N/A' }}</span></p>
-                                                            <p class="text-sm"><span class="font-medium">PACS:</span> <span class="text-gray-700">{{ doc.pacs or 'N/A' }}</span></p>
-                                                            {% if doc.modalities %}
-                                                                <p class="text-sm"><span class="font-medium">Modalities:</span> <span class="text-gray-700">{{ doc.modalities }}</span></p>
-                                                            {% endif %}
-                                                            {# Add other relevant doctor details here if needed #}
-                                                        </div>
-                                                    </div>
-                                                </li>
-                                            {% endfor %}
-                                        </ul>
-                                    {% else %}
-                                        <p class="text-sm italic text-gray-400 mt-2">No doctors scheduled.</p>
-                                    {% endif %}
-                                </div>
-                            </div>
-                        {% else %}
-                            <p class="text-gray-600">No hourly RVU data or scheduled doctors for this color group.</p>
-                        {% endfor %}
+                      
                     </div>
-                {% else %}
-                    <p class="text-gray-600">No hourly RVU data or scheduled doctors for this day.</p>
+                </div>
                 {% endfor %}
             </div>
         </div>
-    {% else %}
-        <p class="text-gray-600">No hourly RVU data or scheduled doctors for this week.</p>
-    {% endfor %}
+        {% endfor %}
+    </div>
 </div>
 
-<script>
-  function showDoctorPopup(parent) {
-    const popup = parent.querySelector('.doctor-popup');
-    if (popup) {
-      const rect = parent.getBoundingClientRect();
-      const viewportWidth = window.innerWidth;
+<!-- Modal -->
+<div 
+     x-show="show"
+     @close-modal.window="show = false"
+     class="fixed inset-0 bg-black bg-opacity-50 z-50 flex items-center justify-center"
+     x-transition
+     style="display: none;"
+>
+  <div @click.away="show = false" class="relative bg-white rounded-lg p-6 w-[48rem] min-h-[32rem] shadow-xl">
+    
+    <!-- Close "X" in top-right corner -->
+    <button @click="show = false" 
+            class="absolute top-3 right-4 text-gray-500 hover:text-gray-800 text-2xl font-bold focus:outline-none"
+            aria-label="Close">
+      &times;
+    </button>
+    <p class="text-sm text-gray-700 mb-2" x-show="doctors.length && doctors[0].current !== undefined">
+   
+        <span class="text-blue-700 font-semibold" x-text="(doctors[0].current)?.toFixed(1) ?? '—'"></span>
+        vs 
+        <span class="text-green-700 font-semibold" x-text="(doctors[0].expected)?.toFixed(1) ?? '—'"></span>
+        <template x-if="doctors[0].ratio !== undefined">
+          <span class="text-gray-700 font-medium">
+            (
+            <span x-text="(doctors[0].ratio * 100).toFixed(1) + '%'"></span>
+            )
+          </span>
+        </template>
+      </p>
       
-      // Check if popup would go off screen to the right
-      if (rect.right + 340 > viewportWidth) {  // 340 = popup width (320) + margin (20)
-        popup.style.left = 'auto';
-        popup.style.right = '100%';
-        popup.style.marginLeft = '0';
-        popup.style.marginRight = '0.5rem';
-      } else {
-        // Position to the right
-        popup.style.left = '100%';
-        popup.style.right = 'auto';
-        popup.style.marginLeft = '0.5rem';
-        popup.style.marginRight = '0';
-      }
-      // Vertical positioning - align top of popup with top of list item
-      popup.style.top = '0';
+      
+    <h2 class="text-sm font-semibold mb-2 text-gray-800">Scheduled Doctors
+    <p class="text-sm text-gray-500 mb-2">
+        <span x-text="date"></span>
+        &nbsp;&mdash;&nbsp;
+        <span x-text="time"></span>
+      </p>
+    
+      
+    </h2>
+        <ul class="space-y-1 max-h-60 overflow-y-auto">
+            <template x-for="doc in doctors" :key="doc.url">
+                <li :class="hoveredState && stateDoctorMap[hoveredState]?.some(n => n.trim().toLowerCase() === doc.name.trim().toLowerCase()) ? 'bg-green-100 font-bold' : ''">
+                    <a :href="doc.url" target="_blank" class="text-blue-700 hover:underline font-medium">
+                        <span>
+                            <span x-text="doc.name" class="text-blue-700 hover:underline font-medium"></span>
+                            <template x-if="doc.modalities">
+                              <span class="text-gray-500 font-normal" x-text="` — ${doc.modalities}`"></span>
+                            </template>
+                          </span>
+                          
+                    </a>
+                </li>
+            </template>
+        </ul>
+        <div class="mt-4 grid grid-cols-1 md:grid-cols-2 gap-6">
+            <!-- State Coverage Section -->
+            <div>
+                <label class="block text-xs font-semibold text-gray-700 mb-1" for="state-search">Check State Coverage:</label>
+                <input
+                    id="state-search"
+                    type="text"
+                    x-model="stateQuery"
+                    placeholder="Enter state name"
+                    class="w-full px-2 py-1 border rounded text-sm mb-2"
+                    @input="
+                        let q = stateQuery.trim().toLowerCase();
+                        matchedStates = q ? [...coveredStates, ...uncoveredStates].filter(s => s.toLowerCase().includes(q)) : [];
+                        hoveredState = '';
+                    "
+                >
+                <div class="flex flex-wrap gap-1">
+                    <template x-for="state in matchedStates.slice(0, 30)" :key="state">
 
-      popup.classList.remove('opacity-0', 'scale-95');
-      popup.classList.add('opacity-100', 'scale-100');
-    }
-  }
+                      <span
+                        class="inline-block px-2 py-0.5 rounded text-xs font-semibold cursor-pointer transition relative group"
+                        :class="coveredStates.includes(state) ? 'bg-green-100 text-green-700' : 'bg-red-100 text-red-700'"
+                      >
+                        <span x-text="state"></span>
+                        <span
+                          class="absolute left-1/2 -translate-x-1/2 bottom-full mb-2 w-max bg-white border border-gray-300 rounded shadow-lg px-3 py-2 text-xs text-gray-900 opacity-0 group-hover:opacity-100 pointer-events-none transition-opacity z-50 whitespace-nowrap"
+                        >
+                          <template x-for="doc in stateDoctorMap[state]" :key="doc">
+                            <span class="block" x-text="doc"></span>
+                          </template>
+                        </span>
+                      </span>
+                    </template>
+                </div>
+            </div>
+        
+            <!-- Facility Coverage Section -->
+            <div>
+                <label class="block text-xs font-semibold text-gray-700 mb-1" for="facility-search">Check Facility Coverage:</label>
+                <input
+                    id="facility-search"
+                    type="text"
+                    x-model="facilityQuery"
+                    placeholder="Enter facility name"
+                    class="w-full px-2 py-1 border rounded text-sm mb-2"
+                    @input="
+                        let fq = facilityQuery.trim().toLowerCase();
+                        matchedFacilities = fq ? Object.keys(facilityDoctorMap).filter(f => f.toLowerCase().includes(fq)) : [];
+                        hoveredFacility = '';
+                    "
+                >
+                <div class="flex flex-wrap gap-1">
+                    <template x-for="fac in matchedFacilities.slice(0, 4)" :key="fac">
 
-  function hideDoctorPopup(parent) {
-    const popup = parent.querySelector('.doctor-popup');
-    if (popup) {
-      popup.classList.remove('opacity-100', 'scale-100');
-      popup.classList.add('opacity-0', 'scale-95');
-    }
-  }
-</script>
+                      <span
+                        class="inline-block px-2 py-0.5 rounded text-xs font-semibold cursor-pointer transition relative group"
+                        :class="facilityDoctorMap[fac] && facilityDoctorMap[fac].length > 0 ? 'bg-green-100 text-green-700' : 'bg-red-100 text-red-700'"
+                      >
+                        <span x-text="fac"></span>
+<template x-if="facilityDoctorMap[fac] && facilityDoctorMap[fac].length > 0">
+  <span
+    class="absolute left-1/2 -translate-x-1/2 bottom-full mb-2 w-max bg-white border border-gray-300 rounded shadow-lg px-3 py-2 text-xs text-gray-900 opacity-0 group-hover:opacity-100 pointer-events-none transition-opacity z-50 whitespace-nowrap"
+  >
+    <template x-for="doc in facilityDoctorMap[fac]" :key="doc">
+      <span class="block" x-text="doc"></span>
+    </template>
+  </span>
+</template>
 
-{% endblock %} 
+                      </span>
+                    </template>
+                </div>
+            </div>
+        </div>
+        
+        <div class="text-xs text-gray-400 mt-2">
+    
+        </div>
+        
+          
+    </div>
+</div>
+</div> 
+</div> {# closes Alpine scope #}
+{% endblock %}
