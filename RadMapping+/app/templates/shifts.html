@@ -22,27 +22,71 @@
 <h1 class="text-2xl font-bold text-gray-800 mb-6">Capacity Gaps</h1>
 
 {# Filter Controls #}
-<div x-data="{ 
-    showRed: true, 
-    showYellow: true, 
+<div x-data="{
+    showRed: true,
+    showYellow: true,
     showGreen: true,
     updateFilters() {
+        // Filter sections based on color (capacity) only
         document.querySelectorAll('.capacity-section').forEach(section => {
             const isRed = section.classList.contains('bg-red-100');
             const isYellow = section.classList.contains('bg-yellow-100');
             const isGreen = section.classList.contains('bg-green-100');
 
-            if ((isRed && !this.showRed) || 
-                (isYellow && !this.showYellow) || 
-                (isGreen && !this.showGreen)) {
-                section.style.display = 'none';
-            } else {
+            const passesColorFilter = (isRed && this.showRed) ||
+                                      (isYellow && this.showYellow) ||
+                                      (isGreen && this.showGreen);
+
+            if (passesColorFilter) {
                 section.style.display = 'block';
+            } else {
+                section.style.display = 'none';
             }
         });
+
+        // Update individual hour slots based on global state/facility filters
+         document.querySelectorAll('.hour-slot-div').forEach(slotElement => {
+             let passesGlobalFilters = true;
+             // We still need the data from the element to check coverage
+             const coveredStates = JSON.parse(slotElement.getAttribute('data-covered-states') || '[]');
+             const facilityData = JSON.parse(slotElement.getAttribute('data-facility-doctor-map') || '{}');
+             const facilityNames = Object.keys(facilityData);
+
+             const globalStateQuery = document.getElementById('global-state-search')?.value.trim().toLowerCase();
+             const globalFacilityQuery = document.getElementById('global-facility-search')?.value.trim().toLowerCase();
+
+             // Check against state filter if active
+             if (globalStateQuery) {
+                 passesGlobalFilters = coveredStates.some(s => s.toLowerCase().includes(globalStateQuery));
+             }
+
+             // Check against facility filter if active (only if state filter passed or was not active)
+             if (globalFacilityQuery && passesGlobalFilters) {
+                 passesGlobalFilters = facilityNames.some(f => f.toLowerCase().includes(globalFacilityQuery));
+             }
+
+             // Remove any previous filter rings
+             slotElement.classList.remove('ring-red-500', 'ring-green-500', 'ring-2');
+
+             // Add highlighting based on global filters if any search query is active
+             if (globalStateQuery || globalFacilityQuery) {
+                 if (passesGlobalFilters) {
+                     slotElement.classList.add('ring-green-500', 'ring-2');
+                 } else {
+                     slotElement.classList.add('ring-red-500', 'ring-2');
+                 }
+             }
+              // If no global query is active, no ring is added (handled by removing classes above)
+
+              // Ensure visibility is still controlled by the parent section's color filter display property
+              // (the first loop handles hiding/showing the entire section based on capacity filter)
+              // If the parent section is hidden by the color filter, the slot will also be hidden.
+              // The ring just indicates the global filter match/no match for visible sections/slots.
+
+         });
     }
 }" class="mb-6 p-4 bg-white rounded-lg shadow-sm border border-gray-200">
-    <div class="flex items-center space-x-6">
+    <div class="flex flex-col md:flex-row md:items-center space-y-4 md:space-y-0 md:space-x-6">
         <span class="text-sm font-medium text-gray-700">Show Sections:</span>
         <div class="flex items-center space-x-4">
             <label class="inline-flex items-center">
@@ -57,6 +101,28 @@
                 <input type="checkbox" class="form-checkbox h-4 w-4 text-green-600" checked x-model="showGreen" @change="updateFilters()">
                 <span class="ml-2 text-sm text-gray-700">Above 90% Capacity</span>
             </label>
+        </div>
+    </div>
+    <div class="mt-4 pt-4 border-t border-gray-200 flex flex-col md:flex-row gap-4">
+         <div class="flex-1">
+            <label class="block text-sm font-medium text-gray-700 mb-1" for="global-state-search">Filter by State Coverage:</label>
+            <input
+                id="global-state-search"
+                type="text"
+                placeholder="Enter state name"
+                class="w-full px-2 py-1 border rounded text-sm"
+                @input="updateFilters()"
+            >
+        </div>
+        <div class="flex-1">
+            <label class="block text-sm font-medium text-gray-700 mb-1" for="global-facility-search">Filter by Facility Coverage:</label>
+             <input
+                id="global-facility-search"
+                type="text"
+                placeholder="Enter facility name"
+                class="w-full px-2 py-1 border rounded text-sm"
+                @input="updateFilters()"
+            >
         </div>
     </div>
 </div>
@@ -129,7 +195,7 @@
         "expected": expected,
         "ratio": ratio
       } | tojson | escape }}'
-      class="group rounded-md p-2 md:p-3 shadow-sm border border-gray-300 {{ color_class }} relative cursor-pointer"
+      class="group rounded-md p-2 md:p-3 shadow-sm border border-gray-300 {{ color_class }} relative cursor-pointer hour-slot-div"
       style="background-color: inherit; min-width: 0;"
     >
       <div class="flex flex-col md:flex-row md:items-center md:justify-between gap-1 md:gap-0">
