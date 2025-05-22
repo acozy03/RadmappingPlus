@@ -23,69 +23,57 @@
 
 {# Filter Controls #}
 <div x-data="{
-    showRed: true,
-    showYellow: true,
-    showGreen: true,
-    updateFilters() {
-        // Filter sections based on color (capacity) only
-        document.querySelectorAll('.capacity-section').forEach(section => {
-            const isRed = section.classList.contains('bg-red-100');
-            const isYellow = section.classList.contains('bg-yellow-100');
-            const isGreen = section.classList.contains('bg-green-100');
+  showRed: true,
+  showYellow: true,
+  showGreen: true,
+  facilityQuery: '',
+  facilityMatches: [],
+  
+  updateFilters: debounce(function () {
+    const normalize = s => s.toLowerCase().replace(/\s+/g, ' ').replace(/\n/g, ' ').trim();
+    const query = normalize(this.facilityQuery);
 
-            const passesColorFilter = (isRed && this.showRed) ||
-                                      (isYellow && this.showYellow) ||
-                                      (isGreen && this.showGreen);
+    document.querySelectorAll('.hour-slot-div').forEach(slotElement => {
+      const facilityDataRaw = slotElement.getAttribute('data-facility-doctor-map') || '{}';
+      let facilityData = {};
+      try {
+        facilityData = JSON.parse(facilityDataRaw);
+      } catch {
+        return;
+      }
 
-            if (passesColorFilter) {
-                section.style.display = 'block';
-            } else {
-                section.style.display = 'none';
-            }
-        });
+      const facilityNames = Object.keys(facilityData);
+      const match = facilityNames.some(facName => {
+        const normName = normalize(facName);
+        const includesQuery = normName.includes(query);
+        const hasCoverage = Array.isArray(facilityData[facName]) && facilityData[facName].length > 0;
+        return includesQuery && hasCoverage;
+      });
 
-        // Update individual hour slots based on global state/facility filters
-         document.querySelectorAll('.hour-slot-div').forEach(slotElement => {
-             let passesGlobalFilters = true;
-             // We still need the data from the element to check coverage
-             const coveredStates = JSON.parse(slotElement.getAttribute('data-covered-states') || '[]');
-             const facilityData = JSON.parse(slotElement.getAttribute('data-facility-doctor-map') || '{}');
-             const facilityNames = Object.keys(facilityData);
+      slotElement.classList.remove('ring-red-500', 'ring-green-500', 'ring-2');
 
-             const globalStateQuery = document.getElementById('global-state-search')?.value.trim().toLowerCase();
-             const globalFacilityQuery = document.getElementById('global-facility-search')?.value.trim().toLowerCase();
+      if (query) {
+        slotElement.classList.add(match ? 'ring-green-500' : 'ring-red-500', 'ring-2');
+      }
+    });
+  }, 150),
 
-             // Check against state filter if active
-             if (globalStateQuery) {
-                 passesGlobalFilters = coveredStates.some(s => s.toLowerCase().includes(globalStateQuery));
-             }
+  updateFacilitySuggestions() {
+    const query = this.facilityQuery.trim().toLowerCase();
+    const allFacilities = new Set();
 
-             // Check against facility filter if active (only if state filter passed or was not active)
-             if (globalFacilityQuery && passesGlobalFilters) {
-                 passesGlobalFilters = facilityNames.some(f => f.toLowerCase().includes(globalFacilityQuery));
-             }
+    document.querySelectorAll('.hour-slot-div').forEach(slotElement => {
+      const facilityData = JSON.parse(slotElement.getAttribute('data-facility-doctor-map') || '{}');
+      Object.keys(facilityData).forEach(fac => allFacilities.add(fac));
+    });
 
-             // Remove any previous filter rings
-             slotElement.classList.remove('ring-red-500', 'ring-green-500', 'ring-2');
+    this.facilityMatches = [...allFacilities]
+      .filter(f => f.toLowerCase().includes(query))
+      .slice(0, 10);
+  }
+}"
 
-             // Add highlighting based on global filters if any search query is active
-             if (globalStateQuery || globalFacilityQuery) {
-                 if (passesGlobalFilters) {
-                     slotElement.classList.add('ring-green-500', 'ring-2');
-                 } else {
-                     slotElement.classList.add('ring-red-500', 'ring-2');
-                 }
-             }
-              // If no global query is active, no ring is added (handled by removing classes above)
-
-              // Ensure visibility is still controlled by the parent section's color filter display property
-              // (the first loop handles hiding/showing the entire section based on capacity filter)
-              // If the parent section is hidden by the color filter, the slot will also be hidden.
-              // The ring just indicates the global filter match/no match for visible sections/slots.
-
-         });
-    }
-}" class="mb-6 p-4 bg-white rounded-lg shadow-sm border border-gray-200">
+ class="mb-6 p-4 bg-white rounded-lg shadow-sm border border-gray-200">
     <div class="flex flex-col md:flex-row md:items-center space-y-4 md:space-y-0 md:space-x-6">
         <span class="text-sm font-medium text-gray-700">Show Sections:</span>
         <div class="flex items-center space-x-4">
@@ -116,13 +104,32 @@
         </div>
         <div class="flex-1">
             <label class="block text-sm font-medium text-gray-700 mb-1" for="global-facility-search">Filter by Facility Coverage:</label>
-             <input
-                id="global-facility-search"
-                type="text"
-                placeholder="Enter facility name"
-                class="w-full px-2 py-1 border rounded text-sm"
-                @input="updateFilters()"
-            >
+             <div class="relative">
+  <input
+    id="global-facility-search"
+    type="text"
+    placeholder="Enter facility name"
+    class="w-full px-2 py-1 border rounded text-sm"
+    x-model="facilityQuery"
+    @input="updateFilters(); updateFacilitySuggestions();"
+    @focus="updateFacilitySuggestions()"
+    @click.outside="facilityMatches = []"
+  />
+
+  <ul 
+    x-show="facilityMatches.length > 0" 
+    class="absolute z-50 bg-white border border-gray-300 mt-1 w-full rounded shadow text-sm"
+  >
+    <template x-for="fac in facilityMatches" :key="fac">
+      <li 
+        class="px-3 py-1 hover:bg-gray-100 cursor-pointer"
+        @click="facilityQuery = fac; facilityMatches = []; updateFilters();"
+        x-text="fac"
+      ></li>
+    </template>
+  </ul>
+</div>
+
         </div>
     </div>
 </div>
@@ -154,10 +161,10 @@
   {% set ratio = (current / expected) if current is not none and expected and expected > 0 else None %}
   {% set ratio_percent = (ratio * 100) | round(1) if ratio is not none else None %}
   {% set slot_key = slot.datetime.isoformat() %}
+  {% set facility_doctor_map = facility_doctor_map_by_hour.get(slot_key, {}) %}
   {% set uncovered_states = uncovered_states_by_hour.get(slot_key, []) %}
   {% set covered_states = covered_states_by_hour.get(slot_key, []) %}
   {% set state_doctor_map = state_doctor_map_by_hour.get(slot_key, {}) %}
-  {% set facility_doctor_map = facility_doctor_map_by_hour.get(slot_key, {}) %}
   {% set modal_doctors = [] %}
   {% for doc in doctors_by_hour.get(slot.datetime, []) %}
     {% set _ = modal_doctors.append({
@@ -168,6 +175,7 @@
   {% endfor %}
 
   <div class="relative group">
+     
     <div
       @click="
         show = true;
@@ -189,7 +197,8 @@
       data-uncovered-states='{{ uncovered_states | tojson | escape }}'
       data-covered-states='{{ covered_states | tojson | escape }}'
       data-state-doctor-map='{{ state_doctor_map | tojson | escape }}'
-      data-facility-doctor-map='{{ facility_doctor_map | tojson | escape }}'
+      data-facility-doctor-map='{{ facility_doctor_map | tojson | safe }}'
+
       data-rvu='{{ {
         "current": current,
         "expected": expected,
@@ -372,5 +381,16 @@
     </div>
 </div>
 </div> 
-</div> {# closes Alpine scope #}
+</div>
+
+<script>
+  function debounce(func, wait) {
+    let timeout;
+    return function(...args) {
+      clearTimeout(timeout);
+      timeout = setTimeout(() => func.apply(this, args), wait);
+    };
+  }
+</script>
+{# closes Alpine scope #}
 {% endblock %}

@@ -11,9 +11,14 @@
 {% block content %}
 <div class="flex justify-between items-center mb-6 border-b pb-2">
   <h2 class="text-2xl font-semibold">Doctor Directory</h2>
-  <button onclick="openPinModal()" class="bg-purple-600 text-white px-4 py-2 rounded hover:bg-purple-700">
-    Pin Doctors
-  </button>
+  <div class="flex gap-2">
+    <button onclick="openPinModal()" class="bg-purple-600 text-white px-4 py-2 rounded hover:bg-purple-700">
+      Pin Doctors
+    </button>
+    <button onclick="openAddDoctorModal()" class="bg-blue-600 text-white px-4 py-2 rounded hover:bg-blue-700">
+      Add Doctor
+    </button>
+  </div>
 </div>
 
 <!-- Search and Status Filter Row -->
@@ -149,6 +154,77 @@
         Save Pins
       </button>
     </div>
+  </div>
+</div>
+
+<!-- Add Doctor Modal -->
+<div id="addDoctorModal" class="fixed inset-0 z-50 hidden bg-black bg-opacity-50 flex items-center justify-center">
+  <div class="bg-white rounded-lg shadow-lg w-[90%] max-w-xl p-6">
+    <div class="flex justify-between items-center mb-4">
+      <h3 class="text-lg font-semibold">Add New Doctor</h3>
+      <button onclick="closeAddDoctorModal()" class="text-gray-500 hover:text-gray-700">
+        <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12" />
+        </svg>
+      </button>
+    </div>
+    <form method="POST" action="{{ url_for('doctors.add_doctor') }}" class="space-y-4">
+      <div>
+        <label class="block text-sm font-medium text-gray-700">Name</label>
+        <input type="text" name="name" required class="w-full border rounded px-3 py-2 text-sm">
+      </div>
+      <div>
+        <label class="block text-sm font-medium text-gray-700">Email</label>
+        <input type="email" name="email" required class="w-full border rounded px-3 py-2 text-sm">
+      </div>
+      <div>
+        <label class="block text-sm font-medium text-gray-700">Phone</label>
+        <input type="text" name="phone" class="w-full border rounded px-3 py-2 text-sm">
+      </div>
+      <div>
+        <label class="block text-sm font-medium text-gray-700">PACS</label>
+        <input type="text" name="pacs" class="w-full border rounded px-3 py-2 text-sm">
+      </div>
+      <div>
+        <label class="block text-sm font-medium text-gray-700">Primary Contact Method</label>
+        <input type="text" name="primary_contact_method" class="w-full border rounded px-3 py-2 text-sm">
+      </div>
+      <div>
+        <label class="block text-sm font-medium text-gray-700">Modalities</label>
+        <input type="text" name="modalities" class="w-full border rounded px-3 py-2 text-sm">
+      </div>
+      <div>
+        <label class="block text-sm font-medium text-gray-700">Timezone</label>
+        <input type="text" name="timezone" class="w-full border rounded px-3 py-2 text-sm">
+      </div>
+      <div>
+        <label class="block text-sm font-medium text-gray-700">Additional Info</label>
+        <textarea name="additional_info" rows="3" class="w-full border rounded px-3 py-2 text-sm"></textarea>
+      </div>
+      <div class="flex items-center">
+        <input type="checkbox" name="active_status" value="true" checked class="form-checkbox h-4 w-4 text-blue-600">
+        <label for="active_status" class="ml-2 block text-sm text-gray-900">Active</label>
+      </div>
+      <div>
+        <label class="block text-sm font-medium text-gray-700">Stipulations</label>
+        <textarea name="stipulations" rows="3" class="w-full border rounded px-3 py-2 text-sm"></textarea>
+      </div>
+      <div class="flex items-center space-x-4">
+        <div class="flex items-center">
+          <input type="checkbox" name="reads_stats" value="YES" class="form-checkbox h-4 w-4 text-blue-600">
+          <label for="reads_stats" class="ml-2 block text-sm text-gray-900">Reads Stats</label>
+        </div>
+        <div class="flex items-center">
+          <input type="checkbox" name="reads_routines" value="YES" class="form-checkbox h-4 w-4 text-blue-600">
+          <label for="reads_routines" class="ml-2 block text-sm text-gray-900">Reads Routines</label>
+        </div>
+      </div>
+      <div class="flex justify-end">
+        <button type="submit" class="bg-blue-600 text-white px-4 py-2 rounded hover:bg-blue-700">
+          Add Doctor
+        </button>
+      </div>
+    </form>
   </div>
 </div>
 
@@ -386,6 +462,14 @@ function filterPinModalDoctors() {
       item.style.display = 'none';
     }
   });
+}
+
+function openAddDoctorModal() {
+  document.getElementById('addDoctorModal').classList.remove('hidden');
+}
+
+function closeAddDoctorModal() {
+  document.getElementById('addDoctorModal').classList.add('hidden');
 }
 
 window.addEventListener('DOMContentLoaded', () => {
