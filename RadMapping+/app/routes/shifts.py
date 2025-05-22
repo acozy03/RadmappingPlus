@@ -6,6 +6,7 @@ from collections import defaultdict
 from app.supabase_client import get_supabase_client
 from app.middleware import with_supabase_auth
 from calendar import monthrange
+from app.utils.supabase_helper import fetch_all_rows
 
 shifts_bp = Blueprint('shifts', __name__)
 
@@ -344,12 +345,11 @@ def shifts():
 
         # Build mapping: facility name -> list of doctor names per hour
     # Get all doctor-facility assignments
-    facility_assignments_res = supabase.table("doctor_facility_assignments")\
-        .select("radiologist_id, facilities(name)")\
-        .execute()
 
+
+    facility_assignments_data = fetch_all_rows("doctor_facility_assignments", "radiologist_id, facilities(name)")
     facility_map = defaultdict(list)
-    for row in facility_assignments_res.data or []:
+    for row in facility_assignments_data or []:
         rad_id = str(row["radiologist_id"]).strip()
         facility_name = row.get("facilities", {}).get("name")
         if rad_id and facility_name:
