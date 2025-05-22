@@ -360,19 +360,25 @@ def remove_doctor(rad_id):
 @admin_required
 def add_facility_assignment(rad_id):
     supabase = get_supabase_client()
+
+    can_read = request.form.get("can_read", "false")  # expect one of: "true", "pending", "false"
+    if can_read not in ["true", "pending", "false"]:
+        return "Invalid can_read value", 400
+
+    notes = request.form.get("notes", "")
+    notes = None if notes == "None" else notes
+
     data = {
         "id": str(uuid.uuid4()),
         "radiologist_id": rad_id,
         "facility_id": request.form.get("facility_id"),
-        "can_read": "can_read" in request.form,
-        "does_stats": "does_stats" in request.form,
-        "does_routines": "does_routines" in request.form,
-        "stipulations": request.form.get("stipulations", ""),
-        "notes": request.form.get("notes", "")
+        "can_read": can_read,
+        "notes": notes
     }
-    
+
     supabase.table("doctor_facility_assignments").insert(data).execute()
     return redirect(url_for("doctors.doctor_profile", rad_id=rad_id))
+
 
 @doctors_bp.route('/doctors/<string:doctor_id>/specialties')
 @with_supabase_auth
@@ -459,57 +465,41 @@ def add_certification(rad_id):
 @admin_required
 def update_assignment(assignment_id):
     try:
-    
         supabase = get_supabase_client()
-        
-        # First get the current assignment to ensure we have the radiologist_id
+
+        # Fetch the assignment to retain radiologist_id
         current = supabase.table("doctor_facility_assignments") \
             .select("*") \
             .eq("id", assignment_id) \
             .single() \
             .execute()
-            
-       
-        
-            
-        # Always map explicitly:
-        can_read = 'can_read' in request.form  # True if checkbox was checked, False if missing
-        does_stats = 'does_stats' in request.form
-        does_routines = 'does_routines' in request.form
-        
-        # Handle string "None" values
-        stipulations = request.form.get('stipulations')
-        notes = request.form.get('notes')
-        
-        # Convert string "None" to actual None
-        stipulations = None if stipulations == "None" else stipulations
+
+        if not current.data:
+            return "Assignment not found", 404
+
+        # Read dropdown value for can_read: true, pending, or false
+        can_read = request.form.get("can_read", "false")  # Default to "false" if missing
+        if can_read not in ["true", "pending", "false"]:
+            return "Invalid can_read value", 400
+
+        notes = request.form.get("notes", "")
         notes = None if notes == "None" else notes
 
         update_data = {
             "can_read": can_read,
-            "does_stats": does_stats,
-            "does_routines": does_routines,
-            "stipulations": stipulations,
             "notes": notes,
-            "radiologist_id": current.data["radiologist_id"]  # Preserve the radiologist_id
+            "radiologist_id": current.data["radiologist_id"]
         }
 
-  
-        
-            
-        # Try the update
-        result = supabase.table("doctor_facility_assignments") \
+        supabase.table("doctor_facility_assignments") \
             .update(update_data) \
             .eq("id", assignment_id) \
             .execute()
-            
-    
-        
-        
-        return redirect(request.referrer or url_for('doctors.doctor_profile'))
+
+        return redirect(request.referrer or url_for('doctors.doctor_profile', rad_id=current.data["radiologist_id"]))
     except Exception as e:
-    
         return f"Error updating assignment: {str(e)}", 500
+
 
 @doctors_bp.route('/doctors/assignments/<string:assignment_id>/delete', methods=["POST"])
 @with_supabase_auth

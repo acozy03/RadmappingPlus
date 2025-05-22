@@ -193,40 +193,54 @@ def add_facility():
 @with_supabase_auth
 @admin_required
 def bulk_update_assignments(facility_id):
-     supabase = get_supabase_client()
-     assignment_ids = request.form.getlist('assignment_ids')
-     for assignment_id in assignment_ids:
-         can_read = f'can_read_{assignment_id}' in request.form
-         does_stats = f'does_stats_{assignment_id}' in request.form
-         does_routines = f'does_routines_{assignment_id}' in request.form
-         stipulations = request.form.get(f'stipulations_{assignment_id}', '')
-         notes = request.form.get(f'notes_{assignment_id}', '')
-         supabase.table('doctor_facility_assignments').update({
-             'can_read': can_read,
-             'does_stats': does_stats,
-             'does_routines': does_routines,
-             'stipulations': stipulations,
-             'notes': notes
-         }).eq('id', assignment_id).execute()
-     return redirect(url_for('facilities.facility_profile', facility_id=facility_id))
+    supabase = get_supabase_client()
+    assignment_ids = request.form.getlist('assignment_ids')
+
+    for assignment_id in assignment_ids:
+        # Update assignment's can_read status
+        can_read = request.form.get(f'can_read_{assignment_id}', 'true')
+        supabase.table('doctor_facility_assignments').update({
+            'can_read': can_read
+        }).eq('id', assignment_id).execute()
+
+        # Get corresponding radiologist ID from the assignment
+        assignment = supabase.table('doctor_facility_assignments') \
+            .select('radiologist_id') \
+            .eq('id', assignment_id) \
+            .single() \
+            .execute()
+
+        rad_id = assignment.data['radiologist_id']
+
+        # Update fields on the radiologists table
+        reads_stats = 'reads_stats_' + rad_id in request.form
+        reads_routines = 'reads_routines_' + rad_id in request.form
+        stipulations = request.form.get(f'stipulations_{rad_id}', '')
+
+        supabase.table('radiologists').update({
+            'reads_stats': 'YES' if reads_stats else 'NO',
+            'reads_routines': 'YES' if reads_routines else 'NO',
+            'stipulations': stipulations
+        }).eq('id', rad_id).execute()
+
+    return redirect(url_for('facilities.facility_profile', facility_id=facility_id))
+
+
 
 @facilities_bp.route('/facilities/<facility_id>/assign_radiologist', methods=['POST'])
 @with_supabase_auth
 @admin_required
 def assign_radiologist(facility_id):
-     supabase = get_supabase_client()
-     data = {
-         "id": str(uuid.uuid4()),
-         "radiologist_id": request.form.get("radiologist_id"),
-         "facility_id": facility_id,
-         "can_read": "can_read" in request.form,
-         "does_stats": "does_stats" in request.form,
-         "does_routines": "does_routines" in request.form,
-         "stipulations": request.form.get("stipulations", ""),
-         "notes": request.form.get("notes", "")
-     }
-     supabase.table("doctor_facility_assignments").insert(data).execute()
-     return redirect(url_for("facilities.facility_profile", facility_id=facility_id))
+    supabase = get_supabase_client()
+    data = {
+        "id": str(uuid.uuid4()),
+        "radiologist_id": request.form.get("radiologist_id"),
+        "facility_id": facility_id,
+        "can_read": request.form.get("can_read", "empty"),
+    }
+    supabase.table("doctor_facility_assignments").insert(data).execute()
+    return redirect(url_for("facilities.facility_profile", facility_id=facility_id))
+
 
 @facilities_bp.route('/facilities/<facility_id>/remove', methods=['POST'])
 @with_supabase_auth
