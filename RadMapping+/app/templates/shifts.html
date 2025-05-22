@@ -28,35 +28,51 @@
   showGreen: true,
   facilityQuery: '',
   facilityMatches: [],
-  
   updateFilters: debounce(function () {
     const normalize = s => s.toLowerCase().replace(/\s+/g, ' ').replace(/\n/g, ' ').trim();
-    const query = normalize(this.facilityQuery);
+    const facilityQuery = normalize(this.facilityQuery);
+    const stateQuery = normalize(document.getElementById('global-state-search')?.value || '');
 
     document.querySelectorAll('.hour-slot-div').forEach(slotElement => {
       const facilityDataRaw = slotElement.getAttribute('data-facility-doctor-map') || '{}';
+      const coveredStatesRaw = slotElement.getAttribute('data-covered-states') || '[]';
       let facilityData = {};
+      let coveredStates = [];
       try {
         facilityData = JSON.parse(facilityDataRaw);
+        coveredStates = JSON.parse(coveredStatesRaw);
       } catch {
         return;
       }
 
       const facilityNames = Object.keys(facilityData);
-      const match = facilityNames.some(facName => {
-        const normName = normalize(facName);
-        const includesQuery = normName.includes(query);
-        const hasCoverage = Array.isArray(facilityData[facName]) && facilityData[facName].length > 0;
-        return includesQuery && hasCoverage;
-      });
+      const stateMatch = stateQuery
+        ? coveredStates.some(state => normalize(state).includes(stateQuery))
+        : true;
+      const facilityMatch = facilityQuery
+        ? facilityNames.some(name => normalize(name).includes(facilityQuery) && facilityData[name].length > 0)
+        : true;
+
+      const match = stateMatch && facilityMatch;
 
       slotElement.classList.remove('ring-red-500', 'ring-green-500', 'ring-2');
 
-      if (query) {
+      if (stateQuery || facilityQuery) {
         slotElement.classList.add(match ? 'ring-green-500' : 'ring-red-500', 'ring-2');
       }
     });
   }, 150),
+  updateStateSuggestions() {
+    const query = this.stateQuery.trim().toLowerCase();
+    const allStates = new Set();
+
+    document.querySelectorAll('.hour-slot-div').forEach(slotElement => {
+      const states = JSON.parse(slotElement.getAttribute('data-covered-states') || '[]');
+      states.forEach(s => allStates.add(s));
+    });
+
+    this.matchedStates = [...allStates].filter(s => s.toLowerCase().includes(query)).slice(0, 10);
+  },
 
   updateFacilitySuggestions() {
     const query = this.facilityQuery.trim().toLowerCase();
@@ -93,15 +109,34 @@
     </div>
     <div class="mt-4 pt-4 border-t border-gray-200 flex flex-col md:flex-row gap-4">
          <div class="flex-1">
-            <label class="block text-sm font-medium text-gray-700 mb-1" for="global-state-search">Filter by State Coverage:</label>
-            <input
-                id="global-state-search"
-                type="text"
-                placeholder="Enter state name"
-                class="w-full px-2 py-1 border rounded text-sm"
-                @input="updateFilters()"
-            >
-        </div>
+  <label class="block text-sm font-medium text-gray-700 mb-1" for="global-state-search">Filter by State Coverage:</label>
+  <div class="relative">
+    <input
+      id="global-state-search"
+      type="text"
+      placeholder="Enter state name"
+      class="w-full px-2 py-1 border rounded text-sm"
+      x-model="stateQuery"
+      @input="updateFilters(); updateStateSuggestions();"
+      @focus="updateStateSuggestions()"
+      @click.outside="matchedStates = []"
+    />
+
+    <ul 
+      x-show="matchedStates.length > 0" 
+      class="absolute z-50 bg-white border border-gray-300 mt-1 w-full rounded shadow text-sm"
+    >
+      <template x-for="state in matchedStates" :key="state">
+        <li 
+          class="px-3 py-1 hover:bg-gray-100 cursor-pointer"
+          @click="stateQuery = state; matchedStates = []; updateFilters();"
+          x-text="state"
+        ></li>
+      </template>
+    </ul>
+  </div>
+</div>
+
         <div class="flex-1">
             <label class="block text-sm font-medium text-gray-700 mb-1" for="global-facility-search">Filter by Facility Coverage:</label>
              <div class="relative">
