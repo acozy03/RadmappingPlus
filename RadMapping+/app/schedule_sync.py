@@ -10,11 +10,12 @@ def run_google_sheet_sync(sheet_name: str = "March 2025"):
     from collections import defaultdict
     from app.supabase_client import get_supabase_client
     import google.auth
+    import os 
 
+    url = os.getenv("SUPABASE_URL", "").strip()
+    key = os.getenv("SUPABASE_SUPER_KEY", "").strip()
 
-    SUPABASE_URL = "https://jrupnbxcnhkhqtqcycbg.supabase.co"
-    SUPABASE_KEY="eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImpydXBuYnhjbmhraHF0cWN5Y2JnIiwicm9sZSI6InNlcnZpY2Vfcm9sZSIsImlhdCI6MTc0NTM0MzEwMiwiZXhwIjoyMDYwOTE5MTAyfQ.wIiaHDx20oDSHuugSdfgTovkCamVPAcW4fvUdeNw-JQ"
-    supabase: Client = create_client(SUPABASE_URL, SUPABASE_KEY)
+    supabase: Client = create_client(url, key)
     
     creds, _ = google.auth.default()
     gc = gspread.authorize(creds)
