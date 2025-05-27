@@ -9,6 +9,9 @@ from calendar import monthrange
 from app.supabase_helper import fetch_all_rows
 
 shifts_bp = Blueprint('shifts', __name__)
+def get_prev_week_same_day_and_hour(dt):
+    prev_week_dt = dt - timedelta(weeks=1)
+    return prev_week_dt.date().isoformat(), prev_week_dt.hour
 
 # Helper functions from daily.py (assuming they are needed for RVU calculation)
 def get_prev_month_same_dow_and_hour(dt):
@@ -207,7 +210,7 @@ def shifts():
     # 1. Batch calculate all previous date/hour lookups
     prev_dates_hours_map = {}
     for slot in all_hour_slots:
-        prev_date_str, prev_hour_int = get_prev_month_same_dow_and_hour(slot["datetime"])
+        prev_date_str, prev_hour_int = get_prev_week_same_day_and_hour(slot["datetime"])
         if prev_date_str is not None:
             prev_dates_hours_map[(slot["datetime"], (prev_date_str, prev_hour_int))] = True
 
@@ -231,7 +234,7 @@ def shifts():
     hourly_rvu_stats = {}
     for slot in all_hour_slots:
         slot_dt = slot["datetime"]
-        prev_date_str, prev_hour_int = get_prev_month_same_dow_and_hour(slot_dt)
+        prev_date_str, prev_hour_int = get_prev_week_same_day_and_hour(slot_dt)
         historical_rvu = None
         if prev_date_str is not None:
             historical_rvu = historical_rvu_lookup.get((prev_date_str, prev_hour_int))

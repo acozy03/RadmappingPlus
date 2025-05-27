@@ -163,7 +163,7 @@ def daily():
     # ✅ 6. Compute RVU stats
     prev_date_hour_pairs = set()
     for slot in hour_slots:
-        d, h = get_prev_month_same_dow_and_hour(slot["datetime"])
+        d, h = get_prev_week_same_day_and_hour(slot["datetime"])
         if d: prev_date_hour_pairs.add((d, h))
 
     dates_list = list({d for d, _ in prev_date_hour_pairs})
@@ -184,7 +184,7 @@ def daily():
     hourly_rvu_stats = {}
     for slot in hour_slots:
         dt = slot["datetime"]
-        d, h = get_prev_month_same_dow_and_hour(dt)
+        d, h = get_prev_week_same_day_and_hour(dt)
         historical_rvu = capacity_lookup.get((d, h)) if d else None
         current_total_rvu = sum(
             get_latest_nonzero_rvu(rvu_rows.get(doc["id"], {}))
@@ -217,6 +217,9 @@ def daily():
         unique_doctors={doc["id"]: doc for doc in doctors_on_shift if doc.get("id")}
     )
 
+def get_prev_week_same_day_and_hour(dt):
+    prev_week_dt = dt - timedelta(weeks=1)
+    return prev_week_dt.date().isoformat(), prev_week_dt.hour
 
 # --- Helper functions ---
 def get_prev_month_same_dow_and_hour(dt):
@@ -235,3 +238,26 @@ def get_latest_nonzero_rvu(rvu_row):
         val = rvu_row.get(m)
         if val: return val
     return 0
+
+@daily_bp.route("/daily/schedule-sync", methods=["POST"])
+def sync_schedule():
+    from flask import current_app
+    token = request.headers.get("Authorization")
+    sheet_name = request.json.get("sheet_name")
+
+    print(f"[📥] Incoming sync request for: {sheet_name}")
+    if token != "Bearer YOUR_SECRET_TOKEN":
+        print("❌ Unauthorized request")
+        return jsonify({"error": "unauthorized"}), 403
+
+    if not sheet_name:
+        print("❌ No sheet_name provided")
+        return jsonify({"error": "sheet_name not provided"}), 400
+
+    try:
+        result = run_google_sheet_sync(sheet_name=sheet_name)
+        print(f"✅ Sync successful for {sheet_name}: {result['rows_inserted']} rows inserted.")
+        return jsonify({"status": "success", "details": result}), 200
+    except Exception as e:
+        print(f"❌ Sync failed: {e}")
+        return jsonify({"status": "error", "message": str(e)}), 500
