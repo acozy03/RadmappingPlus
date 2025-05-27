@@ -1,12 +1,11 @@
-from flask import Blueprint, render_template, session, redirect, url_for, request, jsonify
-from app.admin_required import admin_required
-from app.supabase_client import supabase
-from datetime import datetime, timedelta
-from collections import defaultdict
+from flask import Blueprint, render_template, session, request, jsonify
 from app.supabase_client import get_supabase_client
 from app.middleware import with_supabase_auth
+from datetime import datetime, timedelta, timezone
 from calendar import monthrange
-from app.utils.schedule_sync import run_google_sheet_sync  
+from collections import defaultdict
+
+from app.schedule_sync import run_google_sheet_sync
 
 daily_bp = Blueprint('daily', __name__)
 
@@ -15,30 +14,29 @@ daily_bp = Blueprint('daily', __name__)
 @with_supabase_auth
 def daily():
     supabase = get_supabase_client()
-    from collections import defaultdict
-    from datetime import datetime, timedelta
-
     user = session.get("user")
 
-    selected_timezone = request.args.get("timezone", "EST")
-    timezone_offset = {
-        'EST': 0,
-        'CST': 1,
-        'PST': 3,
-        'UTC': 5
-    }.get(selected_timezone, 0)
+    date_str = request.args.get("date", None)
+    
 
-    date_str = request.args.get("date")
-    now = datetime.strptime(date_str, "%Y-%m-%d") if date_str else datetime.now()
+    try:
+        today_date = (
+            datetime.strptime(date_str, "%Y-%m-%d").date()
+            if date_str else
+            datetime.now(timezone.utc).date()
+        )
+    except Exception as e:
+        print(f"[⚠️] Invalid date_str format: {e}. Defaulting to today.")
+        today_date = datetime.now(timezone.utc).date()
 
-    today = now.strftime("%Y-%m-%d")
-    prev_date = (now - timedelta(days=1)).strftime("%Y-%m-%d")
-    next_date = (now + timedelta(days=1)).strftime("%Y-%m-%d")
+    today = today_date.strftime("%Y-%m-%d")
+    prev_date = (today_date - timedelta(days=1)).strftime("%Y-%m-%d")
+    next_date = (today_date + timedelta(days=1)).strftime("%Y-%m-%d")
+    base_date = datetime.combine(today_date, datetime.min.time())
+    max_end_dt = base_date
 
-    base_date = datetime.strptime(today, "%Y-%m-%d")
-    max_end_dt = base_date.replace(hour=0, minute=0, second=0, microsecond=0)
 
-    # Pre-fetch schedule data for today
+    # ✅ 2. Fetch today's shifts
     shift_res = supabase.table("monthly_schedule") \
         .select("*, radiologists(*)") \
         .lte("start_date", today) \
@@ -46,7 +44,6 @@ def daily():
         .execute()
 
     doctors_on_shift = []
-
     for entry in shift_res.data:
         if entry.get("radiologists") and entry.get("start_time") and entry.get("end_time"):
             doc = entry["radiologists"]
@@ -57,10 +54,9 @@ def daily():
                 end_dt = datetime.strptime(f"{end_date} {entry['end_time']}", "%Y-%m-%d %H:%M:%S")
                 if end_dt < start_dt:
                     end_dt += timedelta(days=1)
-                
-                # Handle break times
-                break_start_dt = None
-                break_end_dt = None
+
+                # Optional: handle break times
+                break_start_dt, break_end_dt = None, None
                 if entry.get("break_start") and entry.get("break_end"):
                     break_start_dt = datetime.strptime(f"{start_date} {entry['break_start']}", "%Y-%m-%d %H:%M:%S")
                     break_end_dt = datetime.strptime(f"{start_date} {entry['break_end']}", "%Y-%m-%d %H:%M:%S")
@@ -78,46 +74,45 @@ def daily():
                     "break_start_dt": break_start_dt,
                     "break_end_dt": break_end_dt
                 })
+
                 doctors_on_shift.append(doc)
                 if end_dt > max_end_dt:
                     max_end_dt = end_dt
             except Exception as e:
-                print(f"Error parsing datetime for doc {doc.get('name', 'Unknown')}: {e}")
+                print(f"[❌] Error parsing shift time for doc {doc.get('name', 'Unknown')}: {e}")
 
-    unique_doctors = {doc["id"]: doc for doc in doctors_on_shift if doc.get("id")}
-    # Now fetch tomorrow's shifts up until max_end_dt
+    # ✅ 3. Also include tomorrow's shifts that spill into today
+    tomorrow_str = (today_date + timedelta(days=1)).strftime("%Y-%m-%d")
     tomorrow_shift_res = supabase.table("monthly_schedule") \
         .select("*, radiologists(*)") \
-        .eq("start_date", next_date) \
+        .eq("start_date", tomorrow_str) \
         .execute()
 
     for entry in tomorrow_shift_res.data:
         if entry.get("radiologists") and entry.get("start_time") and entry.get("end_time"):
             doc = entry["radiologists"]
             try:
-                start_dt = datetime.strptime(f"{next_date} {entry['start_time']}", "%Y-%m-%d %H:%M:%S")
-                end_dt = datetime.strptime(f"{next_date} {entry['end_time']}", "%Y-%m-%d %H:%M:%S")
+                start_dt = datetime.strptime(f"{tomorrow_str} {entry['start_time']}", "%Y-%m-%d %H:%M:%S")
+                end_dt = datetime.strptime(f"{tomorrow_str} {entry['end_time']}", "%Y-%m-%d %H:%M:%S")
                 if end_dt < start_dt:
                     end_dt += timedelta(days=1)
-                
-                # Only include shifts that overlap with today's display range
                 if start_dt < max_end_dt:
                     doc.update({
                         "start_time": entry["start_time"],
                         "end_time": entry["end_time"],
                         "schedule_details": entry.get("schedule_details", ""),
-                        "start_date": next_date,
-                        "end_date": next_date,
+                        "start_date": tomorrow_str,
+                        "end_date": tomorrow_str,
                         "start_dt": start_dt,
                         "end_dt": end_dt
                     })
                     doctors_on_shift.append(doc)
             except Exception as e:
-                print(f"Error parsing datetime for tomorrow's doc {doc.get('name', 'Unknown')}: {e}")
+                print(f"[❌] Error parsing tomorrow's shift for {doc.get('name', 'Unknown')}: {e}")
 
-    # Build hour slots
+    # ✅ 4. Build hour slots and related data
     hour_slots = []
-    current_hour = base_date.replace(hour=0, minute=0, second=0, microsecond=0)
+    current_hour = base_date
     while current_hour < max_end_dt:
         hour_slots.append({
             "datetime": current_hour,
@@ -127,187 +122,116 @@ def daily():
         })
         current_hour += timedelta(hours=1)
 
-    # Label slots for today/tomorrow
-    today_dt = datetime.strptime(today, "%Y-%m-%d")
-    tomorrow_str = (today_dt + timedelta(days=1)).strftime("%Y-%m-%d")
+    today_str = today_date.strftime("%Y-%m-%d")
+    tomorrow_str = (today_date + timedelta(days=1)).strftime("%Y-%m-%d")
     for slot in hour_slots:
-        if slot['date'] == today:
+        if slot['date'] == today_str:
             slot['day_label'] = 'Today'
         elif slot['date'] == tomorrow_str:
             slot['day_label'] = 'Tomorrow'
         else:
             slot['day_label'] = slot['date']
 
-    # Fill doctor shifts by hour
+    # ✅ 5. Map doctors by hour
     doctors_by_hour = defaultdict(list)
     for doc in doctors_on_shift:
         for slot in hour_slots:
             slot_start = slot["datetime"]
             slot_end = slot_start + timedelta(hours=1)
-            
-            # Check if doctor is on break during this slot
-            is_on_break = False
-            if doc.get("break_start_dt") and doc.get("break_end_dt"):
-                is_on_break = (doc["break_start_dt"] < slot_end and doc["break_end_dt"] > slot_start)
-            
-            # Only add doctor if they're on shift and not on break
+            is_on_break = (
+                doc.get("break_start_dt") and doc.get("break_end_dt") and
+                doc["break_start_dt"] < slot_end and doc["break_end_dt"] > slot_start
+            )
             if doc["start_dt"] < slot_end and doc["end_dt"] > slot_start and not is_on_break:
                 doctors_by_hour[slot_start].append(doc)
 
-    # All doctors by timezone
-    all_doctors_res = supabase.table("radiologists").select("*").execute()
-    all_doctors = all_doctors_res.data or []
+    all_doctors = (supabase.table("radiologists").select("*").execute().data or [])
     doctors_by_timezone = defaultdict(list)
     for doctor in all_doctors:
-        tz = doctor.get("timezone", "Unknown")
-        if tz is None:
-            tz = "Unknown"
+        tz = doctor.get("timezone", "Unknown") or "Unknown"
         doctors_by_timezone[tz].append(doctor)
 
-    doctors_on_shift_ids = {doc["id"] for doc in doctors_on_shift if doc.get("id") is not None}
-    doctors_currently_on_shift_ids = set()
-    current_hour = datetime.now().hour
-    for doc in doctors_on_shift:
-        try:
-            if doc.get("start_time") and doc.get("end_time"):
-                start_hour = int(doc["start_time"].split(":")[0])
-                end_hour = int(doc["end_time"].split(":")[0])
-                if start_hour <= current_hour < end_hour and doc.get("id") is not None:
-                    doctors_currently_on_shift_ids.add(doc["id"])
-        except Exception as e:
-            print("Error checking current shift:", e)
+    doctors_on_shift_ids = {doc["id"] for doc in doctors_on_shift if doc.get("id")}
+    doctors_currently_on_shift_ids = {
+        doc["id"]
+        for doc in doctors_on_shift
+        if doc.get("id") and
+        doc.get("start_time") and doc.get("end_time") and
+        int(doc["start_time"].split(":")[0]) <= datetime.now().hour < int(doc["end_time"].split(":")[0])
+    }
 
+    # ✅ 6. Compute RVU stats
     prev_date_hour_pairs = set()
     for slot in hour_slots:
-        prev_date, prev_hour = get_prev_month_same_dow_and_hour(slot["datetime"])
-        if prev_date is not None:
-            prev_date_hour_pairs.add((prev_date, prev_hour))
+        d, h = get_prev_month_same_dow_and_hour(slot["datetime"])
+        if d: prev_date_hour_pairs.add((d, h))
 
-    # Separate into lists for .in_ query
     dates_list = list({d for d, _ in prev_date_hour_pairs})
     hours_list = list({h for _, h in prev_date_hour_pairs})
-
-    # Query capacity_per_hour in bulk
-    capacity_res = supabase.table("capacity_per_hour")\
-        .select("date", "hour", "total_rvus")\
-        .in_("date", dates_list)\
-        .in_("hour", hours_list)\
-        .execute()
+    capacity_res = supabase.table("capacity_per_hour").select("date", "hour", "total_rvus")\
+        .in_("date", dates_list).in_("hour", hours_list).execute()
 
     capacity_lookup = {
         (row["date"], int(row["hour"])): row["total_rvus"]
         for row in (capacity_res.data or [])
     }
 
-    # Fetch all RVU rows for all doctors 
-    rvu_res = supabase.table("rad_avg_monthly_rvu").select("*").execute()
-    rvu_rows = {row["radiologist_id"]: row for row in (rvu_res.data or [])}
+    rvu_rows = {
+        row["radiologist_id"]: row
+        for row in (supabase.table("rad_avg_monthly_rvu").select("*").execute().data or [])
+    }
 
-    # Step 3: Compute hourly_rvu_stats using lookup
     hourly_rvu_stats = {}
     for slot in hour_slots:
-        slot_dt = slot["datetime"]
-        prev_date, prev_hour = get_prev_month_same_dow_and_hour(slot_dt)
-        historical_rvu = capacity_lookup.get((prev_date, prev_hour)) if prev_date else None
-
-        slot_doctors = doctors_by_hour.get(slot_dt, [])
-        current_total_rvu = 0
-        for doc in slot_doctors:
-            rvu_row = rvu_rows.get(doc["id"])
-            if rvu_row:
-                current_total_rvu += get_latest_nonzero_rvu(rvu_row)
-
-        hourly_rvu_stats[slot_dt] = {
+        dt = slot["datetime"]
+        d, h = get_prev_month_same_dow_and_hour(dt)
+        historical_rvu = capacity_lookup.get((d, h)) if d else None
+        current_total_rvu = sum(
+            get_latest_nonzero_rvu(rvu_rows.get(doc["id"], {}))
+            for doc in doctors_by_hour.get(dt, [])
+        )
+        hourly_rvu_stats[dt] = {
             "historical": historical_rvu,
             "current": current_total_rvu
         }
 
+    # ✅ 7. Render template
     return render_template("daily.html",
         user=user,
         today=today,
         prev_date=prev_date,
         next_date=next_date,
+        hour_slots=hour_slots,
         doctors_on_shift=doctors_on_shift,
         doctors_by_hour=doctors_by_hour,
-        doctors_by_timezone=dict(doctors_by_timezone),  # Convert defaultdict to dict
-        doctors_on_shift_ids=list(doctors_on_shift_ids),  # Convert set to list
-        doctors_currently_on_shift_ids=list(doctors_currently_on_shift_ids),  # Convert set to list
-        selected_timezone=selected_timezone,
-        timezone_offset=timezone_offset,
-        hour_slots=hour_slots,
+        doctors_by_timezone=dict(doctors_by_timezone),
+        doctors_on_shift_ids=list(doctors_on_shift_ids),
+        doctors_currently_on_shift_ids=list(doctors_currently_on_shift_ids),
+        selected_timezone=request.args.get("timezone", "EST"),
+        timezone_offset={
+            'EST': 0, 'CST': 1, 'PST': 3, 'UTC': 5
+        }.get(request.args.get("timezone", "EST"), 0),
         hourly_rvu_stats=hourly_rvu_stats,
         rvu_rows=rvu_rows,
         get_latest_nonzero_rvu=get_latest_nonzero_rvu,
-        unique_doctors=unique_doctors
+        unique_doctors={doc["id"]: doc for doc in doctors_on_shift if doc.get("id")}
     )
 
-# Helper: Find the same day-of-week and hour in the previous month
+
+# --- Helper functions ---
 def get_prev_month_same_dow_and_hour(dt):
-    # dt: datetime object for the current slot
-    # Find the previous month
-    year = dt.year
-    month = dt.month
-    day = dt.day
-    hour = dt.hour
-    # Go to previous month
-    if month == 1:
-        prev_month = 12
-        prev_year = year - 1
-    else:
-        prev_month = month - 1
-        prev_year = year
-    # Find all days in prev month with same weekday as dt
-    first_day_prev_month = datetime(prev_year, prev_month, 1)
-    days_in_prev_month = monthrange(prev_year, prev_month)[1]
-    candidates = []
-    for d in range(1, days_in_prev_month + 1):
-        candidate = datetime(prev_year, prev_month, d)
-        if candidate.weekday() == dt.weekday():
-            candidates.append(candidate)
-    # Pick the candidate closest to the same day-of-month, or just the first if none
+    year, month, hour = dt.year, dt.month, dt.hour
+    prev_month, prev_year = (12, year - 1) if month == 1 else (month - 1, year)
+    days = monthrange(prev_year, prev_month)[1]
+    candidates = [datetime(prev_year, prev_month, d) for d in range(1, days + 1) if datetime(prev_year, prev_month, d).weekday() == dt.weekday()]
     if not candidates:
         return None, hour
-    # Try to match the same week of the month
     week_of_month = (dt.day - 1) // 7
-    if week_of_month < len(candidates):
-        chosen = candidates[week_of_month]
-    else:
-        chosen = candidates[-1]
+    chosen = candidates[week_of_month] if week_of_month < len(candidates) else candidates[-1]
     return chosen.date().isoformat(), hour
 
-# Helper: Get latest non-zero monthly RVU for a doctor
 def get_latest_nonzero_rvu(rvu_row):
-    # rvu_row: dict with keys jan, feb, ..., dec
-    # Find the latest non-zero value, starting from dec to jan
-    months = ["dec", "nov", "oct", "sep", "aug", "jul", "jun", "may", "apr", "mar", "feb", "jan"]
-    for m in months:
+    for m in ["dec", "nov", "oct", "sep", "aug", "jul", "jun", "may", "apr", "mar", "feb", "jan"]:
         val = rvu_row.get(m)
-        if val is not None and val != 0:
-            return val
-    return 0 
-
-@daily_bp.route("/daily/schedule-sync", methods=["POST"])
-def sync_schedule():
-    from flask import current_app
-    token = request.headers.get("Authorization")
-    sheet_name = request.json.get("sheet_name")
-
-    print(f"[📥] Incoming sync request for: {sheet_name}")
-    if token != "Bearer YOUR_SECRET_TOKEN":
-        print("❌ Unauthorized request")
-        return jsonify({"error": "unauthorized"}), 403
-
-    if not sheet_name:
-        print("❌ No sheet_name provided")
-        return jsonify({"error": "sheet_name not provided"}), 400
-
-    try:
-        result = run_google_sheet_sync(sheet_name=sheet_name)
-        print(f"✅ Sync successful for {sheet_name}: {result['rows_inserted']} rows inserted.")
-        return jsonify({"status": "success", "details": result}), 200
-    except Exception as e:
-        print(f"❌ Sync failed: {e}")
-        return jsonify({"status": "error", "message": str(e)}), 500
-
-
-
+        if val: return val
+    return 0

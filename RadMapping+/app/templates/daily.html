@@ -16,8 +16,10 @@
 <div class="bg-white rounded-lg shadow-sm p-4 sm:p-6 mb-6 w-full">
   <div class="flex flex-col md:flex-row items-center justify-between gap-4">
     <!-- Date Navigation -->
+
     <div class="flex items-center gap-4">
       <a href="{{ url_for('daily.daily') }}?date={{ prev_date }}" 
+
          class="p-2 hover:bg-gray-100 rounded-full transition-colors">
         <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6 text-gray-600" fill="none" viewBox="0 0 24 24" stroke="currentColor">
           <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 19l-7-7 7-7" />
@@ -441,65 +443,60 @@ function applyDateTimeFilter() {
     errorSpan.textContent = 'End date cannot be after start date.';
     return;
   }
-  // Optionally, add logic to filter the hour slots here
-  // ...
+
 }
 
 function filterDoctors() {
   const searchTerm = document.getElementById('doctorSearch').value.toLowerCase();
   const startSelect = document.getElementById("startHour");
   const endSelect = document.getElementById("endHour");
-
   const isToday = "{{ today }}" === new Date().toISOString().split('T')[0];
   const currentHour = new Date().getHours();
+  const maxHour = document.querySelectorAll('[id^="hour-"]').length - 1;
 
   if (searchTerm) {
-    // Expand hour range to full day on search
-    if (startSelect.value !== "0" || endSelect.value !== "23") {
-      startSelect.value = "0";
-      endSelect.value = "23";
-      filterByCustomRange();
-    }
+    // Expand to full visible range across days
+    startSelect.value = "0";
+    endSelect.value = maxHour.toString();
+    filterByCustomRange();
   } else {
-    // Reset to original hour range
+    // Reset based on whether it's today
     if (isToday) {
       setInitialHourFilter();
     } else {
       startSelect.value = "0";
-      endSelect.value = "23";
+      endSelect.value = maxHour.toString();
       filterByCustomRange();
     }
   }
 
-
-  const startHour = parseInt(startSelect.value, 10);
-  const endHour = parseInt(endSelect.value, 10);
-
-  // Filter timezone popups
+  // Filter timezone popup modal
   document.querySelectorAll('.doctor-item').forEach(item => {
     const doctorName = item.querySelector('.doctor-name').textContent.toLowerCase();
     item.style.display = doctorName.includes(searchTerm) ? '' : 'none';
   });
 
-  // Filter main schedule
+  // Filter doctor list items in schedule
   const scheduleItems = document.querySelectorAll('[id^="hour-"] li');
   scheduleItems.forEach(item => {
     const doctorName = item.querySelector('a').textContent.toLowerCase();
     const hourBlock = item.closest('[id^="hour-"]');
-    item.style.display = doctorName.includes(searchTerm) ? '' : 'none';
-    if (doctorName.includes(searchTerm)) {
+    const matches = doctorName.includes(searchTerm);
+    item.style.display = matches ? '' : 'none';
+
+    if (matches) {
       hourBlock.style.display = 'block';
     }
   });
 
-  // Adjust hour block visibility
+  // Adjust hour block visibility and no-results messages
   document.querySelectorAll('[id^="hour-"]').forEach(hourBlock => {
     const visibleItems = hourBlock.querySelectorAll('li:not([style*="display: none"])').length;
     const hourIndex = parseInt(hourBlock.id.split('-')[1]);
 
-    const isInRange = startHour <= endHour
-      ? (hourIndex >= startHour && hourIndex <= endHour)
-      : (hourIndex >= startHour || hourIndex <= endHour);
+    const isInRange = parseInt(startSelect.value, 10) <= parseInt(endSelect.value, 10)
+      ? (hourIndex >= parseInt(startSelect.value, 10) && hourIndex <= parseInt(endSelect.value, 10))
+      : (hourIndex >= parseInt(startSelect.value, 10) || hourIndex <= parseInt(endSelect.value, 10));
 
     if (!isInRange) {
       hourBlock.style.display = 'none';
@@ -525,6 +522,7 @@ function filterDoctors() {
     }
   });
 }
+
 
 function openTimezonePopup(zone) {
   const modal = document.getElementById("timezoneModal");
