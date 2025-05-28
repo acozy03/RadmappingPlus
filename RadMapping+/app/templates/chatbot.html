@@ -1,9 +1,9 @@
-<!-- Chatbot Component -->
+<!-- Enhanced Chatbot Component -->
 <div id="chatbot" class="fixed bottom-4 right-4 z-50" x-data="{ isDragging: false, startX: 0, startY: 0, width: 384, height: 500, posX: 0, posY: 0 }">
   
-  <!-- Chat Button -->
+  <!-- Enhanced Chat Button -->
   <button id="chatButton" 
-          class="bg-blue-600 text-white rounded-full p-4 shadow-lg hover:bg-blue-700 transition-colors"
+          class="bg-gradient-to-r from-blue-600 to-indigo-600 text-white rounded-full p-4 shadow-2xl hover:shadow-3xl hover:from-blue-700 hover:to-indigo-700 transition-all duration-300 transform hover:scale-110 group relative overflow-hidden"
           @click="
             const chatWindow = document.getElementById('chatWindow');
             chatWindow.classList.toggle('hidden');
@@ -13,14 +13,21 @@
               loadChatHistory();
             }
           ">
-    <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+    <!-- Animated background effect -->
+    <div class="absolute inset-0 bg-gradient-to-r from-blue-400 to-indigo-400 opacity-0 group-hover:opacity-100 transition-opacity duration-300 rounded-full"></div>
+    
+    <!-- Chat icon with animation -->
+    <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6 relative z-10 transform group-hover:rotate-12 transition-transform duration-300" fill="none" viewBox="0 0 24 24" stroke="currentColor">
       <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 10h.01M12 10h.01M16 10h.01M9 16H5a2 2 0 01-2-2V6a2 2 0 012-2h14a2 2 0 012 2v8a2 2 0 01-2 2h-5l-5 5v-5z" />
     </svg>
+    
+    <!-- Notification dot -->
+    <div class="absolute -top-1 -right-1 w-3 h-3 bg-red-500 rounded-full animate-pulse"></div>
   </button>
 
-  <!-- Chat Window -->
+  <!-- Enhanced Chat Window -->
   <div id="chatWindow" 
-       class="hidden fixed bottom-20 right-4 bg-white rounded-lg shadow-xl flex flex-col select-none"
+       class="hidden fixed bottom-20 right-4 bg-white rounded-2xl shadow-2xl flex flex-col select-none border border-gray-200 backdrop-blur-sm"
        :style="`width: ${width}px; height: ${height}px; transform: translate(${posX}px, ${posY}px);`"
        @mousedown="
         if ($event.target.closest('.chat-header')) {
@@ -47,9 +54,16 @@
           document.addEventListener('mouseup', onMouseUp);
         }
       ">
-    <!-- Chat Header -->
-    <div class="chat-header bg-blue-600 text-white p-4 rounded-t-lg flex justify-between items-center cursor-move">
-      <div class="resize-handle cursor-se-resize" 
+    
+    <!-- Enhanced Chat Header -->
+    <div class="chat-header bg-gradient-to-r from-blue-600 via-indigo-600 to-purple-600 text-white p-4 rounded-t-2xl flex justify-between items-center cursor-move relative overflow-hidden">
+      <!-- Animated background pattern -->
+      <div class="absolute inset-0 opacity-10">
+        <div class="absolute inset-0 bg-gradient-to-r from-transparent via-white to-transparent transform -skew-x-12 animate-shimmer"></div>
+      </div>
+      
+      <!-- Resize handle -->
+      <div class="resize-handle cursor-se-resize group relative z-10" 
       @mousedown.stop.prevent="
         const startWidth = width;
         const startHeight = height;
@@ -68,48 +82,78 @@
         document.addEventListener('mousemove', onMouseMove);
         document.addEventListener('mouseup', onMouseUp);
       ">
-   <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 8h16M4 16h16" />
-   </svg>
- </div>
-      <h3 class="font-semibold">Veston</h3>
-      <div class="flex items-center space-x-2">
+        <div class="p-1 rounded-md hover:bg-white hover:bg-opacity-20 transition-colors">
+          <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 8h16M4 16h16" />
+          </svg>
+        </div>
+      </div>
+      
+      <!-- Title with AI indicator -->
+      <div class="flex items-center space-x-2 relative z-10">
+        <div class="w-8 h-8 bg-white bg-opacity-20 rounded-full flex items-center justify-center">
+          <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9.663 17h4.673M12 3v1m6.364 1.636l-.707.707M21 12h-1M4 12H3m3.343-5.657l-.707-.707m2.828 9.9a5 5 0 117.072 0l-.548.547A3.374 3.374 0 0014 18.469V19a2 2 0 11-4 0v-.531c0-.895-.356-1.754-.988-2.386l-.548-.547z" />
+          </svg>
+        </div>
+        <div>
+          <h3 class="font-bold text-lg">Veston</h3>
+          <div class="flex items-center space-x-1">
+   
+            <span class="text-xs opacity-90">AI Assistant</span>
+          </div>
+        </div>
+      </div>
+      
+      <!-- Action buttons -->
+      <div class="flex items-center space-x-2 relative z-10">
         <!-- Clear History Button -->
         <button @click="clearHistory()" 
-                class="text-white hover:text-gray-200 p-1 rounded-full hover:bg-blue-700 transition-colors"
+                class="text-white hover:text-gray-200 p-2 rounded-full hover:bg-white hover:bg-opacity-20 transition-all duration-200 group"
                 title="Clear chat history">
-          <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+          <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 group-hover:scale-110 transition-transform" fill="none" viewBox="0 0 24 24" stroke="currentColor">
             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
           </svg>
         </button>
+        
         <!-- Close Button -->
         <button @click="
           const chatWindow = document.getElementById('chatWindow');
           chatWindow.classList.add('hidden');
-        " class="text-white hover:text-gray-200">
-          <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+        " class="text-white hover:text-gray-200 p-2 rounded-full hover:bg-white hover:bg-opacity-20 transition-all duration-200 group">
+          <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 group-hover:scale-110 transition-transform" fill="none" viewBox="0 0 24 24" stroke="currentColor">
             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12" />
           </svg>
         </button>
       </div>
     </div>
 
-    <!-- Chat Messages -->
-    <div id="chatMessages" class="flex-1 overflow-y-auto p-4 space-y-4">
+    <!-- Enhanced Chat Messages -->
+    <div id="chatMessages" class="flex-1 overflow-y-auto p-4 space-y-4 bg-gradient-to-b from-gray-50 to-white">
       <!-- Messages will be loaded here -->
     </div>
 
-    <!-- Chat Input -->
-    <div class="border-t p-4">
-      <form id="chatForm" class="flex gap-2" onsubmit="sendMessage(event)">
-        <input type="text" 
-               id="chatInput" 
-               placeholder="Type your question..." 
-               class="flex-1 border rounded-lg px-4 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500"
-               required />
+    <!-- Enhanced Chat Input -->
+    <div class="border-t border-gray-200 p-4 bg-white rounded-b-2xl">
+      <form id="chatForm" class="flex gap-3" onsubmit="sendMessage(event)">
+        <div class="flex-1 relative">
+          <input type="text" 
+                 id="chatInput" 
+                 placeholder="Ask away..." 
+                 class="w-full border border-gray-300 rounded-xl px-4 py-3 pr-12 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all duration-200 bg-gray-50 focus:bg-white"
+                 required />
+          <!-- Input decoration -->
+          <div class="absolute right-3 top-1/2 transform -translate-y-1/2 text-gray-400">
+       
+          </div>
+        </div>
+        
         <button type="submit" 
-                class="bg-blue-600 text-white px-4 py-2 rounded-lg hover:bg-blue-700 transition-colors">
-          Send
+                class="bg-gradient-to-r from-blue-600 to-indigo-600 text-white px-6 py-3 rounded-xl hover:from-blue-700 hover:to-indigo-700 transition-all duration-200 transform hover:scale-105 shadow-lg hover:shadow-xl flex items-center space-x-2 group">
+        
+          <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4 group-hover:translate-x-1 transition-transform" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 19l9 2-9-18-9 18 9-2zm0 0v-8" />
+          </svg>
         </button>
       </form>
     </div>
@@ -128,7 +172,7 @@ async function loadChatHistory() {
     
     // If no history, show welcome message
     if (!data.history || data.history.length === 0) {
-      addMessage("Hello, I'm Veston, your Vesta AI assistant. What can I help you with today?", 'assistant');
+      addMessage("Hello! I'm Veston, your intelligent AI assistant for RadMapping+.  What would you like to know?", 'assistant');
       return;
     }
     
@@ -141,7 +185,7 @@ async function loadChatHistory() {
     messagesDiv.scrollTop = messagesDiv.scrollHeight;
   } catch (error) {
     console.error('Error loading chat history:', error);
-    addMessage("Hello, I'm Veston, your Vesta AI assistant. What can I help you with today?", 'assistant');
+    addMessage("Hello! I'm Veston, your intelligent AI assistant for RadMapping+. I can help you analyze radiology data, generate reports, and answer questions about your system. What would you like to know?", 'assistant');
   }
 }
 
@@ -158,7 +202,7 @@ async function sendMessage(event) {
 
   try {
     // Show loading state
-    addMessage('Thinking...', 'assistant', true);
+    addMessage('Analyzing your request...', 'assistant', true);
 
     // Send question to backend
     const response = await fetch('/radmapping/chat', {
@@ -175,46 +219,75 @@ async function sendMessage(event) {
     removeLoadingMessage();
 
     if (data.error) {
-      addMessage(`Error: ${data.error}`, 'assistant');
+      addMessage(`I encountered an error: ${data.error}. Please try rephrasing your question.`, 'assistant');
     } else {
       // Add assistant's response
       addMessage(data.response, 'assistant');
       
       // If there's a SQL query, show it in a code block
       if (data.sql_query) { 
-        addMessage(`SQL Query: \`\`\`sql\n${data.sql_query}\n\`\`\``, 'assistant');
+        addMessage(`Here's the SQL query I used:\n\`\`\`sql\n${data.sql_query}\n\`\`\``, 'assistant');
       }
     }
   } catch (error) {
     removeLoadingMessage();
-    addMessage('Sorry, there was an error processing your question.', 'assistant');
+    addMessage('I apologize, but I encountered a technical issue. Please try again in a moment.', 'assistant');
   }
 }
 
 function addMessage(text, sender, isLoading = false) {
   const messagesDiv = document.getElementById('chatMessages');
   const messageDiv = document.createElement('div');
-  messageDiv.className = `flex ${sender === 'user' ? 'justify-end' : 'justify-start'}`;
+  messageDiv.className = `flex ${sender === 'user' ? 'justify-end' : 'justify-start'} animate-fadeIn`;
   
   const messageContent = document.createElement('div');
-  messageContent.className = `rounded-lg p-3 max-w-[80%] ${
-    sender === 'user' 
-      ? 'bg-blue-600 text-white' 
-      : 'bg-gray-100 text-gray-800'
-  }`;
+  
+  if (sender === 'user') {
+    messageContent.className = 'bg-gradient-to-r from-blue-600 to-indigo-600 text-white rounded-2xl rounded-br-md p-4 max-w-[80%] shadow-lg';
+  } else {
+    messageContent.className = 'bg-white text-gray-800 rounded-2xl rounded-bl-md p-4 max-w-[80%] shadow-lg border border-gray-200';
+  }
   
   if (isLoading) {
     messageContent.id = 'loadingMessage';
     messageContent.innerHTML = `
       <div class="flex items-center space-x-2">
-        <div class="w-2 h-2 bg-gray-400 rounded-full animate-bounce"></div>
-        <div class="w-2 h-2 bg-gray-400 rounded-full animate-bounce" style="animation-delay: 0.2s"></div>
-        <div class="w-2 h-2 bg-gray-400 rounded-full animate-bounce" style="animation-delay: 0.4s"></div>
+        <div class="flex space-x-1">
+          <div class="w-2 h-2 bg-blue-500 rounded-full animate-bounce"></div>
+          <div class="w-2 h-2 bg-indigo-500 rounded-full animate-bounce" style="animation-delay: 0.2s"></div>
+          <div class="w-2 h-2 bg-purple-500 rounded-full animate-bounce" style="animation-delay: 0.4s"></div>
+        </div>
+        <span class="text-sm text-gray-600">Thinking...</span>
       </div>
     `;
   } else {
-    // Replace newlines with <br> tags and preserve whitespace
-    messageContent.innerHTML = text.replace(/\n/g, '<br>');
+    // Enhanced message formatting
+    let formattedText = text.replace(/\n/g, '<br>');
+    
+    // Format code blocks
+    formattedText = formattedText.replace(/```(\w+)?\n([\s\S]*?)```/g, 
+      '<div class="bg-gray-900 text-green-400 rounded-lg p-3 mt-2 mb-2 font-mono text-sm overflow-x-auto"><pre>$2</pre></div>'
+    );
+    
+    // Format inline code
+    formattedText = formattedText.replace(/`([^`]+)`/g, 
+      '<code class="bg-gray-100 text-gray-800 px-2 py-1 rounded text-sm font-mono">$1</code>'
+    );
+    
+    messageContent.innerHTML = formattedText;
+    
+    // Add timestamp for assistant messages
+    if (sender === 'assistant') {
+      const timestamp = document.createElement('div');
+      timestamp.className = 'text-xs text-gray-400 mt-2 flex items-center';
+      timestamp.innerHTML = `
+        <svg xmlns="http://www.w3.org/2000/svg" class="h-3 w-3 mr-1" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
+        </svg>
+        ${new Date().toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'})}
+      `;
+      messageContent.appendChild(timestamp);
+    }
   }
   
   messageDiv.appendChild(messageContent);
@@ -242,7 +315,7 @@ async function clearHistory() {
       // Clear messages and show welcome message
       const messagesDiv = document.getElementById('chatMessages');
       messagesDiv.innerHTML = '';
-      addMessage("Hello, I'm Veston, your Vesta AI assistant. What can I help you with today?", 'assistant');
+      addMessage("Chat history cleared! I'm ready to help you with fresh questions about your radiology data.", 'assistant');
     }
   } catch (error) {
     console.error('Error clearing chat history:', error);
@@ -259,28 +332,103 @@ document.addEventListener('DOMContentLoaded', function() {
 </script>
 
 <style>
+/* Enhanced animations and effects */
+@keyframes fadeIn {
+  from { opacity: 0; transform: translateY(10px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+
+@keyframes shimmer {
+  0% { transform: translateX(-100%) skewX(-12deg); }
+  100% { transform: translateX(200%) skewX(-12deg); }
+}
+
+.animate-fadeIn {
+  animation: fadeIn 0.3s ease-out;
+}
+
+.animate-shimmer {
+  animation: shimmer 3s infinite;
+}
+
 .resize-handle {
-  width: 20px;
-  height: 20px;
+  width: auto;
+  height: auto;
   display: flex;
   align-items: center;
   justify-content: center;
   color: white;
   opacity: 0.7;
-  transition: opacity 0.2s;
+  transition: all 0.2s ease;
 }
 
 .resize-handle:hover {
   opacity: 1;
+  transform: scale(1.1);
 }
 
 #chatWindow {
   min-width: 300px;
   min-height: 400px;
   user-select: none;
+  backdrop-filter: blur(10px);
 }
 
 .chat-header {
   user-select: none;
+  position: relative;
 }
-</style> 
+
+/* Custom scrollbar for chat messages */
+#chatMessages::-webkit-scrollbar {
+  width: 6px;
+}
+
+#chatMessages::-webkit-scrollbar-track {
+  background: #f1f5f9;
+  border-radius: 3px;
+}
+
+#chatMessages::-webkit-scrollbar-thumb {
+  background: linear-gradient(to bottom, #3b82f6, #6366f1);
+  border-radius: 3px;
+}
+
+#chatMessages::-webkit-scrollbar-thumb:hover {
+  background: linear-gradient(to bottom, #2563eb, #4f46e5);
+}
+
+/* Enhanced button hover effects */
+button {
+  transition: all 0.2s ease;
+}
+
+/* Message bubble enhancements */
+.message-bubble {
+  position: relative;
+}
+
+.message-bubble::before {
+  content: '';
+  position: absolute;
+  width: 0;
+  height: 0;
+}
+
+/* Code block styling */
+pre {
+  white-space: pre-wrap;
+  word-wrap: break-word;
+}
+
+/* Input focus effects */
+#chatInput:focus {
+  box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.1);
+}
+
+/* Notification dot pulse */
+@keyframes pulse {
+  0%, 100% { opacity: 1; }
+  50% { opacity: 0.5; }
+}
+</style>
