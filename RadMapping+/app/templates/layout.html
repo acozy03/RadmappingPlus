@@ -6,39 +6,62 @@
   <script src="https://cdn.tailwindcss.com"></script>
   <link rel="icon" href="{{ url_for('static', filename='favicon.png') }}" type="image/x-icon">
   <script defer src="https://unpkg.com/alpinejs@3.x.x/dist/cdn.min.js"></script>
+  <link rel="stylesheet" href="{{ url_for('static', filename='css/dashboard.css') }}">
 </head>
-<body class="bg-gray-100 text-gray-800 overflow-x-hidden">
+<body class="bg-gray-100 text-gray-800 overflow-x-hidden {% if request.endpoint == 'landing.landing' %}overflow-y-hidden{% endif %}">
 
+<!-- ✅ Full-screen Background Wrapper (only for landing page) -->
+{% if request.endpoint == 'landing.landing' %}
+<div class="dashboard-container relative overflow-hidden min-h-screen">
+  <!-- 🔵 Animated Particles -->
+  <div class="background-particles pointer-events-none absolute inset-0 z-0">
+    <div class="particle" style="--delay: 0s; --x: 10%; --y: 20%;"></div>
+    <div class="particle" style="--delay: 0.5s; --x: 80%; --y: 10%;"></div>
+    <div class="particle" style="--delay: 1s; --x: 20%; --y: 80%;"></div>
+    <div class="particle" style="--delay: 1.5s; --x: 90%; --y: 60%;"></div>
+    <div class="particle" style="--delay: 2s; --x: 50%; --y: 30%;"></div>
+    <div class="particle" style="--delay: 2.5s; --x: 70%; --y: 90%;"></div>
+    <div class="particle" style="--delay: 3s; --x: 30%; --y: 50%;"></div>
+    <div class="particle" style="--delay: 3.5s; --x: 60%; --y: 70%;"></div>
+  </div>
 
+  <!-- 🟣 Gradient Orbs -->
+  <div class="gradient-orb orb-1"></div>
+  <div class="gradient-orb orb-2"></div>
+{% endif %}
+
+  <!-- ✅ Foreground Page Content -->
+  <div class="relative z-10 {% if request.endpoint == 'landing.landing' %}h-screen flex flex-col{% endif %}">
     {% if session.user and request.endpoint != 'auth.login' %}
     <!-- ✅ NAVIGATION HEADER -->
-    <nav class="bg-white border-b border-gray-200">
+    <nav class="bg-white border-b border-gray-200 {% if request.endpoint == 'landing.landing' %}flex-shrink-0{% endif %}">
       <div class="max-w-10xl mx-auto px-4">
         <div class="flex h-16 items-center justify-between">
-          <!-- Logo -->
           <div class="flex-shrink-0">
             <a href="{{ url_for('landing.landing') }}" class="text-lg font-medium text-blue-600">
               RadMapping+
             </a>
           </div>
-
-          <!-- Navigation Links -->
           <div class="hidden md:flex items-center space-x-6">
-            <a href="{{ url_for('daily.daily') }}" class="px-2 py-2 text-sm font-medium {% if request.endpoint == 'daily.daily' %}text-blue-600 border-b-2 border-blue-600{% else %}text-gray-500 hover:text-blue-600 hover:border-b-2 hover:border-blue-600{% endif %}">Daily Schedule</a>
-            <a href="{{ url_for('monthly.monthly') }}" class="px-2 py-2 text-sm font-medium {% if request.endpoint == 'monthly.monthly' %}text-blue-600 border-b-2 border-blue-600{% else %}text-gray-500 hover:text-blue-600 hover:border-b-2 hover:border-blue-600{% endif %}">Monthly Schedule</a>
-            <a href="{{ url_for('shifts.shifts') }}" class="px-2 py-2 text-sm font-medium {% if request.endpoint == 'shifts.shifts' %}text-blue-600 border-b-2 border-blue-600{% else %}text-gray-500 hover:text-blue-600 hover:border-b-2 hover:border-blue-600{% endif %}">Capacity</a>
-            <a href="{{ url_for('doctors.doctor_list') }}" class="px-2 py-2 text-sm font-medium {% if request.endpoint == 'doctors.doctor_list' %}text-blue-600 border-b-2 border-blue-600{% else %}text-gray-500 hover:text-blue-600 hover:border-b-2 hover:border-blue-600{% endif %}">Doctors</a>
-            <a href="{{ url_for('facilities.facilities') }}" class="px-2 py-2 text-sm font-medium {% if request.endpoint == 'facilities.facilities' %}text-blue-600 border-b-2 border-blue-600{% else %}text-gray-500 hover:text-blue-600 hover:border-b-2 hover:border-blue-600{% endif %}">Facilities</a>
-            <a href="{{ url_for('specialties.specialties') }}" class="px-2 py-2 text-sm font-medium {% if request.endpoint == 'specialties.specialties' %}text-blue-600 border-b-2 border-blue-600{% else %}text-gray-500 hover:text-blue-600 hover:border-b-2 hover:border-blue-600{% endif %}">Specialties</a>
-            <a href="{{ url_for('licenses.licenses_page') }}" class="px-2 py-2 text-sm font-medium {% if request.endpoint == 'licenses.licenses_page' %}text-blue-600 border-b-2 border-blue-600{% else %}text-gray-500 hover:text-blue-600 hover:border-b-2 hover:border-blue-600{% endif %}">Licenses</a>
-            <a href="{{ url_for('vacations.vacations_page') }}" class="px-2 py-2 text-sm font-medium {% if request.endpoint == 'vacations.vacations_page' %}text-blue-600 border-b-2 border-blue-600{% else %}text-gray-500 hover:text-blue-600 hover:border-b-2 hover:border-blue-600{% endif %}">Vacations</a>
-            <a href="{{ url_for('info.info') }}" class="px-2 py-2 text-sm font-medium {% if request.endpoint == 'info.info' %}text-blue-600 border-b-2 border-blue-600{% else %}text-gray-500 hover:text-blue-600 hover:border-b-2 hover:border-blue-600{% endif %}">Information</a>
-            <!-- <a href="{{ url_for('visualize.visualize') }}" class="px-2 py-2 text-sm font-medium {% if request.endpoint == 'visualize.visualize' %}text-blue-600 border-b-2 border-blue-600{% else %}text-gray-500 hover:text-blue-600 hover:border-b-2 hover:border-blue-600{% endif %}">Visualize</a> -->
-            <a href="{{ url_for('contacts.contacts') }}" class="px-2 py-2 text-sm font-medium {% if request.endpoint == 'contacts.contacts' %}text-blue-600 border-b-2 border-blue-600{% else %}text-gray-500 hover:text-blue-600 hover:border-b-2 hover:border-blue-600{% endif %}">Contacts</a>
-
+            {% set routes = {
+              'daily.daily': 'Daily Schedule',
+              'monthly.monthly': 'Monthly Schedule',
+              'shifts.shifts': 'Capacity',
+              'doctors.doctor_list': 'Doctors',
+              'facilities.facilities': 'Facilities',
+              'specialties.specialties': 'Specialties',
+              'licenses.licenses_page': 'Licenses',
+              'vacations.vacations_page': 'Vacations',
+              'info.info': 'Information',
+              'contacts.contacts': 'Contacts'
+            } %}
+            {% for endpoint, label in routes.items() %}
+            <a href="{{ url_for(endpoint) }}"
+               class="px-2 py-2 text-sm font-medium {% if request.endpoint == endpoint %}text-blue-600 border-b-2 border-blue-600{% else %}text-gray-500 hover:text-blue-600 hover:border-b-2 hover:border-blue-600{% endif %}">
+              {{ label }}
+            </a>
+            {% endfor %}
           </div>
-
-          <!-- Logout -->
           <div class="flex-shrink-0">
             <a href="{{ url_for('auth.logout') }}" class="text-sm font-medium text-red-500 hover:text-blue-600">Logout</a>
           </div>
@@ -46,19 +69,28 @@
       </div>
     </nav>
     {% endif %}
-  
-  <!-- ✅ MAIN CONTENT -->
-  {% if request.endpoint == 'auth.login' %}
-    {% block login_content %}{% endblock %}
-  {% else %}
-    <div class="max-w-10xl mx-auto mt-8 p-6 bg-white rounded shadow">
-      {% block content %}{% endblock %}
-    </div>
-  {% endif %}
 
-  {% if session.user %}
-    {% include 'chatbot.html' %}
-  {% endif %}
+    {% if request.endpoint == 'auth.login' %}
+      {% block login_content %}{% endblock %}
+    {% else %}
+      <!-- Single content block with conditional wrappers -->
+      {% if request.endpoint == 'landing.landing' %}
+        <div class="flex-1 overflow-hidden">
+      {% else %}
+        <div class="max-w-10xl mx-auto p-6 bg-white rounded shadow">
+      {% endif %}
+          {% block content %}{% endblock %}
+        </div>
+    {% endif %}
+
+    {% if session.user %}
+      {% include 'chatbot.html' %}
+    {% endif %}
+  </div>
+
+{% if request.endpoint == 'landing.landing' %}
+</div>
+{% endif %}
 
 </body>
 </html>

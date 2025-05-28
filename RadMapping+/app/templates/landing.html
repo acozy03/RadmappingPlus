@@ -2,107 +2,69 @@
 {% block title %}Welcome to RadMapping+{% endblock %}
 
 {% block content %}
-<div class="max-w-7xl mx-auto py-5 px-2">
-    <!-- Hero Section -->
-    <div class="text-center mb-7">
-        <h1 class="text-2xl font-semibold text-blue-800 mb-1 tracking-tight">Welcome to RadMapping+</h1>
-        <p class="text-base text-gray-500 font-normal">Your comprehensive radiology department management system</p>
-    </div>
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
 
-    <!-- Unified Navigation Grid -->
-    <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6 mb-7">
-        <!-- Daily Schedule -->
-        <a href="{{ url_for('daily.daily') }}" class="group block rounded-xl shadow hover:shadow-lg transition bg-white p-5 text-center border border-gray-100 hover:border-blue-200">
-            <div class="flex justify-center mb-3">
-                <i class="fas fa-calendar-day text-blue-600 text-3xl group-hover:scale-110 transition-transform"></i>
-            </div>
-            <h3 class="font-semibold text-lg text-gray-900 mb-1">Daily Schedule</h3>
-            <p class="text-gray-500 text-sm">View and manage today's radiologist assignments</p>
-        </a>
-        <!-- Monthly Schedule -->
-        <a href="{{ url_for('monthly.monthly') }}" class="group block rounded-xl shadow hover:shadow-lg transition bg-white p-5 text-center border border-gray-100 hover:border-blue-200">
-            <div class="flex justify-center mb-3">
-                <i class="fas fa-calendar-alt text-blue-600 text-3xl group-hover:scale-110 transition-transform"></i>
-            </div>
-            <h3 class="font-semibold text-lg text-gray-900 mb-1">Monthly Schedule</h3>
-            <p class="text-gray-500 text-sm">Plan and view monthly radiologist schedules</p>
-        </a>
-        <!-- Doctor Directory -->
-        <a href="{{ url_for('doctors.doctor_list') }}" class="group block rounded-xl shadow hover:shadow-lg transition bg-white p-5 text-center border border-gray-100 hover:border-blue-200">
-            <div class="flex justify-center mb-3">
-                <i class="fas fa-user-md text-blue-600 text-3xl group-hover:scale-110 transition-transform"></i>
-            </div>
-            <h3 class="font-semibold text-lg text-gray-900 mb-1">Doctor Directory</h3>
-            <p class="text-gray-500 text-sm">Access radiologist profiles and information</p>
-        </a>
-        <!-- Facilities Directory -->
-        <a href="{{ url_for('facilities.facilities') }}" class="group block rounded-xl shadow hover:shadow-lg transition bg-white p-5 text-center border border-gray-100 hover:border-blue-200">
-            <div class="flex justify-center mb-3">
-                <i class="fas fa-hospital text-blue-600 text-3xl group-hover:scale-110 transition-transform"></i>
-            </div>
-            <h3 class="font-semibold text-lg text-gray-900 mb-1">Facilities Directory</h3>
-            <p class="text-gray-500 text-sm">View and manage all facilities</p>
-        </a>
-        <!-- Specialties Directory -->
-        <a href="{{ url_for('specialties.specialties') }}" class="group block rounded-xl shadow hover:shadow-lg transition bg-white p-5 text-center border border-gray-100 hover:border-blue-200">
-            <div class="flex justify-center mb-3">
-                <i class="fas fa-star text-blue-600 text-3xl group-hover:scale-110 transition-transform"></i>
-            </div>
-            <h3 class="font-semibold text-lg text-gray-900 mb-1">Specialties Directory</h3>
-            <p class="text-gray-500 text-sm">Browse and manage specialties</p>
-        </a>
-        <!-- License Management -->
-        <a href="{{ url_for('licenses.licenses_page') }}" class="group block rounded-xl shadow hover:shadow-lg transition bg-white p-5 text-center border border-gray-100 hover:border-blue-200">
-            <div class="flex justify-center mb-3">
-                <i class="fas fa-id-card text-blue-600 text-3xl group-hover:scale-110 transition-transform"></i>
-            </div>
-            <h3 class="font-semibold text-lg text-gray-900 mb-1">License Management</h3>
-            <p class="text-gray-500 text-sm">Track and manage radiologist certifications</p>
-        </a>
-        <!-- Vacations -->
-        <a href="{{ url_for('vacations.vacations_page') }}" class="group block rounded-xl shadow hover:shadow-lg transition bg-white p-5 text-center border border-gray-100 hover:border-blue-200">
-            <div class="flex justify-center mb-3">
-                <i class="fas fa-umbrella-beach text-blue-600 text-3xl group-hover:scale-110 transition-transform"></i>
-            </div>
-            <h3 class="font-semibold text-lg text-gray-900 mb-1">Vacations</h3>
-            <p class="text-gray-500 text-sm">Manage radiologist time off and coverage</p>
-        </a>
-        <!-- Vesta Info -->
-        <a href="{{ url_for('info.info') }}" class="group block rounded-xl shadow hover:shadow-lg transition bg-white p-5 text-center border border-gray-100 hover:border-blue-200">
-            <div class="flex justify-center mb-3">
-                <i class="fas fa-info-circle text-blue-600 text-3xl group-hover:scale-110 transition-transform"></i>
-            </div>
-            <h3 class="font-semibold text-lg text-gray-900 mb-1">Vesta Info</h3>
-            <p class="text-gray-500 text-sm">Access department guidelines and information</p>
-        </a>
-        <!-- Contacts Directory -->
-        <a href="{{ url_for('contacts.contacts') }}" class="group block rounded-xl shadow hover:shadow-lg transition bg-white p-5 text-center border border-gray-100 hover:border-blue-200">
-            <div class="flex justify-center mb-3">
-                <i class="fas fa-address-book text-blue-600 text-3xl group-hover:scale-110 transition-transform"></i>
-            </div>
-            <h3 class="font-semibold text-lg text-gray-900 mb-1">Contacts Directory</h3>
-            <p class="text-gray-500 text-sm">Find and manage department contacts</p>
-        </a>
+<div class="w-full h-full flex flex-col relative">
+  <!-- Hero Section -->
+  <div class="hero-section flex-shrink-0">
+    <div class="hero-title-container">
+      <h1 class="hero-title">RadMapping+</h1>
     </div>
+    <p class="hero-subtitle">Your comprehensive radiology department management system</p>
+    <div class="status-indicator">
+      <i class="fas fa-activity status-icon"></i>
+      <span class="status-text">System Active • <span id="current-time"></span></span>
+    </div>
+  </div>
 
-    <!-- Recent Activity -->
-    <div class="max-w-2xl mx-auto mt-7">
-        <div class="rounded-xl shadow bg-white p-5 border border-gray-100">
-            <div class="flex items-center mb-2">
-                <i class="fas fa-calendar-check text-blue-500 text-xl mr-2"></i>
-                <h2 class="text-base font-semibold text-blue-800">Recent Activity</h2>
-            </div>
-            <div class="flex items-center justify-between p-2 bg-gray-50 rounded-lg">
-                <div class="flex items-center">
-                    <i class="fas fa-calendar-day text-gray-400 text-lg mr-2"></i>
-                    <div>
-                        <h3 class="font-medium text-gray-900 text-sm">Today's Schedule</h3>
-                        <p class="text-xs text-gray-600">View and manage today's radiologist assignments</p>
-                    </div>
-                </div>
-                <a href="{{ url_for('daily.daily') }}" class="text-blue-600 hover:text-blue-800 text-sm">View Schedule →</a>
-            </div>
+  <!-- Dashboard Grid - Scrollable if needed -->
+  <div class="flex-1 overflow-y-auto px-8 pb-8">
+    <div class="dashboard-grid-landing">
+      {% set dashboard_links = [
+        {'label': 'Daily Schedule', 'desc': "View and manage today's radiologist assignments", 'icon': 'calendar-day', 'gradient': 'blue-cyan', 'url': url_for('daily.daily')},
+        {'label': 'Monthly Schedule', 'desc': 'Plan and view monthly radiologist schedules', 'icon': 'calendar-alt', 'gradient': 'purple-pink', 'url': url_for('monthly.monthly')},
+        {'label': 'Capacity', 'desc': 'Monitor under/overstaffed shifts', 'icon': 'chart-line', 'gradient': 'blue-cyan', 'url': url_for('shifts.shifts')},
+        {'label': 'Doctor Directory', 'desc': 'Access radiologist profiles and information', 'icon': 'user-md', 'gradient': 'green-teal', 'url': url_for('doctors.doctor_list')},
+        {'label': 'Facilities Directory', 'desc': 'View and manage all facilities', 'icon': 'hospital', 'gradient': 'orange-red', 'url': url_for('facilities.facilities')},
+        {'label': 'Specialties Directory', 'desc': 'Browse and manage specialties', 'icon': 'star', 'gradient': 'yellow-orange', 'url': url_for('specialties.specialties')},
+        {'label': 'License Management', 'desc': 'Track and manage radiologist certifications', 'icon': 'id-card', 'gradient': 'indigo-purple', 'url': url_for('licenses.licenses_page')},
+        {'label': 'Vacations', 'desc': 'Manage radiologist time off and coverage', 'icon': 'umbrella-beach', 'gradient': 'pink-rose', 'url': url_for('vacations.vacations_page')},
+        {'label': 'Vesta Info', 'desc': 'Access department guidelines and information', 'icon': 'info-circle', 'gradient': 'teal-cyan', 'url': url_for('info.info')},
+        {'label': 'Contacts Directory', 'desc': 'Find and manage department contacts', 'icon': 'address-book', 'gradient': 'violet-purple', 'url': url_for('contacts.contacts')}
+      ] %}
+
+      {% for card in dashboard_links %}
+      <a href="{{ card.url }}" class="dashboard-card" data-gradient="{{ card.gradient }}" style="--delay: {{ loop.index0 * 100 }}ms;">
+        <div class="card-gradient-overlay"></div>
+        <div class="card-border"></div>
+        <div class="card-content">
+          <div class="icon-container">
+            <i class="fas fa-{{ card.icon }} card-icon"></i>
+          </div>
+          <h3 class="card-title">{{ card.label }}</h3>
+          <p class="card-description">{{ card.desc }}</p>
+          <i class="fas fa-sparkles sparkle sparkle-1"></i>
+          <i class="fas fa-bolt sparkle sparkle-2"></i>
         </div>
+      </a>
+      {% endfor %}
     </div>
+  </div>
 </div>
-{% endblock %} 
+
+<script>
+function updateTime() {
+  const now = new Date();
+  document.getElementById('current-time').textContent = now.toLocaleTimeString();
+}
+updateTime();
+setInterval(updateTime, 1000);
+
+document.addEventListener('DOMContentLoaded', () => {
+  document.querySelectorAll('.dashboard-card').forEach(card => {
+    card.addEventListener('mouseenter', () => card.classList.add('hovered'));
+    card.addEventListener('mouseleave', () => card.classList.remove('hovered'));
+  });
+});
+</script>
+{% endblock %}

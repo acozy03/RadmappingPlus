@@ -2,22 +2,23 @@
 {% block title %}Daily Schedule{% endblock %}
 
 {% block content %}
-<!-- Add these hidden elements at the top of your template -->
-<script type="application/json" id="doctors-by-timezone">
-  {{ doctors_by_timezone | tojson | safe }}
-</script>
-<script type="application/json" id="doctors-currently-on-shift">
-  {{ doctors_currently_on_shift_ids | tojson | safe }}
-</script>
-<script type="application/json" id="doctors-on-shift">
-  {{ doctors_on_shift_ids | tojson | safe }}
-</script>
 
-<div class="bg-white rounded-lg shadow-sm p-4 sm:p-6 mb-6 w-full">
-  <div class="flex flex-col md:flex-row items-center justify-between gap-4">
-    <!-- Date Navigation -->
-<!-- Top toolbar row: left (form) and right (timezone tiles) -->
-<div class="flex justify-between items-center flex-wrap gap-4 w-full">
+  <!-- Add these hidden elements at the top of your template -->
+  <script type="application/json" id="doctors-by-timezone">
+    {{ doctors_by_timezone | tojson | safe }}
+  </script>
+  <script type="application/json" id="doctors-currently-on-shift">
+    {{ doctors_currently_on_shift_ids | tojson | safe }}
+  </script>
+  <script type="application/json" id="doctors-on-shift">
+    {{ doctors_on_shift_ids | tojson | safe }}
+  </script>
+
+  <div class="bg-white rounded-lg shadow-sm p-4 sm:p-6 mb-6 w-full">
+    <div class="flex flex-col md:flex-row items-center justify-between gap-4">
+      <!-- Date Navigation -->
+  <!-- Top toolbar row: left (form) and right (timezone tiles) -->
+  <div class="flex justify-between items-center flex-wrap gap-4 w-full">
 
   <!-- Left side: Date nav + filters + search -->
   <div class="flex items-center gap-2 flex-wrap flex-grow">
@@ -95,480 +96,481 @@
       </div>
     {% endfor %}
   </div>
-</div>
-
-
-<!-- ✅ Modal should go here, once only -->
-<div id="timezoneModal" class="fixed inset-0 bg-black bg-opacity-30 flex items-center justify-center z-50 hidden">
-  <div class="bg-white w-full max-w-md p-6 rounded-lg shadow-lg relative">
-    <button onclick="closeTimezonePopup()" class="absolute top-2 right-2 text-gray-500 hover:text-gray-700 text-xl">
-      &times;
-    </button>
-    <h3 id="modalTimezoneTitle" class="text-lg font-semibold mb-4"></h3>
-    <div id="modalTimezoneContent" class="space-y-2 max-h-72 overflow-y-auto text-sm">
-      <!-- Filled dynamically -->
-    </div>
   </div>
-</div>
-
-  </div>
-</div>
 
 
-<!-- Daily Schedule -->
-<div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
-  {% for slot in hour_slots %}
-    <div id="hour-{{ loop.index0 }}" class="bg-white border rounded shadow p-4" data-slot-datetime="{{ slot.datetime.isoformat() }}">
-      <h4 class="text-md font-semibold text-blue-800 border-b pb-1 mb-2 flex items-center justify-between">
-        <span>
-          {{ slot.label }}
-          {% if selected_timezone != "sST" %}
-            <span class="text-sm text-gray-500 ml-1">({{ (slot.hour - timezone_offset)|int }}:00 {{ selected_timezone }})</span>
-          {% endif %}
-        </span>
-        <span class="flex items-center text-sm text-gray-700 relative" style="gap: 0.25rem;">
-          <span class="relative group" style="pointer-events: auto; cursor: pointer;">
-            <span class="text-blue-700 font-semibold text-base">
-              {{ (hourly_rvu_stats[slot.datetime]['current'] | round(1)) if hourly_rvu_stats[slot.datetime] and hourly_rvu_stats[slot.datetime]['current'] is not none else '—' }}
-            </span>
-            <span class="absolute left-1/2 -translate-x-1/2 bottom-full mb-2 w-max bg-white border border-gray-300 rounded shadow-lg px-3 py-2 text-xs text-blue-700 opacity-0 group-hover:opacity-100 pointer-events-none transition-opacity z-50 whitespace-nowrap">
-              Hourly RVU Sum
-            </span>
-          </span>
-          <span class="mx-1 text-gray-400">vs</span>
-          <span class="relative group" style="pointer-events: auto; cursor: pointer;">
-            <span class="text-green-700 font-semibold text-base">
-              {{ (hourly_rvu_stats[slot.datetime]['historical'] | round(1)) if hourly_rvu_stats[slot.datetime] and hourly_rvu_stats[slot.datetime]['historical'] is not none else '—' }}
-            </span>
-            <span class="absolute left-1/2 -translate-x-1/2 bottom-full mb-2 w-max bg-white border border-gray-300 rounded shadow-lg px-3 py-2 text-xs text-green-700 opacity-0 group-hover:opacity-100 pointer-events-none transition-opacity z-50 whitespace-nowrap">
-              Expected Capacity In RVU
-            </span>
-          </span>
-
-          {# Indicator logic #}
-          {% set current = hourly_rvu_stats[slot.datetime]['current'] if hourly_rvu_stats[slot.datetime] else None %}
-          {% set expected = hourly_rvu_stats[slot.datetime]['historical'] if hourly_rvu_stats[slot.datetime] else None %}
-          {% set ratio = (current / expected) if current is not none and expected and expected > 0 else None %}
-          {% if ratio is not none %}
-            {% if ratio <= 0.6 %}
-              <span class="ml-2 relative" style="display: flex; align-items: flex-start; pointer-events: none;">
-                <span class="text-red-600 text-2xl font-bold align-middle relative group" style="position: relative; top: -0.1em; pointer-events: auto; cursor: pointer;">
-                  &#9679;
-                  <span class="absolute left-1/2 -translate-x-1/2 bottom-full mb-2 w-max bg-white border border-gray-300 rounded shadow-lg px-3 py-2 text-xs text-red-700 opacity-0 group-hover:opacity-100 pointer-events-none transition-opacity z-50 whitespace-nowrap">
-                   Current RVU is at or below 60% of expected capacity
-                  </span>
-                </span>
-              </span>
-            {% elif ratio <= 0.9 %}
-              <span class="ml-2 relative" style="display: flex; align-items: flex-start; pointer-events: none;">
-                <span class="text-yellow-500 text-2xl font-bold align-middle relative group" style="position: relative; top: -0.1em; pointer-events: auto; cursor: pointer;">
-                  &#9679;
-                  <span class="absolute left-1/2 -translate-x-1/2 bottom-full mb-2 w-max bg-white border border-gray-300 rounded shadow-lg px-3 py-2 text-xs text-yellow-700 opacity-0 group-hover:opacity-100 pointer-events-none transition-opacity z-50 whitespace-nowrap">
-                    <b>Notice:</b> Current RVU is between 60% and 90% of expected capacity.
-                  </span>
-                </span>
-              </span>
-            {% else %}
-              <span class="ml-2 relative" style="display: flex; align-items: flex-start; pointer-events: none;">
-                <span class="text-green-600 text-2xl font-bold align-middle relative group" style="position: relative; top: -0.1em; pointer-events: auto; cursor: pointer;">
-                  &#9679;
-                  <span class="absolute left-1/2 -translate-x-1/2 bottom-full mb-2 w-max bg-white border border-gray-300 rounded shadow-lg px-3 py-2 text-xs text-green-700 opacity-0 group-hover:opacity-100 pointer-events-none transition-opacity z-50 whitespace-nowrap">
-                    <b>Good:</b> Current RVU is above 90% of expected capacity.
-                  </span>
-                </span>
-              </span>
-            {% endif %}
-          {% endif %}
-        </span>
-      </h4>
-
-      {% set slot_doctors = doctors_by_hour.get(slot.datetime, []) %}
-      {% if slot_doctors %}
-        <ul class="space-y-2">
-          {% for doc in slot_doctors %}
-          <li class="relative border p-2 rounded bg-gray-50 hover:bg-gray-100 transition-colors duration-200"
-              onmouseenter="showDoctorPopup(this)"
-              onmouseleave="hideDoctorPopup(this)"
-              data-start-dt="{{ doc.start_dt.isoformat() }}"
-              data-end-dt="{{ doc.end_dt.isoformat() }}"
-              data-schedule-details="{{ doc.schedule_details or '' }}">
-              <div class="flex items-center justify-between">
-                <a href="{{ url_for('doctors.doctor_profile', rad_id=doc.id) }}" target="_blank" class="text-blue-700 font-semibold hover:underline">
-                  {{ doc.name }}
-                </a>
-                <span class="text-sm text-gray-500">{{ doc.timezone or '—' }}</span>
-              </div>
-              <div class="text-sm text-gray-600 mt-1">
-                <span class="font-semibold text-gray-800">Shift:</span>
-                {{ doc.start_time | ampm }} – {{ doc.end_time | ampm }}
-                {% if doc.break_start_dt and doc.break_end_dt %}
-                  <br>
-              
-                {% endif %}
-              </div>
-              <div class="text-sm text-gray-500 mt-1">
-                {% if doc.modalities %}
-                  <div>
-                    <span class="font-semibold text-gray-800">Modalities:</span>
-                    <span class="text-gray-700">{{ doc.modalities }}</span>
-                  </div>
-                {% endif %}
-                <span class="font-semibold text-gray-800">RVU:</span>
-                <span class="text-gray-800 ">
-                  {% set doc_rvu = None %}
-                  {% if doc.id in rvu_rows %}
-                    {% set doc_rvu = rvu_rows[doc.id]|default({}) %}
-                  {% endif %}
-                  {% if doc_rvu %}
-                    {{ (get_latest_nonzero_rvu(doc_rvu) | round(1)) }}
-                  {% else %}
-                    —
-                  {% endif %}
-                </span>
-              </div>
-              <div class="doctor-popup-placeholder" data-popup-id="{{ doc.id }}"></div>
-
-            </li>
-          {% endfor %}
-        </ul>
-      {% else %}
-        <p class="text-sm italic text-gray-400">No doctors on shift.</p>
-      {% endif %}
-    </div>
-  {% endfor %}
-</div>
-<!-- Doctor popup templates (only rendered once) -->
-<div id="all-doctor-popups" class="hidden">
-  {% for doc in unique_doctors.values() %}
-    <div id="popup-{{ doc.id }}" class="doctor-popup bg-white border p-4 rounded-lg shadow-lg w-[20rem]">
-      <h4 class="font-medium text-lg text-gray-900 mb-2">{{ doc.name }}</h4>
-      <div class="space-y-2 text-sm text-left">
-        <p><strong>Phone:</strong> {{ doc.phone or 'N/A' }}</p>
-        <p><strong>Email:</strong> {{ doc.email or 'N/A' }}</p>
-        <p><strong>PACS:</strong> {{ doc.pacs or 'N/A' }}</p>
-        {% if doc.schedule_details %}
-        <p><strong>Schedule:</strong> {{ doc.schedule_details }}</p>
-        {% endif %}
+  <!-- ✅ Modal should go here, once only -->
+  <div id="timezoneModal" class="fixed inset-0 bg-black bg-opacity-30 flex items-center justify-center z-50 hidden">
+    <div class="bg-white w-full max-w-md p-6 rounded-lg shadow-lg relative">
+      <button onclick="closeTimezonePopup()" class="absolute top-2 right-2 text-gray-500 hover:text-gray-700 text-xl">
+        &times;
+      </button>
+      <h3 id="modalTimezoneTitle" class="text-lg font-semibold mb-4"></h3>
+      <div id="modalTimezoneContent" class="space-y-2 max-h-72 overflow-y-auto text-sm">
+        <!-- Filled dynamically -->
       </div>
     </div>
-  {% endfor %}
-</div>
+  </div>
+
+    </div>
+  </div>
 
 
-<script>
-  function showTimezonePopup(parent) {
-    const popup = parent.querySelector('.timezone-popup');
-    if (popup) {
-      const rect = parent.getBoundingClientRect();
-      popup.style.left = `${rect.left + (rect.width / 2)}px`;
-      popup.style.top = `${rect.bottom + 8}px`;
-      popup.classList.remove('opacity-0', 'scale-95');
-      popup.classList.add('opacity-100', 'scale-100');
+  <!-- Daily Schedule -->
+  <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
+    {% for slot in hour_slots %}
+      <div id="hour-{{ loop.index0 }}" class="bg-white border rounded shadow p-4" data-slot-datetime="{{ slot.datetime.isoformat() }}">
+        <h4 class="text-md font-semibold text-blue-800 border-b pb-1 mb-2 flex items-center justify-between">
+          <span>
+            {{ slot.label }}
+            {% if selected_timezone != "sST" %}
+              <span class="text-sm text-gray-500 ml-1">({{ (slot.hour - timezone_offset)|int }}:00 {{ selected_timezone }})</span>
+            {% endif %}
+          </span>
+          <span class="flex items-center text-sm text-gray-700 relative" style="gap: 0.25rem;">
+            <span class="relative group" style="pointer-events: auto; cursor: pointer;">
+              <span class="text-blue-700 font-semibold text-base">
+                {{ (hourly_rvu_stats[slot.datetime]['current'] | round(1)) if hourly_rvu_stats[slot.datetime] and hourly_rvu_stats[slot.datetime]['current'] is not none else '—' }}
+              </span>
+              <span class="absolute left-1/2 -translate-x-1/2 bottom-full mb-2 w-max bg-white border border-gray-300 rounded shadow-lg px-3 py-2 text-xs text-blue-700 opacity-0 group-hover:opacity-100 pointer-events-none transition-opacity z-50 whitespace-nowrap">
+                Hourly RVU Sum
+              </span>
+            </span>
+            <span class="mx-1 text-gray-400">vs</span>
+            <span class="relative group" style="pointer-events: auto; cursor: pointer;">
+              <span class="text-green-700 font-semibold text-base">
+                {{ (hourly_rvu_stats[slot.datetime]['historical'] | round(1)) if hourly_rvu_stats[slot.datetime] and hourly_rvu_stats[slot.datetime]['historical'] is not none else '—' }}
+              </span>
+              <span class="absolute left-1/2 -translate-x-1/2 bottom-full mb-2 w-max bg-white border border-gray-300 rounded shadow-lg px-3 py-2 text-xs text-green-700 opacity-0 group-hover:opacity-100 pointer-events-none transition-opacity z-50 whitespace-nowrap">
+                Expected Capacity In RVU
+              </span>
+            </span>
+
+            {# Indicator logic #}
+            {% set current = hourly_rvu_stats[slot.datetime]['current'] if hourly_rvu_stats[slot.datetime] else None %}
+            {% set expected = hourly_rvu_stats[slot.datetime]['historical'] if hourly_rvu_stats[slot.datetime] else None %}
+            {% set ratio = (current / expected) if current is not none and expected and expected > 0 else None %}
+            {% if ratio is not none %}
+              {% if ratio <= 0.6 %}
+                <span class="ml-2 relative" style="display: flex; align-items: flex-start; pointer-events: none;">
+                  <span class="text-red-600 text-2xl font-bold align-middle relative group" style="position: relative; top: -0.1em; pointer-events: auto; cursor: pointer;">
+                    &#9679;
+                    <span class="absolute left-1/2 -translate-x-1/2 bottom-full mb-2 w-max bg-white border border-gray-300 rounded shadow-lg px-3 py-2 text-xs text-red-700 opacity-0 group-hover:opacity-100 pointer-events-none transition-opacity z-50 whitespace-nowrap">
+                    Current RVU is at or below 60% of expected capacity
+                    </span>
+                  </span>
+                </span>
+              {% elif ratio <= 0.9 %}
+                <span class="ml-2 relative" style="display: flex; align-items: flex-start; pointer-events: none;">
+                  <span class="text-yellow-500 text-2xl font-bold align-middle relative group" style="position: relative; top: -0.1em; pointer-events: auto; cursor: pointer;">
+                    &#9679;
+                    <span class="absolute left-1/2 -translate-x-1/2 bottom-full mb-2 w-max bg-white border border-gray-300 rounded shadow-lg px-3 py-2 text-xs text-yellow-700 opacity-0 group-hover:opacity-100 pointer-events-none transition-opacity z-50 whitespace-nowrap">
+                      <b>Notice:</b> Current RVU is between 60% and 90% of expected capacity.
+                    </span>
+                  </span>
+                </span>
+              {% else %}
+                <span class="ml-2 relative" style="display: flex; align-items: flex-start; pointer-events: none;">
+                  <span class="text-green-600 text-2xl font-bold align-middle relative group" style="position: relative; top: -0.1em; pointer-events: auto; cursor: pointer;">
+                    &#9679;
+                    <span class="absolute left-1/2 -translate-x-1/2 bottom-full mb-2 w-max bg-white border border-gray-300 rounded shadow-lg px-3 py-2 text-xs text-green-700 opacity-0 group-hover:opacity-100 pointer-events-none transition-opacity z-50 whitespace-nowrap">
+                      <b>Good:</b> Current RVU is above 90% of expected capacity.
+                    </span>
+                  </span>
+                </span>
+              {% endif %}
+            {% endif %}
+          </span>
+        </h4>
+
+        {% set slot_doctors = doctors_by_hour.get(slot.datetime, []) %}
+        {% if slot_doctors %}
+          <ul class="space-y-2">
+            {% for doc in slot_doctors %}
+            <li class="relative border p-2 rounded bg-gray-50 hover:bg-gray-100 transition-colors duration-200"
+                onmouseenter="showDoctorPopup(this)"
+                onmouseleave="hideDoctorPopup(this)"
+                data-start-dt="{{ doc.start_dt.isoformat() }}"
+                data-end-dt="{{ doc.end_dt.isoformat() }}"
+                data-schedule-details="{{ doc.schedule_details or '' }}">
+                <div class="flex items-center justify-between">
+                  <a href="{{ url_for('doctors.doctor_profile', rad_id=doc.id) }}" target="_blank" class="text-blue-700 font-semibold hover:underline">
+                    {{ doc.name }}
+                  </a>
+                  <span class="text-sm text-gray-500">{{ doc.timezone or '—' }}</span>
+                </div>
+                <div class="text-sm text-gray-600 mt-1">
+                  <span class="font-semibold text-gray-800">Shift:</span>
+                  {{ doc.start_time | ampm }} – {{ doc.end_time | ampm }}
+                  {% if doc.break_start_dt and doc.break_end_dt %}
+                    <br>
+                
+                  {% endif %}
+                </div>
+                <div class="text-sm text-gray-500 mt-1">
+                  {% if doc.modalities %}
+                    <div>
+                      <span class="font-semibold text-gray-800">Modalities:</span>
+                      <span class="text-gray-700">{{ doc.modalities }}</span>
+                    </div>
+                  {% endif %}
+                  <span class="font-semibold text-gray-800">RVU:</span>
+                  <span class="text-gray-800 ">
+                    {% set doc_rvu = None %}
+                    {% if doc.id in rvu_rows %}
+                      {% set doc_rvu = rvu_rows[doc.id]|default({}) %}
+                    {% endif %}
+                    {% if doc_rvu %}
+                      {{ (get_latest_nonzero_rvu(doc_rvu) | round(1)) }}
+                    {% else %}
+                      —
+                    {% endif %}
+                  </span>
+                </div>
+                <div class="doctor-popup-placeholder" data-popup-id="{{ doc.id }}"></div>
+
+              </li>
+            {% endfor %}
+          </ul>
+        {% else %}
+          <p class="text-sm italic text-gray-400">No doctors on shift.</p>
+        {% endif %}
+      </div>
+    {% endfor %}
+  </div>
+  <!-- Doctor popup templates (only rendered once) -->
+  <div id="all-doctor-popups" class="hidden">
+    {% for doc in unique_doctors.values() %}
+      <div id="popup-{{ doc.id }}" class="doctor-popup bg-white border p-4 rounded-lg shadow-lg w-[20rem]">
+        <h4 class="font-medium text-lg text-gray-900 mb-2">{{ doc.name }}</h4>
+        <div class="space-y-2 text-sm text-left">
+          <p><strong>Phone:</strong> {{ doc.phone or 'N/A' }}</p>
+          <p><strong>Email:</strong> {{ doc.email or 'N/A' }}</p>
+          <p><strong>PACS:</strong> {{ doc.pacs or 'N/A' }}</p>
+          {% if doc.schedule_details %}
+          <p><strong>Schedule:</strong> {{ doc.schedule_details }}</p>
+          {% endif %}
+        </div>
+      </div>
+    {% endfor %}
+  </div>
+  <script>
+    function showTimezonePopup(parent) {
+      const popup = parent.querySelector('.timezone-popup');
+      if (popup) {
+        const rect = parent.getBoundingClientRect();
+        popup.style.left = `${rect.left + (rect.width / 2)}px`;
+        popup.style.top = `${rect.bottom + 8}px`;
+        popup.classList.remove('opacity-0', 'scale-95');
+        popup.classList.add('opacity-100', 'scale-100');
+      }
     }
-  }
 
-  function hideTimezonePopup(parent) {
-    const popup = parent.querySelector('.timezone-popup');
-    if (popup) {
-      popup.classList.remove('opacity-100', 'scale-100');
-      popup.classList.add('opacity-0', 'scale-95');
+    function hideTimezonePopup(parent) {
+      const popup = parent.querySelector('.timezone-popup');
+      if (popup) {
+        popup.classList.remove('opacity-100', 'scale-100');
+        popup.classList.add('opacity-0', 'scale-95');
+      }
     }
+
+    function showDoctorPopup(parent) {
+    const placeholder = parent.querySelector('.doctor-popup-placeholder');
+    if (!placeholder) return;
+
+    const docId = placeholder.dataset.popupId;
+    const template = document.querySelector(`#popup-${docId}`);
+    if (!template) return;
+
+    const clone = template.cloneNode(true);
+    clone.classList.add("absolute", "top-0", "z-50", "opacity-100", "scale-100", "active-popup");
+
+    // Remove any previous popup
+    const existing = parent.querySelector('.active-popup');
+    if (existing) existing.remove();
+
+    // Detect if popup would overflow the screen
+    const parentRect = parent.getBoundingClientRect();
+    const willOverflowRight = (parentRect.right + 350) > window.innerWidth;
+
+    if (willOverflowRight) {
+      // Position to the left
+      clone.classList.add("right-full", "mr-2");
+    } else {
+      // Default position to the right
+      clone.classList.add("left-full", "ml-2");
+    }
+
+    parent.appendChild(clone);
   }
 
-  function showDoctorPopup(parent) {
-  const placeholder = parent.querySelector('.doctor-popup-placeholder');
-  if (!placeholder) return;
 
-  const docId = placeholder.dataset.popupId;
-  const template = document.querySelector(`#popup-${docId}`);
-  if (!template) return;
-
-  const clone = template.cloneNode(true);
-  clone.classList.add("absolute", "top-0", "z-50", "opacity-100", "scale-100", "active-popup");
-
-  // Remove any previous popup
-  const existing = parent.querySelector('.active-popup');
-  if (existing) existing.remove();
-
-  // Detect if popup would overflow the screen
-  const parentRect = parent.getBoundingClientRect();
-  const willOverflowRight = (parentRect.right + 350) > window.innerWidth;
-
-  if (willOverflowRight) {
-    // Position to the left
-    clone.classList.add("right-full", "mr-2");
-  } else {
-    // Default position to the right
-    clone.classList.add("left-full", "ml-2");
+  function hideDoctorPopup(parent) {
+    const popup = parent.querySelector('.active-popup');
+    if (popup) popup.remove();
   }
 
-  parent.appendChild(clone);
-}
 
+    function updateTimezoneClocks() {
+      const zoneMap = {
+        EST: "America/New_York",
+        CST: "America/Chicago",
+        PST: "America/Los_Angeles",
+        UTC: "UTC"
+      };
 
-function hideDoctorPopup(parent) {
-  const popup = parent.querySelector('.active-popup');
-  if (popup) popup.remove();
-}
-
-
-  function updateTimezoneClocks() {
-    const zoneMap = {
-      EST: "America/New_York",
-      CST: "America/Chicago",
-      PST: "America/Los_Angeles",
-      UTC: "UTC"
-    };
-
-    const now = new Date();
-    Object.keys(zoneMap).forEach(label => {
-      const formatter = new Intl.DateTimeFormat('en-US', {
-        hour: 'numeric',
-        minute: '2-digit',
-        hour12: true,
-        timeZone: zoneMap[label]
+      const now = new Date();
+      Object.keys(zoneMap).forEach(label => {
+        const formatter = new Intl.DateTimeFormat('en-US', {
+          hour: 'numeric',
+          minute: '2-digit',
+          hour12: true,
+          timeZone: zoneMap[label]
+        });
+        const el = document.getElementById(`tz-${label.toLowerCase()}`);
+        if (el) {
+          el.textContent = formatter.format(now);
+        }
       });
-      const el = document.getElementById(`tz-${label.toLowerCase()}`);
-      if (el) {
-        el.textContent = formatter.format(now);
+    }
+
+    document.addEventListener("DOMContentLoaded", () => {
+    updateTimezoneClocks();
+    colorDoctorBlocks();
+    setInterval(updateTimezoneClocks, 60_000);
+    scrollToCurrentHour();
+    setInitialHourFilter();    
+    
+  });
+
+
+    function filterByCustomRange() {
+    const start = parseInt(document.getElementById("startHour").value, 10);
+    const end = parseInt(document.getElementById("endHour").value, 10);
+    const total = document.querySelectorAll('[id^="hour-"]').length;
+    for (let i = 0; i < total; i++) {
+      const block = document.getElementById(`hour-${i}`);
+      if (!block) continue;
+      // Handle ranges that wrap past midnight (shouldn't happen with linear hour_slots, but keep logic robust)
+      const isInRange = start <= end ? (i >= start && i <= end) : (i >= start || i <= end);
+      block.style.display = isInRange ? "block" : "none";
+    }
+  }
+
+  function scrollToCurrentHour() {
+    const now = new Date();
+    const currentHour = now.getHours();
+    const target = document.getElementById(`hour-${currentHour}`);
+
+    // Only apply if we're viewing today's date
+    if (target && "{{ today }}" === new Date().toISOString().split('T')[0]) {
+      // Add highlight class
+      target.classList.add("ring-2", "ring-blue-200", "ring-offset-2");
+    }
+  }
+
+  function setInitialHourFilter() {
+    // Only set initial filter if we're viewing today's date
+    if ("{{ today }}" === new Date().toISOString().split('T')[0]) {
+      const now = new Date();
+      const currentHour = now.getHours();
+      const endHour = (currentHour - 24);
+
+      const startSelect = document.getElementById("startHour");
+      const endSelect = document.getElementById("endHour");
+
+      if (startSelect && endSelect) {
+        startSelect.value = currentHour;
+        endSelect.value = endHour;
+        filterByCustomRange();
+      }
+    }
+  }
+
+
+  function colorDoctorBlocks() {
+    document.querySelectorAll("li[data-start-dt][data-end-dt]").forEach(el => {
+      const slotDiv = el.closest('[id^="hour-"]');
+      if (!slotDiv) return;
+      const slotDtStr = slotDiv.getAttribute('data-slot-datetime');
+      if (!slotDtStr) return;
+      const slotDt = new Date(slotDtStr);
+      const startDt = new Date(el.dataset.startDt);
+      const endDt = new Date(el.dataset.endDt);
+
+      // Reset any existing color classes
+      el.classList.remove("bg-green-50", "border-green-200", "bg-yellow-50", "border-yellow-200", "bg-red-50", "border-red-200");
+      el.classList.add("bg-green-50", "border-green-200");
+      if (slotDt >= startDt && slotDt < endDt) {
+        // Calculate percentage remaining in shift
+        const totalMs = endDt - startDt;
+        const msSinceStart = slotDt - startDt;
+        const msRemaining = totalMs - msSinceStart;
+        const percentageRemaining = (msRemaining / totalMs) * 100;
+        // Check if this is the last hour block of the shift
+        const nextHourDt = new Date(slotDt.getTime() + 60 * 60 * 1000);
+        const isLastHourBlock = nextHourDt >= endDt;
+        if (isLastHourBlock) {
+          el.classList.add("bg-red-50", "border-red-200");
+        } else if (percentageRemaining > 75) {
+          el.classList.add("bg-green-50", "border-green-200");
+        } else if (percentageRemaining > 25) {
+          el.classList.add("bg-yellow-50", "border-yellow-200");
+        } else {
+          el.classList.add("bg-red-50", "border-red-200");
+        }
       }
     });
   }
 
-  document.addEventListener("DOMContentLoaded", () => {
-  updateTimezoneClocks();
-  colorDoctorBlocks();
-  setInterval(updateTimezoneClocks, 60_000);
-  scrollToCurrentHour();
-  setInitialHourFilter();    
-  
-});
-
-
-  function filterByCustomRange() {
-  const start = parseInt(document.getElementById("startHour").value, 10);
-  const end = parseInt(document.getElementById("endHour").value, 10);
-  const total = document.querySelectorAll('[id^="hour-"]').length;
-  for (let i = 0; i < total; i++) {
-    const block = document.getElementById(`hour-${i}`);
-    if (!block) continue;
-    // Handle ranges that wrap past midnight (shouldn't happen with linear hour_slots, but keep logic robust)
-    const isInRange = start <= end ? (i >= start && i <= end) : (i >= start || i <= end);
-    block.style.display = isInRange ? "block" : "none";
-  }
-}
-
-function scrollToCurrentHour() {
-  const now = new Date();
-  const currentHour = now.getHours();
-  const target = document.getElementById(`hour-${currentHour}`);
-
-  // Only apply if we're viewing today's date
-  if (target && "{{ today }}" === new Date().toISOString().split('T')[0]) {
-    // Add highlight class
-    target.classList.add("ring-2", "ring-blue-200", "ring-offset-2");
-  }
-}
-
-function setInitialHourFilter() {
-  // Only set initial filter if we're viewing today's date
-  if ("{{ today }}" === new Date().toISOString().split('T')[0]) {
-    const now = new Date();
-    const currentHour = now.getHours();
-    const endHour = (currentHour - 24);
-
-    const startSelect = document.getElementById("startHour");
-    const endSelect = document.getElementById("endHour");
-
-    if (startSelect && endSelect) {
-      startSelect.value = currentHour;
-      endSelect.value = endHour;
-      filterByCustomRange();
+  function applyDateTimeFilter() {
+    const startDate = document.getElementById('filterStartDate').value;
+    const startTime = document.getElementById('filterStartTime').value;
+    const endDate = document.getElementById('filterEndDate').value;
+    const endTime = document.getElementById('filterEndTime').value;
+    const errorSpan = document.getElementById('filterError');
+    errorSpan.textContent = '';
+    if (!startDate || !startTime || !endDate || !endTime) {
+      errorSpan.textContent = 'All fields required.';
+      return;
     }
-  }
-}
-
-
-function colorDoctorBlocks() {
-  document.querySelectorAll("li[data-start-dt][data-end-dt]").forEach(el => {
-    const slotDiv = el.closest('[id^="hour-"]');
-    if (!slotDiv) return;
-    const slotDtStr = slotDiv.getAttribute('data-slot-datetime');
-    if (!slotDtStr) return;
-    const slotDt = new Date(slotDtStr);
-    const startDt = new Date(el.dataset.startDt);
-    const endDt = new Date(el.dataset.endDt);
-
-    // Reset any existing color classes
-    el.classList.remove("bg-green-50", "border-green-200", "bg-yellow-50", "border-yellow-200", "bg-red-50", "border-red-200");
-    el.classList.add("bg-green-50", "border-green-200");
-    if (slotDt >= startDt && slotDt < endDt) {
-      // Calculate percentage remaining in shift
-      const totalMs = endDt - startDt;
-      const msSinceStart = slotDt - startDt;
-      const msRemaining = totalMs - msSinceStart;
-      const percentageRemaining = (msRemaining / totalMs) * 100;
-      // Check if this is the last hour block of the shift
-      const nextHourDt = new Date(slotDt.getTime() + 60 * 60 * 1000);
-      const isLastHourBlock = nextHourDt >= endDt;
-      if (isLastHourBlock) {
-        el.classList.add("bg-red-50", "border-red-200");
-      } else if (percentageRemaining > 75) {
-        el.classList.add("bg-green-50", "border-green-200");
-      } else if (percentageRemaining > 25) {
-        el.classList.add("bg-yellow-50", "border-yellow-200");
-      } else {
-        el.classList.add("bg-red-50", "border-red-200");
-      }
-    }
-  });
-}
-
-function applyDateTimeFilter() {
-  const startDate = document.getElementById('filterStartDate').value;
-  const startTime = document.getElementById('filterStartTime').value;
-  const endDate = document.getElementById('filterEndDate').value;
-  const endTime = document.getElementById('filterEndTime').value;
-  const errorSpan = document.getElementById('filterError');
-  errorSpan.textContent = '';
-  if (!startDate || !startTime || !endDate || !endTime) {
-    errorSpan.textContent = 'All fields required.';
-    return;
-  }
-  if (endDate > startDate) {
-    errorSpan.textContent = 'End date cannot be after start date.';
-    return;
-  }
-
-}
-
-function filterDoctors() {
-  const searchTerm = document.getElementById('doctorSearch').value.toLowerCase();
-  const startSelect = document.getElementById("startHour");
-  const endSelect = document.getElementById("endHour");
-  const isToday = "{{ today }}" === new Date().toISOString().split('T')[0];
-  const currentHour = new Date().getHours();
-  const maxHour = document.querySelectorAll('[id^="hour-"]').length - 1;
-
-  if (searchTerm) {
-    // Expand to full visible range across days
-    startSelect.value = "0";
-    endSelect.value = maxHour.toString();
-    filterByCustomRange();
-  } else {
-    // Reset based on whether it's today
-    if (isToday) {
-      setInitialHourFilter();
-    } else {
-      startSelect.value = "0";
-      endSelect.value = maxHour.toString();
-      filterByCustomRange();
-    }
-  }
-
-  // Filter timezone popup modal
-  document.querySelectorAll('.doctor-item').forEach(item => {
-    const doctorName = item.querySelector('.doctor-name').textContent.toLowerCase();
-    item.style.display = doctorName.includes(searchTerm) ? '' : 'none';
-  });
-
-  // Filter doctor list items in schedule
-  const scheduleItems = document.querySelectorAll('[id^="hour-"] li');
-  scheduleItems.forEach(item => {
-    const doctorName = item.querySelector('a').textContent.toLowerCase();
-    const hourBlock = item.closest('[id^="hour-"]');
-    const matches = doctorName.includes(searchTerm);
-    item.style.display = matches ? '' : 'none';
-
-    if (matches) {
-      hourBlock.style.display = 'block';
-    }
-  });
-
-  // Adjust hour block visibility and no-results messages
-  document.querySelectorAll('[id^="hour-"]').forEach(hourBlock => {
-    const visibleItems = hourBlock.querySelectorAll('li:not([style*="display: none"])').length;
-    const hourIndex = parseInt(hourBlock.id.split('-')[1]);
-
-    const isInRange = parseInt(startSelect.value, 10) <= parseInt(endSelect.value, 10)
-      ? (hourIndex >= parseInt(startSelect.value, 10) && hourIndex <= parseInt(endSelect.value, 10))
-      : (hourIndex >= parseInt(startSelect.value, 10) || hourIndex <= parseInt(endSelect.value, 10));
-
-    if (!isInRange) {
-      hourBlock.style.display = 'none';
+    if (endDate > startDate) {
+      errorSpan.textContent = 'End date cannot be after start date.';
       return;
     }
 
-    if (isToday && hourIndex === currentHour) {
-      hourBlock.style.display = 'block';
-      hourBlock.classList.add("ring-2", "ring-blue-200", "ring-offset-2");
+  }
 
-      const existingMsg = hourBlock.querySelector('.no-results-message');
-      if (searchTerm && visibleItems === 0 && !existingMsg) {
-        const noResultsMsg = document.createElement('p');
-        noResultsMsg.className = 'text-sm italic text-gray-400 no-results-message';
-        noResultsMsg.textContent = 'No matching doctors in this hour.';
-        hourBlock.appendChild(noResultsMsg);
-      } else if (visibleItems > 0 && existingMsg) {
-        existingMsg.remove();
-      }
+  function filterDoctors() {
+    const searchTerm = document.getElementById('doctorSearch').value.toLowerCase();
+    const startSelect = document.getElementById("startHour");
+    const endSelect = document.getElementById("endHour");
+    const isToday = "{{ today }}" === new Date().toISOString().split('T')[0];
+    const currentHour = new Date().getHours();
+    const maxHour = document.querySelectorAll('[id^="hour-"]').length - 1;
+
+    if (searchTerm) {
+      // Expand to full visible range across days
+      startSelect.value = "0";
+      endSelect.value = maxHour.toString();
+      filterByCustomRange();
     } else {
-      hourBlock.classList.remove("ring-2", "ring-blue-200", "ring-offset-2");
-      hourBlock.style.display = visibleItems > 0 ? 'block' : 'none';
+      // Reset based on whether it's today
+      if (isToday) {
+        setInitialHourFilter();
+      } else {
+        startSelect.value = "0";
+        endSelect.value = maxHour.toString();
+        filterByCustomRange();
+      }
     }
-  });
-}
 
+    // Filter timezone popup modal
+    document.querySelectorAll('.doctor-item').forEach(item => {
+      const doctorName = item.querySelector('.doctor-name').textContent.toLowerCase();
+      item.style.display = doctorName.includes(searchTerm) ? '' : 'none';
+    });
 
-function openTimezonePopup(zone) {
-  const modal = document.getElementById("timezoneModal");
-  const title = document.getElementById("modalTimezoneTitle");
-  const content = document.getElementById("modalTimezoneContent");
+    // Filter doctor list items in schedule
+    const scheduleItems = document.querySelectorAll('[id^="hour-"] li');
+    scheduleItems.forEach(item => {
+      const doctorName = item.querySelector('a').textContent.toLowerCase();
+      const hourBlock = item.closest('[id^="hour-"]');
+      const matches = doctorName.includes(searchTerm);
+      item.style.display = matches ? '' : 'none';
 
-  title.textContent = `Doctors in ${zone}`;
-  content.innerHTML = "";
+      if (matches) {
+        hourBlock.style.display = 'block';
+      }
+    });
 
-  // Parse the JSON data from the template variables
-  const tzDocs = JSON.parse(document.getElementById('doctors-by-timezone').textContent);
-  const docIdsNow = JSON.parse(document.getElementById('doctors-currently-on-shift').textContent);
-  const docIdsToday = JSON.parse(document.getElementById('doctors-on-shift').textContent);
+    // Adjust hour block visibility and no-results messages
+    document.querySelectorAll('[id^="hour-"]').forEach(hourBlock => {
+      const visibleItems = hourBlock.querySelectorAll('li:not([style*="display: none"])').length;
+      const hourIndex = parseInt(hourBlock.id.split('-')[1]);
 
-  const docs = tzDocs[zone] || [];
-  if (docs.length === 0) {
-    content.innerHTML = `<p class="italic text-gray-500">No doctors in this timezone.</p>`;
-  } else {
-    docs.forEach(doc => {
-      const status = docIdsNow.includes(doc.id)
-        ? `<span class="text-xs bg-blue-100 text-blue-800 px-2 py-0.5 rounded-full ml-2">On shift now</span>`
-        : docIdsToday.includes(doc.id)
-        ? `<span class="text-xs bg-green-100 text-green-800 px-2 py-0.5 rounded-full ml-2">Scheduled Today</span>`
-        : '';
+      const isInRange = parseInt(startSelect.value, 10) <= parseInt(endSelect.value, 10)
+        ? (hourIndex >= parseInt(startSelect.value, 10) && hourIndex <= parseInt(endSelect.value, 10))
+        : (hourIndex >= parseInt(startSelect.value, 10) || hourIndex <= parseInt(endSelect.value, 10));
 
-      const html = `
-        <div class="text-sm mb-2">
-          <a href="/radmapping/doctors/${doc.id}" target="_blank" class="text-blue-700 font-medium hover:underline">
-            ${doc.name}
-          </a>
-          ${status}
-        </div>`;
-      content.innerHTML += html;
+      if (!isInRange) {
+        hourBlock.style.display = 'none';
+        return;
+      }
+
+      if (isToday && hourIndex === currentHour) {
+        hourBlock.style.display = 'block';
+        hourBlock.classList.add("ring-2", "ring-blue-200", "ring-offset-2");
+
+        const existingMsg = hourBlock.querySelector('.no-results-message');
+        if (searchTerm && visibleItems === 0 && !existingMsg) {
+          const noResultsMsg = document.createElement('p');
+          noResultsMsg.className = 'text-sm italic text-gray-400 no-results-message';
+          noResultsMsg.textContent = 'No matching doctors in this hour.';
+          hourBlock.appendChild(noResultsMsg);
+        } else if (visibleItems > 0 && existingMsg) {
+          existingMsg.remove();
+        }
+      } else {
+        hourBlock.classList.remove("ring-2", "ring-blue-200", "ring-offset-2");
+        hourBlock.style.display = visibleItems > 0 ? 'block' : 'none';
+      }
     });
   }
 
-  modal.classList.remove("hidden");
-}
 
-function closeTimezonePopup() {
-  document.getElementById("timezoneModal").classList.add("hidden");
-}
+  function openTimezonePopup(zone) {
+    const modal = document.getElementById("timezoneModal");
+    const title = document.getElementById("modalTimezoneTitle");
+    const content = document.getElementById("modalTimezoneContent");
 
-// Close modal if clicking outside it
-document.addEventListener("click", function (e) {
-  const modal = document.getElementById("timezoneModal");
-  const box = modal.querySelector("div.bg-white");
-  if (!box.contains(e.target) && !e.target.closest(".timezone-tile")) {
-    modal.classList.add("hidden");
+    title.textContent = `Doctors in ${zone}`;
+    content.innerHTML = "";
+
+    // Parse the JSON data from the template variables
+    const tzDocs = JSON.parse(document.getElementById('doctors-by-timezone').textContent);
+    const docIdsNow = JSON.parse(document.getElementById('doctors-currently-on-shift').textContent);
+    const docIdsToday = JSON.parse(document.getElementById('doctors-on-shift').textContent);
+
+    const docs = tzDocs[zone] || [];
+    if (docs.length === 0) {
+      content.innerHTML = `<p class="italic text-gray-500">No doctors in this timezone.</p>`;
+    } else {
+      docs.forEach(doc => {
+        const status = docIdsNow.includes(doc.id)
+          ? `<span class="text-xs bg-blue-100 text-blue-800 px-2 py-0.5 rounded-full ml-2">On shift now</span>`
+          : docIdsToday.includes(doc.id)
+          ? `<span class="text-xs bg-green-100 text-green-800 px-2 py-0.5 rounded-full ml-2">Scheduled Today</span>`
+          : '';
+
+        const html = `
+          <div class="text-sm mb-2">
+            <a href="/radmapping/doctors/${doc.id}" target="_blank" class="text-blue-700 font-medium hover:underline">
+              ${doc.name}
+            </a>
+            ${status}
+          </div>`;
+        content.innerHTML += html;
+      });
+    }
+
+    modal.classList.remove("hidden");
   }
-});
-</script>
+
+  function closeTimezonePopup() {
+    document.getElementById("timezoneModal").classList.add("hidden");
+  }
+
+  // Close modal if clicking outside it
+  document.addEventListener("click", function (e) {
+    const modal = document.getElementById("timezoneModal");
+    const box = modal.querySelector("div.bg-white");
+    if (!box.contains(e.target) && !e.target.closest(".timezone-tile")) {
+      modal.classList.add("hidden");
+    }
+  });
+  </script>
+
+
+
 {% endblock %}
