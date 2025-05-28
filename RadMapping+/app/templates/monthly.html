@@ -2,8 +2,10 @@
 {% block title %}{{ month_name }} Schedule{% endblock %}
 
 {% block content %}
-<div class="flex flex-col h-[calc(100vh-150px)]">
-    <div class="flex justify-between items-center mb-6">
+<div class="flex flex-col h-[45rem] overflow-hidden">
+
+
+      <div class="flex justify-between items-center mb-6 px-4 py-2">
         <h2 class="text-2xl font-semibold">{{ month_name }} Schedule</h2>
         <div class="flex items-center gap-4">
             <div class="flex items-center gap-2">
@@ -32,8 +34,8 @@
     </div>
 
     <!-- Height and Scroll Wrapper -->
-    <div id="schedule-container" class="flex-1 overflow-y-auto max-w-full overflow-x-auto">
-        <div id="schedule-scroll-wrapper" class="w-full border-b border-gray-200 mb-2">
+  <div id="schedule-container" class="flex-1 min-h-0 overflow-auto max-w-full">
+    <div id="schedule-scroll-wrapper" class="w-full border-b border-gray-200 mb-2">
             <table class="w-full min-w-[1200px] table-fixed text-base">
                 <thead class="bg-gray-50 sticky top-0 z-30">
                     <tr class="h-16">
@@ -139,7 +141,7 @@
     </div>
 
     <!-- Pagination Controls -->
-    <div class="flex justify-between items-center mt-4 px-4">
+     <div class="mt-4 px-4 flex-shrink-0">
         <!-- <div class="text-gray-600">
             Page {{ (start_doctor // 15) + 1 }} of {{ total_pages }}
             ({{ total_doctors }} total doctors)

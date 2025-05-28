@@ -10,7 +10,7 @@ RUN pip install -r requirements.txt
 
 # Copy the rest of the application
 COPY . .
-
+RUN ls -R app/static
 # Expose the port
 EXPOSE 8080
 

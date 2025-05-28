@@ -89,7 +89,7 @@ def create_app():
     @app.route('/')
     def index():
         if session.get("user"):
-            return redirect(url_for("daily.daily"))
+            return redirect(url_for("landing.landing"))
         return redirect(url_for("auth.login"))
 
     return app
