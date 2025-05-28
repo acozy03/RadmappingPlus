@@ -2,182 +2,379 @@
 {% block title %}General Information{% endblock %}
 
 {% block content %}
-<div class="max-w-4xl mx-auto">
-    <!-- Header -->
+<div class="max-w-6xl mx-auto">
+    <!-- Enhanced Header -->
     <div class="mb-8">
-        <h1 class="text-3xl font-bold text-blue-800 mb-2">General Information</h1>
-        <p class="text-gray-600">Important information and guidelines for the radiology department.</p>
+        <div class="flex items-center mb-4">
+            <div class="w-12 h-12 bg-gradient-to-r from-blue-600 to-indigo-600 rounded-xl flex items-center justify-center mr-4">
+                <i class="fas fa-info-circle text-white text-xl"></i>
+            </div>
+            <div>
+                <h1 class="text-3xl font-bold text-gray-900">General Information</h1>
+                <p class="text-gray-600">Important information and guidelines for the radiology department</p>
+            </div>
+        </div>
         
-        <!-- Search Bar -->
-        <div class="mt-4">
+        <!-- Enhanced Search Bar -->
+        <div class="relative max-w-md">
+            <div class="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+                <i class="fas fa-search text-gray-400"></i>
+            </div>
             <input type="text" 
                    id="infoSearch" 
-                   placeholder="Search information..." 
-                   class="w-full p-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                   placeholder="Search information and guidelines..." 
+                   class="w-full pl-10 pr-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-colors shadow-sm"
                    onkeyup="filterInfo()">
         </div>
     </div>
 
-    <!-- Information Sections -->
-    <div class="space-y-8" id="infoSections">
+    <!-- Information Sections Grid -->
+    <div class="grid grid-cols-1 lg:grid-cols-2 gap-6" id="infoSections">
+        
         <!-- Weekend Cosigns -->
-        <section class="bg-white rounded-lg shadow p-6">
-            <h2 class="text-xl font-semibold text-blue-800 mb-4">Weekend Cosigns</h2>
-            <div class="prose prose-blue max-w-none">
-                <p class="text-gray-700">
-                    If we receive an exam and do not have a credentialed radiologist available, this needs to be escalated to Operations before assigning to a non-credentialed doctor. Operations should check with the scheduled on-call person before confirming assignment.
-                </p>
+        <section class="bg-white rounded-xl shadow-sm border border-gray-200 p-6 hover:shadow-md transition-shadow">
+            <div class="flex items-start mb-4">
+                <div class="w-10 h-10 bg-gradient-to-r from-purple-100 to-blue-100 rounded-lg flex items-center justify-center mr-3 flex-shrink-0">
+                    <i class="fas fa-calendar-alt text-purple-600"></i>
+                </div>
+                <h2 class="text-xl font-semibold text-gray-900">Weekend Cosigns</h2>
+            </div>
+            <div class="prose prose-gray max-w-none">
+                <div class="bg-blue-50 border-l-4 border-blue-400 p-4 rounded-r-lg">
+                    <p class="text-gray-700 leading-relaxed">
+                        If we receive an exam and do not have a credentialed radiologist available, this needs to be escalated to Operations before assigning to a non-credentialed doctor. Operations should check with the scheduled on-call person before confirming assignment.
+                    </p>
+                </div>
             </div>
         </section>
 
         <!-- Tiger Text Guidelines -->
-        <section class="bg-white rounded-lg shadow p-6">
-            <h2 class="text-xl font-semibold text-blue-800 mb-4">Tiger Text Guidelines</h2>
-            <div class="prose prose-blue max-w-none">
-                <p class="text-gray-700">
-                    When the facilities (except for Salinas, Lake Granbury, and The Breast Centers) reach out on Tiger Text about anything outside of a Radiologist call back and or a Critical Finding, please be sure to follow the below:
-                </p>
-                <p class="text-gray-700 mt-2">
-                    We need to be sure to answer their question but also include "However, TT should only be used for Radiologist Call Backs and Critical Findings. Please reach out Via email (support@vestatelemed.com) and or via phone (407-738-4085) for any other inquiries".
-                </p>
+        <section class="bg-white rounded-xl shadow-sm border border-gray-200 p-6 hover:shadow-md transition-shadow">
+            <div class="flex items-start mb-4">
+                <div class="w-10 h-10 bg-gradient-to-r from-orange-100 to-red-100 rounded-lg flex items-center justify-center mr-3 flex-shrink-0">
+                    <i class="fas fa-comments text-orange-600"></i>
+                </div>
+                <h2 class="text-xl font-semibold text-gray-900">Tiger Text Guidelines</h2>
+            </div>
+            <div class="prose prose-gray max-w-none">
+                <div class="bg-orange-50 border-l-4 border-orange-400 p-4 rounded-r-lg mb-4">
+                    <p class="text-gray-700 leading-relaxed">
+                        When the facilities (except for <span class="font-medium">Salinas, Lake Granbury, and The Breast Centers</span>) reach out on Tiger Text about anything outside of a Radiologist call back and or a Critical Finding, please be sure to follow the below:
+                    </p>
+                </div>
+                <div class="bg-yellow-50 border border-yellow-200 rounded-lg p-4">
+                    <p class="text-gray-700 leading-relaxed">
+                        We need to be sure to answer their question but also include <span class="font-medium">"However, TT should only be used for Radiologist Call Backs and Critical Findings. Please reach out Via email (support@vestatelemed.com) and or via phone (407-738-4085) for any other inquiries"</span>.
+                    </p>
+                </div>
             </div>
         </section>
 
-        <!-- Routine Addendums -->
-        <section class="bg-white rounded-lg shadow p-6">
-            <h2 class="text-xl font-semibold text-blue-800 mb-4">Routine Addendums (24 hour TAT)</h2>
-            <div class="prose prose-blue max-w-none">
-                <p class="text-gray-700 font-semibold">Once the update has hit TAT in needs addendum status (24 hour mark):</p>
-                <ul class="list-disc pl-5 mt-2 space-y-2 text-gray-700">
-                    <li>Confirm the study comments are updated properly.</li>
-                    <li>Confirm the exam is assigned to the original reading radiologist.</li>
-                    <li>Was the report released or is it a preliminary report?</li>
-                </ul>
-                <p class="text-gray-700 mt-4 font-semibold">If released:</p>
-                <p class="text-gray-700">The exam should remain in the reading Radiologist work list. Follow up and include that the update has been pending for 24 hours now.</p>
-                <p class="text-gray-700 mt-4 font-semibold">If preliminary report:</p>
-                <p class="text-gray-700">Confirm that the original reading Radiologist was reached out to. If no response or update, remove the report (add to the drive) and reassign for a complete new read.</p>
-                <p class="text-gray-700 mt-4 font-semibold text-red-600">Once the update has hit 48 hours in needs addendum status: ESCALATE</p>
+        <!-- Routine Addendums - Full Width -->
+        <section class="lg:col-span-2 bg-white rounded-xl shadow-sm border border-gray-200 p-6 hover:shadow-md transition-shadow">
+            <div class="flex items-start mb-4">
+                <div class="w-10 h-10 bg-gradient-to-r from-green-100 to-emerald-100 rounded-lg flex items-center justify-center mr-3 flex-shrink-0">
+                    <i class="fas fa-clock text-green-600"></i>
+                </div>
+                <h2 class="text-xl font-semibold text-gray-900">Routine Addendums (24 hour TAT)</h2>
             </div>
-        </section>
-
-        <!-- Late Night/Early Morning Coverage -->
-        <section class="bg-white rounded-lg shadow p-6">
-            <h2 class="text-xl font-semibold text-blue-800 mb-4">Late Night/Early Morning Coverage</h2>
-            <div class="prose prose-blue max-w-none">
-                <p class="text-gray-700 mb-4">Doctors which can be reached during the late nights/early mornings and the time frames:</p>
-                <p class="text-gray-700 mb-2"><em>Each doctor should only be reached once a night. Please do not continue to reach out if they do not respond or log in.</em></p>
+            <div class="prose prose-gray max-w-none">
+                <div class="bg-green-50 border-l-4 border-green-400 p-4 rounded-r-lg mb-4">
+                    <p class="text-gray-800 font-semibold mb-3">Once the update has hit TAT in needs addendum status (24 hour mark):</p>
+                    <ul class="list-disc pl-5 space-y-2 text-gray-700">
+                        <li>Confirm the study comments are updated properly.</li>
+                        <li>Confirm the exam is assigned to the original reading radiologist.</li>
+                        <li>Was the report released or is it a preliminary report?</li>
+                    </ul>
+                </div>
                 
-                <div class="mt-4">
-                    <h3 class="font-semibold text-gray-800">9pm-12am EST:</h3>
-                    <p class="text-gray-700">Please check with Caroline first</p>
-                    <ul class="list-disc pl-5 mt-2 space-y-1 text-gray-700">
-                        <li>Kumar</li>
-                        <li>Preusen</li>
-                        <li>Malek</li>
-                        <li>Sanghi - only if he scheduled, request to come early</li>
-                    </ul>
+                <div class="grid md:grid-cols-2 gap-4 mb-4">
+                    <div class="bg-blue-50 border border-blue-200 rounded-lg p-4">
+                        <p class="text-blue-800 font-semibold mb-2">If released:</p>
+                        <p class="text-gray-700 text-sm">The exam should remain in the reading Radiologist work list. Follow up and include that the update has been pending for 24 hours now.</p>
+                    </div>
+                    <div class="bg-yellow-50 border border-yellow-200 rounded-lg p-4">
+                        <p class="text-yellow-800 font-semibold mb-2">If preliminary report:</p>
+                        <p class="text-gray-700 text-sm">Confirm that the original reading Radiologist was reached out to. If no response or update, remove the report (add to the drive) and reassign for a complete new read.</p>
+                    </div>
                 </div>
-
-                <div class="mt-4">
-                    <h3 class="font-semibold text-gray-800">12am-3am EST:</h3>
-                    <p class="text-gray-700">Okay to reach out without escalation but make a logical judgment call</p>
-                    <ul class="list-disc pl-5 mt-2 space-y-1 text-gray-700">
-                        <li>Bouassaly - only if he scheduled, request to come early</li>
-                        <li>Dar</li>
-                        <li>Dolin</li>
-                        <li>Gabe</li>
-                        <li>Jafery - only if he scheduled, request to come early</li>
-                        <li>Solanki</li>
-                        <li>Shaker</li>
-                    </ul>
+                
+                <div class="bg-red-50 border border-red-200 rounded-lg p-4">
+                    <p class="text-red-700 font-semibold flex items-center">
+                        <i class="fas fa-exclamation-triangle mr-2"></i>
+                        Once the update has hit 48 hours in needs addendum status: ESCALATE
+                    </p>
                 </div>
+            </div>
+        </section>
 
-                <p class="text-gray-700 mt-4 font-semibold text-red-600">*** PLEASE BE SURE TO CHECK THE SCHEDULE BEFORE REACHING OUT ***</p>
-                <p class="text-gray-700">If the schedule shows "VACATION" or "DO NOT REACH OUT" - Please be sure we DO NOT reach out for help.</p>
+        <!-- Late Night/Early Morning Coverage - Full Width -->
+        <section class="lg:col-span-2 bg-white rounded-xl shadow-sm border border-gray-200 p-6 hover:shadow-md transition-shadow">
+            <div class="flex items-start mb-4">
+                <div class="w-10 h-10 bg-gradient-to-r from-indigo-100 to-purple-100 rounded-lg flex items-center justify-center mr-3 flex-shrink-0">
+                    <i class="fas fa-moon text-indigo-600"></i>
+                </div>
+                <h2 class="text-xl font-semibold text-gray-900">Late Night/Early Morning Coverage</h2>
+            </div>
+            <div class="prose prose-gray max-w-none">
+                <div class="bg-indigo-50 border-l-4 border-indigo-400 p-4 rounded-r-lg mb-4">
+                    <p class="text-gray-700 leading-relaxed mb-2">Doctors which can be reached during the late nights/early mornings and the time frames:</p>
+                    <p class="text-gray-600 italic text-sm">Each doctor should only be reached once a night. Please do not continue to reach out if they do not respond or log in.</p>
+                </div>
+                
+                <div class="grid md:grid-cols-2 gap-6">
+                    <div class="bg-blue-50 border border-blue-200 rounded-lg p-4">
+                        <h3 class="font-semibold text-blue-800 mb-3 flex items-center">
+                            <i class="fas fa-clock mr-2"></i>9pm-12am EST
+                        </h3>
+                        <p class="text-gray-700 text-sm mb-3">Please check with Caroline first</p>
+                        <ul class="space-y-1">
+                            <li class="flex items-center text-sm text-gray-700">
+                                <span class="w-2 h-2 bg-blue-400 rounded-full mr-2"></span>Kumar
+                            </li>
+                            <li class="flex items-center text-sm text-gray-700">
+                                <span class="w-2 h-2 bg-blue-400 rounded-full mr-2"></span>Preusen
+                            </li>
+                            <li class="flex items-center text-sm text-gray-700">
+                                <span class="w-2 h-2 bg-blue-400 rounded-full mr-2"></span>Malek
+                            </li>
+                            <li class="flex items-center text-sm text-gray-700">
+                                <span class="w-2 h-2 bg-yellow-400 rounded-full mr-2"></span>Sanghi - only if scheduled, request to come early
+                            </li>
+                        </ul>
+                    </div>
+
+                    <div class="bg-purple-50 border border-purple-200 rounded-lg p-4">
+                        <h3 class="font-semibold text-purple-800 mb-3 flex items-center">
+                            <i class="fas fa-clock mr-2"></i>12am-3am EST
+                        </h3>
+                        <p class="text-gray-700 text-sm mb-3">Okay to reach out without escalation but make a logical judgment call</p>
+                        <ul class="space-y-1">
+                            <li class="flex items-center text-sm text-gray-700">
+                                <span class="w-2 h-2 bg-yellow-400 rounded-full mr-2"></span>Bouassaly - only if scheduled, request to come early
+                            </li>
+                            <li class="flex items-center text-sm text-gray-700">
+                                <span class="w-2 h-2 bg-purple-400 rounded-full mr-2"></span>Dar
+                            </li>
+                            <li class="flex items-center text-sm text-gray-700">
+                                <span class="w-2 h-2 bg-purple-400 rounded-full mr-2"></span>Dolin
+                            </li>
+                            <li class="flex items-center text-sm text-gray-700">
+                                <span class="w-2 h-2 bg-purple-400 rounded-full mr-2"></span>Gabe
+                            </li>
+                            <li class="flex items-center text-sm text-gray-700">
+                                <span class="w-2 h-2 bg-yellow-400 rounded-full mr-2"></span>Jafery - only if scheduled, request to come early
+                            </li>
+                            <li class="flex items-center text-sm text-gray-700">
+                                <span class="w-2 h-2 bg-purple-400 rounded-full mr-2"></span>Solanki
+                            </li>
+                            <li class="flex items-center text-sm text-gray-700">
+                                <span class="w-2 h-2 bg-purple-400 rounded-full mr-2"></span>Shaker
+                            </li>
+                        </ul>
+                    </div>
+                </div>
+                
+                <div class="bg-red-50 border border-red-200 rounded-lg p-4 mt-4">
+                    <p class="text-red-700 font-semibold flex items-center mb-2">
+                        <i class="fas fa-exclamation-triangle mr-2"></i>
+                        PLEASE BE SURE TO CHECK THE SCHEDULE BEFORE REACHING OUT
+                    </p>
+                    <p class="text-gray-700 text-sm">If the schedule shows "VACATION" or "DO NOT REACH OUT" - Please be sure we DO NOT reach out for help.</p>
+                </div>
             </div>
         </section>
 
         <!-- Communicating with Radiologists -->
-        <section class="bg-white rounded-lg shadow p-6">
-            <h2 class="text-xl font-semibold text-blue-800 mb-4">Communicating with Radiologists</h2>
-            <div class="prose prose-blue max-w-none">
-                <p class="text-gray-700">
-                    Please be sure to NOT call the doctors without permission from Operations or a Lead. The ONLY time the team should immediately call a doctor without approval is for a STROKE exam. Outside of receiving a stroke, it should be escalated before calling a doctor.
-                </p>
-                <p class="text-gray-700 mt-2">
-                    When communicating with the doctors, the first option should be via text/Google chat. The Radiologist information has their preferred way to communicate which will provide you with the number to text or direct you to Google chat.
-                </p>
+        <section class="bg-white rounded-xl shadow-sm border border-gray-200 p-6 hover:shadow-md transition-shadow">
+            <div class="flex items-start mb-4">
+                <div class="w-10 h-10 bg-gradient-to-r from-teal-100 to-cyan-100 rounded-lg flex items-center justify-center mr-3 flex-shrink-0">
+                    <i class="fas fa-phone text-teal-600"></i>
+                </div>
+                <h2 class="text-xl font-semibold text-gray-900">Communicating with Radiologists</h2>
+            </div>
+            <div class="prose prose-gray max-w-none">
+                <div class="bg-red-50 border-l-4 border-red-400 p-4 rounded-r-lg mb-4">
+                    <p class="text-gray-700 leading-relaxed">
+                        Please be sure to <span class="font-semibold text-red-600">NOT call the doctors without permission</span> from Operations or a Lead. The ONLY time the team should immediately call a doctor without approval is for a <span class="font-semibold">STROKE exam</span>.
+                    </p>
+                </div>
+                <div class="bg-teal-50 border border-teal-200 rounded-lg p-4">
+                    <p class="text-gray-700 leading-relaxed">
+                        When communicating with the doctors, the first option should be via <span class="font-medium">text/Google chat</span>. The Radiologist information has their preferred way to communicate which will provide you with the number to text or direct you to Google chat.
+                    </p>
+                </div>
             </div>
         </section>
 
         <!-- Routine Radiologist Call Back Protocol -->
-        <section class="bg-white rounded-lg shadow p-6">
-            <h2 class="text-xl font-semibold text-blue-800 mb-4">Routine Radiologist Call Back Protocol</h2>
-            <div class="prose prose-blue max-w-none">
-                <p class="text-gray-700">
-                    The protocol has been updated. Please refer to the following document for specific changes:
-                </p>
-                <a href="https://docs.google.com/document/d/1D00HVju4C1F1a0w16u5OoqUGy3TpqYxq/edit" 
-                   class="text-blue-600 hover:text-blue-800 hover:underline mt-2 inline-block"
-                   target="_blank">
-                    View Updated Protocol
-                </a>
+        <section class="bg-white rounded-xl shadow-sm border border-gray-200 p-6 hover:shadow-md transition-shadow">
+            <div class="flex items-start mb-4">
+                <div class="w-10 h-10 bg-gradient-to-r from-pink-100 to-rose-100 rounded-lg flex items-center justify-center mr-3 flex-shrink-0">
+                    <i class="fas fa-file-alt text-pink-600"></i>
+                </div>
+                <h2 class="text-xl font-semibold text-gray-900">Routine Radiologist Call Back Protocol</h2>
+            </div>
+            <div class="prose prose-gray max-w-none">
+                <div class="bg-pink-50 border-l-4 border-pink-400 p-4 rounded-r-lg mb-4">
+                    <p class="text-gray-700 leading-relaxed mb-3">
+                        The protocol has been updated. Please refer to the following document for specific changes:
+                    </p>
+                    <a href="https://docs.google.com/document/d/1D00HVju4C1F1a0w16u5OoqUGy3TpqYxq/edit" 
+                       class="inline-flex items-center px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors text-sm font-medium"
+                       target="_blank">
+                        <i class="fas fa-external-link-alt mr-2"></i>
+                        View Updated Protocol
+                    </a>
+                </div>
             </div>
         </section>
 
         <!-- Peer Review - Rolling Plains -->
-        <section class="bg-white rounded-lg shadow p-6">
-            <h2 class="text-xl font-semibold text-blue-800 mb-4">Peer Review - Rolling Plains</h2>
-            <div class="prose prose-blue max-w-none">
-                <p class="text-gray-700">
-                    Rolling Plains would like for EVERY Peer Review Scoring Report to be sent to them via email moving forward. The peer review protocol has been updated as well.
-                </p>
+        <section class="lg:col-span-2 bg-white rounded-xl shadow-sm border border-gray-200 p-6 hover:shadow-md transition-shadow">
+            <div class="flex items-start mb-4">
+                <div class="w-10 h-10 bg-gradient-to-r from-amber-100 to-yellow-100 rounded-lg flex items-center justify-center mr-3 flex-shrink-0">
+                    <i class="fas fa-clipboard-check text-amber-600"></i>
+                </div>
+                <h2 class="text-xl font-semibold text-gray-900">Peer Review - Rolling Plains</h2>
+            </div>
+            <div class="prose prose-gray max-w-none">
+                <div class="bg-amber-50 border-l-4 border-amber-400 p-4 rounded-r-lg">
+                    <p class="text-gray-700 leading-relaxed">
+                        Rolling Plains would like for <span class="font-semibold">EVERY Peer Review Scoring Report</span> to be sent to them via email moving forward. The peer review protocol has been updated as well.
+                    </p>
+                </div>
             </div>
         </section>
 
-        <!-- Escalation Procedures -->
-        <section class="bg-white rounded-lg shadow p-6">
-            <h2 class="text-xl font-semibold text-blue-800 mb-4">Escalation Procedures</h2>
+        <!-- Escalation Procedures - Full Width -->
+        <section class="lg:col-span-2 bg-white rounded-xl shadow-sm border border-gray-200 p-6 hover:shadow-md transition-shadow">
+            <div class="flex items-start mb-6">
+                <div class="w-10 h-10 bg-gradient-to-r from-red-100 to-pink-100 rounded-lg flex items-center justify-center mr-3 flex-shrink-0">
+                    <i class="fas fa-exclamation-triangle text-red-600"></i>
+                </div>
+                <h2 class="text-xl font-semibold text-gray-900">Escalation Procedures</h2>
+            </div>
             
-            <!-- High Level Escalations -->
-            <div class="mb-6">
-                <h3 class="text-lg font-semibold text-red-600 mb-3">High Level Escalations</h3>
-                <ul class="list-disc pl-5 space-y-2 text-gray-700">
-                    <li>IT Issues in which a Facility/Hospital cannot send exams. <span class="font-semibold">Escalate to Management</span></li>
-                    <li>Radiologist out for an emergency with a large gap in coverage. After all avenues have been exhausted in reaching additional Radiologists. <span class="font-semibold">Escalate to Management</span></li>
-                    <li>Ramsoft or Emsow PACS is down</li>
-                    <li>Ramsoft or Emsow services are inoperative or highly degraded. <span class="font-semibold">Escalate to Management for short-term workaround</span></li>
-                    <li>Multiple Radiologists unable to dictate. <span class="font-semibold">Escalate to Management</span></li>
-                    <li>If there are no Credentialed Radiologists to read for the Hospital location (e.g., Early Medical Hospital, Weekend with very few credentialed doctors). <span class="font-semibold">Escalate to the Operations team</span></li>
-                    <li>If there is a critical finding and the team is not able to reach anyone from the Imaging centers or the Hospital. <span class="font-semibold">Escalate to the Operations team</span></li>
-                </ul>
-            </div>
+            <div class="grid lg:grid-cols-3 gap-6">
+                <!-- High Level Escalations -->
+                <div class="bg-red-50 border border-red-200 rounded-lg p-4">
+                    <h3 class="text-lg font-semibold text-red-700 mb-4 flex items-center">
+                        <i class="fas fa-fire mr-2"></i>High Level Escalations
+                    </h3>
+                    <ul class="space-y-3 text-sm">
+                        <li class="flex items-start">
+                            <span class="w-2 h-2 bg-red-500 rounded-full mr-2 mt-2 flex-shrink-0"></span>
+                            <span class="text-gray-700">IT Issues in which a Facility/Hospital cannot send exams. <span class="font-semibold text-red-600">Escalate to Management</span></span>
+                        </li>
+                        <li class="flex items-start">
+                            <span class="w-2 h-2 bg-red-500 rounded-full mr-2 mt-2 flex-shrink-0"></span>
+                            <span class="text-gray-700">Radiologist out for an emergency with a large gap in coverage. <span class="font-semibold text-red-600">Escalate to Management</span></span>
+                        </li>
+                        <li class="flex items-start">
+                            <span class="w-2 h-2 bg-red-500 rounded-full mr-2 mt-2 flex-shrink-0"></span>
+                            <span class="text-gray-700">Ramsoft or Emsow PACS is down</span>
+                        </li>
+                        <li class="flex items-start">
+                            <span class="w-2 h-2 bg-red-500 rounded-full mr-2 mt-2 flex-shrink-0"></span>
+                            <span class="text-gray-700">Multiple Radiologists unable to dictate. <span class="font-semibold text-red-600">Escalate to Management</span></span>
+                        </li>
+                        <li class="flex items-start">
+                            <span class="w-2 h-2 bg-red-500 rounded-full mr-2 mt-2 flex-shrink-0"></span>
+                            <span class="text-gray-700">No Credentialed Radiologists available. <span class="font-semibold text-red-600">Escalate to Operations</span></span>
+                        </li>
+                    </ul>
+                </div>
 
-            <!-- Medium Level Escalations -->
-            <div class="mb-6">
-                <h3 class="text-lg font-semibold text-yellow-600 mb-3">Medium Level Escalations</h3>
-                <ul class="list-disc pl-5 space-y-2 text-gray-700">
-                    <li>Code Stroke - Anything nearing 30 mins. <span class="font-semibold">Must be escalated to Operations</span></li>
-                    <li>STAT Exams - Anything approaching over 1 hour follows normal escalation protocol. Anything over 2 hours <span class="font-semibold">must be escalated to Operations</span></li>
-                    <li>Single Radiologist unable to dictate. <span class="font-semibold">Escalate to Operations</span></li>
-                    <li>Facility/Hospital HL7 down. Follow normal process to fax or email reports. Repush reports via HL7 once HL7 is back up. <span class="font-semibold">Escalate to Operations for their awareness</span></li>
-                </ul>
-            </div>
+                <!-- Medium Level Escalations -->
+                <div class="bg-yellow-50 border border-yellow-200 rounded-lg p-4">
+                    <h3 class="text-lg font-semibold text-yellow-700 mb-4 flex items-center">
+                        <i class="fas fa-exclamation-circle mr-2"></i>Medium Level Escalations
+                    </h3>
+                    <ul class="space-y-3 text-sm">
+                        <li class="flex items-start">
+                            <span class="w-2 h-2 bg-yellow-500 rounded-full mr-2 mt-2 flex-shrink-0"></span>
+                            <span class="text-gray-700">Code Stroke - Anything nearing 30 mins. <span class="font-semibold text-yellow-600">Must escalate to Operations</span></span>
+                        </li>
+                        <li class="flex items-start">
+                            <span class="w-2 h-2 bg-yellow-500 rounded-full mr-2 mt-2 flex-shrink-0"></span>
+                            <span class="text-gray-700">STAT Exams - Over 2 hours <span class="font-semibold text-yellow-600">must escalate to Operations</span></span>
+                        </li>
+                        <li class="flex items-start">
+                            <span class="w-2 h-2 bg-yellow-500 rounded-full mr-2 mt-2 flex-shrink-0"></span>
+                            <span class="text-gray-700">Single Radiologist unable to dictate. <span class="font-semibold text-yellow-600">Escalate to Operations</span></span>
+                        </li>
+                        <li class="flex items-start">
+                            <span class="w-2 h-2 bg-yellow-500 rounded-full mr-2 mt-2 flex-shrink-0"></span>
+                            <span class="text-gray-700">Facility/Hospital HL7 down. <span class="font-semibold text-yellow-600">Escalate to Operations</span></span>
+                        </li>
+                    </ul>
+                </div>
 
-            <!-- Low Level Escalations -->
-            <div>
-                <h3 class="text-lg font-semibold text-green-600 mb-3">Low Level Escalations</h3>
-                <ul class="list-disc pl-5 space-y-2 text-gray-700">
-                    <li>Specialty exams should follow the normal rule of escalation. Any specialty exams reaching over 2 hours (e.g., OB over received as a STAT). <span class="font-semibold">Should be escalated to Operations</span></li>
-                    <li>Problems that affect non-essential functions and have minimal impact on system or user performance. <span class="font-semibold">Should be escalated to Operations and/or IT via email request</span></li>
-                    <li>Software configuration/system enhancement requests. <span class="font-semibold">Should be escalated to Operations and/or IT via email request</span></li>
-                    <li>Radiologist not having enough routine exams and asking for more can be escalated next morning. They can send an email on the same day so that Operations team can have a look into it.</li>
-                </ul>
+                <!-- Low Level Escalations -->
+                <div class="bg-green-50 border border-green-200 rounded-lg p-4">
+                    <h3 class="text-lg font-semibold text-green-700 mb-4 flex items-center">
+                        <i class="fas fa-info-circle mr-2"></i>Low Level Escalations
+                    </h3>
+                    <ul class="space-y-3 text-sm">
+                        <li class="flex items-start">
+                            <span class="w-2 h-2 bg-green-500 rounded-full mr-2 mt-2 flex-shrink-0"></span>
+                            <span class="text-gray-700">Specialty exams over 2 hours. <span class="font-semibold text-green-600">Escalate to Operations</span></span>
+                        </li>
+                        <li class="flex items-start">
+                            <span class="w-2 h-2 bg-green-500 rounded-full mr-2 mt-2 flex-shrink-0"></span>
+                            <span class="text-gray-700">Non-essential function problems. <span class="font-semibold text-green-600">Email Operations/IT</span></span>
+                        </li>
+                        <li class="flex items-start">
+                            <span class="w-2 h-2 bg-green-500 rounded-full mr-2 mt-2 flex-shrink-0"></span>
+                            <span class="text-gray-700">Software configuration requests. <span class="font-semibold text-green-600">Email Operations/IT</span></span>
+                        </li>
+                        <li class="flex items-start">
+                            <span class="w-2 h-2 bg-green-500 rounded-full mr-2 mt-2 flex-shrink-0"></span>
+                            <span class="text-gray-700">Radiologist requesting more routine exams can be escalated next morning.</span>
+                        </li>
+                    </ul>
+                </div>
             </div>
         </section>
     </div>
 </div>
+
+<style>
+/* Enhanced hover effects */
+section:hover {
+    transform: translateY(-2px);
+}
+
+/* Custom scrollbar for any overflow content */
+.overflow-y-auto::-webkit-scrollbar {
+    width: 6px;
+}
+
+.overflow-y-auto::-webkit-scrollbar-track {
+    background: #f1f5f9;
+    border-radius: 3px;
+}
+
+.overflow-y-auto::-webkit-scrollbar-thumb {
+    background: linear-gradient(to bottom, #3b82f6, #1d4ed8);
+    border-radius: 3px;
+}
+
+.overflow-y-auto::-webkit-scrollbar-thumb:hover {
+    background: linear-gradient(to bottom, #2563eb, #1e40af);
+}
+
+/* Smooth transitions */
+* {
+    transition: all 0.2s ease-in-out;
+}
+
+/* Enhanced focus states */
+input:focus {
+    box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.1);
+}
+</style>
 
 <script>
 function filterInfo() {
@@ -190,10 +387,37 @@ function filterInfo() {
         
         if (title.includes(searchTerm) || content.includes(searchTerm)) {
             section.style.display = 'block';
+            section.style.opacity = '1';
+            section.style.transform = 'translateY(0)';
         } else {
             section.style.display = 'none';
+            section.style.opacity = '0';
+            section.style.transform = 'translateY(10px)';
         }
     });
+    
+    // Show "no results" message if no sections are visible
+    const visibleSections = Array.from(sections).filter(section => section.style.display !== 'none');
+    if (visibleSections.length === 0 && searchTerm.trim() !== '') {
+        if (!document.getElementById('noResults')) {
+            const noResults = document.createElement('div');
+            noResults.id = 'noResults';
+            noResults.className = 'col-span-full text-center py-12';
+            noResults.innerHTML = `
+                <div class="w-16 h-16 bg-gray-100 rounded-full flex items-center justify-center mx-auto mb-4">
+                    <i class="fas fa-search text-gray-400 text-xl"></i>
+                </div>
+                <p class="text-gray-500 font-medium">No information found</p>
+                <p class="text-gray-400 text-sm">Try searching with different keywords</p>
+            `;
+            document.getElementById('infoSections').appendChild(noResults);
+        }
+    } else {
+        const noResults = document.getElementById('noResults');
+        if (noResults) {
+            noResults.remove();
+        }
+    }
 }
 </script>
-{% endblock %} 
+{% endblock %}

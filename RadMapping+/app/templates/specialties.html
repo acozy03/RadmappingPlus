@@ -3,150 +3,329 @@
 
 {% block content %}
 <div class="container mx-auto px-4 py-8">
-  <div class="flex justify-between items-center mb-6">
-    <h1 class="text-2xl font-bold">Specialty Studies Management</h1>
+  <!-- Enhanced Header Section -->
+  <div class="flex flex-col lg:flex-row lg:items-center lg:justify-between mb-8">
+    <div class="mb-6 lg:mb-0">
+      <h1 class="text-3xl font-bold text-gray-900 mb-2 flex items-center">
+        Specialty Studies Management
+      </h1>
+      <p class="text-gray-600">Manage medical specialties and doctor assignments</p>
+    </div>
     {% if session.user.role == 'admin' %}
-    <button onclick="openAddSpecialtyModal()" class="bg-blue-600 text-white px-4 py-2 rounded text-sm font-medium">
+    <button onclick="openAddSpecialtyModal()" 
+            class="inline-flex items-center px-6 py-3 bg-gradient-to-r from-blue-600 to-purple-600 text-white font-medium rounded-lg shadow-lg hover:shadow-xl transform hover:-translate-y-0.5 transition-all duration-200">
+      <i class="fas fa-plus mr-2"></i>
       Add New Specialty
     </button>
     {% endif %}
   </div>
 
-  <!-- Search specialties -->
-  <div class="mb-6">
-    <input type="text" id="specialtySearch" placeholder="Search specialties..." 
-           class="w-full px-4 py-2 border rounded text-sm"
-           oninput="filterTable()">
+  <!-- Enhanced Search Section -->
+  <div class="mb-8">
+    <div class="relative max-w-md">
+      <div class="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+        <i class="fas fa-search text-gray-400"></i>
+      </div>
+      <input type="text" id="specialtySearch" 
+             placeholder="Search specialties by name or description..." 
+             class="w-full pl-10 pr-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-purple-500 transition-colors shadow-sm"
+             oninput="filterTable()">
+    </div>
   </div>
 
-  <!-- Specialties Grid -->
-  <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+  <!-- Enhanced Specialties Grid -->
+  <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
     {% for specialty in specialties %}
-    <div class="specialty-card bg-white rounded-lg shadow p-4 border">
-      <div class="flex items-start justify-between mb-3">
-        <div>
-          <h3 class="text-lg font-semibold">{{ specialty.name }}</h3>
-          {% if specialty.description %}
-          <p class="text-gray-600 text-sm mt-1">{{ specialty.description }}</p>
-          {% endif %}
+    <div class="specialty-card group bg-white rounded-xl shadow-sm border border-gray-200 p-6 hover:shadow-lg hover:-translate-y-1 transition-all duration-300 relative overflow-hidden flex flex-col">
+      <!-- Decorative gradient background -->
+      <div class="absolute top-0 left-0 w-full h-1 bg-gradient-to-r from-purple-500 to-pink-500"></div>
+      
+      <div class="flex items-start justify-between mb-4">
+        <div class="flex-1">
+          <!-- Specialty Icon -->
+   
+          
+          <h3 class="text-lg font-semibold text-gray-900 mb-2 group-hover:text-purple-600 transition-colors">
+            {{ specialty.name }}
+          </h3>
         </div>
+        
         {% if session.user.role == 'admin' %}
-        <div class="flex gap-2">
+        <!-- Fixed: Horizontal layout for edit and delete buttons -->
+        <div class="flex gap-2 ml-3">
           <button onclick="openEditDoctorsModal('{{ specialty.id }}', '{{ specialty.name|escape }}')"
-                  class="text-blue-600 hover:text-blue-800">
-            <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15.232 5.232l3.536 3.536m-2.036-5.036a2.5 2.5 0 113.536 3.536L6.5 21.036H3v-3.572L16.732 3.732z"/>
-            </svg>
+                  class="p-2 text-blue-600 hover:text-blue-800 hover:bg-blue-50 rounded-lg transition-colors"
+                  title="Edit Doctors">
+            <i class="fas fa-user-edit text-sm"></i>
           </button>
           <button onclick="confirmDeleteSpecialty('{{ specialty.id }}', '{{ specialty.name|escape }}')"
-                  class="text-red-600 hover:text-red-800">
-            <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/>
-            </svg>
+                  class="p-2 text-red-600 hover:text-red-800 hover:bg-red-50 rounded-lg transition-colors"
+                  title="Delete Specialty">
+            <i class="fas fa-trash text-sm"></i>
           </button>
         </div>
         {% endif %}
       </div>
+      
+      <!-- Fixed: Description with flex-grow to push button to bottom -->
+      <div class="flex-grow mb-4">
+        {% if specialty.description %}
+        <p class="text-gray-600 text-sm leading-relaxed">
+          {{ specialty.description }}
+        </p>
+        {% else %}
+        <p class="text-gray-400 text-sm italic">No description available</p>
+        {% endif %}
+      </div>
+      
+      <!-- Fixed: Button always at bottom -->
       <button onclick="showDoctorsForSpecialty('{{ specialty.id }}', '{{ specialty.name|escape }}')"
-              class="text-sm text-blue-600 hover:text-blue-800">
-        View Doctors →
+              class="w-full inline-flex items-center justify-center px-4 py-2 bg-gray-50 text-gray-700 font-medium rounded-lg hover:bg-purple-50 hover:text-purple-700 transition-colors group mt-auto">
+        <i class="fas fa-users mr-2"></i>
+        View Assigned Doctors
+        <i class="fas fa-arrow-right ml-2 transform group-hover:translate-x-1 transition-transform"></i>
       </button>
     </div>
     {% endfor %}
   </div>
 
-  <!-- Edit Doctors Modal -->
-  <div id="editDoctorsModal" class="fixed inset-0 z-50 hidden bg-black bg-opacity-50 flex items-center justify-center">
-    <div class="bg-white rounded-lg shadow-lg w-[90%] max-w-md p-6">
-      <div class="flex justify-between items-center mb-4">
-        <h3 class="text-lg font-semibold">Edit Doctors for <span id="editSpecialtyName"></span></h3>
-        <button onclick="closeEditDoctorsModal()" class="text-gray-500 hover:text-gray-700">
-          <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/>
-          </svg>
+  <!-- Enhanced Add Specialty Modal -->
+  <div id="addSpecialtyModal" class="fixed inset-0 z-50 hidden bg-black bg-opacity-50 flex items-center justify-center p-4">
+    <div class="bg-white rounded-xl shadow-2xl w-full max-w-md transform transition-all">
+      <!-- Modal Header -->
+      <div class="flex items-center justify-between p-6 border-b border-gray-200">
+        <div class="flex items-center">
+          <div class="w-8 h-8 bg-gradient-to-r from-blue-500 to-purple-500 rounded-lg flex items-center justify-center mr-3">
+            <i class="fas fa-plus text-white text-sm"></i>
+          </div>
+          <h3 class="text-lg font-semibold text-gray-900">Add New Specialty</h3>
+        </div>
+        <button onclick="closeAddSpecialtyModal()" class="p-2 text-gray-400 hover:text-gray-600 hover:bg-gray-100 rounded-lg transition-colors">
+          <i class="fas fa-times"></i>
         </button>
       </div>
-      <form id="editDoctorsForm" onsubmit="submitEditDoctors(event)">
-        <input type="text" id="doctorModalSearch" placeholder="Search doctors..." class="w-full px-3 py-2 border rounded text-sm mb-3" oninput="filterDoctorsChecklist()">
-        <div id="doctorsChecklist" class="mb-4 space-y-2 max-h-64 overflow-y-auto">
-          <!-- Populated by JS -->
+
+      <!-- Modal Body -->
+      <form method="POST" action="{{ url_for('specialties.add_specialty') }}" class="p-6">
+        <div class="mb-6">
+          <label class="block text-sm font-medium text-gray-700 mb-2">
+            <i class="fas fa-tag mr-2 text-purple-500"></i>Specialty Name
+          </label>
+          <input type="text" name="name" required
+                 class="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-purple-500 transition-colors"
+                 placeholder="Enter specialty name">
         </div>
-        <input type="hidden" name="specialty_id" id="editSpecialtyId">
-        <div class="flex justify-end">
-          <button type="submit" class="bg-blue-600 text-white px-4 py-2 rounded text-sm font-medium">Save</button>
+
+        <div class="mb-6">
+          <label class="block text-sm font-medium text-gray-700 mb-2">
+            <i class="fas fa-align-left mr-2 text-purple-500"></i>Description
+          </label>
+          <textarea name="description" rows="4"
+                    class="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-purple-500 transition-colors resize-none"
+                    placeholder="Enter specialty description (optional)"></textarea>
+        </div>
+
+        <div class="flex justify-end gap-3">
+          <button type="button" onclick="closeAddSpecialtyModal()" 
+                  class="px-4 py-2 text-gray-700 bg-gray-100 rounded-lg hover:bg-gray-200 transition-colors">
+            Cancel
+          </button>
+          <button type="submit" 
+                  class="px-6 py-2 bg-gradient-to-r from-blue-600 to-purple-600 text-white font-medium rounded-lg hover:shadow-lg transform hover:-translate-y-0.5 transition-all duration-200">
+            <i class="fas fa-plus mr-2"></i>Add Specialty
+          </button>
         </div>
       </form>
     </div>
   </div>
-</div>
 
-<!-- Add Specialty Modal -->
-<div id="addSpecialtyModal" class="fixed inset-0 z-50 hidden bg-black bg-opacity-50 flex items-center justify-center">
-  <div class="bg-white rounded-lg shadow-lg w-[90%] max-w-md p-6">
-    <div class="flex justify-between items-center mb-4">
-      <h3 class="text-lg font-semibold">Add New Specialty</h3>
-      <button onclick="closeAddSpecialtyModal()" class="text-gray-500 hover:text-gray-700">
-        <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/>
-        </svg>
-      </button>
-    </div>
-
-    <form method="POST" action="{{ url_for('specialties.add_specialty') }}">
-      <div class="mb-4">
-        <label class="block text-sm font-medium text-gray-700 mb-1">Specialty Name</label>
-        <input type="text" name="name" required
-               class="w-full px-3 py-2 border rounded text-sm">
-      </div>
-
-      <div class="mb-4">
-        <label class="block text-sm font-medium text-gray-700 mb-1">Description</label>
-        <textarea name="description" rows="3"
-                  class="w-full px-3 py-2 border rounded text-sm"></textarea>
-      </div>
-
-      <div class="flex justify-end">
-        <button type="submit" class="bg-blue-600 text-white px-4 py-2 rounded text-sm font-medium">
-          Add Specialty
+  <!-- Enhanced Edit Doctors Modal -->
+  <div id="editDoctorsModal" class="fixed inset-0 z-50 hidden bg-black bg-opacity-50 flex items-center justify-center p-4">
+    <div class="bg-white rounded-xl shadow-2xl w-full max-w-lg transform transition-all">
+      <!-- Modal Header -->
+      <div class="flex items-center justify-between p-6 border-b border-gray-200">
+        <div class="flex items-center">
+          <div class="w-8 h-8 bg-gradient-to-r from-green-500 to-blue-500 rounded-lg flex items-center justify-center mr-3">
+            <i class="fas fa-user-edit text-white text-sm"></i>
+          </div>
+          <h3 class="text-lg font-semibold text-gray-900">
+            Edit Doctors for <span id="editSpecialtyName" class="text-purple-600"></span>
+          </h3>
+        </div>
+        <button onclick="closeEditDoctorsModal()" class="p-2 text-gray-400 hover:text-gray-600 hover:bg-gray-100 rounded-lg transition-colors">
+          <i class="fas fa-times"></i>
         </button>
       </div>
-    </form>
-  </div>
-</div>
 
-<!-- Delete Specialty Confirmation Modal -->
-<div id="deleteSpecialtyModal" class="fixed inset-0 z-50 hidden bg-black bg-opacity-50 flex items-center justify-center">
-  <div class="bg-white rounded-lg shadow-lg w-[90%] max-w-md p-6">
-    <div class="flex justify-between items-center mb-4">
-      <h3 class="text-lg font-semibold">Delete Specialty</h3>
-      <button onclick="closeDeleteSpecialtyModal()" class="text-gray-500 hover:text-gray-700">
-        <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/>
-        </svg>
-      </button>
-    </div>
-    <p class="mb-4">Are you sure you want to delete the specialty "<span id="deleteSpecialtyName"></span>"? This action cannot be undone.</p>
-    <form id="deleteSpecialtyForm" method="POST">
-      <div class="flex justify-end gap-3">
-        <button type="button" onclick="closeDeleteSpecialtyModal()" class="px-4 py-2 border rounded text-sm font-medium">Cancel</button>
-        <button type="submit" class="bg-red-600 text-white px-4 py-2 rounded text-sm font-medium">Delete</button>
+      <!-- Modal Body -->
+      <div class="p-6">
+        <form id="editDoctorsForm" onsubmit="submitEditDoctors(event)">
+          <!-- Search Input -->
+          <div class="relative mb-4">
+            <div class="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+              <i class="fas fa-search text-gray-400"></i>
+            </div>
+            <input type="text" id="doctorModalSearch" 
+                   placeholder="Search doctors..." 
+                   class="w-full pl-10 pr-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-colors"
+                   oninput="filterDoctorsChecklist()">
+          </div>
+
+          <!-- Doctors Checklist -->
+          <div id="doctorsChecklist" class="mb-6 space-y-3 max-h-64 overflow-y-auto border border-gray-200 rounded-lg p-4 bg-gray-50">
+            <!-- Populated by JS -->
+          </div>
+
+          <input type="hidden" name="specialty_id" id="editSpecialtyId">
+          
+          <div class="flex justify-end gap-3">
+            <button type="button" onclick="closeEditDoctorsModal()" 
+                    class="px-4 py-2 text-gray-700 bg-gray-100 rounded-lg hover:bg-gray-200 transition-colors">
+              Cancel
+            </button>
+            <button type="submit" 
+                    class="px-6 py-2 bg-gradient-to-r from-green-600 to-blue-600 text-white font-medium rounded-lg hover:shadow-lg transform hover:-translate-y-0.5 transition-all duration-200">
+              <i class="fas fa-save mr-2"></i>Save Changes
+            </button>
+          </div>
+        </form>
       </div>
-    </form>
+    </div>
+  </div>
+
+  <!-- Enhanced Delete Specialty Modal -->
+  <div id="deleteSpecialtyModal" class="fixed inset-0 z-50 hidden bg-black bg-opacity-50 flex items-center justify-center p-4">
+    <div class="bg-white rounded-xl shadow-2xl w-full max-w-md transform transition-all">
+      <!-- Modal Header -->
+      <div class="flex items-center justify-between p-6 border-b border-gray-200">
+        <div class="flex items-center">
+          <div class="w-8 h-8 bg-gradient-to-r from-red-500 to-pink-500 rounded-lg flex items-center justify-center mr-3">
+            <i class="fas fa-exclamation-triangle text-white text-sm"></i>
+          </div>
+          <h3 class="text-lg font-semibold text-gray-900">Delete Specialty</h3>
+        </div>
+        <button onclick="closeDeleteSpecialtyModal()" class="p-2 text-gray-400 hover:text-gray-600 hover:bg-gray-100 rounded-lg transition-colors">
+          <i class="fas fa-times"></i>
+        </button>
+      </div>
+
+      <!-- Modal Body -->
+      <div class="p-6">
+        <div class="flex items-center mb-4">
+          <div class="w-12 h-12 bg-red-100 rounded-full flex items-center justify-center mr-4">
+            <i class="fas fa-exclamation-triangle text-red-600 text-lg"></i>
+          </div>
+          <div>
+            <p class="text-gray-900 font-medium">Are you sure you want to delete this specialty?</p>
+            <p class="text-gray-600 text-sm mt-1">This action cannot be undone.</p>
+          </div>
+        </div>
+        
+        <div class="bg-red-50 border border-red-200 rounded-lg p-4 mb-6">
+          <p class="text-red-800 text-sm">
+            <strong>Specialty:</strong> "<span id="deleteSpecialtyName" class="font-medium"></span>"
+          </p>
+        </div>
+
+        <form id="deleteSpecialtyForm" method="POST">
+          <div class="flex justify-end gap-3">
+            <button type="button" onclick="closeDeleteSpecialtyModal()" 
+                    class="px-4 py-2 text-gray-700 bg-gray-100 rounded-lg hover:bg-gray-200 transition-colors">
+              Cancel
+            </button>
+            <button type="submit" 
+                    class="px-6 py-2 bg-gradient-to-r from-red-600 to-pink-600 text-white font-medium rounded-lg hover:shadow-lg transform hover:-translate-y-0.5 transition-all duration-200">
+              <i class="fas fa-trash mr-2"></i>Delete Specialty
+            </button>
+          </div>
+        </form>
+      </div>
+    </div>
+  </div>
+
+  <!-- Enhanced Specialty Doctors Modal -->
+  <div id="specialtyDoctorsModal" class="fixed inset-0 z-50 hidden bg-black bg-opacity-50 flex items-center justify-center p-4" onclick="if(event.target === this) closeSpecialtyDoctorsModal();">
+    <div class="bg-white rounded-xl shadow-2xl w-full max-w-2xl transform transition-all" onclick="event.stopPropagation();">
+      <!-- Modal Header -->
+      <div class="flex items-center justify-between p-6 border-b border-gray-200">
+        <div class="flex items-center">
+          <div class="w-8 h-8 bg-gradient-to-r from-purple-500 to-blue-500 rounded-lg flex items-center justify-center mr-3">
+            <i class="fas fa-users text-white text-sm"></i>
+          </div>
+          <h3 id="specialtyDoctorsTitle" class="text-lg font-semibold text-gray-900">Doctors that can read this Specialty</h3>
+        </div>
+        <button onclick="closeSpecialtyDoctorsModal()" class="p-2 text-gray-400 hover:text-gray-600 hover:bg-gray-100 rounded-lg transition-colors">
+          <i class="fas fa-times"></i>
+        </button>
+      </div>
+
+      <!-- Modal Body -->
+      <div class="p-6">
+        <!-- Search Input -->
+        <div class="relative mb-6">
+          <div class="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+            <i class="fas fa-search text-gray-400"></i>
+          </div>
+          <input type="text" id="specialtyDoctorsSearch" 
+                 placeholder="Search doctors by name or email..." 
+                 class="w-full pl-10 pr-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-purple-500 transition-colors"
+                 oninput="filterSpecialtyDoctors()">
+        </div>
+
+        <!-- Doctors List -->
+        <div id="specialtyDoctorsList" class="space-y-3 max-h-96 overflow-y-auto">
+          <!-- Populated by JS -->
+        </div>
+      </div>
+    </div>
   </div>
 </div>
 
-<!-- Modal for doctors with this specialty -->
-<div id="specialtyDoctorsModal" class="fixed inset-0 z-50 hidden bg-black bg-opacity-50 flex items-center justify-center" onclick="if(event.target === this) closeSpecialtyDoctorsModal();">
-  <div class="bg-white rounded-lg shadow-lg w-[90%] max-w-lg p-6 relative" onclick="event.stopPropagation();">
-    <button onclick="closeSpecialtyDoctorsModal()" class="absolute top-2 right-2 text-2xl font-bold text-gray-500 hover:text-black">×</button>
-    <h3 id="specialtyDoctorsTitle" class="text-xl font-semibold mb-4">Doctors with this Specialty</h3>
-    <input type="text" id="specialtyDoctorsSearch" placeholder="Search doctors..." 
-           class="w-full px-3 py-2 border rounded text-sm mb-4"
-           oninput="filterSpecialtyDoctors()">
-    <div id="specialtyDoctorsList" class="space-y-3 max-h-[60vh] overflow-y-auto"></div>
-  </div>
-</div>
+<style>
+/* Custom styles for enhanced appearance */
+.line-clamp-3 {
+  display: -webkit-box;
+  -webkit-line-clamp: 3;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+}
 
+/* Enhanced card hover effects */
+.specialty-card:hover {
+  box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.1), 0 10px 10px -5px rgba(0, 0, 0, 0.04);
+}
+
+/* Custom scrollbar for modals */
+.overflow-y-auto::-webkit-scrollbar {
+  width: 6px;
+}
+
+.overflow-y-auto::-webkit-scrollbar-track {
+  background: #f1f5f9;
+  border-radius: 3px;
+}
+
+.overflow-y-auto::-webkit-scrollbar-thumb {
+  background: linear-gradient(to bottom, #8b5cf6, #3b82f6);
+  border-radius: 3px;
+}
+
+.overflow-y-auto::-webkit-scrollbar-thumb:hover {
+  background: linear-gradient(to bottom, #7c3aed, #2563eb);
+}
+
+/* Loading animation */
+@keyframes pulse {
+  0%, 100% { opacity: 1; }
+  50% { opacity: 0.5; }
+}
+
+.loading {
+  animation: pulse 2s cubic-bezier(0.4, 0, 0.6, 1) infinite;
+}
+</style>
+
+<!-- Keep all your existing JavaScript with enhanced styling -->
 <script src="//unpkg.com/alpinejs" defer></script>
 <script>
 const isAdmin = "{{ 'true' if session.user.role == 'admin' else 'false' }}" === 'true';
@@ -174,12 +353,12 @@ function updatePermission(checkbox) {
   .then(response => response.json())
   .then(data => {
     if (data.status !== 'success') {
-      checkbox.checked = !checkbox.checked; // Revert on failure
+      checkbox.checked = !checkbox.checked;
       alert('Failed to update permission');
     }
   })
   .catch(error => {
-    checkbox.checked = !checkbox.checked; // Revert on error
+    checkbox.checked = !checkbox.checked;
     alert('Error updating permission');
   });
 }
@@ -187,7 +366,6 @@ function updatePermission(checkbox) {
 function filterTable() {
   const specialtyQuery = document.getElementById('specialtySearch').value.toLowerCase();
   
-  // Filter specialty cards
   const cards = document.querySelectorAll('.specialty-card');
   cards.forEach(card => {
     const name = card.querySelector('h3').textContent.toLowerCase();
@@ -207,26 +385,61 @@ function showDoctorsForSpecialty(specialtyId, specialtyName) {
   const list = document.getElementById('specialtyDoctorsList');
   const searchInput = document.getElementById('specialtyDoctorsSearch');
   
-  title.textContent = `Doctors with ${specialtyName}`;
-  list.innerHTML = '<div class="text-gray-400 text-sm">Loading...</div>';
-  searchInput.value = ''; // Clear search input
+  title.innerHTML = `Doctors that can read ${specialtyName}`;
+  list.innerHTML = '<div class="flex items-center justify-center py-8 text-gray-400 loading"><i class="fas fa-spinner fa-spin mr-2"></i>Loading doctors...</div>';
+  searchInput.value = '';
   modal.classList.remove('hidden');
   
   fetch(`/radmapping/specialties/${specialtyId}/doctors`)
     .then(res => res.json())
     .then(doctors => {
       if (!doctors.length) {
-        list.innerHTML = '<div class="text-gray-500">No doctors can read this specialty.</div>';
+        list.innerHTML = `
+          <div class="text-center py-8">
+            <div class="w-16 h-16 bg-gray-100 rounded-full flex items-center justify-center mx-auto mb-4">
+              <i class="fas fa-user-slash text-gray-400 text-xl"></i>
+            </div>
+            <p class="text-gray-500 font-medium">No doctors assigned</p>
+            <p class="text-gray-400 text-sm">No doctors can read this specialty yet.</p>
+          </div>
+        `;
         return;
       }
+      
       list.innerHTML = '';
       doctors.forEach(doc => {
-        const statusDot = `<span class='inline-block w-2 h-2 rounded-full ${doc.active_status ? 'bg-green-500' : 'bg-red-500'} mr-2'></span>`;
+        // Fixed: Removed status dots from doctor display
         const div = document.createElement('div');
-        div.className = 'flex items-center gap-3 p-2 rounded hover:bg-gray-50 doctor-item';
-        div.innerHTML = `${statusDot}<a href='/radmapping/doctors/${doc.id}' target="_blank" class='font-medium text-blue-700 hover:underline'>${doc.name}</a> <span class='text-gray-500 text-sm'>${doc.email || ''}</span>`;
+        div.className = 'flex items-center gap-3 p-4 rounded-lg hover:bg-gray-50 doctor-item border border-gray-200 transition-colors';
+        div.innerHTML = `
+          <div class="flex-shrink-0 w-10 h-10 bg-gradient-to-r from-blue-500 to-purple-500 rounded-full flex items-center justify-center">
+            <span class="text-white font-medium text-sm">${doc.name.substring(0, 2).toUpperCase()}</span>
+          </div>
+          <div class="flex-1">
+            <div class="flex items-center">
+              <a href='/radmapping/doctors/${doc.id}' target="_blank" class='font-medium text-blue-600 hover:text-blue-800 transition-colors'>${doc.name}</a>
+            </div>
+            ${doc.email ? `<p class='text-gray-500 text-sm mt-1'>${doc.email}</p>` : ''}
+          </div>
+          <div class="flex-shrink-0">
+            <span class='inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${doc.active_status ? 'bg-green-100 text-green-800' : 'bg-red-100 text-red-800'}'>
+              ${doc.active_status ? 'Active' : 'Inactive'}
+            </span>
+          </div>
+        `;
         list.appendChild(div);
       });
+    })
+    .catch(error => {
+      list.innerHTML = `
+        <div class="text-center py-8">
+          <div class="w-16 h-16 bg-red-100 rounded-full flex items-center justify-center mx-auto mb-4">
+            <i class="fas fa-exclamation-triangle text-red-500 text-xl"></i>
+          </div>
+          <p class="text-red-600 font-medium">Error loading doctors</p>
+          <p class="text-gray-500 text-sm">Please try again later.</p>
+        </div>
+      `;
     });
 }
 
@@ -234,7 +447,7 @@ function filterSpecialtyDoctors() {
   const query = document.getElementById('specialtyDoctorsSearch').value.toLowerCase();
   document.querySelectorAll('#specialtyDoctorsList .doctor-item').forEach(item => {
     const name = item.querySelector('a').textContent.toLowerCase();
-    const email = item.querySelector('.text-gray-500').textContent.toLowerCase();
+    const email = item.querySelector('.text-gray-500')?.textContent.toLowerCase() || '';
     item.style.display = (name.includes(query) || email.includes(query)) ? '' : 'none';
   });
 }
@@ -247,19 +460,38 @@ function openEditDoctorsModal(specialtyId, specialtyName) {
   document.getElementById('editSpecialtyId').value = specialtyId;
   document.getElementById('editSpecialtyName').textContent = specialtyName;
   const checklist = document.getElementById('doctorsChecklist');
-  checklist.innerHTML = '<div class="text-gray-400 text-sm">Loading...</div>';
+  checklist.innerHTML = '<div class="flex items-center justify-center py-4 text-gray-400 loading"><i class="fas fa-spinner fa-spin mr-2"></i>Loading doctors...</div>';
   document.getElementById('editDoctorsModal').classList.remove('hidden');
-  // Fetch current doctors for this specialty
+  
   fetch(`/radmapping/specialties/${specialtyId}/doctors/all`)
     .then(res => res.json())
     .then(data => {
       checklist.innerHTML = '';
       data.doctors.forEach(doc => {
-        const id = `doc-check-${doc.id}`;
         const checked = doc.assigned ? 'checked' : '';
-        checklist.innerHTML += `<label class='flex items-center gap-2 doctor-check-item'><input type='checkbox' name='doctor_ids' value='${doc.id}' ${checked}> <span class='doctor-name'>${doc.name}</span> <span class='text-gray-400 text-xs ml-1'>${doc.email || ''}</span></label>`;
+        const checkboxDiv = document.createElement('div');
+        checkboxDiv.className = 'doctor-check-item flex items-center p-3 rounded-lg border border-gray-200 hover:bg-gray-50 transition-colors';
+        checkboxDiv.innerHTML = `
+          <input type='checkbox' name='doctor_ids' value='${doc.id}' ${checked} 
+                 class='w-4 h-4 text-purple-600 bg-gray-100 border-gray-300 rounded focus:ring-purple-500 focus:ring-2'>
+          <div class="ml-3 flex-1">
+            <div class="flex items-center">
+              <span class='doctor-name font-medium text-gray-900'>${doc.name}</span>
+              ${doc.assigned ? '<span class="ml-2 inline-flex items-center px-2 py-0.5 rounded text-xs font-medium bg-green-100 text-green-800">Assigned</span>' : ''}
+            </div>
+            ${doc.email ? `<span class='text-gray-500 text-sm'>${doc.email}</span>` : ''}
+          </div>
+        `;
+        checklist.appendChild(checkboxDiv);
       });
       document.getElementById('doctorModalSearch').value = '';
+    })
+    .catch(error => {
+      checklist.innerHTML = `
+        <div class="text-center py-4">
+          <p class="text-red-600">Error loading doctors. Please try again.</p>
+        </div>
+      `;
     });
 }
 
@@ -272,6 +504,7 @@ function submitEditDoctors(e) {
   const form = document.getElementById('editDoctorsForm');
   const specialtyId = form.specialty_id.value;
   const checked = Array.from(form.querySelectorAll('input[name="doctor_ids"]:checked')).map(cb => cb.value);
+  
   fetch(`/radmapping/specialties/${specialtyId}/doctors/update`, {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
@@ -281,10 +514,13 @@ function submitEditDoctors(e) {
   .then(data => {
     if (data.status === 'success') {
       closeEditDoctorsModal();
-      // Optionally, show a toast or reload the page/section
+      // Show success message or reload
     } else {
       alert('Failed to update doctors');
     }
+  })
+  .catch(error => {
+    alert('Error updating doctors');
   });
 }
 
@@ -292,7 +528,7 @@ function filterDoctorsChecklist() {
   const q = document.getElementById('doctorModalSearch').value.toLowerCase();
   document.querySelectorAll('#doctorsChecklist .doctor-check-item').forEach(item => {
     const name = item.querySelector('.doctor-name').textContent.toLowerCase();
-    const email = item.querySelector('.text-gray-400').textContent.toLowerCase();
+    const email = item.querySelector('.text-gray-500')?.textContent.toLowerCase() || '';
     item.style.display = (name.includes(q) || email.includes(q)) ? '' : 'none';
   });
 }
@@ -311,4 +547,4 @@ function closeDeleteSpecialtyModal() {
   document.getElementById('deleteSpecialtyModal').classList.add('hidden');
 }
 </script>
-{% endblock %} 
+{% endblock %}
