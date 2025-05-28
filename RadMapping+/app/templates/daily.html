@@ -3,6 +3,7 @@
 
 {% block content %}
 
+
   <!-- Add these hidden elements at the top of your template -->
   <script type="application/json" id="doctors-by-timezone">
     {{ doctors_by_timezone | tojson | safe }}
@@ -570,7 +571,6 @@
     }
   });
   </script>
-
 
 
 {% endblock %}
