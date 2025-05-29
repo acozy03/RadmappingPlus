@@ -350,13 +350,18 @@ def shifts():
     # Get all doctor-facility assignments
 
 
-    facility_assignments_data = fetch_all_rows("doctor_facility_assignments", "radiologist_id, facilities(name)")
+    facility_assignments_data = fetch_all_rows("doctor_facility_assignments", "radiologist_id, can_read, facilities(name)")
+
     facility_map = defaultdict(list)
-    for row in facility_assignments_data or []:
+    for row in facility_assignments_data:
+        if str(row.get("can_read")).strip().lower() != "true":
+            continue  # Skip if can_read is not exactly 'true'
+
         rad_id = str(row["radiologist_id"]).strip()
         facility_name = row.get("facilities", {}).get("name")
         if rad_id and facility_name:
             facility_map[rad_id].append(facility_name.strip())
+
 
     
     # Step 1: Get all facility names
