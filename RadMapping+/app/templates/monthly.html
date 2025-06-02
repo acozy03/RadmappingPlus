@@ -104,9 +104,10 @@
                                             {% set is_vac = schedule.schedule_details and schedule.schedule_details.strip().upper() == 'VACATION' %}
                                             <span class="cell-time text-sm">
                                                 {% if is_off %}
-                                                    <span class="text-gray-900">OFF</span>
-                                                {% elif is_vac %}
-                                                    <span class="text-gray-900">VACATION</span>
+                                                  <span class="text-red-700 font-bold">OFF</span>
+                                              {% elif is_vac %}
+                                                  <span class="text-red-700 font-bold">VACATION</span>
+
                                                 {% elif schedule.schedule_details and schedule.schedule_details.strip().upper() == 'REACH AS NEEDED' %}
                                                     <span class="text-gray-900">REACH AS NEEDED</span>
                                                 {% else %}

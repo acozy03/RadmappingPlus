@@ -290,7 +290,7 @@
                   </span>
                 </div>
                 <div class="doctor-popup-placeholder" data-popup-id="{{ doc.id }}"></div>
-
+                  <div class="shift-badge absolute bottom-2 right-2 text-xs font-medium px-2 py-0.5 rounded-full shadow-sm"></div>
               </li>
             {% endfor %}
           </ul>
@@ -546,40 +546,72 @@
   }
 
 
-  function colorDoctorBlocks() {
-    document.querySelectorAll("li[data-start-dt][data-end-dt]").forEach(el => {
-      const slotDiv = el.closest('[id^="hour-"]');
-      if (!slotDiv) return;
-      const slotDtStr = slotDiv.getAttribute('data-slot-datetime');
-      if (!slotDtStr) return;
-      const slotDt = new Date(slotDtStr);
-      const startDt = new Date(el.dataset.startDt);
-      const endDt = new Date(el.dataset.endDt);
+ function colorDoctorBlocks() {
+      document.querySelectorAll("li[data-start-dt][data-end-dt]").forEach(el => {
+        const slotDiv = el.closest('[id^="hour-"]');
+        if (!slotDiv) return;
+        const slotDtStr = slotDiv.getAttribute('data-slot-datetime');
+        if (!slotDtStr) return;
+        const slotDt = new Date(slotDtStr);
+        const startDt = new Date(el.dataset.startDt);
+        const endDt = new Date(el.dataset.endDt);
 
-      // Reset any existing color classes
-      el.classList.remove("bg-green-50", "border-green-200", "bg-yellow-50", "border-yellow-200", "bg-red-50", "border-red-200");
-      el.classList.add("bg-green-50", "border-green-200");
-      if (slotDt >= startDt && slotDt < endDt) {
-        // Calculate percentage remaining in shift
-        const totalMs = endDt - startDt;
-        const msSinceStart = slotDt - startDt;
-        const msRemaining = totalMs - msSinceStart;
-        const percentageRemaining = (msRemaining / totalMs) * 100;
-        // Check if this is the last hour block of the shift
-        const nextHourDt = new Date(slotDt.getTime() + 60 * 60 * 1000);
-        const isLastHourBlock = nextHourDt >= endDt;
-        if (isLastHourBlock) {
-          el.classList.add("bg-red-50", "border-red-200");
-        } else if (percentageRemaining > 75) {
-          el.classList.add("bg-green-50", "border-green-200");
-        } else if (percentageRemaining > 25) {
-          el.classList.add("bg-yellow-50", "border-yellow-200");
-        } else {
-          el.classList.add("bg-red-50", "border-red-200");
+        el.classList.remove("bg-green-50", "border-green-200", "bg-yellow-50", "border-yellow-200", "bg-red-50", "border-red-200");
+        const badge = el.querySelector(".shift-badge");
+        if (badge) {
+          badge.className = "shift-badge absolute bottom-2 right-2 text-xs font-medium px-2 py-0.5 rounded-full shadow-sm";
+          badge.textContent = "";
         }
-      }
-    });
-  }
+
+        if (slotDt < endDt) {
+          const totalMs = endDt - startDt;
+          const msSinceStart = Math.max(slotDt - startDt, 0); // avoid negative if shift hasn't started
+          const msRemaining = totalMs - msSinceStart;
+          const percentageRemaining = (msRemaining / totalMs) * 100;
+
+          const minutesLeft = Math.round(msRemaining / 60000);
+          const hours = Math.floor(minutesLeft / 60);
+          const minutes = minutesLeft % 60;
+
+          let timeLeftStr;
+          if (minutesLeft < 60) {
+            timeLeftStr = '<1hr left';
+          } else if (minutes === 0) {
+            if (hours === 1) {
+              timeLeftStr = '1hr left';
+            } else if (hours < 24) {
+              timeLeftStr = `${hours}hrs left`;
+            } 
+          } else {
+            timeLeftStr = `${hours}h ${minutes}m left`;
+          }
+
+          const nextHourDt = new Date(slotDt.getTime() + 60 * 60 * 1000);
+          const isLastHourBlock = nextHourDt >= endDt;
+
+          if (isLastHourBlock || percentageRemaining <= 25) {
+            el.classList.add("bg-red-50", "border-red-200");
+            if (badge) {
+              badge.textContent = timeLeftStr;
+              badge.classList.add("bg-red-100", "text-red-800");
+            }
+          } else if (percentageRemaining <= 75) {
+            el.classList.add("bg-yellow-50", "border-yellow-200");
+            if (badge) {
+              badge.textContent = timeLeftStr;
+              badge.classList.add("bg-yellow-100", "text-yellow-800");
+            }
+          } else {
+            el.classList.add("bg-green-50", "border-green-200");
+            if (badge) {
+              badge.textContent = timeLeftStr;
+              badge.classList.add("bg-green-100", "text-green-800");
+            }
+          }
+        }
+      });
+    }
+  
 
   function applyDateTimeFilter() {
     const startDate = document.getElementById('filterStartDate').value;
