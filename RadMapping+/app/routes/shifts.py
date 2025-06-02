@@ -210,7 +210,7 @@ def shifts():
     # 1. Batch calculate all previous date/hour lookups
     prev_dates_hours_map = {}
     for slot in all_hour_slots:
-        prev_date_str, prev_hour_int = get_prev_month_same_dow_and_hour(slot["datetime"])
+        prev_date_str, prev_hour_int = get_prev_week_same_day_and_hour(slot["datetime"])
         if prev_date_str is not None:
             prev_dates_hours_map[(slot["datetime"], (prev_date_str, prev_hour_int))] = True
 
@@ -234,7 +234,7 @@ def shifts():
     hourly_rvu_stats = {}
     for slot in all_hour_slots:
         slot_dt = slot["datetime"]
-        prev_date_str, prev_hour_int = get_prev_month_same_dow_and_hour(slot_dt)
+        prev_date_str, prev_hour_int = get_prev_week_same_day_and_hour(slot_dt)
         historical_rvu = None
         if prev_date_str is not None:
             historical_rvu = historical_rvu_lookup.get((prev_date_str, prev_hour_int))
