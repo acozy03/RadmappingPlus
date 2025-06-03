@@ -19,7 +19,7 @@
     hoveredFacility: '' 
 }">
 
-<h1 class="text-2xl font-bold text-gray-800 mb-6">Capacity Gaps</h1>
+<h1 class="text-2xl font-semibold text-gray-800 mb-6">Capacity Gaps</h1>
 
 {# Filter Controls #}
 <div x-data="{
@@ -185,7 +185,7 @@
 </div>
 
 <div class="overflow-x-auto">
-    <div class="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-5 xl:grid-cols-7 gap-4 py-2">
+    <div class="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-5 xl:grid-cols-7 gap-4 px-2 py-2">
         {% set today_date = namespace(value=(datetime.utcnow().date())) %}
 
         {% for day, color_grouped_slots in weekly_data_by_day_and_color.items() %}
