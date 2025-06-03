@@ -128,6 +128,14 @@
                 <option value="{{ loop.index0 }}">{{ slot.label }} {{ slot.day_label }}</option>
               {% endfor %}
             </select>
+<button type="button"
+        onclick="resetHourFilter()"
+        class="bg-blue-600 text-white px-2 py-1 rounded text-sm font-medium hover:bg-blue-700 transition">
+  Reset
+</button>
+
+</button>
+
           </form>
 
           <!-- Search bar -->
@@ -148,7 +156,7 @@
 
         <!-- Right side: Timezone tiles -->
         <div class="flex gap-2 flex-nowrap">
-          {% for zone in ["EST", "CST", "PST", "UTC"] %}
+          {% for zone in ["EST", "CST", "PST"] %}
             <div class="bg-white hover:bg-blue-50 px-3 py-2 rounded-lg shadow-sm timezone-tile transition-colors cursor-pointer whitespace-nowrap border border-blue-100"
                  onclick="openTimezonePopup('{{ zone }}')">
               <div class="flex items-center gap-2">
@@ -759,6 +767,28 @@
       modal.classList.add("hidden");
     }
   });
+
+function resetHourFilter() {
+  const startSelect = document.getElementById("startHour");
+  const endSelect = document.getElementById("endHour");
+
+  if (!startSelect || !endSelect) return;
+
+  
+  const today = new Date().toISOString().split("T")[0];
+  const isToday = "{{ today }}" === new Date().toISOString().split('T')[0];
+  if (isToday) {
+    // Reset to current hour
+    setInitialHourFilter();
+  } else {
+    // Reset to full day
+    startSelect.value = "0";
+    endSelect.value = "";
+  }
+
+  filterByCustomRange();
+}
+
   </script>
 
 {% endblock %}
