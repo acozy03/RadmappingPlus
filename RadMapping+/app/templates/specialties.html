@@ -67,17 +67,17 @@
         {% endif %}
       </div>
       
-      <!-- Fixed: Description with flex-grow to push button to bottom -->
+      <!-- Fixed: Description with flex-grow to push button to bottom
       <div class="flex-grow mb-4">
         {% if specialty.description %}
         <p class="text-gray-600 text-sm leading-relaxed">
           {{ specialty.description }}
         </p>
         {% else %}
-        <p class="text-gray-400 text-sm italic">No description available</p>
+        <p class="text-gray-400 text-sm italic"></p>
         {% endif %}
       </div>
-      
+       -->
       <!-- Fixed: Button always at bottom -->
       <button onclick="showDoctorsForSpecialty('{{ specialty.id }}', '{{ specialty.name|escape }}')"
               class="w-full inline-flex items-center justify-center px-4 py-2 bg-gray-50 text-gray-700 font-medium rounded-lg hover:bg-purple-50 hover:text-purple-700 transition-colors group mt-auto">
