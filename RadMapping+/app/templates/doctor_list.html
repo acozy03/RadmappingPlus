@@ -452,17 +452,15 @@ function resetPins() {
 
 function filterPinModalDoctors() {
   const searchTerm = document.getElementById('pinModalSearch').value.toLowerCase();
-  const doctorItems = document.querySelectorAll('.doctor-item');
+  const doctorItems = document.querySelectorAll('#pinDoctorsList .doctor-item');
+
   doctorItems.forEach(item => {
-    const checkbox = item.querySelector('.pin-checkbox');
-    const doctorName = checkbox.dataset.doctorName;
-    if (doctorName.includes(searchTerm)) {
-      item.style.display = '';
-    } else {
-      item.style.display = 'none';
-    }
+    const label = item.querySelector('label');
+    const name = label ? label.textContent.toLowerCase() : '';
+    item.style.display = name.includes(searchTerm) ? '' : 'none';
   });
 }
+
 
 function openAddDoctorModal() {
   document.getElementById('addDoctorModal').classList.remove('hidden');
