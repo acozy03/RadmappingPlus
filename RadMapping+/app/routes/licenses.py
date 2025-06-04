@@ -92,6 +92,18 @@ def licenses_page():
         expiration_date = request.form.get("exp")
         print("Expiration Date:", expiration_date)
         specialty = request.form.get("specialty")
+
+        # If blank, pull specialty from an existing cert for that doctor
+        if not specialty:
+            existing = supabase.table("certifications") \
+                .select("specialty") \
+                .eq("radiologist_id", doctor_id) \
+                .neq("specialty", None) \
+                .limit(1) \
+                .execute()
+            if existing.data:
+                specialty = existing.data[0]["specialty"]
+
         print("Specialty:", specialty)
         tags = request.form.get("tags")
         print("Tags:", tags)
