@@ -426,7 +426,8 @@
               <td class="px-4 py-2 border-b">
                 <textarea name="notes_{{ assignment.id }}" class="w-full border rounded px-2 py-1">{{ assignment.notes }}</textarea>
               </td>
-              <input type="hidden" name="assignment_ids" value="{{ assignment.id }}">
+              <input type="hidden" name="assignment_ids[]" value="{{ assignment.id }}">
+
             </tr>
             {% endfor %}
           </tbody>

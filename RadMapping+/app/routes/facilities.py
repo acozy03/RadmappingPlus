@@ -222,14 +222,19 @@ def add_facility():
 @admin_required
 def bulk_update_assignments(facility_id):
     supabase = get_supabase_client()
-    assignment_ids = request.form.getlist('assignment_ids')
+    assignment_ids = request.form.getlist("assignment_ids[]") or request.form.getlist("assignment_ids")
+
 
     for assignment_id in assignment_ids:
         # Update assignment's can_read status
         can_read = request.form.get(f'can_read_{assignment_id}', 'true')
+        notes = request.form.get(f'notes_{assignment_id}', '')
+        print(f"Assignment {assignment_id} - Notes: {notes}")
         supabase.table('doctor_facility_assignments').update({
-            'can_read': can_read
+            'can_read': can_read,
+            'notes': notes
         }).eq('id', assignment_id).execute()
+       
 
         # Get corresponding radiologist ID from the assignment
         assignment = supabase.table('doctor_facility_assignments') \

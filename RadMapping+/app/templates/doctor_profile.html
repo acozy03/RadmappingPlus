@@ -107,9 +107,25 @@
         <div>
           <div class="text-xs text-gray-500 font-semibold uppercase">Specialties</div>
           <div class="flex flex-wrap gap-2 mt-1">
-            {% for spec in doctor_specialties %}
-              <span class="inline-block bg-orange-200 text-orange-800 px-2 py-1 rounded text-xs font-semibold">{{ spec.name }}</span>
-            {% endfor %}
+ <div x-data="{ showAll: false }" class="flex flex-wrap gap-2 mt-1">
+  {% for spec in doctor_specialties %}
+    <span
+      class="inline-block bg-orange-200 text-orange-800 px-2 py-1 rounded text-xs font-semibold"
+      x-show="showAll || {{ loop.index }} <= 5"
+      x-transition
+    >
+      {{ spec.name }}
+    </span>
+  {% endfor %}
+  {% if doctor_specialties|length > 5 %}
+    <button
+      class="text-blue-600 text-xs font-semibold ml-1 underline focus:outline-none"
+      @click="showAll = !showAll"
+      x-text="showAll ? 'Show Less' : 'Show More'">
+    </button>
+  {% endif %}
+</div>
+
           </div>
         </div>
       </div>
