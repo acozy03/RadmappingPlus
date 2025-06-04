@@ -24,10 +24,12 @@ def facilities():
 
     # Fetch paginated facilities
     res = supabase.table("facilities") \
-        .select("*") \
+        .select("*", count='exact') \
         .order("name") \
+        .order("id") \
         .range(offset, offset + per_page - 1) \
         .execute()
+
     facilities = res.data
 
     return render_template("facility_list.html", 
@@ -44,34 +46,37 @@ def search_facilities():
     page = int(request.args.get('page', 1))
     per_page = int(request.args.get('per_page', 25))
     status = request.args.get('status', 'all')
-    
+
     offset = (page - 1) * per_page
-    
-    # Build the query
-    query = supabase.table("facilities").select("*", count='exact')
-    
-    # Add search condition if search term exists
+
+    # Build base query
+    query = supabase.table("facilities").select("*", count="exact")
+
+    # Apply filters FIRST
     if search_term:
-        query = query.ilike('name', f'%{search_term}%')
-    
-    # Add status filter
-    if status == 'active':
-        query = query.eq('active_status', 'true')
-    elif status == 'inactive':
-        query = query.eq('active_status', 'false')
-    
-    # Add pagination
+        query = query.ilike("name", f"%{search_term}%")
+    if status == "active":
+        query = query.eq("active_status", "true")
+    elif status == "inactive":
+        query = query.eq("active_status", "false")
+
+    # THEN apply ordering
+    query = query.order("name")
+
+
+    # Finally paginate
     query = query.range(offset, offset + per_page - 1)
-    
-    # Execute query
+
+    # Execute and return
     result = query.execute()
-    
+
     return jsonify({
-        'facilities': result.data,
-        'total_count': result.count,
-        'current_page': page,
-        'per_page': per_page
+        "facilities": result.data,
+        "total_count": result.count,
+        "current_page": page,
+        "per_page": per_page
     })
+
 
 @facilities_bp.route('/facilities/<string:facility_id>')
 @with_supabase_auth

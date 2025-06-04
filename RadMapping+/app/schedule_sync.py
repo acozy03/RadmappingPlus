@@ -10,39 +10,31 @@ def run_google_sheet_sync(sheet_name: str = "March 2025"):
     from collections import defaultdict
     from app.supabase_client import get_supabase_client
     import google.auth
-    import os 
+    import os
 
     url = os.getenv("SUPABASE_URL", "").strip()
     key = os.getenv("SUPABASE_SUPER_KEY", "").strip()
 
     supabase: Client = create_client(url, key)
-    
     creds, _ = google.auth.default()
     gc = gspread.authorize(creds)
-
     sh = gc.open("Rad Monthy Schedule ")
     worksheet = sh.worksheet(sheet_name)
 
-        # === Load Sheet Data ===
     data = worksheet.get_all_values()
     headers = data[0]
     rows = data[1:]
 
-    # === Load Radiologists from Supabase ===
     radiologists = supabase.table("radiologists").select("id", "name").execute().data
     if not radiologists:
-        raise RuntimeError("❌ No radiologists found in Supabase. Check your database and auth tokens.")
-
+        raise RuntimeError("❌ No radiologists found in Supabase.")
 
     name_map = {r["name"].strip(): r["id"] for r in radiologists}
     name_list = list(name_map.keys())
 
-    # === Helpers ===
     keywords = {"OFF", "VACATION", "REACH AS NEEDED"}
-    time_pattern = re.compile(
-        r'(\d{1,2}(?::?\d{2})?\s*(?:am|pm))\s*[-–—]\s*(\d{1,2}(?::?\d{2})?\s*(?:am|pm))',
-        re.IGNORECASE
-    )
+    time_pattern = re.compile(r'(\d{1,2}(?::?\d{2})?\s*(?:am|pm))\s*[-–—]\s*(\d{1,2}(?::?\d{2})?\s*(?:am|pm))', re.IGNORECASE)
+    lone_time_pattern = re.compile(r'(?<![-–—])\b(\d{1,2}(?::?\d{2})?\s*(?:am|pm))\b(?!\s*[-–—])', re.IGNORECASE)
 
     def parse_time(t):
         t = t.lower().replace(" ", "")
@@ -54,15 +46,35 @@ def run_google_sheet_sync(sheet_name: str = "March 2025"):
         return None
 
     def extract_all_times(cell_value):
-        times = []
-        for match in time_pattern.finditer(cell_value):
+        # Step 1: selectively remove parentheses that contain 'PRN'
+        def remove_prn_parens(text):
+            return re.sub(r'\(([^)]*PRN[^)]*)\)', '', text, flags=re.IGNORECASE)
+
+        stripped = remove_prn_parens(cell_value)
+
+        matches = []
+
+        # Step 2: match all time ranges from the cleaned string
+        for match in time_pattern.finditer(stripped):
             start_time = parse_time(match.group(1))
             end_time = parse_time(match.group(2))
             if start_time and end_time:
-                times.extend([start_time, end_time])
-        return times
+                matches.append((match.start(), start_time))
+                matches.append((match.end(), end_time))
 
-    # === Parse Logic ===
+        # Step 3: add lone times not already part of a range
+        for match in lone_time_pattern.finditer(stripped):
+            t = parse_time(match.group(1))
+            if not t:
+                continue
+            if not any(abs(match.start() - m[0]) <= 1 for m in matches):
+                matches.append((match.start(), t))
+
+        matches.sort(key=lambda x: x[0])
+        return [t for _, t in matches]
+
+
+
     schedule_rows = []
 
     for row_idx, row in enumerate(rows):
@@ -71,17 +83,11 @@ def run_google_sheet_sync(sheet_name: str = "March 2025"):
 
         raw_name = row[1].split("-")[0].strip()
         result = process.extractOne(raw_name, name_list)
-        if result:
-            # Handle both 2-tuple and 3-tuple return formats from RapidFuzz
-            match, score = result[:2]
-            if score < 80:
-                print(f"[Row {row_idx}] Low-confidence match for: '{raw_name}' → '{match}' (score: {score})")
-                continue
-            rad_id = name_map[match]
-        else:
-            print(f"[Row {row_idx}] No match found for: '{raw_name}'")
+        if not result or result[1] < 80:
+            print(f"[Row {row_idx}] No confident match for: '{raw_name}'")
             continue
 
+        rad_id = name_map[result[0]]
 
         for col_idx, cell in enumerate(row[2:], start=2):
             cell_value = str(cell).strip()
@@ -97,12 +103,24 @@ def run_google_sheet_sync(sheet_name: str = "March 2025"):
 
             upper_val = cell_value.upper()
             times = extract_all_times(cell_value)
-            
-            if len(times) == 2:
-                # Regular shift: start_time to end_time
-                start_time, end_time = times
+
+            if row_idx == 10:
+                print(f"[Row {row_idx}, Col {col_idx}] Parsed times: {times} from '{cell_value}'")
+
+            if len(times) >= 2:
+                start_time, end_time = times[0], times[-1]
+                break_start = break_end = None
+
+                if len(times) == 4:
+                    t1, t2, t3, t4 = times
+                    gap = datetime.combine(date, t3) - datetime.combine(date, t2)
+                    if gap.total_seconds() > 0:
+                        break_start = t2
+                        break_end = t3
+
                 crosses_midnight = datetime.combine(date, end_time) < datetime.combine(date, start_time)
                 end_date = date + timedelta(days=1) if crosses_midnight else date
+
                 schedule_rows.append({
                     "id": str(uuid.uuid4()),
                     "radiologist_id": rad_id,
@@ -110,44 +128,11 @@ def run_google_sheet_sync(sheet_name: str = "March 2025"):
                     "start_time": start_time.strftime("%H:%M:%S"),
                     "end_date": end_date.isoformat(),
                     "end_time": end_time.strftime("%H:%M:%S"),
-                    "break_start": None,
-                    "break_end": None,
+                    "break_start": break_start.strftime("%H:%M:%S") if break_start else None,
+                    "break_end": break_end.strftime("%H:%M:%S") if break_end else None,
                     "schedule_details": cell_value,
                 })
-            elif len(times) == 3:
-                # Sort times and use first and last times, ignore middle time
-                sorted_times = sorted(times)
-                start_time, _, end_time = sorted_times
-                crosses_midnight = datetime.combine(date, end_time) < datetime.combine(date, start_time)
-                end_date = date + timedelta(days=1) if crosses_midnight else date
-                schedule_rows.append({
-                    "id": str(uuid.uuid4()),
-                    "radiologist_id": rad_id,
-                    "start_date": date.isoformat(),
-                    "start_time": start_time.strftime("%H:%M:%S"),
-                    "end_date": end_date.isoformat(),
-                    "end_time": end_time.strftime("%H:%M:%S"),
-                    "break_start": None,
-                    "break_end": None,
-                    "schedule_details": cell_value,
-                })
-            elif len(times) == 4:
-                # Sort times and use them as start_time, break_start, break_end, end_time
-                sorted_times = sorted(times)
-                start_time, break_start, break_end, end_time = sorted_times
-                crosses_midnight = datetime.combine(date, end_time) < datetime.combine(date, start_time)
-                end_date = date + timedelta(days=1) if crosses_midnight else date
-                schedule_rows.append({
-                    "id": str(uuid.uuid4()),
-                    "radiologist_id": rad_id,
-                    "start_date": date.isoformat(),
-                    "start_time": start_time.strftime("%H:%M:%S"),
-                    "end_date": end_date.isoformat(),
-                    "end_time": end_time.strftime("%H:%M:%S"),
-                    "break_start": break_start.strftime("%H:%M:%S"),
-                    "break_end": break_end.strftime("%H:%M:%S"),
-                    "schedule_details": cell_value,
-                })
+
             elif any(kw in upper_val for kw in keywords):
                 schedule_rows.append({
                     "id": str(uuid.uuid4()),
@@ -161,8 +146,7 @@ def run_google_sheet_sync(sheet_name: str = "March 2025"):
                     "schedule_details": cell_value.title(),
                 })
             else:
-                # Insert unrecognized content with schedule details
-                print(f"⚠️ Unrecognized content, inserting anyway: '{cell_value}' (Row {row_idx}, Col {col_idx})")
+                print(f"⚠️ Unrecognized content: '{cell_value}' (Row {row_idx}, Col {col_idx})")
                 schedule_rows.append({
                     "id": str(uuid.uuid4()),
                     "radiologist_id": rad_id,
@@ -175,23 +159,9 @@ def run_google_sheet_sync(sheet_name: str = "March 2025"):
                     "schedule_details": cell_value,
                 })
 
-    # === Print debug sample ===
-    reverse_name_map = {v: k for k, v in name_map.items()}
-    parsed_by_doctor = defaultdict(list)
-    for row in schedule_rows:
-        doc_name = reverse_name_map.get(row["radiologist_id"], "Unknown")
-        parsed_by_doctor[doc_name].append(row)
-
-    # print("\n===== DEBUG: First 3 parsed shifts per doctor =====")
-    # for doc_name, shifts in parsed_by_doctor.items():
-    #     print(f"\nDoctor: {doc_name}")
-    #     for shift in shifts[:3]:
-    #         print(f"  - Start: {shift['start_date']} {shift['start_time']}, End: {shift['end_date']} {shift['end_time']}, Details: {shift['schedule_details']}")
-
-    # === Delete existing entries for the month ===
-    sheet_title = worksheet.title.strip()
+    # Delete existing entries for the month
     try:
-        month_name, year = sheet_title.split()
+        month_name, year = worksheet.title.strip().split()
         month_num = list(calendar.month_name).index(month_name)
         year = int(year)
         first_day = datetime(year, month_num, 1).date()
@@ -202,13 +172,12 @@ def run_google_sheet_sync(sheet_name: str = "March 2025"):
             .gte("start_date", first_day.isoformat()) \
             .lte("start_date", last_day.isoformat()) \
             .execute()
-        print(f"Old entries for {sheet_title} deleted.")
+        print(f"🗑️ Old entries for {worksheet.title} deleted.")
     except Exception as e:
-        print(f"❌ Failed to parse month from sheet title '{sheet_title}': {e}")
+        print(f"❌ Failed to parse sheet title '{worksheet.title}': {e}")
 
-    # === Insert parsed rows ===
     if schedule_rows:
-        print("Fields in first row:", schedule_rows[0].keys())
+        print("✅ Inserting rows...")
         supabase.table("monthly_schedule").insert(schedule_rows).execute()
         print(f"✅ Inserted {len(schedule_rows)} schedule rows.")
     else:
