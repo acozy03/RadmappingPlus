@@ -208,9 +208,13 @@ def daily():
         doctors_on_shift_ids=list(doctors_on_shift_ids),
         doctors_currently_on_shift_ids=list(doctors_currently_on_shift_ids),
         selected_timezone=request.args.get("timezone", "EST"),
-        timezone_offset={
-            'EST': 0, 'CST': 1, 'PST': 3, 'UTC': 5
-        }.get(request.args.get("timezone", "EST"), 0),
+        timezone_offset = {
+    'EST': 0,
+    'CST': -1,
+    'PST': -3,
+    'UTC': +5,
+    'KST': +13
+}.get(request.args.get("timezone", "EST"), 0),
         hourly_rvu_stats=hourly_rvu_stats,
         rvu_rows=rvu_rows,
         get_latest_nonzero_rvu=get_latest_nonzero_rvu,

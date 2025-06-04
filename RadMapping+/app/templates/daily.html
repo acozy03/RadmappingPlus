@@ -196,7 +196,10 @@
           <span>
             {{ slot.label }}
             {% if selected_timezone != "sST" %}
-              <span class="text-sm text-gray-500 ml-1">({{ (slot.hour - timezone_offset)|int }}:00 {{ selected_timezone }})</span>
+            <span class="text-sm text-gray-500 ml-1">
+  ({{ (slot.hour + timezone_offset) % 24 }}:00 {{ selected_timezone }})
+</span>
+
             {% endif %}
           </span>
           <span class="flex items-center text-sm text-gray-700 relative" style="gap: 0.25rem;">
