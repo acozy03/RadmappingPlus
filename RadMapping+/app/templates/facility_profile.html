@@ -111,19 +111,30 @@
   <!-- Facility Contacts Card -->
   <div class="flex-1 min-w-0">
     <div class="bg-white rounded-lg shadow p-6 border h-full flex flex-col">
-      <div class="flex justify-between items-center mb-4">
-        <h3 class="text-lg font-semibold">Facility Contacts</h3>
-        {% if session.user.role == 'admin' %}
-          <button onclick="openAddContactModal()" class="bg-blue-600 text-white px-4 py-2 rounded text-sm font-medium hover:bg-blue-700">Add Contact</button>
-        {% endif %}
-      </div>
+      <div class="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 mb-4">
+  <div class="w-full sm:w-1/2 relative">
+    <input
+      type="text"
+      placeholder="Search contacts..."
+      oninput="filterContacts(this.value)"
+      class="w-full border border-gray-300 rounded-lg px-10 py-2 text-sm focus:ring-2 focus:ring-blue-200 focus:border-blue-400 bg-gray-50"
+    />
+    <span class="absolute left-3 top-2.5 text-gray-400 pointer-events-none">
+      <svg class="h-5 w-5" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
+    </span>
+  </div>
+  {% if session.user.role == 'admin' %}
+    <button onclick="openAddContactModal()" class="bg-blue-600 text-white px-4 py-2 rounded text-sm font-medium hover:bg-blue-700 whitespace-nowrap">Add Contact</button>
+  {% endif %}
+</div>
+
       {% if facility_contacts %}
         <div class="grid grid-cols-1 gap-4">
           {% for contact in facility_contacts %}
             <div class="border rounded-lg shadow-sm bg-gray-50 p-4 contact-item flex flex-col h-full">
-              <p class="text-blue-600 font-bold text-xl mb-3 pb-2 border-b">{{ contact.role }}</p>
+              <p class="text-blue-600 font-bold text-xl mb-3 pb-2 border-b searchable">{{ contact.role }}</p>
               <div class="space-y-2 flex-grow">
-                <div class="whitespace-pre-line">{{ contact.text }}</div>
+                <div class="whitespace-pre-line searchable">{{ contact.text }}</div>
               </div>
               <div class="mt-3 pt-3 border-t flex items-center justify-between">
                 {% if session.user.role == 'admin' %}
@@ -180,15 +191,38 @@
                 {% endif %}
               </tr>
             </thead>
+            <!-- Doctor Popups -->
+<div id="popup-container" class="absolute z-50 hidden"></div>
+
+<div id="all-doctor-popups" class="hidden">
+  {% for assignment in doctor_assignments %}
+    {% set doc = assignment.radiologists %}
+    <div id="popup-{{ doc.id }}" class="doctor-popup bg-white border p-4 rounded-lg shadow-lg w-[20rem]">
+      <h4 class="font-medium text-lg text-gray-900 mb-2">{{ doc.name }}</h4>
+      <div class="space-y-2 text-sm text-left">
+        <p><strong>Phone:</strong> {{ doc.phone or 'N/A' }}</p>
+        <p><strong>Email:</strong> {{ doc.email or 'N/A' }}</p>
+        <p><strong>PACS:</strong> {{ doc.pacs or 'N/A' }}</p>
+        <p><strong>Modalities:</strong> {{ doc.modalities or 'N/A' }}</p>
+        {% if doc.schedule_details %}
+          <p><strong>Schedule:</strong> {{ doc.schedule_details }}</p>
+        {% endif %}
+      </div>
+    </div>
+  {% endfor %}
+</div>
+
             <tbody>
               {% for assignment in doctor_assignments %}
               <tr class="hover:bg-blue-50 radiologist-item">
                 <td class="px-4 py-2 border-b">
-                  <a href="{{ url_for('doctors.doctor_profile', rad_id=assignment.radiologists.id) }}"
-                     target="_blank"
-                     class="text-blue-700 hover:underline">
-                    {{ assignment.radiologists.name }}
-                  </a>
+                <a href="{{ url_for('doctors.doctor_profile', rad_id=assignment.radiologists.id) }}"
+                  target="_blank"
+                  class="text-blue-700 hover:underline relative"
+                  onmouseenter="showDoctorPopup(event, '{{ assignment.radiologists.id }}')"
+                  onmouseleave="hideDoctorPopup()">
+                  {{ assignment.radiologists.name }}
+                </a>
                 </td>
                 <td class="px-4 py-2 border-b">
   {% if assignment.can_read == "true" %}
@@ -334,55 +368,72 @@
 
 <!-- Bulk Edit Assignments Modal -->
 <div id="bulkEditAssignmentsModal" class="fixed inset-0 z-50 hidden bg-black bg-opacity-50 flex items-center justify-center" onclick="if(event.target === this) closeBulkEditAssignmentsModal();">
-  <div class="bg-white rounded-lg shadow-lg w-[95%] max-w-4xl max-h-[90vh] overflow-y-auto p-6 relative" onclick="event.stopPropagation();">
+  <div class="bg-white rounded-lg shadow-lg w-[98%] max-w-7xl max-h-[95vh] overflow-y-auto p-6 relative" onclick="event.stopPropagation();">
     <button onclick="closeBulkEditAssignmentsModal()" class="absolute top-2 right-2 text-2xl font-bold text-gray-500 hover:text-black">×</button>
+    
     <h3 class="text-xl font-semibold mb-4">Bulk Edit Assigned Radiologists</h3>
+
     <form method="POST" action="{{ url_for('facilities.bulk_update_assignments', facility_id=facility.id) }}" class="space-y-4">
-      <div class="overflow-x-auto">
+      
+      <!-- Search bar -->
+      <div class="relative mb-4 w-full max-w-md">
+        <input
+          type="text"
+          placeholder="Search doctors..."
+          oninput="filterBulkDoctors(this.value)"
+          class="w-full border border-gray-300 rounded-lg px-10 py-2 text-sm focus:ring-2 focus:ring-blue-200 focus:border-blue-400 bg-gray-50"
+        />
+        <span class="absolute inset-y-0 left-0 flex items-center pl-3 text-gray-400 pointer-events-none">
+          <svg class="h-5 w-5" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+            <circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/>
+          </svg>
+        </span>
+      </div>
+
+      <!-- Table -->
+      <div class="overflow-y-auto" style="max-height: 60vh;">
         <table class="min-w-full bg-white border border-gray-200 text-sm rounded">
           <thead class="bg-gray-100 sticky top-0 z-10">
             <tr class="text-left">
               <th class="px-4 py-2 border-b">Name</th>
-              <th class="px-4 py-2 border-b">Can Read</th>
-              <th class="px-4 py-2 border-b">Does Stats</th>
-              <th class="px-4 py-2 border-b">Does Routines</th>
+              <th class="px-4 py-2 border-b w-40">Can Read</th>
+              <th class="px-4 py-2 border-b w-32 text-center">Does Stats</th>
+              <th class="px-4 py-2 border-b w-36 text-center">Does Routines</th>
               <th class="px-4 py-2 border-b">Stipulations</th>
               <th class="px-4 py-2 border-b">Notes</th>
             </tr>
           </thead>
+          <tbody>
+            {% for assignment in doctor_assignments %}
+            <tr class="border-t bulk-doctor-row">
+              <td class="px-4 py-2 border-b font-medium align-middle">{{ assignment.radiologists.name }}</td>
+              <td class="px-4 py-2 border-b text-center">
+                <select name="can_read_{{ assignment.id }}" class="w-full border rounded px-2 py-1">
+                  <option value="true" {% if assignment.can_read == "true" %}selected{% endif %}>Active</option>
+                  <option value="pending" {% if assignment.can_read == "pending" %}selected{% endif %}>Pending</option>
+                  <option value="false" {% if assignment.can_read == "false" %}selected{% endif %}>Inactive</option>
+                </select>
+              </td>
+              <td class="px-4 py-2 border-b text-center">
+                <input type="checkbox" name="reads_stats_{{ assignment.radiologists.id }}" {% if assignment.radiologists.reads_stats == 'YES' %}checked{% endif %} class="h-4 w-4">
+              </td>
+              <td class="px-4 py-2 border-b text-center">
+                <input type="checkbox" name="reads_routines_{{ assignment.radiologists.id }}" {% if assignment.radiologists.reads_routines == 'YES' %}checked{% endif %} class="h-4 w-4">
+              </td>
+              <td class="px-4 py-2 border-b">
+                <textarea name="stipulations_{{ assignment.radiologists.id }}" class="w-full border rounded px-2 py-1">{{ assignment.radiologists.stipulations }}</textarea>
+              </td>
+              <td class="px-4 py-2 border-b">
+                <textarea name="notes_{{ assignment.id }}" class="w-full border rounded px-2 py-1">{{ assignment.notes }}</textarea>
+              </td>
+              <input type="hidden" name="assignment_ids" value="{{ assignment.id }}">
+            </tr>
+            {% endfor %}
+          </tbody>
         </table>
-        <div class="overflow-y-auto" style="max-height: 50vh;">
-          <table class="min-w-full bg-white border border-gray-200 text-sm">
-            <tbody>
-              {% for assignment in doctor_assignments %}
-              <tr class="border-t">
-                <td class="px-4 py-2 border-b font-medium">{{ assignment.radiologists.name }}</td>
-                <td class="px-4 py-2 border-b text-center">
-                  <select name="can_read_{{ assignment.id }}" class="w-full border rounded px-2 py-1">
-                    <option value="true" {% if assignment.can_read == "true" %}selected{% endif %}>Active</option>
-                    <option value="pending" {% if assignment.can_read == "pending" %}selected{% endif %}>Pending</option>
-                    <option value="false" {% if assignment.can_read == "false" %}selected{% endif %}>Inactive</option>
-                  </select>
-                </td>
-                <td class="px-4 py-2 border-b text-center">
-                  <input type="checkbox" name="reads_stats_{{ assignment.radiologists.id }}" {% if assignment.radiologists.reads_stats == 'YES' %}checked{% endif %}>
-                </td>
-                <td class="px-4 py-2 border-b text-center">
-                  <input type="checkbox" name="reads_routines_{{ assignment.radiologists.id }}" {% if assignment.radiologists.reads_routines == 'YES' %}checked{% endif %}>
-                </td>
-                <td class="px-4 py-2 border-b">
-                  <textarea name="stipulations_{{ assignment.radiologists.id }}" class="w-full border rounded px-2 py-1">{{ assignment.radiologists.stipulations }}</textarea>
-                </td>
-                <td class="px-4 py-2 border-b">
-                  <textarea name="notes_{{ assignment.id }}" class="w-full border rounded px-2 py-1">{{ assignment.notes }}</textarea>
-                </td>
-                <input type="hidden" name="assignment_ids" value="{{ assignment.id }}">
-              </tr>
-              {% endfor %}
-            </tbody>
-          </table>
-        </div>
       </div>
+
+      <!-- Action Buttons -->
       <div class="flex justify-end gap-3 mt-4">
         <button type="button" onclick="closeBulkEditAssignmentsModal()" class="px-4 py-2 text-sm border rounded text-gray-700 hover:bg-gray-50">Cancel</button>
         <button type="submit" class="px-4 py-2 text-sm bg-blue-600 text-white rounded hover:bg-blue-700">Save Changes</button>
@@ -393,10 +444,21 @@
 
 
 
+
 <!-- Delete Contact Form (Hidden) -->
 <form id="deleteContactForm" method="POST" style="display: none;"></form>
 
 <script>
+  function filterBulkDoctors(query) {
+  const rows = document.querySelectorAll('.bulk-doctor-row');
+  const q = query.toLowerCase();
+
+  rows.forEach(row => {
+    const text = row.innerText.toLowerCase();
+    row.style.display = text.includes(q) ? '' : 'none';
+  });
+}
+
   function openContactModal() {
     document.getElementById('contactModal').classList.remove('hidden');
   }
@@ -531,6 +593,30 @@
       });
     });
   });
+
+  let popupTimeout;
+
+function showDoctorPopup(event, docId) {
+  clearTimeout(popupTimeout);
+  const popup = document.getElementById(`popup-${docId}`);
+  const container = document.getElementById("popup-container");
+
+  if (!popup || !container) return;
+
+  container.innerHTML = popup.outerHTML;
+  container.classList.remove("hidden");
+
+  const rect = event.target.getBoundingClientRect();
+  container.style.top = `${window.scrollY + rect.bottom + 8}px`;
+  container.style.left = `${rect.left}px`;
+}
+
+function hideDoctorPopup() {
+  popupTimeout = setTimeout(() => {
+    const container = document.getElementById("popup-container");
+    if (container) container.classList.add("hidden");
+  }, 150);
+}
 </script>
 
 {% if session.user.role == 'admin' %}

@@ -96,19 +96,42 @@ def facility_profile(facility_id):
     all_rads_res = supabase.table("radiologists").select("id, name").order("name").execute()
     all_radiologists = all_rads_res.data or []
     available_radiologists = [r for r in all_radiologists if r["id"] not in assigned_radiologist_ids]
+    
     # Get facility contacts
     contacts_res = supabase.table("facility_contact_assignments") \
         .select("*") \
         .eq("facility_id", facility_id) \
-        .order("role") \
         .execute()
-    
+
+    contacts = contacts_res.data or []
+
+    # Sort contacts by custom priority
+    preferred_order = [
+        "Primary Contact",
+        "Secondary Contact",
+        "Positive Findings",
+        "Critical Finding",
+        "Management Contact",
+        "Facility Address",
+        "Billing Contact",
+        "Credentialing Contact"
+    ]
+
+    def sort_key(contact):
+        try:
+            return preferred_order.index(contact['role'])
+        except ValueError:
+            return 999  # unknown roles go to the end
+
+    contacts.sort(key=sort_key)
+
     return render_template("facility_profile.html",
         facility=fac,
         doctor_assignments=assignment_res.data,
-        facility_contacts=contacts_res.data,
+        facility_contacts=contacts,
         available_radiologists=available_radiologists
     )
+
 
 @facilities_bp.route('/facilities/<string:facility_id>/contacts/add', methods=['POST'])
 @with_supabase_auth
