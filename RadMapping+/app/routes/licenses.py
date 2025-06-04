@@ -17,7 +17,8 @@ def delete_certification(rad_id, cert_id):
 
     supabase.table("certifications").delete().eq("id", cert_id).execute()
 
-    return redirect(url_for('doctors.doctor_profile', rad_id=rad_id))
+    return redirect(url_for('licenses.licenses_page'))
+
 
 @licenses_bp.route('/licenses/<string:license_id>/update', methods=["POST"])
 @with_supabase_auth
@@ -85,13 +86,19 @@ def licenses_page():
     # Handle Add License form submission
     if request.method == "POST":
         doctor_id = request.form.get("doctor")
+        print("Doctor ID:", doctor_id)
         state = request.form.get("state")
+        print("State:", state)
         expiration_date = request.form.get("exp")
+        print("Expiration Date:", expiration_date)
         specialty = request.form.get("specialty")
+        print("Specialty:", specialty)
         tags = request.form.get("tags")
+        print("Tags:", tags)
         status = request.form.get("status")
+        print("Status:", status)
         if doctor_id and state and expiration_date:
-            supabase.table("certifications").insert({
+            res = supabase.table("certifications").insert({
                 "id": str(uuid.uuid4()),
                 "radiologist_id": doctor_id,
                 "state": state,
@@ -100,8 +107,9 @@ def licenses_page():
                 "tags": tags,
                 "status": status
             }).execute()
+            print("Insert response:", res)
         return redirect(url_for("licenses.licenses_page"))
-
+       
     # Get pagination parameters
     page = request.args.get('page', 1, type=int)
     per_page = 25
@@ -118,7 +126,7 @@ def licenses_page():
         .range(offset, offset + per_page - 1) \
         .execute()
     certifications = certs_res.data or []
-    
+
     # Get current date for expiration checking
     now = datetime.now()
     

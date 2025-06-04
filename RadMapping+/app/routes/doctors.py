@@ -441,7 +441,7 @@ def update_doctor_specialties(doctor_id):
 def delete_certification(rad_id, cert_id):
     supabase = get_supabase_client()
     supabase.table("certifications").delete().eq("id", cert_id).execute()
-    return redirect(url_for('doctors.doctor_profile', rad_id=rad_id))
+    return redirect(url_for('licenses.licenses_page'))
 
 @doctors_bp.route('/doctors/<string:rad_id>/add_certification', methods=['POST'])
 @with_supabase_auth

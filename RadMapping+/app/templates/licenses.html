@@ -11,16 +11,99 @@
     <h2 class="text-3xl font-bold text-gray-900 mb-2">License Management</h2>
     <p class="text-gray-600">Track and manage radiologist certifications and licenses</p>
   </div>
+  <div class="flex flex-col sm:flex-row items-start sm:items-center gap-4">
   <div class="flex items-center gap-3">
-    <div class="flex items-center gap-2 text-sm text-gray-600">
-      <div class="w-3 h-3 bg-green-100 border border-green-300 rounded"></div>
-      <span>Active</span>
-    </div>
-    <div class="flex items-center gap-2 text-sm text-gray-600">
-      <div class="w-3 h-3 bg-red-100 border border-red-300 rounded"></div>
-      <span>Expired</span>
+    
+  </div>
+
+ {% if session.user.role == 'admin' %}
+<div x-data="{ open: false }" class="relative" id ="addLicenseModal">
+  <!-- Trigger Button -->
+  <button @click="open = true"
+          class="inline-flex items-center px-4 py-2 rounded-lg bg-blue-600 text-white text-sm font-semibold shadow-sm hover:bg-blue-700 transition">
+    Add License
+  </button>
+
+  <!-- Modal Background -->
+  <div x-show="open"
+       class="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50"
+       style="display: none;"
+       x-transition:enter="transition ease-out duration-150"
+       x-transition:enter-start="opacity-0"
+       x-transition:enter-end="opacity-100"
+       x-transition:leave="transition ease-in duration-100"
+       x-transition:leave-start="opacity-100"
+       x-transition:leave-end="opacity-0">
+
+    <!-- Modal Box -->
+    <div @click.away="open = false"
+         class="bg-white rounded-xl shadow-xl max-w-lg w-full p-6 relative z-50"
+         x-show="open"
+         style="display: none;">
+
+      <h3 class="text-lg font-semibold text-gray-800 mb-4">
+        Add New License
+      </h3>
+
+      <form method="POST" action="{{ url_for('licenses.licenses_page') }}" class="space-y-4">
+
+        <div>
+          <label class="block text-sm font-medium text-gray-700 mb-1">Radiologist</label>
+          <select name="doctor" required class="w-full border rounded px-3 py-2 text-sm">
+            {% for doc in radiologists %}
+              <option value="{{ doc.id }}">{{ doc.name }}</option>
+            {% endfor %}
+          </select>
+        </div>
+
+        <div>
+          <label class="block text-sm font-medium text-gray-700 mb-1">State</label>
+          <input type="text" name="state" required class="w-full border rounded px-3 py-2 text-sm">
+        </div>
+
+        <div>
+          <label class="block text-sm font-medium text-gray-700 mb-1">Expiration Date</label>
+          <input type="date" name="exp" required class="w-full border rounded px-3 py-2 text-sm">
+        </div>
+
+        <div>
+          <label class="block text-sm font-medium text-gray-700 mb-1">Status</label>
+          <select name="status" class="w-full border rounded px-3 py-2 text-sm">
+            <option value="Active">Active</option>
+            <option value="Expired">Expired</option>
+            <option value="Pending">Pending</option>
+            <option value="Revoked">Revoked</option>
+          </select>
+        </div>
+
+        <div>
+          <label class="block text-sm font-medium text-gray-700 mb-1">Specialty</label>
+          <input type="text" name="specialty" class="w-full border rounded px-3 py-2 text-sm">
+        </div>
+
+        <div>
+          <label class="block text-sm font-medium text-gray-700 mb-1">Tags (comma separated)</label>
+          <input type="text" name="tags" class="w-full border rounded px-3 py-2 text-sm">
+        </div>
+
+        <div class="flex justify-end gap-3 pt-4">
+          <button type="button"
+                  @click="open = false"
+                  class="px-4 py-2 text-sm text-gray-700 bg-gray-100 hover:bg-gray-200 rounded">
+            Cancel
+          </button>
+          <button type="submit"
+                  class="px-4 py-2 text-sm font-semibold text-white bg-blue-600 hover:bg-blue-700 rounded">
+            Add License
+          </button>
+        </div>
+      </form>
     </div>
   </div>
+</div>
+{% endif %}
+</div>
+
 </div>
 
 <!-- Enhanced Search and Filter Section -->
@@ -78,6 +161,9 @@
     </div>
   </div>
 </div>
+<!-- Add License Modal (admin only) -->
+
+
 
 <!-- Enhanced Licenses Table -->
 <div class="bg-white rounded-xl shadow-sm border border-gray-200 overflow-hidden">
@@ -532,5 +618,14 @@ function saveLicense(licenseId) {
     loadLicenses();
   });
 }
+
+function openAddLicenseModal() {
+  document.getElementById('addLicenseModal').classList.remove('hidden');
+}
+
+function closeAddLicenseModal() {
+  document.getElementById('addLicenseModal').classList.add('hidden');
+}
+
 </script>
 {% endblock %}

@@ -471,7 +471,7 @@
             <p class="text-xs text-gray-500">{{ cert.status | capitalize }}</p>
           </div>
         </div>
-        {% if session.user.role == 'admin' %}
+        {% if session.user.role == 'adminn' %}
 <form method="POST"
       action="{{ url_for('doctors.delete_certification', cert_id=cert.id, rad_id=doctor.id) }}"
       class="ml-4"
@@ -483,43 +483,7 @@
       </li>
       {% endfor %}
     </ul>
-    {% if session.user.role == 'admin' %}
-    <form method="POST" action="{{ url_for('doctors.add_certification', rad_id=doctor.id) }}" class="mt-6 border-t pt-4">
-      <h4 class="text-md font-semibold mb-2">Add New Certification</h4>
-
-      <label class="block mb-2">
-        <span class="font-semibold">State</span>
-        <input type="text" name="state" required class="w-full border rounded px-3 py-2 text-sm">
-      </label>
-
-      <label class="block mb-2">
-        <span class="font-semibold">Expiration Date</span>
-        <input type="date" name="expiration_date" required class="w-full border rounded px-3 py-2 text-sm">
-      </label>
-
-      <label class="block mb-2">
-        <span class="font-semibold">Status</span>
-        <select name="status" class="w-full border rounded px-3 py-2 text-sm">
-          <option value="Active">Active</option>
-          <option value="Expired">Expired</option>
-        </select>
-      </label>
-
-      <label class="block mb-2">
-        <span class="font-semibold">Specialty</span>
-        <input type="text" name="specialty" class="w-full border rounded px-3 py-2 text-sm">
-      </label>
-
-      <label class="block mb-2">
-        <span class="font-semibold">Tags (comma separated)</span>
-        <input type="text" name="tags" class="w-full border rounded px-3 py-2 text-sm">
-      </label>
-
-      <button type="submit" class="bg-blue-600 text-white px-4 py-2 rounded text-sm font-semibold mt-2">
-        Add Certification
-      </button>
-    </form>
-    {% endif %}
+  
   </div>
 </div>
 
