@@ -4,10 +4,41 @@ from app.middleware import with_supabase_auth
 from datetime import datetime, timedelta, timezone
 from calendar import monthrange
 from collections import defaultdict
-
+import re
 from app.schedule_sync import run_google_sheet_sync
 
 daily_bp = Blueprint('daily', __name__)
+
+def parse_time(base_date_str, time_str):
+    for fmt in ("%Y-%m-%d %I%p", "%Y-%m-%d %I:%M%p", "%Y-%m-%d %I%M%p"):
+        try:
+            return datetime.strptime(f"{base_date_str} {time_str.upper()}", fmt)
+        except ValueError:
+            continue
+    raise ValueError(f"Invalid time format: {time_str}")
+
+
+def extract_prn_ranges(schedule_str, base_date_str):
+    prn_ranges = []
+
+    # Normalize newlines and em/en dashes
+    normalized_str = schedule_str.replace('\n', ' ').replace('–', '-').replace('—', '-')
+
+    # Find PRN blocks
+    prn_blocks = re.findall(r'\(.*?PRN.*?\)', normalized_str, re.IGNORECASE)
+    for block in prn_blocks:
+        times = re.findall(r'(\d{1,2}(?::\d{2})?\s*[apAP][mM])', block)
+        if len(times) % 2 == 0:
+            for i in range(0, len(times), 2):
+                try:
+                    start = parse_time(base_date_str, times[i])
+                    end = parse_time(base_date_str, times[i+1])
+                    if end <= start:
+                        end += timedelta(days=1)
+                    prn_ranges.append((start, end))
+                except Exception as e:
+                    print(f"❌ Failed to parse PRN time range ({times[i]}–{times[i+1]}):", str(e))
+    return prn_ranges
 
 
 @daily_bp.route('/daily')
@@ -74,12 +105,30 @@ def daily():
                     "break_start_dt": break_start_dt,
                     "break_end_dt": break_end_dt
                 })
+                doc["prn_ranges"] = extract_prn_ranges(doc.get("schedule_details", ""), start_date)
 
                 doctors_on_shift.append(doc)
                 if end_dt > max_end_dt:
                     max_end_dt = end_dt
             except Exception as e:
                 print(f"[❌] Error parsing shift time for doc {doc.get('name', 'Unknown')}: {e}")
+
+        elif entry.get("radiologists"):
+            doc = entry["radiologists"]
+            start_date = entry.get("start_date") or today
+            doc.update({
+                "schedule_details": entry.get("schedule_details", ""),
+                "start_date": start_date,
+                "end_date": entry.get("end_date") or today,
+                "start_dt": None,
+                "end_dt": None,
+                "break_start_dt": None,
+                "break_end_dt": None
+            })
+            doc["prn_ranges"] = extract_prn_ranges(doc.get("schedule_details", ""), start_date)
+
+            if doc["prn_ranges"]:  # ✅ Add only if it has PRN ranges
+                doctors_on_shift.append(doc)
 
     # ✅ 3. Also include tomorrow's shifts that spill into today
     tomorrow_str = (today_date + timedelta(days=1)).strftime("%Y-%m-%d")
@@ -142,9 +191,22 @@ def daily():
                 doc.get("break_start_dt") and doc.get("break_end_dt") and
                 doc["break_start_dt"] < slot_end and doc["break_end_dt"] > slot_start
             )
-            if doc["start_dt"] < slot_end and doc["end_dt"] > slot_start and not is_on_break:
+            if doc.get("start_dt") and doc.get("end_dt") and doc["start_dt"] < slot_end and doc["end_dt"] > slot_start and not is_on_break:
+
                 doctors_by_hour[slot_start].append(doc)
 
+
+    doctors_prn_by_hour = defaultdict(list)
+
+    for doc in doctors_on_shift:
+        for prn_start, prn_end in doc.get("prn_ranges", []):
+            for slot in hour_slots:
+                slot_start = slot["datetime"]
+                slot_end = slot_start + timedelta(hours=1)
+                if prn_start < slot_end and prn_end > slot_start:
+                    doctors_prn_by_hour[slot_start].append(doc)
+
+    print(f"doctors_prn_by_hour: {doctors_prn_by_hour}")
     all_doctors = (supabase.table("radiologists").select("*").execute().data or [])
     doctors_by_timezone = defaultdict(list)
     for doctor in all_doctors:
@@ -195,13 +257,14 @@ def daily():
             "current": current_total_rvu
         }
 
-    # ✅ 7. Render template
+    # Render template
     return render_template("daily.html",
         user=user,
         today=today,
         prev_date=prev_date,
         next_date=next_date,
         hour_slots=hour_slots,
+        doctors_prn_by_hour=doctors_prn_by_hour,
         doctors_on_shift=doctors_on_shift,
         doctors_by_hour=doctors_by_hour,
         doctors_by_timezone=dict(doctors_by_timezone),

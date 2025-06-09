@@ -5,6 +5,11 @@
 {% block content %}
 <div class="flex justify-between items-center mb-6 border-b pb-2">
   <h2 class="text-2xl font-semibold">Facilities</h2>
+  {% if session.user.role == 'admin' %}
+      <button onclick="openAddFacilityModal()" class="bg-blue-600 text-white px-4 py-2 rounded hover:bg-blue-700">
+      Add Facility
+    </button>
+  {% endif %}
 </div>
 
 <div class="mb-4 flex flex-col md:flex-row gap-4">
@@ -77,7 +82,56 @@
     </button>
   </div>
 </div>
-
+<!-- Add Facility Modal -->
+<div id="addFacilityModal" class="fixed inset-0 z-50 hidden bg-black bg-opacity-50 flex items-center justify-center">
+  <div class="bg-white rounded-lg shadow-lg w-[90%] max-w-xl p-6">
+    <div class="flex justify-between items-center mb-4">
+      <h3 class="text-lg font-semibold">Add New Facility</h3>
+      <button onclick="closeAddFacilityModal()" class="text-gray-500 hover:text-gray-700">
+        <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12" />
+        </svg>
+      </button>
+    </div>
+        <form method="POST" action="{{ url_for('facilities.add_facility') }}" class="space-y-4">
+      <div>
+        <label class="block text-sm font-medium text-gray-700">Name</label>
+        <input type="text" name="name" required class="w-full border rounded px-3 py-2 text-sm">
+      </div>
+      <div>
+        <label class="block text-sm font-medium text-gray-700">PACS</label>
+        <input type="text" name="pacs" required class="w-full border rounded px-3 py-2 text-sm">
+      </div>
+      <div>
+        <label class="block text-sm font-medium text-gray-700">Location</label>
+        <input type="text" name="location" class="w-full border rounded px-3 py-2 text-sm">
+      </div>
+      <div>
+        <label class="block text-sm font-medium text-gray-700">Modalities Assignment Period</label>
+        <input type="text" name="modalities_assignment_period" class="w-full border rounded px-3 py-2 text-sm">
+      </div>
+      <div>
+        <label class="block text-sm font-medium text-gray-700">TAT Definition</label>
+        <input type="text" name="tat_definition" class="w-full border rounded px-3 py-2 text-sm">
+      </div>
+      <div>
+        <label class="block text-sm font-medium text-gray-700">Modalities</label>
+        <input type="text" name="modalities" class="w-full border rounded px-3 py-2 text-sm">
+      </div>
+      <div class="flex items-center space-x-4">
+        <div class="flex items-center">
+          <input type="checkbox" name="active_status" value="true" class="form-checkbox h-4 w-4 text-blue-600">
+          <label for="active_status" class="ml-2 block text-sm text-gray-900">Active Status</label>
+        </div>
+      </div>
+      <div class="flex justify-end">
+        <button type="submit" class="bg-blue-600 text-white px-4 py-2 rounded hover:bg-blue-700">
+          Add Facility
+        </button>
+      </div>
+    </form>
+  </div>
+</div>
 <script>
 let currentPage = parseInt("{{ current_page }}", 10);
 const itemsPerPage = parseInt("{{ per_page }}", 10);
@@ -248,5 +302,31 @@ window.addEventListener('DOMContentLoaded', () => {
   });
   loadFacilities();
 });
+
+function openAddFacilityModal() {
+  document.getElementById('addFacilityModal').classList.remove('hidden');
+}
+
+function closeAddFacilityModal() {
+  document.getElementById('addFacilityModal').classList.add('hidden');
+} 
 </script>
+
+<style>
+/* Form Styles */
+.form-checkbox {
+  border-radius: 0.25rem;
+  border-color: #d1d5db;
+}
+
+.form-checkbox:checked {
+  background-color: #2563eb;
+  border-color: #2563eb;
+}
+
+/* Modal Styles */
+#addFacilityModal {
+  backdrop-filter: blur(4px);
+}
+</style>
 {% endblock %}

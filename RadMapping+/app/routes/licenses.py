@@ -4,7 +4,15 @@ from app.supabase_client import supabase
 from datetime import datetime, timedelta
 import uuid
 from app.middleware import with_supabase_auth
+import csv
+import requests
+from io import StringIO
+from flask import Blueprint, request, jsonify
+from threading import Thread
+from datetime import datetime
+import uuid
 from app.supabase_client import get_supabase_client
+from app.license_sync import process_license_cell_update
 licenses_bp = Blueprint('licenses', __name__)
 
 
@@ -149,3 +157,25 @@ def licenses_page():
                          total_count=total_count,
                          current_page=page,
                          per_page=per_page)
+
+@licenses_bp.route('/licenses/license-sync', methods=["POST"])
+def license_sync():
+    try:
+        data = request.get_json(force=True)
+        sheet_id = data.get("sheetId")
+        row = data.get("row")  # 1-based index from Google Sheets
+        col = data.get("col")
+
+        if not sheet_id or not row or not col:
+            return jsonify({"error": "Missing required fields"}), 400
+
+        def run_in_background():
+            process_license_cell_update(sheet_id, row)
+
+        Thread(target=run_in_background).start()
+        return jsonify({"status": "License sync started"}), 202
+
+    except Exception as e:
+        import traceback
+        print("❌ Error in license_sync:", traceback.format_exc())
+        return jsonify({"error": "Internal server error"}), 500

@@ -7,9 +7,10 @@ from collections import defaultdict
 import uuid
 import calendar as pycalendar
 from app.middleware import with_supabase_auth
+from app.supabase_helper import fetch_all_rows_monthly, fetch_schedule_data
 from app.supabase_client import get_supabase_client
-monthly_bp = Blueprint('monthly', __name__)
 
+monthly_bp = Blueprint('monthly', __name__)
 
 @monthly_bp.route('/monthly')
 @with_supabase_auth
@@ -30,26 +31,26 @@ def monthly():
     start_doctor = request.args.get('start_doctor', default=0, type=int)
     doctors_per_page = 70
 
-    # Get all doctors first
-    all_doctors_res = supabase.table("radiologists") \
-        .select("*") \
-        .eq("active_status", True) \
-        .order("name") \
-        .execute()
-    all_doctors = all_doctors_res.data
-    total_doctors = len(all_doctors)
+    all_doctors = fetch_all_rows_monthly("radiologists", "*", filters={"active_status": True})
 
+    total_doctors = len(all_doctors)
+    
     # Get pinned doctors for the current user using their email
     user_email = session["user"]["email"]
-    pinned_res = supabase.table("pinned_doctors") \
-        .select("doctor_id") \
-        .eq("user_id", user_email) \
-        .execute()
-    pinned_doctor_ids = [p["doctor_id"] for p in pinned_res.data]
+    pinned_data = fetch_all_rows_monthly("pinned_doctors", "*", filters={"user_id": user_email})
+    pinned_doctor_ids = [p["doctor_id"] for p in pinned_data]
+
+    print(f"✅ Fetched {len(all_doctors)} active doctors")
+    print(f"✅ Fetched {len(pinned_doctor_ids)} pinned doctor IDs")
+    print(f"📄 Showing {doctors_per_page} doctors per page")
 
     # Separate pinned and unpinned doctors
     pinned_doctors = [doc for doc in all_doctors if doc["id"] in pinned_doctor_ids]
     unpinned_doctors = [doc for doc in all_doctors if doc["id"] not in pinned_doctor_ids]
+
+    # Sort doctors alphabetically within their groups
+    pinned_doctors = sorted(pinned_doctors, key=lambda d: d['name'])
+    unpinned_doctors = sorted(unpinned_doctors, key=lambda d: d['name'])
 
     # Handle pagination
     if start_doctor == 0:
@@ -79,16 +80,15 @@ def monthly():
     end_str = window_dates[-1].strftime("%Y-%m-%d")
     visible_doctor_ids = [str(d["id"]) for d in doctors]
 
-    schedule_res = supabase.table("monthly_schedule") \
-        .select("*, radiologists(*)") \
-        .in_("radiologist_id", visible_doctor_ids) \
-        .lte("start_date", end_str) \
-        .gte("end_date", start_str) \
-        .execute()
+   
+    # Use the fixed helper function
+    schedule_data = fetch_schedule_data(visible_doctor_ids, start_str, end_str)
+    
+    print(f"✅ Successfully fetched {len(schedule_data)} total schedule entries")
 
     # Create a calendar dictionary for easy lookup
     calendar = defaultdict(dict)
-    for entry in schedule_res.data:
+    for entry in schedule_data:
         start = datetime.strptime(entry["start_date"], "%Y-%m-%d")
         end = datetime.strptime(entry["end_date"], "%Y-%m-%d")
         for n in range((end - start).days + 1):
@@ -231,8 +231,6 @@ def bulk_schedule():
     end_time = request.form.get("end_time")
     notes = request.form.get("schedule_details")
 
-
-
     # Check if it's a special case (OFF, VACATION, REACH AS NEEDED)
     is_special_case = notes in ['OFF', 'VACATION', 'REACH AS NEEDED']
 
@@ -293,8 +291,6 @@ def pattern_schedule():
     end_time = request.form.get("end_time")
     days = request.form.getlist("days")  # Get list of selected days
     notes = request.form.get("schedule_details")
-
-
 
     # Check if it's a special case (OFF, VACATION, REACH AS NEEDED)
     is_special_case = notes in ['OFF', 'VACATION', 'REACH AS NEEDED']

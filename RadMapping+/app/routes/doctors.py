@@ -5,8 +5,8 @@ from app.middleware import with_supabase_auth
 from datetime import datetime, timedelta
 from calendar import monthrange
 import uuid
-
-
+from threading import Thread
+from postgrest import APIError
 doctors_bp = Blueprint('doctors', __name__)
 
 @doctors_bp.route('/doctors')
@@ -103,6 +103,15 @@ def search_doctors():
         'per_page': per_page
     })
 
+@with_supabase_auth
+def get_latest_monthly_rvu_column(row):
+    month_order = ["dec", "nov", "oct", "sep", "aug", "jul", "jun", "may", "apr", "mar", "feb", "jan"]  # Reverse order for latest first
+    for month in month_order:
+        if row.get(month) is not None:
+            return month, row[month]
+    return None, None
+
+
 @doctors_bp.route('/doctors/<string:rad_id>')
 @with_supabase_auth
 def doctor_profile(rad_id):
@@ -124,7 +133,14 @@ def doctor_profile(rad_id):
     days_in_month = monthrange(year, month)[1]
 
     # Get doctor and schedule
-    doctor = supabase.table("radiologists").select("*").eq("id", rad_id).single().execute().data
+    try:
+        doctor_res = supabase.table("radiologists").select("*").eq("id", rad_id).single().execute()
+        doctor = doctor_res.data
+        print(f"🔍 Loaded doctor with id {rad_id}: {doctor}")
+    except APIError as e:
+        print(f"❌ Failed to load doctor with id {rad_id}:", e)
+        return render_template("errors/404.html", message="Doctor not found"), 404
+
     schedule_res = supabase.table("monthly_schedule") \
         .select("*") \
         .eq("radiologist_id", rad_id) \
@@ -178,6 +194,22 @@ def doctor_profile(rad_id):
     assigned_facility_ids = {assignment["facilities"]["id"] for assignment in assigned_facilities}
     available_facilities = [fac for fac in all_facilities if fac["id"] not in assigned_facility_ids]
 
+    rvu_rows = supabase.table("rad_avg_monthly_rvu") \
+        .select("*") \
+        .eq("radiologist_id", rad_id) \
+        .limit(1) \
+        .execute() \
+        .data
+
+    rvu_row = rvu_rows[0] if rvu_rows else None
+
+    if rvu_row:
+        latest_rvu_col, rvu = get_latest_monthly_rvu_column(rvu_row)
+    else:
+        latest_rvu_col, rvu = None, None  # fallback if no RVU row found
+
+
+
     return render_template("doctor_profile.html",
         doctor=doctor,
         now=now,
@@ -195,7 +227,9 @@ def doctor_profile(rad_id):
         assigned_facilities=assigned_facilities,
         available_facilities=available_facilities,
         doctor_specialty=doctor_specialty,
-        doctor_specialties=doctor_specialties
+        doctor_specialties=doctor_specialties,
+        rvu=rvu,
+        latest_rvu_col=latest_rvu_col
     )
 
 @doctors_bp.route('/doctors/<string:rad_id>/update_schedule', methods=["POST"])
@@ -311,7 +345,15 @@ def update_doctor(rad_id):
         # Remove None values to avoid overwriting with nulls
         data = {k: v for k, v in data.items() if v is not None}
         
+                # Update RVU if present
+        rvu_val = request.form.get("rvu_score")
+        rvu_month = request.form.get("rvu_month")
 
+        if rvu_val and rvu_month:
+            supabase.table("rad_avg_monthly_rvu").upsert({
+                "radiologist_id": rad_id,
+                rvu_month: float(rvu_val)
+            }, on_conflict="radiologist_id").execute()
         result = supabase.table("radiologists").update(data).eq("id", rad_id).execute()
 
     
@@ -520,3 +562,31 @@ def delete_assignment(assignment_id):
     except Exception as e:
       
         return f"Error deleting assignment: {str(e)}", 500 
+    
+from flask import Blueprint, request, jsonify
+from app.radmapping_sync import process_cell_update
+
+@doctors_bp.route('/doctors/radmapping-sync', methods=["POST"])
+def radmapping_sync():
+    try:
+        data = request.get_json(force=True)
+        print("🛰️ Received radmapping-sync request:", data)
+
+        sheet_id = data.get("sheetId")
+        row = data.get("row")
+        col = data.get("col")
+
+        if not sheet_id or not row or not col:
+            print("⚠️ Missing fields:", data)
+            return jsonify({"error": "Missing required fields"}), 400
+
+        result, status_code = process_cell_update(sheet_id, int(row), int(col))
+        print("✅ Sync success:", result)
+        return jsonify(result), status_code
+
+    except Exception as e:
+        import traceback
+        print("❌ Exception occurred during radmapping_sync:")
+        print(traceback.format_exc())
+        return jsonify({"error": "Internal server error"}), 500
+

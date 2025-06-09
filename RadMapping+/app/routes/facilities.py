@@ -198,24 +198,7 @@ def delete_facility_contact_api(facility_id, contact_id):
             
     except Exception as e:
         return jsonify({"success": False, "error": str(e)}), 500
-    
-@facilities_bp.route('/facilities/add', methods=['POST'])
-@with_supabase_auth
-@admin_required
-def add_facility():
-    supabase = get_supabase_client()
-    data = request.get_json()
-    
-    # Generate a new UUID for the facility
-    new_id = str(uuid.uuid4())
-    
-    # Add the ID to the data
-    data['id'] = new_id
-    
-    # Insert the new facility into the database
-    supabase.table("facilities").insert(data).execute()
-    
-    return jsonify({"status": "success", "id": new_id})
+
 
 @facilities_bp.route('/facilities/<facility_id>/bulk_update_assignments', methods=['POST'])
 @with_supabase_auth
@@ -308,3 +291,28 @@ def remove_assignment(facility_id, assignment_id):
     # Delete the assignment
     supabase.table("doctor_facility_assignments").delete().eq("id", assignment_id).execute()
     return redirect(url_for("facilities.facility_profile", facility_id=facility_id))
+
+
+@facilities_bp.route('/facilities/add', methods=['POST'])
+@with_supabase_auth
+@admin_required
+def add_facility():
+    supabase = get_supabase_client()
+    # Generate a new UUID for the doctor
+    new_id = str(uuid.uuid4())
+    
+    data = {
+        "id": new_id,
+        "name": request.form.get("name"),
+        "pacs": request.form.get("pacs"),
+        "location": request.form.get("location"),
+        "modalities_assignment_period": request.form.get("modalities_assignment_period"),
+        "tat_definition": request.form.get("tat_definition"),
+        "modalities": request.form.get("modalities"),
+        "active_status": "true" if request.form.get("active_status") == "true" else "false"
+    }
+
+    # Insert the new doctor into the database
+    supabase.table("facilities").insert(data).execute()
+
+    return redirect(url_for("facilities.facilities", rad_id=new_id))
