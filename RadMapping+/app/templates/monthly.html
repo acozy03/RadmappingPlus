@@ -92,9 +92,9 @@
     </div>
 </div>
 
-<!-- All your existing modals remain exactly the same -->
+<!-- All your existing modals remain exactly the same
 <!-- Schedule Modal -->
-<div id="scheduleModal" class="fixed inset-0 z-50 hidden bg-black bg-opacity-50 flex items-center justify-center">
+<!-- <div id="scheduleModal" class="fixed inset-0 z-50 hidden bg-black bg-opacity-50 flex items-center justify-center">
   <div class="bg-white rounded-lg shadow-lg w-[90%] max-w-md p-6">
     <h3 class="text-lg font-semibold mb-4" id="modalTitle">Add Shift</h3>
     <form method="POST" action="{{ url_for('monthly.update_schedule', rad_id='DOCTOR_ID_PLACEHOLDER') }}" class="space-y-3" id="scheduleForm">
@@ -125,7 +125,7 @@
       </div>
     </form>
   </div>
-</div>
+</div>   -->
 
 <!-- Scheduling Tools Modal -->
 <div id="toolsModal" class="fixed inset-0 z-50 hidden bg-black bg-opacity-50 flex items-center justify-center">
@@ -520,15 +520,15 @@ class VirtualScheduleTable {
                 // Ensure the filter is applied here, as per our last conversation
                 cell.innerHTML = this.createScheduleCell(schedule, doctor.id, dateStr);
             }
-            // Add 'Add' button for admin if no schedule exists
-            else if (isAdmin) {
-                cell.innerHTML = `
-                    <div onclick="openScheduleModal('${doctor.id}', '${dateStr}', '', '', '')"
-                         class="w-full h-full cursor-pointer text-center text-blue-600 hover:text-blue-800 text-xs font-medium flex items-center justify-center">
-                        Add
-                    </div>
-                `;
-            }
+            // // Add 'Add' button for admin if no schedule exists
+            // else if (isAdmin) {
+            //     cell.innerHTML = `
+            //         <div onclick="openScheduleModal('${doctor.id}', '${dateStr}', '', '', '')"
+            //              class="w-full h-full cursor-pointer text-center text-blue-600 hover:text-blue-800 text-xs font-medium flex items-center justify-center">
+            //             Add
+            //         </div>
+            //     `;
+            // }
 
             row.appendChild(cell);
         }
