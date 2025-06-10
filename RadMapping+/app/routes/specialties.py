@@ -22,6 +22,12 @@ def specialties():
     specialties_res = supabase.table("specialty_studies").select("*").order("name").execute()
     specialties = specialties_res.data
 
+    # Strip newlines from the 'name' field
+    for specialty in specialties:
+        if 'name' in specialty and isinstance(specialty['name'], str):
+            specialty['name'] = specialty['name'].replace('\n', ' ').replace('\r', ' ').strip()
+
+
     # Get all doctors
     doctors_res = supabase.table("radiologists").select("*").order("name").execute()
     doctors = doctors_res.data
