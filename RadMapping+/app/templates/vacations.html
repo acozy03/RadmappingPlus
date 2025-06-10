@@ -3,7 +3,6 @@
 
 {% block content %}
 <div class="max-w-7xl mx-auto px-4 py-8">
-    <!-- Enhanced Header -->
     <div class="mb-8">
         <div class="flex items-center mb-4">
             <div class="w-12 h-12 bg-gradient-to-r from-emerald-500 to-teal-600 rounded-xl flex items-center justify-center mr-4">
@@ -16,7 +15,6 @@
         </div>
     </div>
 
-    <!-- Stats Cards -->
     <div class="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
         <div class="bg-white rounded-xl shadow-sm border border-gray-200 p-6">
             <div class="flex items-center">
@@ -37,15 +35,8 @@
                 </div>
                 <div>
                     <p class="text-sm font-medium text-gray-600">Active This Month</p>
-                    <p class="text-2xl font-bold text-gray-900">
-                        {% set current_month_count = 0 %}
-                        {% for vacation in vacations %}
-                            {% if vacation.start_date.strftime('%Y-%m') <= now().strftime('%Y-%m') <= vacation.end_date.strftime('%Y-%m') %}
-                                {% set current_month_count = current_month_count + 1 %}
-                            {% endif %}
-                        {% endfor %}
-                        {{ current_month_count }}
-                    </p>
+                    {% set current_month_count = vacations | selectattr("is_active_this_month") | list | length %}
+<p class="text-2xl font-bold text-gray-900">{{ current_month_count }}</p>
                 </div>
             </div>
         </div>
@@ -57,23 +48,14 @@
                 </div>
                 <div>
                     <p class="text-sm font-medium text-gray-600">Upcoming</p>
-                    <p class="text-2xl font-bold text-gray-900">
-                        {% set upcoming_count = 0 %}
-                        {% for vacation in vacations %}
-                            {% if vacation.start_date > now().date() %}
-                                {% set upcoming_count = upcoming_count + 1 %}
-                            {% endif %}
-                        {% endfor %}
-                        {{ upcoming_count }}
-                    </p>
+                    {% set upcoming_count = vacations | selectattr("is_upcoming") | list | length %}
+<p class="text-2xl font-bold text-gray-900">{{ upcoming_count }}</p>
                 </div>
             </div>
         </div>
     </div>
 
-    <!-- Enhanced Vacation List -->
     <div class="bg-white rounded-xl shadow-sm border border-gray-200 overflow-hidden">
-        <!-- Header Section -->
         <div class="bg-gradient-to-r from-gray-50 to-gray-100 px-6 py-4 border-b border-gray-200">
             <div class="flex flex-col sm:flex-row sm:items-center sm:justify-between">
                 <div class="flex items-center mb-4 sm:mb-0">
@@ -84,7 +66,6 @@
                 </div>
                 
                 <div class="flex items-center space-x-4">
-                    <!-- Search Bar -->
                     <div class="relative">
                         <div class="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
                             <i class="fas fa-search text-gray-400"></i>
@@ -107,7 +88,6 @@
             </div>
         </div>
 
-        <!-- Vacation Table -->
         <div class="overflow-x-auto">
             <table class="min-w-full divide-y divide-gray-200">
                 <thead class="bg-gray-50">
@@ -139,12 +119,14 @@
                 </thead>
                 <tbody class="bg-white divide-y divide-gray-200" id="vacationTableBody">
                     {% for vacation in vacations %}
+                    {# These variables are now datetime objects due to backend processing #}
                     {% set start_date = vacation.start_date %}
                     {% set end_date = vacation.end_date %}
-                    {% set today = now().date() %}
-                    {% set is_current = start_date <= today <= end_date %}
-                    {% set is_upcoming = start_date > today %}
-                    {% set is_past = end_date < today %}
+                    {# Corrected: access now.date directly #}
+                    {% set today = now.date() %} 
+                    {% set is_current = start_date.date() <= today and today <= end_date.date() %} 
+                    {% set is_upcoming = start_date.date() > today %} 
+                    {% set is_past = end_date.date() < today %} 
                     {% set duration = (end_date - start_date).days + 1 %}
                     
                     <tr class="hover:bg-gray-50 transition-colors vacation-row">
@@ -233,7 +215,6 @@
             </table>
         </div>
         
-        <!-- No Search Results -->
         <div id="noSearchResults" class="hidden px-6 py-12 text-center">
             <div class="w-16 h-16 bg-gray-100 rounded-full flex items-center justify-center mx-auto mb-4">
                 <i class="fas fa-search text-gray-400 text-xl"></i>
@@ -244,10 +225,8 @@
     </div>
 </div>
 
-<!-- Enhanced Add Vacation Modal -->
 <div id="addVacationModal" class="fixed inset-0 z-50 hidden bg-black bg-opacity-50 flex items-center justify-center p-4">
     <div class="bg-white rounded-xl shadow-2xl w-full max-w-md transform transition-all">
-        <!-- Modal Header -->
         <div class="flex items-center justify-between p-6 border-b border-gray-200">
             <div class="flex items-center">
                 <div class="w-8 h-8 bg-gradient-to-r from-emerald-500 to-teal-500 rounded-lg flex items-center justify-center mr-3">
@@ -260,7 +239,6 @@
             </button>
         </div>
 
-        <!-- Modal Body -->
         <form method="POST" action="{{ url_for('vacations.add_vacation') }}" class="p-6 space-y-4">
             <div>
                 <label class="block text-sm font-medium text-gray-700 mb-2">
@@ -310,10 +288,8 @@
     </div>
 </div>
 
-<!-- Enhanced Edit Vacation Modal -->
 <div id="editVacationModal" class="fixed inset-0 z-50 hidden bg-black bg-opacity-50 flex items-center justify-center p-4">
     <div class="bg-white rounded-xl shadow-2xl w-full max-w-md transform transition-all">
-        <!-- Modal Header -->
         <div class="flex items-center justify-between p-6 border-b border-gray-200">
             <div class="flex items-center">
                 <div class="w-8 h-8 bg-gradient-to-r from-blue-500 to-indigo-500 rounded-lg flex items-center justify-center mr-3">
@@ -326,7 +302,6 @@
             </button>
         </div>
 
-        <!-- Modal Body -->
         <form method="POST" action="{{ url_for('vacations.update_vacation') }}" class="p-6 space-y-4">
             <input type="hidden" name="vacation_id" id="editVacationId">
             <div>
@@ -377,10 +352,8 @@
     </div>
 </div>
 
-<!-- Delete Confirmation Modal -->
 <div id="deleteConfirmModal" class="fixed inset-0 z-50 hidden bg-black bg-opacity-50 flex items-center justify-center p-4">
     <div class="bg-white rounded-xl shadow-2xl w-full max-w-md transform transition-all">
-        <!-- Modal Header -->
         <div class="flex items-center justify-between p-6 border-b border-gray-200">
             <div class="flex items-center">
                 <div class="w-8 h-8 bg-gradient-to-r from-red-500 to-pink-500 rounded-lg flex items-center justify-center mr-3">
@@ -393,7 +366,6 @@
             </button>
         </div>
 
-        <!-- Modal Body -->
         <div class="p-6">
             <div class="flex items-center mb-4">
                 <div class="w-12 h-12 bg-red-100 rounded-full flex items-center justify-center mr-4">
@@ -474,8 +446,15 @@ function openEditVacationModal(vacationId) {
     if (vacation) {
         document.getElementById('editVacationId').value = vacationId;
         document.getElementById('editRadiologistId').value = vacation.radiologist_id;
-        document.getElementById('editStartDate').value = vacation.start_date;
-        document.getElementById('editEndDate').value = vacation.end_date;
+        // Convert datetime objects back to 'YYYY-MM-DD' string for date inputs
+        if (vacation.start_date) {
+            const startDate = new Date(vacation.start_date);
+            document.getElementById('editStartDate').value = startDate.toISOString().split('T')[0];
+        }
+        if (vacation.end_date) {
+            const endDate = new Date(vacation.end_date);
+            document.getElementById('editEndDate').value = endDate.toISOString().split('T')[0];
+        }
         document.getElementById('editComments').value = vacation.comments || '';
     }
     document.getElementById('editVacationModal').classList.remove('hidden');
@@ -560,7 +539,9 @@ document.addEventListener('DOMContentLoaded', function() {
         input.min = today;
         input.addEventListener('change', function() {
             const endDateInput = this.closest('form').querySelector('input[name="end_date"]');
-            endDateInput.min = this.value;
+            if (endDateInput) { // Ensure endDateInput exists before setting min
+                endDateInput.min = this.value;
+            }
         });
     });
     
@@ -570,3 +551,4 @@ document.addEventListener('DOMContentLoaded', function() {
 });
 </script>
 {% endblock %}
+

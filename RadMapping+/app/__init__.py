@@ -1,4 +1,4 @@
-from flask import Flask, session, redirect, url_for
+from flask import Flask, session, redirect, url_for, request
 from config import Config
 from datetime import datetime
 from dotenv import load_dotenv
@@ -35,7 +35,9 @@ def create_app():
     # Inject 'now' into Jinja templates
     @app.context_processor
     def inject_now():
-        return {'now': datetime.now()}
+        current_time = datetime.now()
+        print(f"Injecting 'now' into Jinja context: {current_time}") 
+        return {'now': current_time}
 
     # Add ampm filter
     def format_ampm(value):
@@ -88,8 +90,26 @@ def create_app():
     # Redirect root URL to login or landing page
     @app.route('/')
     def index():
+        print("--- Entering root URL ('/') ---")
+        print(f"Session content on root entry: {dict(session)}")
+
         if session.get("user"):
+            print("User is logged in. Redirecting to landing page.")
             return redirect(url_for("landing.landing"))
+        
+        # Logic for unauthenticated users accessing '/'
+        next_url = request.args.get('next') # From query parameter (e.g., /?next=/some/path)
+        referrer_url = request.referrer     # From HTTP Referer header
+        
+        print(f"Unauthenticated user at '/'. Request.args.get('next'): {next_url}")
+        print(f"Unauthenticated user at '/'. Request.referrer: {referrer_url}")
+
+        # Prioritize 'next' query param, then referrer, then default landing
+        final_redirect_url = next_url or referrer_url or url_for('landing.landing')
+        
+        session['redirect_after_login'] = final_redirect_url
+        print(f"User not logged in. Storing 'redirect_after_login': {session['redirect_after_login']}")
+        
         return redirect(url_for("auth.login"))
 
     return app

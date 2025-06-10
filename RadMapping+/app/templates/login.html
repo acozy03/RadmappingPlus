@@ -23,7 +23,7 @@
 </div>
 
 <script type="module">
-  import { createClient } from 'https://cdn.jsdelivr.net/npm/@supabase/supabase-js/+esm'
+  import { createClient } from 'https://cdn.jsdelivr.net/npm/@supabase/supabase-js/+esm'   
 
   const supabase = createClient(
     '{{ SUPABASE_URL }}',
@@ -32,12 +32,16 @@
 
   const { data: { session } } = await supabase.auth.getSession()
 
+  // Get the next URL from template
+  const nextUrl = "{{ next_url | e }}" 
+  console.log("nextUrl from Flask template:", nextUrl)
+
   if (!session) {
-    // Auto-trigger login
+    // Auto-trigger login with `next` param encoded in redirect URL
     await supabase.auth.signInWithOAuth({
       provider: 'google',
       options: {
-        redirectTo: window.location.origin
+        redirectTo: `${window.location.origin}/auth/callback?next=${encodeURIComponent(nextUrl)}`
       }
     })
   } else {
@@ -48,12 +52,10 @@
     if (!allowedDomains.some(domain => email.endsWith(domain))) {
       alert("Access restricted to approved domains only.")
       await supabase.auth.signOut()
-      window.location.href = 'https://www.google.com'
-    }
- else {
-            // Redirect to main app
-            // Send session to Flask backend
-      await fetch("/auth/session", {
+      window.location.href = 'https://www.google.com'   
+    } else {
+      // Send session to Flask backend
+      const res = await fetch("/auth/session", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
@@ -61,37 +63,16 @@
           refresh_token: session.refresh_token,
           email: user.email
         })
-      }).then((res) => {
-        if (res.ok) {
-          window.location.href = "/"
-        } else {
-          alert("Failed to sync session with backend.");
-          supabase.auth.signOut();
-        }
-      });
+      })
 
+      if (res.ok) {
+        console.log("Redirecting to:", nextUrl)
+        window.location.href = nextUrl  // Redirect to intended page
+      } else {
+        alert("Failed to sync session with backend.")
+        supabase.auth.signOut()
+      }
     }
   }
-
-  await fetch("/auth/session", {
-  method: "POST",
-  headers: {
-    "Content-Type": "application/json"
-  },
-  credentials: "include",  // important! allows cookies to be set
-  body: JSON.stringify({
-    access_token: session.access_token,
-    refresh_token: session.refresh_token,
-    email: user.email
-  })
-}).then((res) => {
-  if (res.ok) {
-    window.location.href = "/";
-  } else {
-    alert("Failed to sync session with backend.");
-    supabase.auth.signOut();
-  }
-});
-
 </script>
 {% endblock %}
