@@ -266,7 +266,7 @@
   </div>
   <hr class="my-10 border-t-2 border-gray-200">
 
-  {% if session.user.role == 'admin' %}
+  <!-- {% if session.user.role == 'admin' %}
   <div class="mt-10">
     <div class="flex justify-between items-center mb-4">
       <h3 class="text-xl font-semibold">Edit Schedule: {{ now.strftime('%B %Y') }}</h3>
@@ -381,7 +381,7 @@
 
   document.addEventListener("DOMContentLoaded", attachDayListeners);
   </script>
-  {% endif %}
+  {% endif %} -->
 
   <div class="mt-10">
       <!-- Weekday initials -->
@@ -413,7 +413,7 @@
             <div class="text-sm text-gray-400 italic">No shift</div>
           {% endif %}
 
-          {% if session.user.role == 'admin' %}
+          <!-- {% if session.user.role == 'admin' %}
           <form method="POST"
           action="{{ url_for('doctors.update_schedule', rad_id=doctor.id) }}"
           class="absolute left-1/2 transform -translate-x-1/2 bg-white z-10 shadow p-3 rounded text-base mt-2 border border-gray-300 w-[30rem] hidden edit-form"
@@ -454,7 +454,7 @@
               <a href="{{ url_for('doctors.delete_schedule', rad_id=doctor.id, date=day_str) }}" class="text-red-500 text-xs">Delete</a>
             </div>
           </form>
-          {% endif %}
+          {% endif %} -->
         </div>
       {% endfor %}
     </div>
@@ -588,13 +588,30 @@
                 </svg>
               </span>
               <div>
-                <div class="font-semibold text-gray-800">{{ assignment.facilities.name }}</div>
-                <div class="text-xs text-gray-500">
-                  Status: 
-                  <span class="font-medium {{ 'text-green-700' if assignment.facilities.active_status == 'true' else 'text-red-700' }}">
-                    {{ 'Active' if assignment.facilities.active_status == 'true' else 'Inactive' }}
-                  </span>
-                </div>
+               <!-- Facility Name -->
+<div class="font-semibold text-gray-800">{{ assignment.facilities.name }}</div>
+
+<!-- Facility Status & Read Status (aligned left/right) -->
+<div class="flex text-xs text-gray-500 w-full">
+  <div class="flex items-center gap-1">
+    Facility Status:
+    <span class="font-medium {{ 'text-green-700' if assignment.facilities.active_status == 'true' else 'text-red-700' }}">
+      {{ 'Active' if assignment.facilities.active_status == 'true' else 'Inactive' }}
+    </span>
+  </div>
+
+  <div class="flex items-center px-4 gap-1">
+    Read Status:
+    {% if assignment.can_read == 'true' %}
+      <span class="font-medium text-green-700">Active</span>
+    {% elif assignment.can_read == 'pending' %}
+      <span class="font-medium text-blue-700">Pending</span>
+    {% else %}
+      <span class="font-medium text-red-700">Inactive</span>
+    {% endif %}
+  </div>
+</div>
+                
               </div>
             </div>
 

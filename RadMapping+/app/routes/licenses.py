@@ -88,7 +88,7 @@ def search_licenses():
 def licenses_page():
     supabase = get_supabase_client()
     # Fetch all radiologists for the doctor dropdown
-    rads_res = supabase.table("radiologists").select("id, name").order("name").execute()
+    rads_res = supabase.table("radiologists").select("id, name, active_status").order("name").execute()
     radiologists = rads_res.data or []
 
     # Handle Add License form submission

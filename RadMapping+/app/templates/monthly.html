@@ -18,15 +18,15 @@
                        onkeyup="handleSearch()">
             </div>
             <select id="scheduleFilter" class="border rounded px-2 py-1 text-base">
-                <option value="time">Time Only</option>
-                <option value="desc" selected>Description Only</option>
+                <option value="time" selected>Time Only</option>
+                <option value="desc" >Description Only</option>
             </select>
 
-            {% if session.user.role == 'admin' %}
+            <!-- {% if session.user.role == 'admin' %}
                 <button onclick="openToolsModal()" class="bg-blue-600 text-white px-4 py-2 rounded hover:bg-blue-700">
                     Scheduling Tools
                 </button>
-            {% endif %}
+            {% endif %} -->
             <button onclick="openPinModal()" class="bg-purple-600 text-white px-4 py-2 rounded hover:bg-purple-700">
                 Pin Doctors
             </button>
@@ -494,14 +494,15 @@ class VirtualScheduleTable {
             
             if (schedule) {
                 cell.innerHTML = this.createScheduleCell(schedule, doctor.id, dateStr);
-            } else if (isAdmin) {
-                cell.innerHTML = `
-                    <div onclick="openScheduleModal('${doctor.id}', '${dateStr}', '', '', '')" 
-                         class="w-full h-full cursor-pointer text-center text-blue-600 hover:text-blue-800 text-xs font-medium flex items-center justify-center">
-                        Add
-                    </div>
-                `;
-            }
+             }
+             // else if (isAdmin) {
+            //     cell.innerHTML = `
+            //         <div onclick="openScheduleModal('${doctor.id}', '${dateStr}', '', '', '')" 
+            //              class="w-full h-full cursor-pointer text-center text-blue-600 hover:text-blue-800 text-xs font-medium flex items-center justify-center">
+            //             Add
+            //         </div>
+            //     `;
+            // }
             
             row.appendChild(cell);
         }
