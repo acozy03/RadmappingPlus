@@ -265,47 +265,56 @@
   <ul class="space-y-2">
     {# PRN doctors first - no header, just list them #}
     {% for doc in prn_doctors %}
-<li class="relative border p-2 rounded bg-purple-50 hover:bg-purple-100 transition-colors duration-200 border-purple-200"
-    onmouseenter="showDoctorPopup(this)"
-    onmouseleave="hideDoctorPopup(this)"
-    data-schedule-details="{{ doc.schedule_details or '' }}">
-  <div class="flex items-center justify-between">
-    <a href="{{ url_for('doctors.doctor_profile', rad_id=doc.id) }}" target="_blank" class="text-purple-700 font-semibold hover:underline">
-      {{ doc.name }}
-    </a>
-    <div class="flex items-center gap-2">
-      <span class="text-sm text-gray-500">{{ doc.timezone or '—' }}</span>
-    </div>
-  </div>
-  <div class="text-sm text-gray-500 mt-1">
-    {% if doc.modalities %}
-      <div>
-        <span class="font-semibold text-gray-800">Modalities:</span>
-        <span class="text-gray-700">{{ doc.modalities }}</span>
+  {% set routine_ids = doctors_prn_with_routine_by_hour.get(slot.datetime, []) | map(attribute='id') | list %}
+  {% set is_routine = doc.id in routine_ids %}
+
+  <li class="relative border p-2 rounded transition-colors duration-200 border-purple-200
+             {{ 'bg-purple-100 hover:bg-purple-200' if is_routine else 'bg-purple-100 hover:bg-purple-200' }}"
+      onmouseenter="showDoctorPopup(this)"
+      onmouseleave="hideDoctorPopup(this)"
+      data-schedule-details="{{ doc.schedule_details or '' }}">
+
+    <div class="flex items-center justify-between">
+      <a href="{{ url_for('doctors.doctor_profile', rad_id=doc.id) }}" target="_blank"
+         class="text-purple-700 font-semibold hover:underline">
+        {{ doc.name }}
+      </a>
+      <div class="flex items-center gap-2">
+        <span class="text-sm text-gray-500">{{ doc.timezone or '—' }}</span>
       </div>
-    {% endif %}
-    <span class="font-semibold text-gray-800">RVU:</span>
-    <span class="text-gray-800">
-      {% set doc_rvu = None %}
-      {% if doc.id in rvu_rows %}
-        {% set doc_rvu = rvu_rows[doc.id]|default({}) %}
-      {% endif %}
-      {% if doc_rvu %}
-        {{ (get_latest_nonzero_rvu(doc_rvu) | round(1)) }}
-      {% else %}
-        —
-      {% endif %}
-    </span>
-  </div>
-  <div class="doctor-popup-placeholder" data-popup-id="{{ doc.id }}"></div>
+    </div>
 
-  <!-- PRN badge -->
-  <div class="absolute bottom-2 right-2 text-xs font-medium px-2 py-0.5 rounded-full shadow-sm bg-purple-100 text-purple-700">
-    PRN
-  </div>
-</li>
+    <div class="text-sm text-gray-500 mt-1">
+      {% if doc.modalities %}
+        <div>
+          <span class="font-semibold text-gray-800">Modalities:</span>
+          <span class="text-gray-700">{{ doc.modalities }}</span>
+        </div>
+      {% endif %}
+      <span class="font-semibold text-gray-800">RVU:</span>
+      <span class="text-gray-800">
+        {% set doc_rvu = None %}
+        {% if doc.id in rvu_rows %}
+          {% set doc_rvu = rvu_rows[doc.id]|default({}) %}
+        {% endif %}
+        {% if doc_rvu %}
+          {{ (get_latest_nonzero_rvu(doc_rvu) | round(1)) }}
+        {% else %}
+          —
+        {% endif %}
+      </span>
+    </div>
 
-    {% endfor %}
+    <div class="doctor-popup-placeholder" data-popup-id="{{ doc.id }}"></div>
+
+    <!-- PRN or PRN+Routine badge -->
+    <div class="absolute bottom-2 right-2 text-xs font-medium px-2 py-0.5 rounded-full shadow-sm
+                {{ 'bg-yellow-200 text-yellow-800' if is_routine else 'bg-purple-100 text-purple-700' }}">
+      {{ 'PRN ROUTINES' if is_routine else 'PRN' }}
+    </div>
+  </li>
+{% endfor %}
+
 
     {# Add separator line if there are both PRN and regular doctors #}
     {% if prn_doctors and slot_doctors %}

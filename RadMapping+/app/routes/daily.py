@@ -197,16 +197,37 @@ def daily():
 
 
     doctors_prn_by_hour = defaultdict(list)
+    doctors_prn_with_routine_by_hour = defaultdict(list)
 
     for doc in doctors_on_shift:
+        schedule_details = doc.get("schedule_details", "").lower()
+        has_routine = "routine" in schedule_details
+
         for prn_start, prn_end in doc.get("prn_ranges", []):
             for slot in hour_slots:
                 slot_start = slot["datetime"]
                 slot_end = slot_start + timedelta(hours=1)
                 if prn_start < slot_end and prn_end > slot_start:
                     doctors_prn_by_hour[slot_start].append(doc)
+                    if has_routine:
+                        doctors_prn_with_routine_by_hour[slot_start].append(doc)
 
-    print(f"doctors_prn_by_hour: {doctors_prn_by_hour}")
+
+    def deduplicate_doctors_by_hour(doctors_dict):
+        for hour, docs in doctors_dict.items():
+            seen = set()
+            unique_docs = []
+            for doc in docs:
+                doc_id = doc.get("id")
+                if doc_id and doc_id not in seen:
+                    seen.add(doc_id)
+                    unique_docs.append(doc)
+            doctors_dict[hour] = unique_docs
+
+    deduplicate_doctors_by_hour(doctors_prn_by_hour)
+    deduplicate_doctors_by_hour(doctors_prn_with_routine_by_hour)
+
+
     all_doctors = (supabase.table("radiologists").select("*").execute().data or [])
     doctors_by_timezone = defaultdict(list)
     for doctor in all_doctors:
@@ -264,6 +285,7 @@ def daily():
         prev_date=prev_date,
         next_date=next_date,
         hour_slots=hour_slots,
+         doctors_prn_with_routine_by_hour=doctors_prn_with_routine_by_hour,
         doctors_prn_by_hour=doctors_prn_by_hour,
         doctors_on_shift=doctors_on_shift,
         doctors_by_hour=doctors_by_hour,

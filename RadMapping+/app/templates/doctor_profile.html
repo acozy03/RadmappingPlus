@@ -190,6 +190,38 @@
 
   </div>
 </div>
+
+<div class="flex items-center space-x-3">
+  <span class="inline-flex items-center justify-center w-8 h-8 bg-red-100 text-red-600 rounded-full">
+    <!-- Better stipulations icon -->
+    <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+      <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+        d="M9 5h6m-6 4h6m-4 4h4m-4 4h4M9 7h.01M4 6a2 2 0 012-2h1.4a1 1 0 00.8-.4l.6-.8A1 1 0 0110 2h4a1 1 0 01.8.4l.6.8a1 1 0 00.8.4H18a2 2 0 012 2v14a2 2 0 01-2 2H6a2 2 0 01-2-2V6z"/>
+    </svg>
+  </span>
+  <div x-data="{ expanded: false }">
+    <div class="text-xs text-gray-500 font-semibold uppercase">Stipulations</div>
+    <div class="text-base font-medium text-gray-900">
+      {% set full_text = doctor.stipulations or '—' %}
+      {% if full_text|length > 50 %}
+        <template x-if="!expanded">
+          <span>
+            {{ full_text[:50] }}... <a href="#" @click.prevent="expanded = true" class="text-blue-600 hover:underline">Show more</a>
+          </span>
+        </template>
+        <template x-if="expanded">
+          <span>
+            {{ full_text }} <a href="#" @click.prevent="expanded = false" class="text-blue-600 hover:underline">Show less</a>
+          </span>
+        </template>
+      {% else %}
+        {{ full_text }}
+      {% endif %}
+    </div>
+  </div>
+</div>
+
+
     </div>
     
   </div>
@@ -220,10 +252,36 @@
         <span class="font-semibold">Timezone</span>
         <input type="text" name="timezone" value="{{ doctor.timezone or '' }}" class="input w-full border rounded px-3 py-2 text-sm" />
       </label>
+
+<label class="block">
+  <span class="font-semibold">Reads Routines</span>
+  <select name="reads_routines" class="input w-full border rounded px-3 py-2 text-sm">
+    <option value="" disabled {% if doctor.reads_routines not in ['YES', 'NO'] %}selected{% endif %}>—</option>
+    <option value="YES" {% if doctor.reads_routines == 'YES' %}selected{% endif %}>YES</option>
+    <option value="NO" {% if doctor.reads_routines == 'NO' %}selected{% endif %}>NO</option>
+  </select>
+</label>
+
+<label class="block mt-4">
+  <span class="font-semibold">Reads Stats</span>
+  <select name="reads_stats" class="input w-full border rounded px-3 py-2 text-sm">
+    <option value="" disabled {% if doctor.reads_stats not in ['YES', 'NO'] %}selected{% endif %}>—</option>
+    <option value="YES" {% if doctor.reads_stats == 'YES' %}selected{% endif %}>YES</option>
+    <option value="NO" {% if doctor.reads_stats == 'NO' %}selected{% endif %}>NO</option>
+  </select>
+</label>
+
+
+
       <label class="block">
         <span class="font-semibold">RVU</span>
         <input type="number" name="rvu_score" value="{{ rvu or '' }}" class="input w-full border rounded px-3 py-2 text-sm" />
         <input type="hidden" name="rvu_month" value="{{ latest_rvu_col }}">
+      </label>
+
+      <label class="block">
+        <span class="font-semibold">Stipulations</span>
+        <input type="text" name="stipulations" value="{{ doctor.stipulations or '' }}" class="input w-full border rounded px-3 py-2 text-sm" />
       </label>
 
       <label class="flex items-center space-x-2 mt-4">

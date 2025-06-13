@@ -101,7 +101,7 @@ def process_cell_update(sheet_id: str, row: int, col: int) -> dict:
                 can_read = "false"
             elif rgb.startswith("FF0000FF"):
                 can_read = "pending"
-            elif rgb.startswith("FFFFC0CB"):
+            elif rgb.startswith("FFFF00FF"):
                 can_read = "withdrawn"
             else:
                 can_read = "true"

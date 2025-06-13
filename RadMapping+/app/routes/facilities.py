@@ -85,13 +85,20 @@ def facility_profile(facility_id):
     # Get facility info
     fac = supabase.table("facilities").select("*").eq("id", facility_id).single().execute().data
 
-    # Get doctor assignments
     assignment_res = supabase.table("doctor_facility_assignments") \
         .select("*, radiologists(*)") \
-        .eq("facility_id", facility_id).execute()
+        .eq("facility_id", facility_id) \
+        .execute()
 
-    assigned_radiologist_ids = {a["radiologist_id"] for a in assignment_res.data}
- 
+    # Sort by radiologist name (case-insensitive)
+    sorted_assignments = sorted(
+        assignment_res.data,
+        key=lambda a: (a.get("radiologists") or {}).get("name", "").lower()
+    )
+
+    print(f"Sorted assignments: {sorted_assignments}")
+    assigned_radiologist_ids = {a["radiologist_id"] for a in sorted_assignments}
+
      # Get all radiologists
     all_rads_res = supabase.table("radiologists").select("id, name").order("name").execute()
     all_radiologists = all_rads_res.data or []
@@ -127,7 +134,7 @@ def facility_profile(facility_id):
 
     return render_template("facility_profile.html",
         facility=fac,
-        doctor_assignments=assignment_res.data,
+        doctor_assignments=sorted_assignments,
         facility_contacts=contacts,
         available_radiologists=available_radiologists
     )

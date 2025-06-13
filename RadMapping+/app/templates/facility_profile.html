@@ -412,6 +412,7 @@
                   <option value="true" {% if assignment.can_read == "true" %}selected{% endif %}>Active</option>
                   <option value="pending" {% if assignment.can_read == "pending" %}selected{% endif %}>Pending</option>
                   <option value="false" {% if assignment.can_read == "false" %}selected{% endif %}>Inactive</option>
+                  <option value="withdrawn" {% if assignment.can_read == "withdrawn" %}selected{% endif %}>Withdrawn</option>
                 </select>
               </td>
               <td class="px-4 py-2 border-b text-center">

@@ -339,7 +339,8 @@ def update_doctor(rad_id):
             "modalities": request.form.get("modalities"),
             "primary_contact_method": request.form.get("primary_contact_method"),
             "timezone": request.form.get("timezone"),
-            "active_status": True if request.form.get("active_status") == "true" else False
+            "active_status": True if request.form.get("active_status") == "true" else False,
+            "stipulations": request.form.get("stipulations"),
         }
         
         # Remove None values to avoid overwriting with nulls
