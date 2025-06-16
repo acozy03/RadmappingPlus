@@ -8,6 +8,10 @@ from googleapiclient.discovery import build
 from googleapiclient.http import MediaIoBaseDownload
 from supabase import create_client, Client
 import json 
+from app.audit_log import log_audit_action
+
+assignments_added = []
+assignments_removed = []
 
 SUPABASE_URL = os.getenv("SUPABASE_URL")
 SUPABASE_KEY = os.getenv("SUPABASE_SUPER_KEY")
@@ -28,6 +32,18 @@ SERVICE_ACCOUNT_INFO = {
 SCOPES = ['https://www.googleapis.com/auth/drive.readonly']
 creds = service_account.Credentials.from_service_account_info(SERVICE_ACCOUNT_INFO, scopes=SCOPES)
 drive = build("drive", "v3", credentials=creds)
+
+
+def enrich_assignment_names(assignments: list, rad_map: dict, fac_map: dict) -> list:
+    enriched = []
+    for a in assignments:
+        enriched.append({
+            **a,
+            "radiologist_name": rad_map.get(a["radiologist_id"]),
+            "facility_name": fac_map.get(a["facility_id"])
+        })
+    return enriched
+
 
 def process_cell_update(sheet_id: str, row: int, col: int) -> dict:
     print(f"📥 Starting radmapping sync for sheet={sheet_id}, row={row}, col={col}")
@@ -75,6 +91,8 @@ def process_cell_update(sheet_id: str, row: int, col: int) -> dict:
 
     seen_rads = set()
     new_assignments = []
+    assignments_removed = []
+    assignments_added = []
 
     for col_idx in range(2, ws.max_column + 1):
         cell = ws.cell(row=row, column=col_idx)
@@ -96,7 +114,6 @@ def process_cell_update(sheet_id: str, row: int, col: int) -> dict:
         font_color = cell.font.color
         if font_color and font_color.type == "rgb":
             rgb = font_color.rgb.upper()
-            print(f"🎨 Cell[{col_idx}] RGB: {rgb}")
             if rgb.startswith("FFFF0000"):
                 can_read = "false"
             elif rgb.startswith("FF0000FF"):
@@ -116,31 +133,64 @@ def process_cell_update(sheet_id: str, row: int, col: int) -> dict:
         })
 
     existing = supabase.table("doctor_facility_assignments") \
-        .select("id, radiologist_id") \
+        .select("id, radiologist_id, can_read, notes") \
         .eq("facility_id", facility_id).execute().data
-    existing_rads = {a["radiologist_id"]: a["id"] for a in existing}
+    existing_rads = {a["radiologist_id"]: a for a in existing}
 
     # Delete removed ones
-    for rad_id in existing_rads:
+    for rad_id, assignment in existing_rads.items():
         if rad_id not in seen_rads:
             print(f"🗑️ Removing stale assignment for rad_id={rad_id}")
             supabase.table("doctor_facility_assignments") \
                 .delete().eq("radiologist_id", rad_id).eq("facility_id", facility_id).execute()
+            assignments_removed.append(assignment)
 
     # Insert or update
     for a in new_assignments:
-        print(f"📤 Inserting assignment: {a}")
+        existing = existing_rads.get(a["radiologist_id"])
         supabase.table("doctor_facility_assignments") \
             .delete().eq("radiologist_id", a["radiologist_id"]).eq("facility_id", a["facility_id"]).execute()
 
-        supabase.table("doctor_facility_assignments").insert({
+        new_record = {
             "id": str(uuid.uuid4()),
             **a
-        }).execute()
+        }
+
+        supabase.table("doctor_facility_assignments").insert(new_record).execute()
+        assignments_added.append(new_record)
+
+    # Create lookup dictionaries
+    rad_name_map = {r["id"]: r["name"] for r in radiologists}
+    fac_name_map = {f["id"]: f["name"] for f in facilities}
+
+    # Enrich assignment logs with names
+    assignments_added_named = enrich_assignment_names(assignments_added, rad_name_map, fac_name_map)
+    assignments_removed_named = enrich_assignment_names(assignments_removed, rad_name_map, fac_name_map)
+
+    # Log single audit entry
+    from datetime import datetime, timezone
+    audit_entry = {
+        "action": "sync",
+        "table_name": "doctor_facility_assignments",
+        "record_id": facility_id,
+        "user_email": "radmapping@sync",
+        "timestamp": datetime.now(timezone.utc).isoformat(),
+        "old_data": {"assignments_removed": assignments_removed_named},
+        "new_data": {
+            "assignments_added": assignments_added_named,
+            "summary": {
+                "added": len(assignments_added_named),
+                "removed": len(assignments_removed_named)
+            }
+        }
+    }
+
+    print("🧪 Type of new_data:", type(audit_entry["new_data"]))
+    supabase.table("audit_log").insert(audit_entry).execute()
 
     return {
         "status": "success",
         "facility": facility_name,
-        "assignments_updated": len(new_assignments),
-        "assignments_removed": len(existing_rads) - len(seen_rads)
+        "assignments_updated": len(assignments_added),
+        "assignments_removed": len(assignments_removed)
     }, 200

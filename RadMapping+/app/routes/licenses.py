@@ -1,18 +1,14 @@
 from flask import Blueprint, render_template, session, redirect, url_for, request, jsonify
 from app.admin_required import admin_required
-from app.supabase_client import supabase
-from datetime import datetime, timedelta
-import uuid
-from app.middleware import with_supabase_auth
-import csv
-import requests
-from io import StringIO
-from flask import Blueprint, request, jsonify
-from threading import Thread
-from datetime import datetime
-import uuid
 from app.supabase_client import get_supabase_client
+from app.middleware import with_supabase_auth
 from app.license_sync import process_license_cell_update
+from app.audit_log import log_audit_action
+
+from datetime import datetime
+from threading import Thread
+import uuid
+
 licenses_bp = Blueprint('licenses', __name__)
 
 
@@ -23,7 +19,19 @@ def delete_certification(rad_id, cert_id):
     if session["user"]["role"] != "admin":
         return "Unauthorized", 403
 
-    supabase.table("certifications").delete().eq("id", cert_id).execute()
+    old_data = supabase.table("certifications").select("*").eq("id", cert_id).single().execute().data
+    res = supabase.table("certifications").delete().eq("id", cert_id).execute()
+
+    if not hasattr(res, "error"):
+        log_audit_action(
+            supabase=supabase,
+            action="delete",
+            table_name="certifications",
+            record_id=cert_id,
+            user_email=session.get("user", {}).get("email", "unknown"),
+            old_data=old_data,
+            new_data=None
+        )
 
     return redirect(url_for('licenses.licenses_page'))
 
@@ -33,6 +41,7 @@ def delete_certification(rad_id, cert_id):
 @admin_required
 def update_license(license_id):
     supabase = get_supabase_client()
+
     data = {
         "radiologist_id": request.form.get("radiologist_id"),
         "state": request.form.get("state"),
@@ -41,8 +50,23 @@ def update_license(license_id):
         "tags": request.form.get("tags"),
         "expiration_date": request.form.get("expiration_date")
     }
-    supabase.table("certifications").update(data).eq("id", license_id).execute()
+
+    old_data = supabase.table("certifications").select("*").eq("id", license_id).single().execute().data
+    res = supabase.table("certifications").update(data).eq("id", license_id).execute()
+
+    if not hasattr(res, "error"):
+        log_audit_action(
+            supabase=supabase,
+            action="update",
+            table_name="certifications",
+            record_id=license_id,
+            user_email=session.get("user", {}).get("email", "unknown"),
+            old_data=old_data,
+            new_data=data
+        )
+
     return jsonify({"status": "success"})
+
 
 @licenses_bp.route('/licenses/search', methods=["GET"])
 @with_supabase_auth
@@ -51,31 +75,26 @@ def search_licenses():
     page = request.args.get('page', 1, type=int)
     per_page = 25
     offset = (page - 1) * per_page
-    
-    # Get filter parameters
+
     search_term = request.args.get('search', '')
     doctor_id = request.args.get('doctor', '')
     status = request.args.get('status', 'all')
-    
-    # Build query
+
     query = supabase.table("certifications").select("*, radiologists(name)")
-    
+
     if search_term:
         query = query.ilike('state', f'%{search_term}%')
     if doctor_id:
         query = query.eq('radiologist_id', doctor_id)
     if status != 'all':
         query = query.eq('status', status)
-    
-    # Get total count for pagination
+
     count_res = query.execute()
     total_count = len(count_res.data)
-    
-    # Get paginated results with sorting
-    query = query.order("expiration_date", desc=True) \
-                .range(offset, offset + per_page - 1)
+
+    query = query.order("expiration_date", desc=True).range(offset, offset + per_page - 1)
     results = query.execute()
-    
+
     return jsonify({
         'certifications': results.data,
         'total_count': total_count,
@@ -83,42 +102,34 @@ def search_licenses():
         'per_page': per_page
     })
 
+
 @licenses_bp.route('/licenses', methods=["GET", "POST"])
 @with_supabase_auth
 def licenses_page():
     supabase = get_supabase_client()
-    # Fetch all radiologists for the doctor dropdown
     rads_res = supabase.table("radiologists").select("id, name, active_status").order("name").execute()
     radiologists = rads_res.data or []
 
-    # Handle Add License form submission
     if request.method == "POST":
         doctor_id = request.form.get("doctor")
-        print("Doctor ID:", doctor_id)
         state = request.form.get("state")
-        print("State:", state)
         expiration_date = request.form.get("exp")
-        print("Expiration Date:", expiration_date)
         specialty = request.form.get("specialty")
 
-        # If blank, pull specialty from an existing cert for that doctor
         if not specialty:
             existing = supabase.table("certifications") \
                 .select("specialty") \
                 .eq("radiologist_id", doctor_id) \
                 .neq("specialty", None) \
-                .limit(1) \
-                .execute()
+                .limit(1).execute()
             if existing.data:
                 specialty = existing.data[0]["specialty"]
 
-        print("Specialty:", specialty)
         tags = request.form.get("tags")
-        print("Tags:", tags)
         status = request.form.get("status")
-        print("Status:", status)
+
         if doctor_id and state and expiration_date:
-            res = supabase.table("certifications").insert({
+            new_cert = {
                 "id": str(uuid.uuid4()),
                 "radiologist_id": doctor_id,
                 "state": state,
@@ -126,20 +137,29 @@ def licenses_page():
                 "specialty": specialty,
                 "tags": tags,
                 "status": status
-            }).execute()
-            print("Insert response:", res)
+            }
+            res = supabase.table("certifications").insert(new_cert).execute()
+
+            if not hasattr(res, "error"):
+                log_audit_action(
+                    supabase=supabase,
+                    action="insert",
+                    table_name="certifications",
+                    record_id=new_cert["id"],
+                    user_email=session.get("user", {}).get("email", "unknown"),
+                    old_data=None,
+                    new_data=new_cert
+                )
+
         return redirect(url_for("licenses.licenses_page"))
-       
-    # Get pagination parameters
+
     page = request.args.get('page', 1, type=int)
     per_page = 25
     offset = (page - 1) * per_page
 
-    # Get total count for pagination
     count_res = supabase.table("certifications").select("*", count='exact').execute()
     total_count = count_res.count
 
-    # Fetch paginated licenses with radiologist names
     certs_res = supabase.table("certifications") \
         .select("*, radiologists(name)") \
         .order("expiration_date", desc=True) \
@@ -147,23 +167,23 @@ def licenses_page():
         .execute()
     certifications = certs_res.data or []
 
-    # Get current date for expiration checking
     now = datetime.now()
-    
-    return render_template("licenses.html", 
-                         certifications=certifications, 
-                         radiologists=radiologists,
-                         now=now,
-                         total_count=total_count,
-                         current_page=page,
-                         per_page=per_page)
+
+    return render_template("licenses.html",
+                           certifications=certifications,
+                           radiologists=radiologists,
+                           now=now,
+                           total_count=total_count,
+                           current_page=page,
+                           per_page=per_page)
+
 
 @licenses_bp.route('/licenses/license-sync', methods=["POST"])
 def license_sync():
     try:
         data = request.get_json(force=True)
         sheet_id = data.get("sheetId")
-        row = data.get("row")  # 1-based index from Google Sheets
+        row = data.get("row")
         col = data.get("col")
 
         if not sheet_id or not row or not col:

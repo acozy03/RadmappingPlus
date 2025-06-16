@@ -6,7 +6,7 @@ import uuid
 from app.middleware import with_supabase_auth
 from app.supabase_client import get_supabase_client
 import logging # Import logging
-
+from app.audit_log import log_audit_action
 vacations_bp = Blueprint('vacations', __name__)
 
 @vacations_bp.route('/vacations')
@@ -86,8 +86,21 @@ def add_vacation():
         "end_date": request.form.get("end_date"),
         "comments": request.form.get("comments")
     }
-    supabase.table("vacations").insert(data).execute()
+    result = supabase.table("vacations").insert(data).execute()
+
+    if not hasattr(result, 'error'):
+        log_audit_action(
+            supabase=supabase,
+            action="insert",
+            table_name="vacations",
+            record_id=data["id"],
+            user_email=session.get("user", {}).get("email", "unknown"),
+            old_data=None,
+            new_data=data
+        )
+
     return redirect(url_for("vacations.vacations_page"))
+
 
 @vacations_bp.route('/vacations/update', methods=['POST'])
 @with_supabase_auth
@@ -95,14 +108,31 @@ def add_vacation():
 def update_vacation():
     supabase = get_supabase_client()
     vacation_id = request.form.get("vacation_id")
+
+    old_data = supabase.table("vacations").select("*").eq("id", vacation_id).single().execute().data
+
     data = {
         "radiologist_id": request.form.get("radiologist_id"),
         "start_date": request.form.get("start_date"),
         "end_date": request.form.get("end_date"),
         "comments": request.form.get("comments")
     }
-    supabase.table("vacations").update(data).eq("id", vacation_id).execute()
+
+    result = supabase.table("vacations").update(data).eq("id", vacation_id).execute()
+
+    if not hasattr(result, 'error'):
+        log_audit_action(
+            supabase=supabase,
+            action="update",
+            table_name="vacations",
+            record_id=vacation_id,
+            user_email=session.get("user", {}).get("email", "unknown"),
+            old_data=old_data,
+            new_data=data
+        )
+
     return redirect(url_for("vacations.vacations_page"))
+
 
 @vacations_bp.route('/vacations/delete', methods=['POST'])
 @with_supabase_auth
@@ -110,5 +140,19 @@ def update_vacation():
 def delete_vacation():
     supabase = get_supabase_client()
     vacation_id = request.json.get("vacation_id")
-    supabase.table("vacations").delete().eq("id", vacation_id).execute()
+
+    old_data = supabase.table("vacations").select("*").eq("id", vacation_id).single().execute().data
+    result = supabase.table("vacations").delete().eq("id", vacation_id).execute()
+
+    if not hasattr(result, 'error'):
+        log_audit_action(
+            supabase=supabase,
+            action="delete",
+            table_name="vacations",
+            record_id=vacation_id,
+            user_email=session.get("user", {}).get("email", "unknown"),
+            old_data=old_data,
+            new_data=None
+        )
+
     return jsonify({"status": "success"})

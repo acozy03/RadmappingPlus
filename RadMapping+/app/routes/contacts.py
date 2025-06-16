@@ -5,6 +5,7 @@ from app.middleware import with_supabase_auth
 from datetime import datetime
 import uuid
 import logging
+from app.audit_log import log_audit_action
 
 contacts_bp = Blueprint('contacts', __name__)
 
@@ -52,6 +53,17 @@ def add_contact():
             "updated_at": datetime.now().isoformat()
         }
         result = supabase.table("vesta_contacts").insert(data).execute()
+        if not hasattr(result, 'error'):
+            log_audit_action(
+                supabase=supabase,
+                action="insert",
+                table_name="vesta_contacts",
+                record_id=data["id"],
+                user_email=session.get("user", {}).get("email", "unknown"),
+                old_data=None,
+                new_data=data
+            )
+
         if hasattr(result, 'error'):
             
             return redirect(url_for("contacts.contacts"))
@@ -75,7 +87,20 @@ def edit_contact(contact_id):
             "additional_info": request.form.get("additional_info"),
             "updated_at": datetime.now().isoformat()
         }
+        old_data = supabase.table("vesta_contacts").select("*").eq("id", contact_id).single().execute().data
+
         result = supabase.table("vesta_contacts").update(data).eq("id", contact_id).execute()
+        if not hasattr(result, 'error'):
+            log_audit_action(
+                supabase=supabase,
+                action="update",
+                table_name="vesta_contacts",
+                record_id=contact_id,
+                user_email=session.get("user", {}).get("email", "unknown"),
+                old_data=old_data,
+                new_data=data
+            )
+
         if hasattr(result, 'error'):
             logging.error(f"Error editing contact: {result.error}")
         return redirect(url_for("contacts.contacts"))
@@ -89,7 +114,19 @@ def edit_contact(contact_id):
 def delete_contact(contact_id):
     try:
         supabase = get_supabase_client()
+        old_data = supabase.table("vesta_contacts").select("*").eq("id", contact_id).single().execute().data
         result = supabase.table("vesta_contacts").delete().eq("id", contact_id).execute()
+        
+        if not hasattr(result, 'error'):
+            log_audit_action(
+                supabase=supabase,
+                action="delete",
+                table_name="vesta_contacts",
+                record_id=contact_id,
+                user_email=session.get("user", {}).get("email", "unknown"),
+                old_data=old_data,
+                new_data=None
+            )
         if hasattr(result, 'error'):
             logging.error(f"Error deleting contact: {result.error}")
         return redirect(url_for("contacts.contacts"))

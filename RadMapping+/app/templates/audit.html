@@ -1,0 +1,616 @@
+{% extends "layout.html" %}
+{% block title %}Audit Log{% endblock %}
+
+{% block content %}
+
+  <!-- Search filters card -->
+  <div class="bg-white rounded-lg shadow-sm border border-gray-200 p-6 mb-6">
+    <div class="flex items-center justify-between mb-4">
+      <h2 class="text-lg font-semibold text-gray-900">Search Filters</h2>
+      <button id="reset-filters" class="px-4 py-2 bg-gray-100 text-gray-700 rounded-md hover:bg-gray-200 transition-colors text-sm font-medium">
+        Clear All Filters
+      </button>
+    </div>
+    
+    <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+      <div class="space-y-2">
+        <label for="timestamp-filter" class="block text-sm font-medium text-gray-700">
+          <svg class="inline w-4 h-4 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z"></path>
+          </svg>
+          Timestamp
+        </label>
+        <input type="text" id="timestamp-filter" placeholder="Search by date/time..." 
+               class="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 text-sm">
+      </div>
+      
+      <div class="space-y-2">
+        <label for="user-filter" class="block text-sm font-medium text-gray-700">
+          <svg class="inline w-4 h-4 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z"></path>
+          </svg>
+          User
+        </label>
+        <input type="text" id="user-filter" placeholder="Search by user email..." 
+               class="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 text-sm">
+      </div>
+      
+      <div class="space-y-2">
+        <label for="action-filter" class="block text-sm font-medium text-gray-700">
+          <svg class="inline w-4 h-4 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 10V3L4 14h7v7l9-11h-7z"></path>
+          </svg>
+          Action
+        </label>
+        <input type="text" id="action-filter" placeholder="insert, update, delete..." 
+               class="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 text-sm">
+      </div>
+      
+      <div class="space-y-2">
+        <label for="table-filter" class="block text-sm font-medium text-gray-700">
+          <svg class="inline w-4 h-4 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 7v10c0 2.21 3.582 4 8 4s8-1.79 8-4V7M4 7c0 2.21 3.582 4 8 4s8-1.79 8-4M4 7c0-2.21 3.582-4 8-4s8 1.79 8 4"></path>
+          </svg>
+          Table
+        </label>
+        <input type="text" id="table-filter" placeholder="Search by table name..." 
+               class="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 text-sm">
+      </div>
+      
+      <div class="space-y-2">
+        <label for="record-filter" class="block text-sm font-medium text-gray-700">
+          <svg class="inline w-4 h-4 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M7 7h.01M7 3h5c.512 0 1.024.195 1.414.586l7 7a2 2 0 010 2.828l-7 7a2 2 0 01-2.828 0l-7-7A1.994 1.994 0 013 12V7a4 4 0 014-4z"></path>
+          </svg>
+          Record ID
+        </label>
+        <input type="text" id="record-filter" placeholder="Search by record ID..." 
+               class="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 text-sm">
+      </div>
+      
+      <div class="space-y-2">
+        <label for="data-filter" class="block text-sm font-medium text-gray-700">
+          <svg class="inline w-4 h-4 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"></path>
+          </svg>
+          Data Content
+        </label>
+        <input type="text" id="data-filter" placeholder="Search within JSON data..." 
+               class="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 text-sm">
+      </div>
+    </div>
+  </div>
+
+  <div class="bg-white rounded-lg shadow-sm border border-gray-200 overflow-hidden">
+    <div class="overflow-x-auto">
+      <table class="w-full text-sm text-left">
+        <thead class="text-xs text-gray-700 uppercase bg-gray-50 border-b border-gray-200">
+          <tr>
+            <th class="px-4 py-4 cursor-pointer hover:bg-gray-100 transition-colors" data-sort="timestamp">
+              <div class="flex items-center">
+                Timestamp
+                <span class="ml-2 text-gray-400 sort-indicator">↕</span>
+              </div>
+            </th>
+            <th class="px-4 py-4 cursor-pointer hover:bg-gray-100 transition-colors" data-sort="user">
+              <div class="flex items-center">
+                User
+                <span class="ml-2 text-gray-400 sort-indicator">↕</span>
+              </div>
+            </th>
+            <th class="px-4 py-4 cursor-pointer hover:bg-gray-100 transition-colors" data-sort="action">
+              <div class="flex items-center">
+                Action
+                <span class="ml-2 text-gray-400 sort-indicator">↕</span>
+              </div>
+            </th>
+            <th class="px-4 py-4 cursor-pointer hover:bg-gray-100 transition-colors" data-sort="table">
+              <div class="flex items-center">
+                Table
+                <span class="ml-2 text-gray-400 sort-indicator">↕</span>
+              </div>
+            </th>
+            <th class="px-4 py-4 cursor-pointer hover:bg-gray-100 transition-colors" data-sort="record">
+              <div class="flex items-center">
+                Record ID
+                <span class="ml-2 text-gray-400 sort-indicator">↕</span>
+              </div>
+            </th>
+            <th class="px-4 py-4">Old Data</th>
+            <th class="px-4 py-4">New Data</th>
+          </tr>
+        </thead>
+        <tbody id="audit-log-body">
+          {% for entry in logs %}
+          <tr class="bg-white border-b hover:bg-gray-50 transition-colors audit-row">
+            <td class="px-4 py-4 whitespace-nowrap timestamp-cell">
+              <div class="formatted-timestamp text-sm font-medium text-gray-900" data-raw="{{ entry.timestamp }}">{{ entry.timestamp }}</div>
+
+                <div class="relative-time text-xs text-gray-500"></div>
+            </td>
+            <td class="px-4 py-4 user-cell">
+              <div class="text-sm text-gray-900">{{ entry.user_email or '—' }}</div>
+            </td>
+            <td class="px-4 py-4 action-cell">
+              <span class="inline-flex px-2 py-1 text-xs font-semibold rounded-full
+                {% if entry.action == 'insert' %}
+                  bg-green-100 text-green-800
+                {% elif entry.action == 'update' %}
+                  bg-blue-100 text-blue-800
+                {% elif entry.action == 'delete' %}
+                  bg-red-100 text-red-800
+                {% else %}
+                  bg-gray-100 text-gray-800
+                {% endif %}">
+                {{ entry.action|upper }}
+              </span>
+            </td>
+            <td class="px-4 py-4 table-cell">
+              <div class="text-sm font-medium text-gray-900">{{ entry.table_name }}</div>
+            </td>
+            <td class="px-4 py-4 record-cell">
+              <div class="text-xs font-mono text-gray-600 bg-gray-50 px-2 py-1 rounded">{{ entry.record_id }}</div>
+            </td>
+            <td class="px-4 py-4 old-data-cell">
+  <div
+    class="relative max-w-xs cursor-pointer hover:bg-gray-100 rounded p-1 transition-colors"
+    onclick="openFromElement(this)"
+    data-old='{{ entry.old_data | tojson }}'
+    data-new='{{ entry.new_data | tojson }}'>
+    
+    <div class="old-data-container">
+      <pre class="text-xs text-gray-600 max-h-24 overflow-y-auto bg-gray-50 p-2 rounded border">
+{{ entry.old_data | tojson(indent=2) if entry.old_data else 'null' }}
+      </pre>
+    </div>
+  </div>
+</td>
+
+<td class="px-4 py-4 new-data-cell">
+  <div
+    class="relative max-w-xs cursor-pointer hover:bg-gray-100 rounded p-1 transition-colors"
+    onclick="openFromElement(this)"
+    data-old='{{ entry.old_data | tojson }}'
+    data-new='{{ entry.new_data | tojson }}'>
+    
+    <div class="new-data-container">
+      <pre class="text-xs text-gray-800 max-h-24 overflow-y-auto bg-gray-50 p-2 rounded border">
+{{ entry.new_data | tojson(indent=2) if entry.new_data else 'null' }}
+      </pre>
+    </div>
+  </div>
+</td>
+
+          </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+      
+      <div id="no-results" class="hidden p-8 text-center text-gray-500">
+        <svg class="mx-auto h-12 w-12 text-gray-400 mb-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9.172 16.172a4 4 0 015.656 0M9 12h6m-6-4h6m2 5.291A7.962 7.962 0 0112 15c-2.34 0-4.47.881-6.08 2.33l-.926-.926A9.953 9.953 0 0112 13c2.74 0 5.23 1.1 7.08 2.88l-.926.926A7.963 7.963 0 0112 15z"></path>
+        </svg>
+        <p class="text-lg font-medium">No matching audit logs found</p>
+        <p class="text-sm text-gray-400 mt-1">Try adjusting your search filters</p>
+      </div>
+      
+      <div id="loading-more" class="hidden p-4 text-center text-gray-500">
+        <div class="inline-flex items-center">
+          <svg class="animate-spin -ml-1 mr-3 h-5 w-5 text-gray-500" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+            <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
+            <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+          </svg>
+          Loading more entries...
+        </div>
+      </div>
+    </div>
+
+    <!-- Results summary footer -->
+    <div class="bg-gray-50 px-4 py-3 border-t border-gray-200">
+      <div class="flex justify-between items-center text-sm text-gray-600">
+        <span id="showing-count">Showing 0 entries</span>
+        <span id="total-count">Total: 0 entries</span>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- Modal for expanded data view with diff highlighting -->
+<div id="data-modal" class="fixed inset-0 bg-black bg-opacity-50 hidden flex items-center justify-center z-50">
+  <div class="bg-white rounded-lg shadow-xl w-11/12 max-w-6xl max-h-[90vh] overflow-hidden">
+    <div class="flex justify-between items-center border-b p-4 bg-gray-50">
+      <h3 class="text-lg font-semibold text-gray-900">Data Comparison</h3>
+      <button onclick="closeModal()" class="text-gray-500 hover:text-gray-700 p-1">
+        <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12" />
+        </svg>
+      </button>
+    </div>
+    <div class="p-4 overflow-y-auto max-h-[calc(90vh-8rem)]">
+      <div class="grid grid-cols-1 lg:grid-cols-2 gap-4">
+        <div>
+          <h4 class="text-sm font-semibold mb-3 text-gray-700 flex items-center">
+            <span class="w-3 h-3 bg-red-100 rounded-full mr-2"></span>
+            Previous Data
+          </h4>
+          <pre id="old-data-display" class="json-diff-container bg-gray-50 p-4 rounded border text-xs overflow-auto max-h-96 whitespace-pre-wrap"></pre>
+        </div>
+        <div>
+          <h4 class="text-sm font-semibold mb-3 text-gray-700 flex items-center">
+            <span class="w-3 h-3 bg-green-100 rounded-full mr-2"></span>
+            Current Data
+          </h4>
+          <pre id="new-data-display" class="json-diff-container bg-gray-50 p-4 rounded border text-xs overflow-auto max-h-96 whitespace-pre-wrap"></pre>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<style>
+  .highlight-change {
+    background-color: #fef3c7 !important;
+    padding: 1px 2px;
+    border-radius: 2px;
+    font-weight: 600;
+  }
+  
+  .json-diff-container {
+    font-family: 'Monaco', 'Menlo', 'Ubuntu Mono', monospace;
+    font-size: 12px;
+    line-height: 1.4;
+  }
+  
+  .audit-row.hidden {
+    display: none !important;
+  }
+  
+  .sort-indicator.active {
+    color: #3b82f6;
+  }
+  
+  .old-data-cell:hover,
+  .new-data-cell:hover {
+    background-color: #f8fafc;
+  }
+</style>
+<script> 
+function openFromElement(el) {
+  const oldDataStr = el.dataset.old || 'null';
+  const newDataStr = el.dataset.new || 'null';
+  showModal(oldDataStr, newDataStr);
+}
+
+    // Global functions for modal
+function showModal(oldDataStr, newDataStr) {
+  
+  try {
+    // Parse and format the JSON data
+    let oldData, newData;
+    
+    try {
+      oldData = JSON.parse(oldDataStr);
+    } catch (e) {
+      oldData = oldDataStr === 'null' ? null : oldDataStr;
+    }
+    
+    try {
+      newData = JSON.parse(newDataStr);
+    } catch (e) {
+      newData = newDataStr === 'null' ? null : newDataStr;
+    }
+    
+    const oldFormatted = oldData ? JSON.stringify(oldData, null, 2) : 'null';
+    const newFormatted = newData ? JSON.stringify(newData, null, 2) : 'null';
+    
+    // Highlight differences
+    const highlightedOld = highlightDifferences(oldFormatted, newFormatted, 'old');
+    const highlightedNew = highlightDifferences(oldFormatted, newFormatted, 'new');
+    
+    document.getElementById('old-data-display').innerHTML = highlightedOld;
+    document.getElementById('new-data-display').innerHTML = highlightedNew;
+    
+    document.getElementById('data-modal').classList.remove('hidden');
+    
+  } catch (error) {
+    console.error('Error showing modal:', error);
+    // Fallback to plain text display
+    document.getElementById('old-data-display').textContent = oldDataStr;
+    document.getElementById('new-data-display').textContent = newDataStr;
+    document.getElementById('data-modal').classList.remove('hidden');
+  }
+}
+
+function closeModal() {
+  document.getElementById('data-modal').classList.add('hidden');
+}
+
+function highlightDifferences(oldStr, newStr, type) {
+  if (oldStr === 'null' || newStr === 'null') {
+    return type === 'old' ? oldStr : newStr;
+  }
+  
+  try {
+    const oldData = JSON.parse(oldStr);
+    const newData = JSON.parse(newStr);
+    
+    if (typeof oldData !== 'object' || typeof newData !== 'object') {
+      return type === 'old' ? oldStr : newStr;
+    }
+    
+    const changes = findObjectDifferences(oldData, newData);
+    let result = type === 'old' ? oldStr : newStr;
+    
+    // Highlight changed values
+    changes.forEach(change => {
+      const valueToHighlight = type === 'old' ? change.oldValue : change.newValue;
+      if (valueToHighlight !== undefined) {
+        const escapedValue = escapeRegExp(JSON.stringify(valueToHighlight));
+        const regex = new RegExp(`(${escapedValue})`, 'g');
+        result = result.replace(regex, '<span class="highlight-change">$1</span>');
+      }
+    });
+    
+    return result;
+    
+  } catch (e) {
+    return type === 'old' ? oldStr : newStr;
+  }
+}
+
+function findObjectDifferences(oldObj, newObj, path = '') {
+  const differences = [];
+  
+  // Check all keys in both objects
+  const allKeys = new Set([...Object.keys(oldObj || {}), ...Object.keys(newObj || {})]);
+  
+  allKeys.forEach(key => {
+    const currentPath = path ? `${path}.${key}` : key;
+    const oldValue = oldObj ? oldObj[key] : undefined;
+    const newValue = newObj ? newObj[key] : undefined;
+    
+    if (oldValue !== newValue) {
+      if (typeof oldValue === 'object' && typeof newValue === 'object' && 
+          oldValue !== null && newValue !== null) {
+        // Recursively check nested objects
+        differences.push(...findObjectDifferences(oldValue, newValue, currentPath));
+      } else {
+        // Direct value change
+        differences.push({
+          path: currentPath,
+          oldValue: oldValue,
+          newValue: newValue
+        });
+      }
+    }
+  });
+  
+  return differences;
+}
+
+function escapeRegExp(string) {
+  return string.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+}
+
+// Close modal when clicking outside or pressing Escape
+document.addEventListener('click', function(e) {
+  const modal = document.getElementById('data-modal');
+  if (e.target === modal) {
+    closeModal();
+  }
+});
+
+document.addEventListener('keydown', function(e) {
+  if (e.key === 'Escape') {
+    closeModal();
+  }
+});
+</script>
+{% block scripts %}
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+  const entriesPerPage = 50;
+  let visibleEntries = entriesPerPage;
+  let allRows = Array.from(document.querySelectorAll('.audit-row'));
+  let filteredRows = [...allRows];
+  let currentSort = { column: 'timestamp', direction: 'desc' };
+
+
+
+  formatTimestamps();
+  sortRows();
+  updateVisibleRows();
+  updateCounts();
+
+  const filters = {
+    timestamp: document.getElementById('timestamp-filter'),
+    user: document.getElementById('user-filter'),
+    action: document.getElementById('action-filter'),
+    table: document.getElementById('table-filter'),
+    record: document.getElementById('record-filter'),
+    data: document.getElementById('data-filter')
+  };
+
+  Object.values(filters).forEach(filter => {
+    filter.addEventListener('input', applyFilters);
+    filter.addEventListener('keyup', applyFilters);
+  });
+
+  document.getElementById('reset-filters').addEventListener('click', () => {
+    Object.values(filters).forEach(filter => filter.value = '');
+    applyFilters();
+  });
+
+  document.querySelectorAll('th[data-sort]').forEach(header => {
+    header.addEventListener('click', function() {
+      const column = this.dataset.sort;
+      if (currentSort.column === column) {
+        currentSort.direction = currentSort.direction === 'asc' ? 'desc' : 'asc';
+      } else {
+        currentSort.column = column;
+        currentSort.direction = 'asc';
+      }
+
+      document.querySelectorAll('.sort-indicator').forEach(i => {
+        i.textContent = '↕';
+        i.classList.remove('active');
+      });
+
+      const indicator = this.querySelector('.sort-indicator');
+      indicator.textContent = currentSort.direction === 'asc' ? '↑' : '↓';
+      indicator.classList.add('active');
+
+      sortRows();
+      updateVisibleRows();
+    });
+  });
+
+  let isLoading = false;
+  window.addEventListener('scroll', function() {
+    if (isLoading) return;
+    if (window.innerHeight + window.scrollY >= document.body.offsetHeight - 200) {
+      if (visibleEntries < filteredRows.length) {
+        isLoading = true;
+        document.getElementById('loading-more').classList.remove('hidden');
+        setTimeout(() => {
+          visibleEntries += entriesPerPage;
+          updateVisibleRows();
+          document.getElementById('loading-more').classList.add('hidden');
+          isLoading = false;
+        }, 300);
+      }
+    }
+  });
+
+  
+  function formatTimestamps() {
+    document.querySelectorAll('.formatted-timestamp').forEach(function(el) {
+      const raw = el.dataset.raw || el.textContent.trim();
+      const relativeEl = el.nextElementSibling;
+      const date = new Date(raw);
+      if (!isNaN(date)) {
+        el.textContent = formatDate(date);
+        if (relativeEl) relativeEl.textContent = getRelativeTime(date);
+      }
+    });
+  }
+
+  function formatDate(date) {
+    return new Intl.DateTimeFormat('en-US', {
+      year: 'numeric',
+      month: '2-digit',
+      day: '2-digit',
+      hour: '2-digit',
+      minute: '2-digit',
+      hour12: true
+    }).format(date);
+  }
+
+  function getRelativeTime(date) {
+    const now = new Date();
+    const diffMs = now - date;
+    const diffMins = Math.floor(diffMs / 60000);
+    const diffHours = Math.floor(diffMins / 60);
+    const diffDays = Math.floor(diffHours / 24);
+    if (diffMins < 1) return 'Just now';
+    if (diffMins < 60) return `${diffMins}m ago`;
+    if (diffHours < 24) return `${diffHours}h ago`;
+    if (diffDays < 7) return `${diffDays}d ago`;
+    return date.toLocaleDateString();
+  }
+
+  function applyFilters() {
+    const timestampFilter = filters.timestamp.value.toLowerCase().trim();
+    const userFilter = filters.user.value.toLowerCase().trim();
+    const actionFilter = filters.action.value.toLowerCase().trim();
+    const tableFilter = filters.table.value.toLowerCase().trim();
+    const recordFilter = filters.record.value.toLowerCase().trim();
+    const dataFilter = filters.data.value.toLowerCase().trim();
+
+    filteredRows = allRows.filter(row => {
+      const timestampCell = row.querySelector('.timestamp-cell');
+      const userCell = row.querySelector('.user-cell');
+      const actionCell = row.querySelector('.action-cell');
+      const tableCell = row.querySelector('.table-cell');
+      const recordCell = row.querySelector('.record-cell');
+      const oldDataCell = row.querySelector('.old-data-cell');
+      const newDataCell = row.querySelector('.new-data-cell');
+
+      const timestampText = timestampCell?.textContent.toLowerCase() || '';
+      const userText = userCell?.textContent.toLowerCase() || '';
+      const actionText = actionCell?.textContent.toLowerCase() || '';
+      const tableText = tableCell?.textContent.toLowerCase() || '';
+      const recordText = recordCell?.textContent.toLowerCase() || '';
+      const dataText = (oldDataCell?.textContent || '') + ' ' + (newDataCell?.textContent || '');
+
+      return (!timestampFilter || timestampText.includes(timestampFilter)) &&
+             (!userFilter || userText.includes(userFilter)) &&
+             (!actionFilter || actionText.includes(actionFilter)) &&
+             (!tableFilter || tableText.includes(tableFilter)) &&
+             (!recordFilter || recordText.includes(recordFilter)) &&
+             (!dataFilter || dataText.toLowerCase().includes(dataFilter));
+    });
+
+    visibleEntries = entriesPerPage;
+    sortRows();
+    updateVisibleRows();
+    updateCounts();
+  }
+
+  function sortRows() {
+    filteredRows.sort((a, b) => {
+      let valueA, valueB;
+      switch(currentSort.column) {
+        case 'timestamp':
+          valueA = new Date(a.querySelector('.timestamp-cell .formatted-timestamp').dataset.raw);
+          valueB = new Date(b.querySelector('.timestamp-cell .formatted-timestamp').dataset.raw);
+          break;
+        case 'user':
+          valueA = a.querySelector('.user-cell').textContent.trim();
+          valueB = b.querySelector('.user-cell').textContent.trim();
+          break;
+        case 'action':
+          valueA = a.querySelector('.action-cell').textContent.trim();
+          valueB = b.querySelector('.action-cell').textContent.trim();
+          break;
+        case 'table':
+          valueA = a.querySelector('.table-cell').textContent.trim();
+          valueB = b.querySelector('.table-cell').textContent.trim();
+          break;
+        case 'record':
+          valueA = a.querySelector('.record-cell').textContent.trim();
+          valueB = b.querySelector('.record-cell').textContent.trim();
+          break;
+        default:
+          valueA = 0;
+          valueB = 0;
+      }
+
+      if (valueA < valueB) return currentSort.direction === 'asc' ? -1 : 1;
+      if (valueA > valueB) return currentSort.direction === 'asc' ? 1 : -1;
+      return 0;
+    });
+
+    const tbody = document.getElementById('audit-log-body');
+    filteredRows.forEach(row => tbody.appendChild(row));
+  }
+
+  function updateVisibleRows() {
+    allRows.forEach(row => row.classList.add('hidden'));
+    filteredRows.slice(0, visibleEntries).forEach(row => row.classList.remove('hidden'));
+
+    const noResults = document.getElementById('no-results');
+    noResults.classList.toggle('hidden', filteredRows.length > 0);
+  }
+
+  function updateCounts() {
+    document.getElementById('showing-count').textContent = `Showing ${Math.min(visibleEntries, filteredRows.length)} entries`;
+    document.getElementById('total-count').textContent = `Total: ${filteredRows.length} entries`;
+
+ 
+  }
+});
+</script>
+{% endblock %}
+
+{% endblock %}

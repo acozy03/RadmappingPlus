@@ -4,6 +4,7 @@ from app.supabase_client import supabase
 import uuid
 from app.middleware import with_supabase_auth
 from app.supabase_client import get_supabase_client
+from app.audit_log import log_audit_action
 
 facilities_bp = Blueprint('facilities', __name__)
 
@@ -152,7 +153,19 @@ def add_facility_contact(facility_id):
         "role": request.form.get("role")
     }
     
-    supabase.table("facility_contact_assignments").insert(data).execute()
+    res = supabase.table("facility_contact_assignments").insert(data).execute()
+    
+    if not hasattr(res, "error"):
+        log_audit_action(
+            supabase=supabase,
+            action="insert",
+            table_name="facility_contact_assignments",
+            record_id=data["id"],
+            user_email=session.get("user", {}).get("email", "unknown"),
+            old_data=None,
+            new_data=data
+        )
+
     return redirect(url_for("facilities.facility_profile", facility_id=facility_id))
 
 @facilities_bp.route('/facilities/<string:facility_id>/contacts/<string:contact_id>', methods=['POST'])
@@ -164,8 +177,21 @@ def edit_facility_contact(facility_id, contact_id):
         "text": request.form.get("text"),
         "role": request.form.get("role")
     }
+
+    old_data = supabase.table("facility_contact_assignments").select("*").eq("id", contact_id).single().execute().data
+    res = supabase.table("facility_contact_assignments").update(data).eq("id", contact_id).execute()
     
-    supabase.table("facility_contact_assignments").update(data).eq("id", contact_id).execute()
+    if not hasattr(res, "error"):
+        log_audit_action(
+            supabase=supabase,
+            action="update",
+            table_name="facility_contact_assignments",
+            record_id=contact_id,
+            user_email=session.get("user", {}).get("email", "unknown"),
+            old_data=old_data,
+            new_data=data
+        )
+
     return redirect(url_for("facilities.facility_profile", facility_id=facility_id))
 
 @facilities_bp.route('/facility/<string:facility_id>/contact/<string:contact_id>', methods=['DELETE'])
@@ -175,7 +201,6 @@ def delete_facility_contact_api(facility_id, contact_id):
     try:
         supabase = get_supabase_client()
         
-        
         # First verify the contact exists and belongs to the facility
         verify = supabase.table("facility_contact_assignments")\
             .select("*")\
@@ -183,22 +208,26 @@ def delete_facility_contact_api(facility_id, contact_id):
             .eq("facility_id", facility_id)\
             .execute()
             
-      
-        
         if not verify.data:
-        
             return jsonify({"success": False, "error": "Contact not found"}), 404
 
-        # Proceed with deletion
+        old_data = verify.data[0] # Get old data before deletion
         result = supabase.table("facility_contact_assignments")\
             .delete()\
             .eq("id", contact_id)\
             .eq("facility_id", facility_id)\
             .execute()
             
- 
-        
         if result.data:
+            log_audit_action(
+                supabase=supabase,
+                action="delete",
+                table_name="facility_contact_assignments",
+                record_id=contact_id,
+                user_email=session.get("user", {}).get("email", "unknown"),
+                old_data=old_data,
+                new_data=None
+            )
             return jsonify({"success": True})
         else:
             return jsonify({"success": False, "error": "Delete operation failed"}), 500
@@ -214,37 +243,79 @@ def bulk_update_assignments(facility_id):
     supabase = get_supabase_client()
     assignment_ids = request.form.getlist("assignment_ids[]") or request.form.getlist("assignment_ids")
 
-
     for assignment_id in assignment_ids:
+        # Get old data for doctor_facility_assignments
+        old_assignment_data = supabase.table('doctor_facility_assignments').select('*').eq('id', assignment_id).single().execute().data
+
         # Update assignment's can_read status
         can_read = request.form.get(f'can_read_{assignment_id}', 'true')
         notes = request.form.get(f'notes_{assignment_id}', '')
-        print(f"Assignment {assignment_id} - Notes: {notes}")
-        supabase.table('doctor_facility_assignments').update({
+        
+        new_assignment_data = {
             'can_read': can_read,
             'notes': notes
-        }).eq('id', assignment_id).execute()
-       
+        }
+
+        # Check if assignment data has actually changed before updating
+        assignment_changed = False
+        if old_assignment_data:
+            if old_assignment_data.get('can_read') != new_assignment_data['can_read'] or \
+               old_assignment_data.get('notes') != new_assignment_data['notes']:
+                assignment_changed = True
+        elif new_assignment_data['can_read'] != 'true' or new_assignment_data['notes'] != '': # New entry, consider if defaults changed
+             assignment_changed = True
+
+
+        if assignment_changed:
+            assignment_res = supabase.table('doctor_facility_assignments').update(new_assignment_data).eq('id', assignment_id).execute()
+            if not hasattr(assignment_res, "error"):
+                log_audit_action(
+                    supabase=supabase,
+                    action="update",
+                    table_name="doctor_facility_assignments",
+                    record_id=assignment_id,
+                    user_email=session.get("user", {}).get("email", "unknown"),
+                    old_data=old_assignment_data,
+                    new_data=new_assignment_data
+                )
 
         # Get corresponding radiologist ID from the assignment
-        assignment = supabase.table('doctor_facility_assignments') \
-            .select('radiologist_id') \
-            .eq('id', assignment_id) \
-            .single() \
-            .execute()
+        rad_id = old_assignment_data['radiologist_id'] # Use old_assignment_data for rad_id
 
-        rad_id = assignment.data['radiologist_id']
+        # Get old data for radiologists
+        old_radiologist_data = supabase.table('radiologists').select('*').eq('id', rad_id).single().execute().data
 
         # Update fields on the radiologists table
         reads_stats = 'reads_stats_' + rad_id in request.form
         reads_routines = 'reads_routines_' + rad_id in request.form
         stipulations = request.form.get(f'stipulations_{rad_id}', '')
-
-        supabase.table('radiologists').update({
+        
+        new_radiologist_data = {
             'reads_stats': 'YES' if reads_stats else 'NO',
             'reads_routines': 'YES' if reads_routines else 'NO',
             'stipulations': stipulations
-        }).eq('id', rad_id).execute()
+        }
+
+        # Check if radiologist data has actually changed before updating
+        radiologist_changed = False
+        if old_radiologist_data:
+            if old_radiologist_data.get('reads_stats') != new_radiologist_data['reads_stats'] or \
+               old_radiologist_data.get('reads_routines') != new_radiologist_data['reads_routines'] or \
+               old_radiologist_data.get('stipulations') != new_radiologist_data['stipulations']:
+                radiologist_changed = True
+        
+        if radiologist_changed:
+            radiologist_res = supabase.table('radiologists').update(new_radiologist_data).eq('id', rad_id).execute()
+            if not hasattr(radiologist_res, "error"):
+                log_audit_action(
+                    supabase=supabase,
+                    action="update",
+                    table_name="radiologists",
+                    record_id=rad_id,
+                    user_email=session.get("user", {}).get("email", "unknown"),
+                    old_data=old_radiologist_data,
+                    new_data=new_radiologist_data
+                )
 
     return redirect(url_for('facilities.facility_profile', facility_id=facility_id))
 
@@ -261,7 +332,19 @@ def assign_radiologist(facility_id):
         "facility_id": facility_id,
         "can_read": request.form.get("can_read", "empty"),
     }
-    supabase.table("doctor_facility_assignments").insert(data).execute()
+    res = supabase.table("doctor_facility_assignments").insert(data).execute()
+
+    if not hasattr(res, "error"):
+        log_audit_action(
+            supabase=supabase,
+            action="insert",
+            table_name="doctor_facility_assignments",
+            record_id=data["id"],
+            user_email=session.get("user", {}).get("email", "unknown"),
+            old_data=None,
+            new_data=data
+        )
+
     return redirect(url_for("facilities.facility_profile", facility_id=facility_id))
 
 
@@ -270,7 +353,19 @@ def assign_radiologist(facility_id):
 @admin_required
 def remove_facility(facility_id):
     supabase = get_supabase_client()
-    supabase.table('facilities').delete().eq('id', facility_id).execute()
+    old_data = supabase.table('facilities').select('*').eq('id', facility_id).single().execute().data
+    res = supabase.table('facilities').delete().eq('id', facility_id).execute()
+
+    if not hasattr(res, "error"):
+        log_audit_action(
+            supabase=supabase,
+            action="delete",
+            table_name="facilities",
+            record_id=facility_id,
+            user_email=session.get("user", {}).get("email", "unknown"),
+            old_data=old_data,
+            new_data=None
+        )
     return redirect(url_for('facilities.facilities'))
 
 @facilities_bp.route('/radmapping/facility/<facility_id>/update', methods=['POST'])
@@ -279,7 +374,8 @@ def remove_facility(facility_id):
 def update_facility(facility_id):
     supabase = get_supabase_client()
     form = request.form
-    supabase.table('facilities').update({
+    
+    data = {
         'name': form.get('name'),
         'location': form.get('location'),
         'pacs': form.get('pacs'),
@@ -287,7 +383,21 @@ def update_facility(facility_id):
         'modalities_assignment_period': form.get('assignment_period'),
         'modalities': form.get('assignment_type'),
         'active_status': 'true' if form.get('active_status') == 'true' else 'false',
-    }).eq('id', facility_id).execute()
+    }
+
+    old_data = supabase.table('facilities').select('*').eq('id', facility_id).single().execute().data
+    res = supabase.table('facilities').update(data).eq('id', facility_id).execute()
+
+    if not hasattr(res, "error"):
+        log_audit_action(
+            supabase=supabase,
+            action="update",
+            table_name="facilities",
+            record_id=facility_id,
+            user_email=session.get("user", {}).get("email", "unknown"),
+            old_data=old_data,
+            new_data=data
+        )
     return redirect(url_for('facilities.facility_profile', facility_id=facility_id))
 
 @facilities_bp.route('/facilities/<string:facility_id>/assignments/<string:assignment_id>/remove', methods=['POST'])
@@ -295,8 +405,20 @@ def update_facility(facility_id):
 @admin_required
 def remove_assignment(facility_id, assignment_id):
     supabase = get_supabase_client()
+    old_data = supabase.table("doctor_facility_assignments").select("*").eq("id", assignment_id).single().execute().data
     # Delete the assignment
-    supabase.table("doctor_facility_assignments").delete().eq("id", assignment_id).execute()
+    res = supabase.table("doctor_facility_assignments").delete().eq("id", assignment_id).execute()
+    
+    if not hasattr(res, "error"):
+        log_audit_action(
+            supabase=supabase,
+            action="delete",
+            table_name="doctor_facility_assignments",
+            record_id=assignment_id,
+            user_email=session.get("user", {}).get("email", "unknown"),
+            old_data=old_data,
+            new_data=None
+        )
     return redirect(url_for("facilities.facility_profile", facility_id=facility_id))
 
 
@@ -320,6 +442,17 @@ def add_facility():
     }
 
     # Insert the new doctor into the database
-    supabase.table("facilities").insert(data).execute()
+    res = supabase.table("facilities").insert(data).execute()
+
+    if not hasattr(res, "error"):
+        log_audit_action(
+            supabase=supabase,
+            action="insert",
+            table_name="facilities",
+            record_id=new_id,
+            user_email=session.get("user", {}).get("email", "unknown"),
+            old_data=None,
+            new_data=data
+        )
 
     return redirect(url_for("facilities.facilities", rad_id=new_id))

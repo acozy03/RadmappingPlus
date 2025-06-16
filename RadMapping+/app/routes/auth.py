@@ -1,8 +1,7 @@
 from flask import Blueprint, render_template, session, redirect, url_for, request, jsonify
 import os
 import logging
-from app.supabase_client import get_supabase_client # Ensure this is correctly imported and functional
-# from app.admin_required import admin_required # Only needed if /auth/callback needs admin_required
+from app.supabase_client import get_supabase_client 
 
 auth_bp = Blueprint('auth', __name__)
 

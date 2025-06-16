@@ -2,6 +2,7 @@ from flask import Blueprint, render_template, session, redirect, url_for, reques
 from app.admin_required import admin_required
 from app.supabase_client import get_supabase_client
 from app.middleware import with_supabase_auth
+from app.audit_log import log_audit_action # Import the audit log function
 from datetime import datetime, timedelta
 from calendar import monthrange
 import uuid
@@ -250,21 +251,44 @@ def update_schedule(rad_id):
 
     # Check if a schedule entry already exists for this doctor on this date
     existing = supabase.table("monthly_schedule") \
-        .select("id") \
+        .select("id, start_time, end_time, schedule_details") \
         .eq("radiologist_id", rad_id) \
         .eq("start_date", date) \
         .eq("end_date", date).execute()
 
     if existing.data:
+        old_data = existing.data[0]
         # Update existing entry
-        supabase.table("monthly_schedule").update(data) \
-            .eq("id", existing.data[0]["id"]).execute()
+        res = supabase.table("monthly_schedule").update(data) \
+            .eq("id", old_data["id"]).execute()
+        if not hasattr(res, "error"):
+            log_audit_action(
+                supabase=supabase,
+                action="update",
+                table_name="monthly_schedule",
+                record_id=old_data["id"],
+                user_email=session.get("user", {}).get("email", "unknown"),
+                old_data=old_data,
+                new_data={**data, "id": old_data["id"], "radiologist_id": rad_id, "start_date": date, "end_date": date}
+            )
     else:
         # Insert new entry
+        new_id = str(uuid.uuid4())
+        data["id"] = new_id
         data["radiologist_id"] = rad_id
         data["start_date"] = date
         data["end_date"] = date
-        supabase.table("monthly_schedule").insert(data).execute()
+        res = supabase.table("monthly_schedule").insert(data).execute()
+        if not hasattr(res, "error"):
+            log_audit_action(
+                supabase=supabase,
+                action="insert",
+                table_name="monthly_schedule",
+                record_id=new_id,
+                user_email=session.get("user", {}).get("email", "unknown"),
+                old_data=None,
+                new_data=data
+            )
 
     year = request.form.get("year")
     month = request.form.get("month")
@@ -280,8 +304,28 @@ def delete_schedule(rad_id):
     year = request.form.get("year")
     month = request.form.get("month")
     start_day = request.form.get("start_day")
-    supabase.table("monthly_schedule").delete() \
+
+    old_data_res = supabase.table("monthly_schedule") \
+        .select("*") \
+        .eq("radiologist_id", rad_id) \
+        .eq("start_date", date) \
+        .eq("end_date", date) \
+        .single().execute()
+    old_data = old_data_res.data if old_data_res.data else None
+
+    res = supabase.table("monthly_schedule").delete() \
         .eq("radiologist_id", rad_id).eq("start_date", date).eq("end_date", date).execute()
+
+    if not hasattr(res, "error") and old_data:
+        log_audit_action(
+            supabase=supabase,
+            action="delete",
+            table_name="monthly_schedule",
+            record_id=old_data["id"],
+            user_email=session.get("user", {}).get("email", "unknown"),
+            old_data=old_data,
+            new_data=None
+        )
 
     return redirect(url_for("monthly.monthly", year=year, month=month, start_day=start_day))
 
@@ -302,7 +346,7 @@ def bulk_update_schedule(rad_id):
         if not date:
             continue
         existing = supabase.table("monthly_schedule") \
-            .select("id") \
+            .select("id, start_time, end_time, schedule_details") \
             .eq("radiologist_id", rad_id) \
             .eq("start_date", date) \
             .eq("end_date", date).execute()
@@ -317,10 +361,33 @@ def bulk_update_schedule(rad_id):
         }
 
         if existing.data:
-            supabase.table("monthly_schedule").update(payload) \
-                .eq("id", existing.data[0]["id"]).execute()
+            old_data = existing.data[0]
+            res = supabase.table("monthly_schedule").update(payload) \
+                .eq("id", old_data["id"]).execute()
+            if not hasattr(res, "error"):
+                log_audit_action(
+                    supabase=supabase,
+                    action="update",
+                    table_name="monthly_schedule",
+                    record_id=old_data["id"],
+                    user_email=session.get("user", {}).get("email", "unknown"),
+                    old_data=old_data,
+                    new_data={**payload, "id": old_data["id"]}
+                )
         else:
-            supabase.table("monthly_schedule").insert(payload).execute()
+            new_id = str(uuid.uuid4())
+            payload["id"] = new_id
+            res = supabase.table("monthly_schedule").insert(payload).execute()
+            if not hasattr(res, "error"):
+                log_audit_action(
+                    supabase=supabase,
+                    action="insert",
+                    table_name="monthly_schedule",
+                    record_id=new_id,
+                    user_email=session.get("user", {}).get("email", "unknown"),
+                    old_data=None,
+                    new_data=payload
+                )
 
     return redirect(url_for("doctors.doctor_profile", rad_id=rad_id))
 
@@ -331,6 +398,7 @@ def update_doctor(rad_id):
     try:
         supabase = get_supabase_client()
       
+        old_data = supabase.table("radiologists").select("*").eq("id", rad_id).single().execute().data
         
         data = {
             "email": request.form.get("email"),
@@ -346,22 +414,47 @@ def update_doctor(rad_id):
         # Remove None values to avoid overwriting with nulls
         data = {k: v for k, v in data.items() if v is not None}
         
-                # Update RVU if present
+        # Update RVU if present
         rvu_val = request.form.get("rvu_score")
         rvu_month = request.form.get("rvu_month")
 
         if rvu_val and rvu_month:
-            supabase.table("rad_avg_monthly_rvu").upsert({
+            # Fetch existing RVU data if any
+            old_rvu_data_res = supabase.table("rad_avg_monthly_rvu").select("*").eq("radiologist_id", rad_id).limit(1).execute()
+            old_rvu_data = old_rvu_data_res.data[0] if old_rvu_data_res.data else None
+
+            rvu_payload = {
                 "radiologist_id": rad_id,
                 rvu_month: float(rvu_val)
-            }, on_conflict="radiologist_id").execute()
+            }
+            rvu_res = supabase.table("rad_avg_monthly_rvu").upsert(rvu_payload, on_conflict="radiologist_id").execute()
+            
+            if not hasattr(rvu_res, "error"):
+                log_audit_action(
+                    supabase=supabase,
+                    action="upsert", # Use upsert as the action for RVU to differentiate
+                    table_name="rad_avg_monthly_rvu",
+                    record_id=rad_id,
+                    user_email=session.get("user", {}).get("email", "unknown"),
+                    old_data=old_rvu_data,
+                    new_data=rvu_payload
+                )
+
         result = supabase.table("radiologists").update(data).eq("id", rad_id).execute()
 
-    
+        if not hasattr(result, "error"):
+            log_audit_action(
+                supabase=supabase,
+                action="update",
+                table_name="radiologists",
+                record_id=rad_id,
+                user_email=session.get("user", {}).get("email", "unknown"),
+                old_data=old_data,
+                new_data=data
+            )
 
         return redirect(url_for("doctors.doctor_profile", rad_id=rad_id))
     except Exception as e:
-    
         return f"Error updating doctor: {str(e)}", 500
 
 @doctors_bp.route('/doctors/add', methods=['POST'])
@@ -386,7 +479,18 @@ def add_doctor():
     }
 
     # Insert the new doctor into the database
-    supabase.table("radiologists").insert(data).execute()
+    res = supabase.table("radiologists").insert(data).execute()
+
+    if not hasattr(res, "error"):
+        log_audit_action(
+            supabase=supabase,
+            action="insert",
+            table_name="radiologists",
+            record_id=new_id,
+            user_email=session.get("user", {}).get("email", "unknown"),
+            old_data=None,
+            new_data=data
+        )
 
     return redirect(url_for("doctors.doctor_profile", rad_id=new_id))
 
@@ -395,7 +499,19 @@ def add_doctor():
 @admin_required
 def remove_doctor(rad_id):
     supabase = get_supabase_client()
-    supabase.table('radiologists').delete().eq('id', rad_id).execute()
+    old_data = supabase.table('radiologists').select('*').eq('id', rad_id).single().execute().data
+    res = supabase.table('radiologists').delete().eq('id', rad_id).execute()
+
+    if not hasattr(res, "error"):
+        log_audit_action(
+            supabase=supabase,
+            action="delete",
+            table_name="radiologists",
+            record_id=rad_id,
+            user_email=session.get("user", {}).get("email", "unknown"),
+            old_data=old_data,
+            new_data=None
+        )
     return redirect(url_for('doctors.doctor_list'))
 
 @doctors_bp.route('/doctors/<string:rad_id>/add_facility', methods=['POST'])
@@ -419,7 +535,19 @@ def add_facility_assignment(rad_id):
         "notes": notes
     }
 
-    supabase.table("doctor_facility_assignments").insert(data).execute()
+    res = supabase.table("doctor_facility_assignments").insert(data).execute()
+
+    if not hasattr(res, "error"):
+        log_audit_action(
+            supabase=supabase,
+            action="insert",
+            table_name="doctor_facility_assignments",
+            record_id=data["id"],
+            user_email=session.get("user", {}).get("email", "unknown"),
+            old_data=None,
+            new_data=data
+        )
+
     return redirect(url_for("doctors.doctor_profile", rad_id=rad_id))
 
 
@@ -460,31 +588,57 @@ def update_doctor_specialties(doctor_id):
     all_specialty_ids = {s['id'] for s in specialties_res.data}
     # Get current permissions
     perms_res = supabase.table("specialty_permissions") \
-        .select("id, specialty_id") \
+        .select("id, specialty_id, can_read") \
         .eq("radiologist_id", doctor_id) \
         .execute()
-    perms = {p['specialty_id']: p['id'] for p in perms_res.data}
+    perms_map = {p['specialty_id']: p for p in perms_res.data} # Store full permission object
+
     # Update or create permissions
     for spec_id in all_specialty_ids:
         should_have = spec_id in specialty_ids
-        if spec_id in perms:
-            supabase.table("specialty_permissions").update({"can_read": should_have}).eq("id", perms[spec_id]).execute()
+        if spec_id in perms_map:
+            old_perm = perms_map[spec_id]
+            if old_perm["can_read"] != should_have: # Only update if status changed
+                new_perm_data = {"can_read": should_have}
+                res = supabase.table("specialty_permissions").update(new_perm_data).eq("id", old_perm["id"]).execute()
+                if not hasattr(res, "error"):
+                    log_audit_action(
+                        supabase=supabase,
+                        action="update",
+                        table_name="specialty_permissions",
+                        record_id=old_perm["id"],
+                        user_email=session.get("user", {}).get("email", "unknown"),
+                        old_data=old_perm,
+                        new_data={**old_perm, **new_perm_data} # Merge old with new to form complete new data
+                    )
         elif should_have:
-            supabase.table("specialty_permissions").insert({
-                "id": str(uuid.uuid4()),
+            new_id = str(uuid.uuid4())
+            new_perm_data = {
+                "id": new_id,
                 "radiologist_id": doctor_id,
                 "specialty_id": spec_id,
                 "can_read": True
-            }).execute()
+            }
+            res = supabase.table("specialty_permissions").insert(new_perm_data).execute()
+            if not hasattr(res, "error"):
+                log_audit_action(
+                    supabase=supabase,
+                    action="insert",
+                    table_name="specialty_permissions",
+                    record_id=new_id,
+                    user_email=session.get("user", {}).get("email", "unknown"),
+                    old_data=None,
+                    new_data=new_perm_data
+                )
     return jsonify({"status": "success"})
 
-@doctors_bp.route('/doctors/<string:rad_id>/licenses/<string:cert_id>/delete', methods=["POST"])
-@with_supabase_auth
-@admin_required
-def delete_certification(rad_id, cert_id):
-    supabase = get_supabase_client()
-    supabase.table("certifications").delete().eq("id", cert_id).execute()
-    return redirect(url_for('licenses.licenses_page'))
+# @doctors_bp.route('/doctors/<string:rad_id>/licenses/<string:cert_id>/delete', methods=["POST"])
+# @with_supabase_auth
+# @admin_required
+# def delete_certification(rad_id, cert_id):
+#     supabase = get_supabase_client()
+#     supabase.table("certifications").delete().eq("id", cert_id).execute()
+#     return redirect(url_for('licenses.licenses_page'))
 
 @doctors_bp.route('/doctors/<string:rad_id>/add_certification', methods=['POST'])
 @with_supabase_auth
@@ -500,7 +654,19 @@ def add_certification(rad_id):
         "specialty": request.form.get('specialty', ''),
         "tags": request.form.get('tags', ''),
     }
-    supabase.table("certifications").insert(data).execute()
+    res = supabase.table("certifications").insert(data).execute()
+
+    if not hasattr(res, "error"):
+        log_audit_action(
+            supabase=supabase,
+            action="insert",
+            table_name="certifications",
+            record_id=data["id"],
+            user_email=session.get("user", {}).get("email", "unknown"),
+            old_data=None,
+            new_data=data
+        )
+
     return redirect(url_for('doctors.doctor_profile', rad_id=rad_id))
 
 @doctors_bp.route('/doctors/assignments/<string:assignment_id>/update', methods=["POST"])
@@ -510,15 +676,17 @@ def update_assignment(assignment_id):
     try:
         supabase = get_supabase_client()
 
-        # Fetch the assignment to retain radiologist_id
-        current = supabase.table("doctor_facility_assignments") \
+        # Fetch the assignment to retain radiologist_id and for old_data
+        current_res = supabase.table("doctor_facility_assignments") \
             .select("*") \
             .eq("id", assignment_id) \
             .single() \
             .execute()
 
-        if not current.data:
+        if not current_res.data:
             return "Assignment not found", 404
+        
+        old_data = current_res.data
 
         # Read dropdown value for can_read: true, pending, or false
         can_read = request.form.get("can_read", "false")  # Default to "false" if missing
@@ -531,15 +699,26 @@ def update_assignment(assignment_id):
         update_data = {
             "can_read": can_read,
             "notes": notes,
-            "radiologist_id": current.data["radiologist_id"]
+            "radiologist_id": old_data["radiologist_id"] # Ensure radiologist_id is included for logging new_data
         }
 
-        supabase.table("doctor_facility_assignments") \
+        res = supabase.table("doctor_facility_assignments") \
             .update(update_data) \
             .eq("id", assignment_id) \
             .execute()
 
-        return redirect(request.referrer or url_for('doctors.doctor_profile', rad_id=current.data["radiologist_id"]))
+        if not hasattr(res, "error"):
+            log_audit_action(
+                supabase=supabase,
+                action="update",
+                table_name="doctor_facility_assignments",
+                record_id=assignment_id,
+                user_email=session.get("user", {}).get("email", "unknown"),
+                old_data=old_data,
+                new_data={**old_data, **update_data} # Merge old with new to form complete new data
+            )
+
+        return redirect(request.referrer or url_for('doctors.doctor_profile', rad_id=old_data["radiologist_id"]))
     except Exception as e:
         return f"Error updating assignment: {str(e)}", 500
 
@@ -550,18 +729,32 @@ def update_assignment(assignment_id):
 def delete_assignment(assignment_id):
     try:
         supabase = get_supabase_client()
-    
+        
+        old_data_res = supabase.table("doctor_facility_assignments") \
+            .select("*") \
+            .eq("id", assignment_id) \
+            .single() \
+            .execute()
+        old_data = old_data_res.data if old_data_res.data else None
         
         result = supabase.table("doctor_facility_assignments") \
             .delete() \
             .eq("id", assignment_id) \
             .execute()
             
-     
+        if not hasattr(result, "error") and old_data:
+            log_audit_action(
+                supabase=supabase,
+                action="delete",
+                table_name="doctor_facility_assignments",
+                record_id=assignment_id,
+                user_email=session.get("user", {}).get("email", "unknown"),
+                old_data=old_data,
+                new_data=None
+            )
         
         return redirect(request.referrer or url_for('doctors.doctor_profile'))
     except Exception as e:
-      
         return f"Error deleting assignment: {str(e)}", 500 
     
 from flask import Blueprint, request, jsonify
@@ -580,7 +773,6 @@ def radmapping_sync():
         if not sheet_id or not row or not col:
             print("⚠️ Missing fields:", data)
             return jsonify({"error": "Missing required fields"}), 400
-
         result, status_code = process_cell_update(sheet_id, int(row), int(col))
         print("✅ Sync success:", result)
         return jsonify(result), status_code
@@ -590,4 +782,3 @@ def radmapping_sync():
         print("❌ Exception occurred during radmapping_sync:")
         print(traceback.format_exc())
         return jsonify({"error": "Internal server error"}), 500
-
