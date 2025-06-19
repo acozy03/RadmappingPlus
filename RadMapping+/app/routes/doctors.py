@@ -109,7 +109,8 @@ def get_latest_monthly_rvu_column(row):
     month_order = ["dec", "nov", "oct", "sep", "aug", "jul", "jun", "may", "apr", "mar", "feb", "jan"]  # Reverse order for latest first
     for month in month_order:
         if row.get(month) is not None:
-            return month, row[month]
+            if row.get(month) != 0:
+                return month, row[month]
     return None, None
 
 
@@ -409,36 +410,61 @@ def update_doctor(rad_id):
             "timezone": request.form.get("timezone"),
             "active_status": True if request.form.get("active_status") == "true" else False,
             "stipulations": request.form.get("stipulations"),
+            "reads_routines": request.form.get("reads_routines"),
+            "reads_stats": request.form.get("reads_stats"), 
         }
         
         # Remove None values to avoid overwriting with nulls
         data = {k: v for k, v in data.items() if v is not None}
         
         # Update RVU if present
-        rvu_val = request.form.get("rvu_score")
-        rvu_month = request.form.get("rvu_month")
+        rvu_val = request.form.get("rvu_score", "").strip()
+        rvu_month = request.form.get("rvu_month", "").strip().lower()
+
+        # Default to current month (e.g. "jun") if blank
+        if rvu_month in ("", "none", None):
+            rvu_month = datetime.now().strftime("%b").lower()
 
         if rvu_val and rvu_month:
-            # Fetch existing RVU data if any
+            # Fetch the radiologist name
+            rad_info = supabase.table("radiologists").select("name").eq("id", rad_id).single().execute()
+            rad_name = rad_info.data["name"] if rad_info.data else None
+
+            # Check for existing RVU row
             old_rvu_data_res = supabase.table("rad_avg_monthly_rvu").select("*").eq("radiologist_id", rad_id).limit(1).execute()
             old_rvu_data = old_rvu_data_res.data[0] if old_rvu_data_res.data else None
 
+            # Insert a new row if none exists yet
+            if not old_rvu_data:
+                supabase.table("rad_avg_monthly_rvu").insert({
+                    "radiologist_id": rad_id,
+                    "name": rad_name
+                }).execute()
+                old_rvu_data = None  # Still None, for audit logging
+          
+
+            # Prepare the upsert payload with dynamic month and name
             rvu_payload = {
                 "radiologist_id": rad_id,
+                "name": rad_name,
                 rvu_month: float(rvu_val)
             }
+           
+            # Perform upsert on the RVU table
             rvu_res = supabase.table("rad_avg_monthly_rvu").upsert(rvu_payload, on_conflict="radiologist_id").execute()
-            
+
+            # Log the audit action if successful
             if not hasattr(rvu_res, "error"):
                 log_audit_action(
                     supabase=supabase,
-                    action="upsert", # Use upsert as the action for RVU to differentiate
+                    action="upsert",
                     table_name="rad_avg_monthly_rvu",
                     record_id=rad_id,
                     user_email=session.get("user", {}).get("email", "unknown"),
                     old_data=old_rvu_data,
                     new_data=rvu_payload
                 )
+
 
         result = supabase.table("radiologists").update(data).eq("id", rad_id).execute()
 
@@ -475,7 +501,10 @@ def add_doctor():
         "modalities": request.form.get("modalities"),
         "timezone": request.form.get("timezone"),
         "additional_info": request.form.get("additional_info"),
-        "active_status": True if request.form.get("active_status") == "true" else False
+        "active_status": True if request.form.get("active_status") == "true" else False,
+        "stipulations": request.form.get("stipulations"),
+        "reads_routines": request.form.get("reads_routines"),
+        "reads_stats": request.form.get("reads_stats"),
     }
 
     # Insert the new doctor into the database
@@ -501,7 +530,7 @@ def remove_doctor(rad_id):
     supabase = get_supabase_client()
     old_data = supabase.table('radiologists').select('*').eq('id', rad_id).single().execute().data
     res = supabase.table('radiologists').delete().eq('id', rad_id).execute()
-
+    supabase.table('rad_avg_monthly_rvu').delete().eq('radiologist_id', rad_id).execute()
     if not hasattr(res, "error"):
         log_audit_action(
             supabase=supabase,
