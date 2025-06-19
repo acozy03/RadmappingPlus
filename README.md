@@ -4,45 +4,45 @@
 
 ---
 
-## ✨ Features
+## Features
 
-### 👨‍⚕️ Doctor Management
+### Doctor Management
 
 * Profile pages with full information and an editable admin section
 * Specialty tracking, license status, and shift analytics
 * Monthly & daily schedule views (including PRN logic)
 
-### 🏥 Facility Management
+### Facility Management
 
 * Assign radiologists with read permissions and stipulations
 * Contact tracking, sortable facility list, and state filtering
 
-### ⏰ Scheduling
+### Scheduling
 
 * Interactive calendar views (monthly & daily by hour)
 * Google Sheets integration for schedule sync
 * Real-time updates with schedule refresh triggers
 
-### 📓 Specialties & Licensing
+### Specialties & Licensing
 
 * Bulk upload from Excel files with color-coded logic
 * Status filters and audit logs for every change
 
-### 🌄 Other Modules
+### Other Modules
 
 * Rad Vacations
 * Vesta Contacts
 * RVU tracking per radiologist
 * Capacity hour-by-hour planning
 
-### 🔐 Authentication & Roles
+### Authentication & Roles
 
 * Google OAuth via Supabase
 * Role-based access: Admins can perform CRUD, Users have restricted views
 
 ---
 
-## 🚀 Tech Stack
+## Tech Stack
 
 * **Backend:** Python + Flask
 * **Frontend:** HTML, Jinja2, TailwindCSS
@@ -54,7 +54,7 @@
 
 ---
 
-## ⚙️ Setup
+## Setup
 
 ### 1. Clone the repo
 
@@ -103,7 +103,7 @@ gcloud run deploy flask-app \
 
 ---
 
-## 📊 Google Sheets Sync
+## Google Sheets Sync
 
 * Set up a Google Apps Script webhook to hit `/sync-endpoint` whenever a specific cell is edited
 * Provide `sheet_name` in the payload to selectively update data
@@ -111,13 +111,13 @@ gcloud run deploy flask-app \
 
 ---
 
-## 🔒 Security
+## Security
 
 * Supabase Auth controls user access
 * All writes are logged with user IDs via audit logging
 * Editable sections are role-locked in the frontend and backend
 
-### 📄 Roles
+### Roles
 
 | Role  | Capabilities                                          |
 | ----- | ----------------------------------------------------- |
@@ -144,7 +144,7 @@ gcloud run deploy flask-app \
 
 ---
 
-## 👥 Contributors
+## Contributors
 
 Built by **Adrian Cosentino** with aid from **John Boxma**
 
