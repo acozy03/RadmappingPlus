@@ -40,7 +40,8 @@ def enrich_assignment_names(assignments: list, rad_map: dict, fac_map: dict) -> 
         enriched.append({
             **a,
             "radiologist_name": rad_map.get(a["radiologist_id"]),
-            "facility_name": fac_map.get(a["facility_id"])
+            "facility_name": fac_map.get(a.get("facility_id"), "N/A")
+
         })
     return enriched
 
@@ -133,7 +134,7 @@ def process_cell_update(sheet_id: str, row: int, col: int) -> dict:
         })
 
     existing = supabase.table("doctor_facility_assignments") \
-        .select("id, radiologist_id, can_read, notes") \
+        .select("id, radiologist_id, facility_id, can_read, notes") \
         .eq("facility_id", facility_id).execute().data
     existing_rads = {a["radiologist_id"]: a for a in existing}
 
@@ -145,9 +146,15 @@ def process_cell_update(sheet_id: str, row: int, col: int) -> dict:
                 .delete().eq("radiologist_id", rad_id).eq("facility_id", facility_id).execute()
             assignments_removed.append(assignment)
 
-    # Insert or update
     for a in new_assignments:
         existing = existing_rads.get(a["radiologist_id"])
+        if existing:
+            changed = (
+                a["can_read"] != existing["can_read"] or
+                a["notes"] != (existing["notes"] or "")
+            )
+            if changed:
+                assignments_removed.append(existing)
         supabase.table("doctor_facility_assignments") \
             .delete().eq("radiologist_id", a["radiologist_id"]).eq("facility_id", a["facility_id"]).execute()
 
@@ -155,13 +162,15 @@ def process_cell_update(sheet_id: str, row: int, col: int) -> dict:
             "id": str(uuid.uuid4()),
             **a
         }
-
         supabase.table("doctor_facility_assignments").insert(new_record).execute()
-        assignments_added.append(new_record)
+    assignments_added.append(new_record)
+
 
     # Create lookup dictionaries
     rad_name_map = {r["id"]: r["name"] for r in radiologists}
     fac_name_map = {f["id"]: f["name"] for f in facilities}
+    print("🧪 assignments_removed =", assignments_removed)
+    print("🧪 keys in first removed assignment:", assignments_removed[0].keys())
 
     # Enrich assignment logs with names
     assignments_added_named = enrich_assignment_names(assignments_added, rad_name_map, fac_name_map)
