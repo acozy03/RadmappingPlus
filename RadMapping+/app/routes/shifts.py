@@ -13,39 +13,39 @@ def get_prev_week_same_day_and_hour(dt):
     prev_week_dt = dt - timedelta(weeks=1)
     return prev_week_dt.date().isoformat(), prev_week_dt.hour
 
-# Helper functions from daily.py (assuming they are needed for RVU calculation)
-def get_prev_month_same_dow_and_hour(dt):
-    # dt: datetime object for the current slot
-    # Find the previous month
-    year = dt.year
-    month = dt.month
-    day = dt.day
-    hour = dt.hour
-    # Go to previous month
-    if month == 1:
-        prev_month = 12
-        prev_year = year - 1
-    else:
-        prev_month = month - 1
-        prev_year = year
-    # Find all days in prev month with same weekday as dt
-    first_day_prev_month = datetime(prev_year, prev_month, 1)
-    days_in_prev_month = monthrange(prev_year, prev_month)[1]
-    candidates = []
-    for d in range(1, days_in_prev_month + 1):
-        candidate = datetime(prev_year, prev_month, d)
-        if candidate.weekday() == dt.weekday():
-            candidates.append(candidate)
-    # Pick the candidate closest to the same day-of-month, or just the first if none
-    if not candidates:
-        return None, hour
-    # Try to match the same week of the month
-    week_of_month = (dt.day - 1) // 7
-    if week_of_month < len(candidates):
-        chosen = candidates[week_of_month]
-    else:
-        chosen = candidates[-1]
-    return chosen.date().isoformat(), hour
+# not being used 
+# def get_prev_month_same_dow_and_hour(dt):
+#     # dt: datetime object for the current slot
+#     # Find the previous month
+#     year = dt.year
+#     month = dt.month
+#     day = dt.day
+#     hour = dt.hour
+#     # Go to previous month
+#     if month == 1:
+#         prev_month = 12
+#         prev_year = year - 1
+#     else:
+#         prev_month = month - 1
+#         prev_year = year
+#     # Find all days in prev month with same weekday as dt
+#     first_day_prev_month = datetime(prev_year, prev_month, 1)
+#     days_in_prev_month = monthrange(prev_year, prev_month)[1]
+#     candidates = []
+#     for d in range(1, days_in_prev_month + 1):
+#         candidate = datetime(prev_year, prev_month, d)
+#         if candidate.weekday() == dt.weekday():
+#             candidates.append(candidate)
+#     # Pick the candidate closest to the same day-of-month, or just the first if none
+#     if not candidates:
+#         return None, hour
+#     # Try to match the same week of the month
+#     week_of_month = (dt.day - 1) // 7
+#     if week_of_month < len(candidates):
+#         chosen = candidates[week_of_month]
+#     else:
+#         chosen = candidates[-1]
+#     return chosen.date().isoformat(), hour
 
 # Helper: Get latest non-zero monthly RVU for a doctor
 def get_latest_nonzero_rvu(rvu_row):

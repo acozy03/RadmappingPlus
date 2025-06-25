@@ -27,7 +27,7 @@ def log_audit_action(
                 if fac_res.data:
                     enriched["facility_name"] = fac_res.data[0]["name"]
         except Exception as e:
-            print(f"⚠️ Failed to enrich audit log with names: {e}")
+            print(f"Failed to enrich audit log with names: {e}")
         return enriched
 
     try:
@@ -46,4 +46,4 @@ def log_audit_action(
 
         supabase.table("audit_log").insert(log_entry).execute()
     except Exception as e:
-        print(f"⚠️ Failed to write audit log: {e}")
+        print(f"Failed to write audit log: {e}")

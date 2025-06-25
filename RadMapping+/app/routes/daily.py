@@ -66,8 +66,6 @@ def daily():
     base_date = datetime.combine(today_date, datetime.min.time())
     max_end_dt = base_date
 
-
-    # ✅ 2. Fetch today's shifts
     shift_res = supabase.table("monthly_schedule") \
         .select("*, radiologists(*)") \
         .lte("start_date", today) \
@@ -86,7 +84,6 @@ def daily():
                 if end_dt < start_dt:
                     end_dt += timedelta(days=1)
 
-                # Optional: handle break times
                 break_start_dt, break_end_dt = None, None
                 if entry.get("break_start") and entry.get("break_end"):
                     break_start_dt = datetime.strptime(f"{start_date} {entry['break_start']}", "%Y-%m-%d %H:%M:%S")
@@ -127,10 +124,9 @@ def daily():
             })
             doc["prn_ranges"] = extract_prn_ranges(doc.get("schedule_details", ""), start_date)
 
-            if doc["prn_ranges"]:  # ✅ Add only if it has PRN ranges
+            if doc["prn_ranges"]:  
                 doctors_on_shift.append(doc)
 
-    # ✅ 3. Also include tomorrow's shifts that spill into today
     tomorrow_str = (today_date + timedelta(days=1)).strftime("%Y-%m-%d")
     tomorrow_shift_res = supabase.table("monthly_schedule") \
         .select("*, radiologists(*)") \
@@ -159,7 +155,6 @@ def daily():
             except Exception as e:
                 print(f"[❌] Error parsing tomorrow's shift for {doc.get('name', 'Unknown')}: {e}")
 
-    # ✅ 4. Build hour slots and related data
     hour_slots = []
     current_hour = base_date
     while current_hour < max_end_dt:
@@ -181,7 +176,6 @@ def daily():
         else:
             slot['day_label'] = slot['date']
 
-    # ✅ 5. Map doctors by hour
     doctors_by_hour = defaultdict(list)
     for doc in doctors_on_shift:
         for slot in hour_slots:
@@ -243,7 +237,6 @@ def daily():
         int(doc["start_time"].split(":")[0]) <= datetime.now().hour < int(doc["end_time"].split(":")[0])
     }
 
-    # ✅ 6. Compute RVU stats
     prev_date_hour_pairs = set()
     for slot in hour_slots:
         d, h = get_prev_week_same_day_and_hour(slot["datetime"])

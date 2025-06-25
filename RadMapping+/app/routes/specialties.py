@@ -7,7 +7,6 @@ import uuid
 
 specialties_bp = Blueprint('specialties', __name__)
 
-
 @specialties_bp.route('/specialties')
 @with_supabase_auth
 def specialties():

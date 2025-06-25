@@ -15,13 +15,9 @@ contacts_bp = Blueprint('contacts', __name__)
 def contacts():
     try:
         supabase = get_supabase_client()
-        # Log the user's session info
  
         # Get contacts
         result = supabase.table("vesta_contacts").select("*").execute()
-        
-        # Log the result
-
         
         if hasattr(result, 'error'):
      

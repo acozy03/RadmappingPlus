@@ -40,10 +40,6 @@ def monthly():
     pinned_data = fetch_all_rows_monthly("pinned_doctors", "*", filters={"user_id": user_email})
     pinned_doctor_ids = [p["doctor_id"] for p in pinned_data]
 
-    print(f"✅ Fetched {len(all_doctors)} active doctors")
-    print(f"✅ Fetched {len(pinned_doctor_ids)} pinned doctor IDs")
-    print(f"📄 Showing {doctors_per_page} doctors per page")
-
     # Separate pinned and unpinned doctors
     pinned_doctors = [doc for doc in all_doctors if doc["id"] in pinned_doctor_ids]
     unpinned_doctors = [doc for doc in all_doctors if doc["id"] not in pinned_doctor_ids]
@@ -83,8 +79,6 @@ def monthly():
    
     # Use the fixed helper function
     schedule_data = fetch_schedule_data(visible_doctor_ids, start_str, end_str)
-    
-    print(f"✅ Successfully fetched {len(schedule_data)} total schedule entries")
 
     # Create a calendar dictionary for easy lookup
     calendar = defaultdict(dict)

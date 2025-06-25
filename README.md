@@ -59,8 +59,8 @@
 ### 1. Clone the repo
 
 ```bash
-git clone https://github.com/your-org/radmapping-plus.git
-cd radmapping-plus
+git clone https://github.com/acozy03/RadmappingPlus.git
+cd RadMapping+
 ```
 
 ### 2. Create `.env` file
@@ -89,7 +89,7 @@ python -m flask run
 
 ### 5. Deploy to Google Cloud
 
-Run these commands from the directory: `PS C:\Users\Adrian Cosentino\Documents\radmapping+>`
+Run these commands from the directory (on my computer): `PS C:\Users\Adrian Cosentino\Documents\radmapping+>`
 
 ```bash
 gcloud builds submit --tag gcr.io/radmapping-458916/flask-app

@@ -74,4 +74,4 @@ def process_license_cell_update(sheet_id, row, col):
 
     if updated_rows:
         supabase.table("certifications").insert(updated_rows).execute()
-        print(f"✅ Synced {len(updated_rows)} certifications for state: {state}")
+        print(f"Synced {len(updated_rows)} certifications for state: {state}")

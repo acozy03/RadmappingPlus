@@ -8,7 +8,6 @@ from .vacations import vacations_bp
 from .info import info_bp
 from .landing import landing_bp
 from .contacts import contacts_bp
-from .visualize import visualize_bp
 from .licenses import licenses_bp
 from .auth import auth_bp
 from .shifts import shifts_bp
@@ -24,7 +23,6 @@ __all__ = [
     'info_bp',
     'landing_bp',
     'contacts_bp',
-    'visualize_bp',
     'licenses_bp',
     'auth_bp',  
     'shifts_bp'

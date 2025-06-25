@@ -7,8 +7,6 @@ from app.middleware import with_supabase_auth
 from app.supabase_client import get_supabase_client
 info_bp = Blueprint('info', __name__)
 
-
-
 @info_bp.route('/info')
 @with_supabase_auth
 def info():

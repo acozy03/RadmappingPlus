@@ -21,7 +21,6 @@ def create_app():
         info_bp,
         landing_bp,
         contacts_bp,
-        visualize_bp,
         licenses_bp,
         auth_bp,
         shifts_bp,
@@ -85,7 +84,6 @@ def create_app():
     app.register_blueprint(info_bp, url_prefix='/radmapping')
     app.register_blueprint(landing_bp, url_prefix='/radmapping')
     app.register_blueprint(contacts_bp, url_prefix='/radmapping')
-    app.register_blueprint(visualize_bp, url_prefix='/radmapping')
     app.register_blueprint(licenses_bp, url_prefix='/radmapping')
     app.register_blueprint(shifts_bp, url_prefix='/radmapping')
     app.register_blueprint(audit_bp, url_prefix='/radmapping')
