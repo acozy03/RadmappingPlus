@@ -3,7 +3,6 @@
 
 {% block content %}
 <div class="container mx-auto px-4 py-8">
-  <!-- Enhanced Header Section -->
   <div class="flex flex-col lg:flex-row lg:items-center lg:justify-between mb-8">
     <div class="mb-6 lg:mb-0">
       <h1 class="text-3xl font-bold text-gray-900 mb-2 flex items-center">
@@ -20,7 +19,6 @@
     {% endif %}
   </div>
 
-  <!-- Enhanced Search Section -->
   <div class="mb-8">
     <div class="relative max-w-md">
       <div class="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
@@ -33,25 +31,19 @@
     </div>
   </div>
 
-  <!-- Enhanced Specialties Grid -->
   <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
     {% for specialty in specialties %}
     <div class="specialty-card group bg-white rounded-xl shadow-sm border border-gray-200 p-6 hover:shadow-lg hover:-translate-y-1 transition-all duration-300 relative overflow-hidden flex flex-col">
-      <!-- Decorative gradient background -->
       <div class="absolute top-0 left-0 w-full h-1 bg-gradient-to-r from-purple-500 to-pink-500"></div>
       
       <div class="flex items-start justify-between mb-4">
         <div class="flex-1">
-          <!-- Specialty Icon -->
-   
-          
           <h3 class="text-lg font-semibold text-gray-900 mb-2 group-hover:text-purple-600 transition-colors">
             {{ specialty.name }}
           </h3>
         </div>
         
         {% if session.user.role == 'admin' %}
-        <!-- Fixed: Horizontal layout for edit and delete buttons -->
         <div class="flex gap-2 ml-3">
           <button onclick="openEditDoctorsModal('{{ specialty.id }}', '{{ specialty.name|escape }}')"
                   class="p-2 text-blue-600 hover:text-blue-800 hover:bg-blue-50 rounded-lg transition-colors"
@@ -67,18 +59,6 @@
         {% endif %}
       </div>
       
-      <!-- Fixed: Description with flex-grow to push button to bottom
-      <div class="flex-grow mb-4">
-        {% if specialty.description %}
-        <p class="text-gray-600 text-sm leading-relaxed">
-          {{ specialty.description }}
-        </p>
-        {% else %} 
-        <p class="text-gray-400 text-sm italic"></p>
-        {% endif %}
-      </div>
-       -->
-      <!-- Fixed: Button always at bottom -->
       <button onclick="showDoctorsForSpecialty('{{ specialty.id }}', '{{ specialty.name|escape }}')"
               class="w-full inline-flex items-center justify-center px-4 py-2 bg-gray-50 text-gray-700 font-medium rounded-lg hover:bg-purple-50 hover:text-purple-700 transition-colors group mt-auto">
         <i class="fas fa-users mr-2"></i>
@@ -89,10 +69,8 @@
     {% endfor %}
   </div>
 
-  <!-- Enhanced Add Specialty Modal -->
   <div id="addSpecialtyModal" class="fixed inset-0 z-50 hidden bg-black bg-opacity-50 flex items-center justify-center p-4">
-    <div class="bg-white rounded-xl shadow-2xl w-full max-w-md transform transition-all">
-      <!-- Modal Header -->
+    <div class="bg-white rounded-xl shadow-2xl w-full max-w-md max-h-[90vh] overflow-y-auto transform transition-all" id="addSpecialtyModalContent">
       <div class="flex items-center justify-between p-6 border-b border-gray-200">
         <div class="flex items-center">
           <div class="w-8 h-8 bg-gradient-to-r from-blue-500 to-purple-500 rounded-lg flex items-center justify-center mr-3">
@@ -105,7 +83,6 @@
         </button>
       </div>
 
-      <!-- Modal Body -->
       <form method="POST" action="{{ url_for('specialties.add_specialty') }}" class="p-6">
         <div class="mb-6">
           <label class="block text-sm font-medium text-gray-700 mb-2">
@@ -139,10 +116,8 @@
     </div>
   </div>
 
-  <!-- Enhanced Edit Doctors Modal -->
   <div id="editDoctorsModal" class="fixed inset-0 z-50 hidden bg-black bg-opacity-50 flex items-center justify-center p-4">
-    <div class="bg-white rounded-xl shadow-2xl w-full max-w-lg transform transition-all">
-      <!-- Modal Header -->
+    <div class="bg-white rounded-xl shadow-2xl w-full max-w-lg max-h-[90vh] overflow-y-auto transform transition-all" id="editDoctorsModalContent">
       <div class="flex items-center justify-between p-6 border-b border-gray-200">
         <div class="flex items-center">
           <div class="w-8 h-8 bg-gradient-to-r from-green-500 to-blue-500 rounded-lg flex items-center justify-center mr-3">
@@ -157,10 +132,8 @@
         </button>
       </div>
 
-      <!-- Modal Body -->
       <div class="p-6">
         <form id="editDoctorsForm" onsubmit="submitEditDoctors(event)">
-          <!-- Search Input -->
           <div class="relative mb-4">
             <div class="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
               <i class="fas fa-search text-gray-400"></i>
@@ -171,10 +144,8 @@
                    oninput="filterDoctorsChecklist()">
           </div>
 
-          <!-- Doctors Checklist -->
           <div id="doctorsChecklist" class="mb-6 space-y-3 max-h-64 overflow-y-auto border border-gray-200 rounded-lg p-4 bg-gray-50">
-            <!-- Populated by JS -->
-          </div>
+            </div>
 
           <input type="hidden" name="specialty_id" id="editSpecialtyId">
           
@@ -193,10 +164,8 @@
     </div>
   </div>
 
-  <!-- Enhanced Delete Specialty Modal -->
   <div id="deleteSpecialtyModal" class="fixed inset-0 z-50 hidden bg-black bg-opacity-50 flex items-center justify-center p-4">
-    <div class="bg-white rounded-xl shadow-2xl w-full max-w-md transform transition-all">
-      <!-- Modal Header -->
+    <div class="bg-white rounded-xl shadow-2xl w-full max-w-md max-h-[90vh] overflow-y-auto transform transition-all" id="deleteSpecialtyModalContent">
       <div class="flex items-center justify-between p-6 border-b border-gray-200">
         <div class="flex items-center">
           <div class="w-8 h-8 bg-gradient-to-r from-red-500 to-pink-500 rounded-lg flex items-center justify-center mr-3">
@@ -209,7 +178,6 @@
         </button>
       </div>
 
-      <!-- Modal Body -->
       <div class="p-6">
         <div class="flex items-center mb-4">
           <div class="w-12 h-12 bg-red-100 rounded-full flex items-center justify-center mr-4">
@@ -243,10 +211,8 @@
     </div>
   </div>
 
-  <!-- Enhanced Specialty Doctors Modal -->
-  <div id="specialtyDoctorsModal" class="fixed inset-0 z-50 hidden bg-black bg-opacity-50 flex items-center justify-center p-4" onclick="if(event.target === this) closeSpecialtyDoctorsModal();">
-    <div class="bg-white rounded-xl shadow-2xl w-full max-w-2xl transform transition-all" onclick="event.stopPropagation();">
-      <!-- Modal Header -->
+  <div id="specialtyDoctorsModal" class="fixed inset-0 z-50 hidden bg-black bg-opacity-50 flex items-center justify-center p-4">
+    <div class="bg-white rounded-xl shadow-2xl w-full max-w-2xl max-h-[90vh] overflow-y-auto transform transition-all" id="specialtyDoctorsModalContent">
       <div class="flex items-center justify-between p-6 border-b border-gray-200">
         <div class="flex items-center">
           <div class="w-8 h-8 bg-gradient-to-r from-purple-500 to-blue-500 rounded-lg flex items-center justify-center mr-3">
@@ -259,9 +225,7 @@
         </button>
       </div>
 
-      <!-- Modal Body -->
       <div class="p-6">
-        <!-- Search Input -->
         <div class="relative mb-6">
           <div class="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
             <i class="fas fa-search text-gray-400"></i>
@@ -272,10 +236,8 @@
                  oninput="filterSpecialtyDoctors()">
         </div>
 
-        <!-- Doctors List -->
         <div id="specialtyDoctorsList" class="space-y-3 max-h-96 overflow-y-auto">
-          <!-- Populated by JS -->
-        </div>
+          </div>
       </div>
     </div>
   </div>
@@ -325,7 +287,6 @@
 }
 </style>
 
-<!-- Keep all your existing JavaScript with enhanced styling -->
 <script src="//unpkg.com/alpinejs" defer></script>
 <script>
 const isAdmin = "{{ 'true' if session.user.role == 'admin' else 'false' }}" === 'true';
@@ -477,9 +438,9 @@ function openEditDoctorsModal(specialtyId, specialtyName) {
           <div class="ml-3 flex-1">
             <div class="flex items-center">
               <span class='doctor-name font-medium text-gray-900'>${doc.name}</span>
+              ${doc.email ? `<span class='text-gray-500 text-sm ml-2'>${doc.email}</span>` : ''} {# Added ml-2 for spacing #}
               ${doc.assigned ? '<span class="ml-2 inline-flex items-center px-2 py-0.5 rounded text-xs font-medium bg-green-100 text-green-800">Assigned</span>' : ''}
             </div>
-            ${doc.email ? `<span class='text-gray-500 text-sm'>${doc.email}</span>` : ''}
           </div>
         `;
         checklist.appendChild(checkboxDiv);
@@ -514,7 +475,8 @@ function submitEditDoctors(e) {
   .then(data => {
     if (data.status === 'success') {
       closeEditDoctorsModal();
-      // Show success message or reload
+      // Optionally, you might want to refresh the specialty cards or just indicate success
+      // window.location.reload(); // If you want to force a full refresh
     } else {
       alert('Failed to update doctors');
     }
@@ -528,7 +490,8 @@ function filterDoctorsChecklist() {
   const q = document.getElementById('doctorModalSearch').value.toLowerCase();
   document.querySelectorAll('#doctorsChecklist .doctor-check-item').forEach(item => {
     const name = item.querySelector('.doctor-name').textContent.toLowerCase();
-    const email = item.querySelector('.text-gray-500')?.textContent.toLowerCase() || '';
+    const emailSpan = item.querySelector('.text-gray-500');
+    const email = emailSpan ? emailSpan.textContent.toLowerCase() : '';
     item.style.display = (name.includes(q) || email.includes(q)) ? '' : 'none';
   });
 }
@@ -546,5 +509,36 @@ function confirmDeleteSpecialty(specialtyId, specialtyName) {
 function closeDeleteSpecialtyModal() {
   document.getElementById('deleteSpecialtyModal').classList.add('hidden');
 }
+
+// Add event listeners for click outside to close modals
+document.addEventListener('DOMContentLoaded', function() {
+  const addSpecialtyModal = document.getElementById('addSpecialtyModal');
+  const addSpecialtyModalContent = document.getElementById('addSpecialtyModalContent');
+
+  const editDoctorsModal = document.getElementById('editDoctorsModal');
+  const editDoctorsModalContent = document.getElementById('editDoctorsModalContent');
+
+  const deleteSpecialtyModal = document.getElementById('deleteSpecialtyModal');
+  const deleteSpecialtyModalContent = document.getElementById('deleteSpecialtyModalContent');
+
+  const specialtyDoctorsModal = document.getElementById('specialtyDoctorsModal');
+  const specialtyDoctorsModalContent = document.getElementById('specialtyDoctorsModalContent');
+
+  // Helper function to attach click-outside listener
+  function setupClickOutsideToClose(modalElement, modalContentElement, closeFunction) {
+    if (modalElement && modalContentElement) {
+      modalElement.addEventListener('click', function(event) {
+        if (event.target === modalElement && !modalContentElement.contains(event.target)) {
+          closeFunction();
+        }
+      });
+    }
+  }
+
+  setupClickOutsideToClose(addSpecialtyModal, addSpecialtyModalContent, closeAddSpecialtyModal);
+  setupClickOutsideToClose(editDoctorsModal, editDoctorsModalContent, closeEditDoctorsModal);
+  setupClickOutsideToClose(deleteSpecialtyModal, deleteSpecialtyModalContent, closeDeleteSpecialtyModal);
+  setupClickOutsideToClose(specialtyDoctorsModal, specialtyDoctorsModalContent, closeSpecialtyDoctorsModal);
+});
 </script>
 {% endblock %}

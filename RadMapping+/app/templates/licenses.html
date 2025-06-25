@@ -2,10 +2,8 @@
 {% block title %}Licenses{% endblock %}
 
 {% block content %}
-<!-- Store radiologists data for JavaScript -->
 <div id="radiologistsData" data-radiologists='{{ radiologists|tojson|safe }}' class="hidden"></div>
 
-<!-- Header Section with improved styling -->
 <div class="flex flex-col lg:flex-row lg:items-center lg:justify-between mb-8">
   <div class="mb-4 lg:mb-0">
     <h2 class="text-3xl font-bold text-gray-900 mb-2">License Management</h2>
@@ -18,13 +16,11 @@
 
  {% if session.user.role == 'admin' %}
 <div x-data="{ open: false }" class="relative" id ="addLicenseModal">
-  <!-- Trigger Button -->
   <button @click="open = true"
           class="inline-flex items-center px-4 py-2 rounded-lg bg-blue-600 text-white text-sm font-semibold shadow-sm hover:bg-blue-700 transition">
     Add License
   </button>
 
-  <!-- Modal Background -->
   <div x-show="open"
        class="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50"
        style="display: none;"
@@ -35,7 +31,6 @@
        x-transition:leave-start="opacity-100"
        x-transition:leave-end="opacity-0">
 
-    <!-- Modal Box -->
     <div @click.away="open = false"
          class="bg-white rounded-xl shadow-xl max-w-lg w-full p-6 relative z-50"
          x-show="open"
@@ -106,10 +101,8 @@
 
 </div>
 
-<!-- Enhanced Search and Filter Section -->
 <div class="bg-white rounded-xl shadow-sm border border-gray-200 p-6 mb-6">
   <div class="flex flex-col lg:flex-row gap-4">
-    <!-- Search Input with Icon -->
     <div class="flex-1 relative">
       <div class="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
         <i class="fas fa-search text-gray-400"></i>
@@ -117,12 +110,11 @@
       <input
         type="text"
         id="licenseSearch"
-        placeholder="Search by state"
+        placeholder="Search by state, doctor, specialty, or tags..." {# Updated placeholder #}
         class="w-full pl-10 pr-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-colors"
         onkeyup="debounceSearch()" />
     </div>
     
-    <!-- Doctor Filter Dropdown -->
     <div class="w-full lg:w-64 relative">
       <div class="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
         <i class="fas fa-user-md text-gray-400"></i>
@@ -130,7 +122,7 @@
       <select
         id="doctorFilter"
         class="w-full pl-10 pr-8 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-colors appearance-none bg-white"
-        onchange="loadLicenses()">
+        onchange="applyFiltersAndSort()">
         <option value="">All Doctors</option>
         {% for rad in radiologists %}
         {% if rad.active_status == true %}
@@ -143,7 +135,6 @@
       </div>
     </div>
     
-    <!-- Status Filter Pills -->
     <div class="flex gap-2">
       <button onclick="filterByStatus('all')" 
               class="px-4 py-2 rounded-lg text-sm font-medium transition-all duration-200 bg-blue-600 text-white shadow-sm hover:bg-blue-700 active-filter" 
@@ -163,37 +154,46 @@
     </div>
   </div>
 </div>
-<!-- Add License Modal (admin only) -->
-
-
-
-<!-- Enhanced Licenses Table -->
 <div class="bg-white rounded-xl shadow-sm border border-gray-200 overflow-hidden">
-  <!-- Table Header -->
-  
-  
-  <!-- Table Content -->
   <div class="overflow-x-auto">
     <table id="licensesTable" class="min-w-full divide-y divide-gray-200">
       <thead class="bg-gray-50">
         <tr>
-          <th class="px-6 py-4 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-            <i class="fas fa-user-md mr-2"></i>Doctor
+          <th class="px-6 py-4 text-left text-xs font-medium text-gray-500 uppercase tracking-wider cursor-pointer hover:bg-gray-100 transition-colors" data-sort="doctor">
+            <div class="flex items-center">
+                <i class="fas fa-user-md mr-2"></i>Doctor
+                <span class="ml-2 text-gray-400 sort-indicator">↕</span>
+            </div>
           </th>
-          <th class="px-6 py-4 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-            <i class="fas fa-map-marker-alt mr-2"></i>State
+          <th class="px-6 py-4 text-left text-xs font-medium text-gray-500 uppercase tracking-wider cursor-pointer hover:bg-gray-100 transition-colors" data-sort="state">
+            <div class="flex items-center">
+                <i class="fas fa-map-marker-alt mr-2"></i>State
+                <span class="ml-2 text-gray-400 sort-indicator">↕</span>
+            </div>
           </th>
-          <th class="px-6 py-4 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-            <i class="fas fa-stethoscope mr-2"></i>Specialty
+          <th class="px-6 py-4 text-left text-xs font-medium text-gray-500 uppercase tracking-wider cursor-pointer hover:bg-gray-100 transition-colors" data-sort="specialty">
+            <div class="flex items-center">
+                <i class="fas fa-stethoscope mr-2"></i>Specialty
+                <span class="ml-2 text-gray-400 sort-indicator">↕</span>
+            </div>
           </th>
-          <th class="px-6 py-4 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-            <i class="fas fa-info-circle mr-2"></i>Status
+          <th class="px-6 py-4 text-left text-xs font-medium text-gray-500 uppercase tracking-wider cursor-pointer hover:bg-gray-100 transition-colors" data-sort="status">
+            <div class="flex items-center">
+                <i class="fas fa-info-circle mr-2"></i>Status
+                <span class="ml-2 text-gray-400 sort-indicator">↕</span>
+            </div>
           </th>
-          <th class="px-6 py-4 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-            <i class="fas fa-tags mr-2"></i>Tags
+          <th class="px-6 py-4 text-left text-xs font-medium text-gray-500 uppercase tracking-wider cursor-pointer hover:bg-gray-100 transition-colors" data-sort="tags">
+            <div class="flex items-center">
+                <i class="fas fa-tags mr-2"></i>Tags
+                <span class="ml-2 text-gray-400 sort-indicator">↕</span>
+            </div>
           </th>
-          <th class="px-6 py-4 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-            <i class="fas fa-calendar-alt mr-2"></i>Expiration
+          <th class="px-6 py-4 text-left text-xs font-medium text-gray-500 uppercase tracking-wider cursor-pointer hover:bg-gray-100 transition-colors" data-sort="expiration">
+            <div class="flex items-center">
+                <i class="fas fa-calendar-alt mr-2"></i>Expiration
+                <span class="ml-2 text-gray-400 sort-indicator">↕</span>
+            </div>
           </th>
           {% if session.user.role == 'admin' %}
           <th class="px-6 py-4 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
@@ -203,140 +203,35 @@
         </tr>
       </thead>
       <tbody id="licensesTableBody" class="bg-white divide-y divide-gray-200">
-        {% for cert in certifications %}
-        {% set is_expired = cert.status == 'Expired' or cert.status == 'Revoked' or (cert.expiration_date and cert.expiration_date < now.strftime('%Y-%m-%d')) %}
-        <tr id="license-row-{{ cert.id }}" 
-            class="hover:bg-gray-50 transition-colors duration-150 {% if is_expired %}bg-red-50 {% else %}bg-green-50 {% endif %}"
-            data-doctor-id="{{ cert.radiologist_id }}">
-          <td class="px-6 py-4 whitespace-nowrap">
-            <span class="view-mode">
-              <div class="flex items-center">
-                <div class="flex-shrink-0 h-10 w-10">
-                  <div class="h-10 w-10 rounded-full bg-gradient-to-r from-blue-500 to-purple-600 flex items-center justify-center">
-                    <span class="text-white font-medium text-sm">{{ cert.radiologists.name[:2].upper() }}</span>
-                  </div>
-                </div>
-                <div class="ml-4">
-                  <a href="/radmapping/doctors/{{ cert.radiologist_id }}" target="_blank" class="text-blue-600 hover:text-blue-800 font-medium transition-colors">
-                    {{ cert.radiologists.name }}
-                  </a>
-                </div>
-              </div>
-            </span>
-            <select class="edit-mode hidden w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500">
-              {% for rad in radiologists %}
-              <option value="{{ rad.id }}" {% if rad.id == cert.radiologist_id %}selected{% endif %}>{{ rad.name }}</option>
-              {% endfor %}
-            </select>
-          </td>
-          <td class="px-6 py-4 whitespace-nowrap">
-            <span class="view-mode">
-              <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-blue-100 text-blue-800">
-                <i class="fas fa-map-marker-alt mr-1"></i>{{ cert.state }}
-              </span>
-            </span>
-            <input type="text" class="edit-mode hidden w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500" value="{{ cert.state }}">
-          </td>
-          <td class="px-6 py-4 whitespace-nowrap">
-            <span class="view-mode text-sm text-gray-900">{{ cert.specialty }}</span>
-            <input type="text" class="edit-mode hidden w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500" value="{{ cert.specialty }}">
-          </td>
-          <td class="px-6 py-4 whitespace-nowrap">
-            <span class="view-mode">
-              {% if cert.status == 'Active' %}
-                <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-green-100 text-green-800">
-                  <i class="fas fa-check-circle mr-1"></i>{{ cert.status }}
-                </span>
-              {% elif cert.status == 'Expired' or cert.status == 'Revoked' %}
-                <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-red-100 text-red-800">
-                  <i class="fas fa-times-circle mr-1"></i>{{ cert.status }}
-                </span>
-              {% else %}
-                <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-yellow-100 text-yellow-800">
-                  <i class="fas fa-clock mr-1"></i>{{ cert.status }}
-                </span>
-              {% endif %}
-            </span>
-            <select class="edit-mode hidden w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500">
-              <option value="Active" {% if cert.status == 'Active' %}selected{% endif %}>Active</option>
-              <option value="Pending" {% if cert.status == 'Pending' %}selected{% endif %}>Pending</option>
-              <option value="Expired" {% if cert.status == 'Expired' %}selected{% endif %}>Expired</option>
-              <option value="Revoked" {% if cert.status == 'Revoked' %}selected{% endif %}>Revoked</option>
-            </select>
-          </td>
-          <td class="px-6 py-4 whitespace-nowrap">
-            <span class="view-mode">
-              {% if cert.tags %}
-                <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-purple-100 text-purple-800">
-                  <i class="fas fa-tag mr-1"></i>{{ cert.tags }}
-                </span>
-              {% else %}
-                <span class="text-gray-400 text-sm">No tags</span>
-              {% endif %}
-            </span>
-            <input type="text" class="edit-mode hidden w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500" value="{{ cert.tags }}">
-          </td>
-          <td class="px-6 py-4 whitespace-nowrap">
-            <span class="view-mode">
-              <div class="flex items-center">
-                <i class="fas fa-calendar-alt text-gray-400 mr-2"></i>
-                <span class="text-sm text-gray-900">{{ cert.expiration_date }}</span>
-              </div>
-            </span>
-            <input type="date" class="edit-mode hidden w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500" value="{{ cert.expiration_date }}">
-          </td>
-          {% if session.user.role == 'admin' %}
-          <td class="px-6 py-4 whitespace-nowrap text-sm font-medium">
-            <div class="view-mode flex items-center gap-2">
-              <button onclick="toggleEditMode('{{ cert.id }}')" class="inline-flex items-center px-3 py-1.5 border border-transparent text-xs font-medium rounded-md text-blue-700 bg-blue-100 hover:bg-blue-200 transition-colors">
-                <i class="fas fa-edit mr-1"></i>Edit
-              </button>
-              <form method="POST" action="/radmapping/doctors/{{ cert.radiologist_id }}/licenses/{{ cert.id }}/delete" class="inline">
-                <button type="submit" class="inline-flex items-center px-3 py-1.5 border border-transparent text-xs font-medium rounded-md text-red-700 bg-red-100 hover:bg-red-200 transition-colors">
-                  <i class="fas fa-trash mr-1"></i>Delete
-                </button>
-              </form>
-            </div>
-            <div class="edit-mode hidden flex items-center gap-2">
-              <button onclick="saveLicense('{{ cert.id }}')" class="inline-flex items-center px-3 py-1.5 border border-transparent text-xs font-medium rounded-md text-green-700 bg-green-100 hover:bg-green-200 transition-colors">
-                <i class="fas fa-save mr-1"></i>Save
-              </button>
-              <button onclick="cancelEdit('{{ cert.id }}')" class="inline-flex items-center px-3 py-1.5 border border-transparent text-xs font-medium rounded-md text-gray-700 bg-gray-100 hover:bg-gray-200 transition-colors">
-                <i class="fas fa-times mr-1"></i>
-              </button>
-            </div>
-          </td>
-          {% endif %}
-        </tr>
-        {% endfor %}
+        {# Initial rows will be loaded by JavaScript #}
       </tbody>
     </table>
-  </div>
-  
-  <!-- Enhanced Pagination -->
-  <div class="bg-gray-50 px-6 py-4 border-t border-gray-200">
-    <div class="flex flex-col sm:flex-row sm:items-center sm:justify-between">
-      <div class="text-sm text-gray-700 mb-4 sm:mb-0">
-        <span class="font-medium">Showing</span>
-        <span class="font-medium text-blue-600" id="startItem">1</span>
-        <span>to</span>
-        <span class="font-medium text-blue-600" id="endItem">{{ per_page }}</span>
-        <span>of</span>
-        <span class="font-medium text-blue-600" id="totalItems">{{ total_count }}</span>
-        <span>entries</span>
-      </div>
-      <div class="flex items-center gap-2">
-        <button onclick="changePage('prev')" id="prevPage" 
-                class="inline-flex items-center px-4 py-2 border border-gray-300 text-sm font-medium rounded-lg text-gray-700 bg-white hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed transition-colors">
-          <i class="fas fa-chevron-left mr-2"></i>Previous
-        </button>
-        <button onclick="changePage('next')" id="nextPage" 
-                class="inline-flex items-center px-4 py-2 border border-gray-300 text-sm font-medium rounded-lg text-gray-700 bg-white hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed transition-colors">
-          Next<i class="fas fa-chevron-right ml-2"></i>
-        </button>
-      </div>
+
+    <div id="no-results" class="hidden p-8 text-center text-gray-500">
+        <svg class="mx-auto h-12 w-12 text-gray-400 mb-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9.172 16.172a4 4 0 015.656 0M9 12h6m-6-4h6m2 5.291A7.962 7.962 0 0112 15c-2.34 0-4.47.881-6.08 2.33l-.926-.926A9.953 9.953 0 0112 13c2.74 0 5.23 1.1 7.08 2.88l-.926.926A7.963 7.963 0 0112 15z"></path>
+        </svg>
+        <p class="text-lg font-medium">No matching licenses found</p>
+        <p class="text-sm text-gray-400 mt-1">Try adjusting your search filters</p>
+    </div>
+      
+    <div id="loading-more" class="hidden p-4 text-center text-gray-500">
+        <div class="inline-flex items-center">
+          <svg class="animate-spin -ml-1 mr-3 h-5 w-5 text-gray-500" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+            <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
+            <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+          </svg>
+          Loading more entries...
+        </div>
     </div>
   </div>
+  
+  <div class="bg-gray-50 px-4 py-3 border-t border-gray-200">
+      <div class="flex justify-between items-center text-sm text-gray-600">
+        <span id="showing-count">Showing 0 entries</span>
+        <span id="total-count">Total: 0 entries</span>
+      </div>
+    </div>
 </div>
 
 <style>
@@ -379,59 +274,210 @@ tbody tr:hover {
 .overflow-x-auto::-webkit-scrollbar-thumb:hover {
   background: linear-gradient(to right, #2563eb, #7c3aed);
 }
+.sort-indicator.active {
+    color: #3b82f6;
+  }
+.license-row.hidden {
+    display: none !important;
+}
 </style>
 
-<!-- Keep all your existing JavaScript exactly as is -->
 <script>
 let currentStatusFilter = 'all';
 let currentSearchTerm = '';
-let currentPage = {{ current_page }};
-const itemsPerPage = {{ per_page }};
-let totalCount = {{ total_count }};
-let searchTimeout;
-
+const entriesPerPage = 25; // Define how many entries to show per "load more"
+let visibleEntries = entriesPerPage;
+let allLicensesData = []; // Store all licenses to enable client-side sorting and filtering across pages
+let filteredLicenses = []; // Stores the currently filtered (but not yet paginated) licenses
+let currentSort = { column: 'doctor', direction: 'asc' }; // New: track current sort, default to doctor asc
+let searchTimeout; 
 // Get radiologists data from the hidden div
 const radiologists = JSON.parse(document.getElementById('radiologistsData').dataset.radiologists);
 
 // Load licenses when page loads
 document.addEventListener('DOMContentLoaded', function() {
-  loadLicenses();
+  fetchAllLicensesForClientSide(); // Initial load to get all data for client-side operations
+
+  document.querySelectorAll('th[data-sort]').forEach(header => {
+    header.addEventListener('click', function() {
+      const column = this.dataset.sort;
+      if (currentSort.column === column) {
+        currentSort.direction = currentSort.direction === 'asc' ? 'desc' : 'asc';
+      } else {
+        currentSort.column = column;
+        currentSort.direction = 'asc';
+      }
+      
+      updateSortIndicators();
+      visibleEntries = entriesPerPage; // Reset visible entries on sort change
+      applyFiltersAndSort(); // Re-apply filters and sort all data
+    });
+  });
+
+    let isLoading = false;
+  window.addEventListener('scroll', function() {
+    if (isLoading) return;
+    // Check if user has scrolled to the bottom (within 200px)
+    if (window.innerHeight + window.scrollY >= document.body.offsetHeight - 200) {
+      if (visibleEntries < filteredLicenses.length) {
+        isLoading = true;
+        document.getElementById('loading-more').classList.remove('hidden');
+        setTimeout(() => {
+          visibleEntries += entriesPerPage;
+          updateVisibleRows();
+          document.getElementById('loading-more').classList.add('hidden');
+          isLoading = false;
+        }, 300);
+      }
+    }
+  });
+
 });
+
+function updateSortIndicators() {
+    document.querySelectorAll('.sort-indicator').forEach(i => {
+        i.textContent = '↕';
+        i.classList.remove('active');
+    });
+
+    if (currentSort.column) {
+        const activeHeader = document.querySelector(`th[data-sort="${currentSort.column}"]`);
+        if (activeHeader) {
+            const indicator = activeHeader.querySelector('.sort-indicator');
+            if (indicator) {
+                indicator.textContent = currentSort.direction === 'asc' ? '↑' : '↓';
+                indicator.classList.add('active');
+            }
+        }
+    }
+}
+
 
 function debounceSearch() {
   clearTimeout(searchTimeout);
   searchTimeout = setTimeout(() => {
     currentSearchTerm = document.getElementById('licenseSearch').value;
-    currentPage = 1;
-    loadLicenses();
+    visibleEntries = entriesPerPage; // Reset visible entries on search change
+    applyFiltersAndSort();
   }, 300);
 }
 
-function loadLicenses() {
-  const searchTerm = document.getElementById('licenseSearch').value;
-  const doctorId = document.getElementById('doctorFilter').value;
-  
-  fetch(`/radmapping/licenses/search?page=${currentPage}&search=${encodeURIComponent(searchTerm)}&doctor=${encodeURIComponent(doctorId)}&status=${currentStatusFilter}`)
-    .then(response => response.json())
-    .then(data => {
-      updateTable(data.certifications);
-      updatePagination(data.total_count);
-    });
+function fetchAllLicensesForClientSide() {
+    // This function will fetch all licenses without pagination
+    fetch(`/radmapping/licenses/search?no_pagination=true`) // Assuming a parameter to fetch all
+        .then(response => response.json())
+        .then(data => {
+            allLicensesData = data.certifications;
+            applyFiltersAndSort(); // Apply filters and sort after fetching all data
+        })
+        .catch(error => console.error('Error fetching all licenses:', error));
 }
 
-function updateTable(certifications) {
+
+function applyFiltersAndSort() {
+  let tempFilteredData = [...allLicensesData]; // Use a temporary array for filtering
+
+  // Apply search term filter
+  const searchTerm = document.getElementById('licenseSearch').value.toLowerCase();
+  if (searchTerm) {
+    tempFilteredData = tempFilteredData.filter(cert => 
+      (cert.state && cert.state.toLowerCase().includes(searchTerm)) ||
+      (cert.radiologists.name && cert.radiologists.name.toLowerCase().includes(searchTerm)) ||
+      (cert.specialty && cert.specialty.toLowerCase().includes(searchTerm)) ||
+      (cert.tags && cert.tags.toLowerCase().includes(searchTerm))
+    );
+  }
+
+  // Apply doctor filter
+  const doctorId = document.getElementById('doctorFilter').value;
+  if (doctorId) {
+    tempFilteredData = tempFilteredData.filter(cert => 
+      String(cert.radiologist_id) === doctorId
+    );
+  }
+
+  // Apply status filter
+  if (currentStatusFilter !== 'all') {
+    tempFilteredData = tempFilteredData.filter(cert => 
+      cert.status === currentStatusFilter
+    );
+  }
+
+  // Apply sorting
+  tempFilteredData.sort((a, b) => {
+    let valueA, valueB;
+
+    switch (currentSort.column) {
+      case 'doctor':
+        valueA = a.radiologists.name.toLowerCase();
+        valueB = b.radiologists.name.toLowerCase();
+        break;
+      case 'state':
+        valueA = a.state.toLowerCase();
+        valueB = b.state.toLowerCase();
+        break;
+      case 'specialty':
+        valueA = (a.specialty || '').toLowerCase();
+        valueB = (b.specialty || '').toLowerCase();
+        break;
+      case 'status':
+        valueA = a.status.toLowerCase();
+        valueB = b.status.toLowerCase();
+        break;
+      case 'tags':
+        valueA = (a.tags || '').toLowerCase();
+        valueB = (b.tags || '').toLowerCase();
+        break;
+      case 'expiration':
+        valueA = new Date(a.expiration_date);
+        valueB = new Date(b.expiration_date);
+        break;
+      default:
+        return 0; // No sort
+    }
+
+    if (valueA < valueB) {
+      return currentSort.direction === 'asc' ? -1 : 1;
+    }
+    if (valueA > valueB) {
+      return currentSort.direction === 'asc' ? 1 : -1;
+    }
+    return 0;
+  });
+
+  filteredLicenses = tempFilteredData; // Store the filtered and sorted data
+  updateTable(); // Update the table with the paginated portion
+  updateCounts(); // Update showing/total counts
+}
+
+function updateTable() {
   const tbody = document.getElementById('licensesTableBody');
-  tbody.innerHTML = '';
+  tbody.innerHTML = ''; // Clear existing rows
+
+  // Slice the filteredLicenses based on visibleEntries for infinite scroll
+  const licensesToDisplay = filteredLicenses.slice(0, visibleEntries);
   
-  certifications.forEach(cert => {
+  if (licensesToDisplay.length === 0) {
+      document.getElementById('no-results').classList.remove('hidden');
+  } else {
+      document.getElementById('no-results').classList.add('hidden');
+  }
+
+  licensesToDisplay.forEach(cert => {
     const isExpired = cert.status === 'Expired' || cert.status === 'Revoked' || 
                      (cert.expiration_date && cert.expiration_date < new Date().toISOString().split('T')[0]);
     
     const row = document.createElement('tr');
     row.id = `license-row-${cert.id}`;
-    row.className = `hover:bg-gray-50 transition-colors duration-150 ${isExpired ? 'bg-red-50 ' : 'bg-green-50 '}`;
+    row.className = `license-row hover:bg-gray-50 transition-colors duration-150 ${isExpired ? 'bg-red-50 ' : 'bg-green-50 '}`;
     row.dataset.doctorId = cert.radiologist_id;
-    
+    row.dataset.doctorName = cert.radiologists.name;
+    row.dataset.state = cert.state;
+    row.dataset.specialty = cert.specialty;
+    row.dataset.status = cert.status;
+    row.dataset.tags = cert.tags;
+    row.dataset.expiration = cert.expiration_date;
+
     // Create doctor select options
     const doctorOptions = radiologists.map(rad => 
       `<option value="${rad.id}" ${rad.id === cert.radiologist_id ? 'selected' : ''}>${rad.name}</option>`
@@ -539,31 +585,21 @@ function updateTable(certifications) {
   });
 }
 
-function updatePagination(total) {
-  totalCount = total;
-  const totalPages = Math.ceil(totalCount / itemsPerPage);
-  const startItem = ((currentPage - 1) * itemsPerPage) + 1;
-  const endItem = Math.min(currentPage * itemsPerPage, totalCount);
-
-  document.getElementById('startItem').textContent = startItem;
-  document.getElementById('endItem').textContent = endItem;
-  document.getElementById('totalItems').textContent = totalCount;
-
-  document.getElementById('prevPage').disabled = currentPage === 1;
-  document.getElementById('nextPage').disabled = currentPage === totalPages;
+function updateVisibleRows() {
+    // This function will re-render the table content based on visibleEntries
+    updateTable();
+    updateCounts();
 }
 
-function changePage(direction) {
-  const totalPages = Math.ceil(totalCount / itemsPerPage);
-  
-  if (direction === 'next' && currentPage < totalPages) {
-    currentPage++;
-  } else if (direction === 'prev' && currentPage > 1) {
-    currentPage--;
-  }
-  
-  loadLicenses();
+
+function updateCounts() {
+    document.getElementById('showing-count').textContent = `Showing ${Math.min(visibleEntries, filteredLicenses.length)} entries`;
+    document.getElementById('total-count').textContent = `Total: ${filteredLicenses.length} entries`;
 }
+
+// The `changePage` function is no longer needed with infinite scroll.
+// function changePage(direction) { ... }
+
 
 function filterByStatus(status) {
   currentStatusFilter = status;
@@ -578,8 +614,8 @@ function filterByStatus(status) {
     }
   });
   
-  currentPage = 1;
-  loadLicenses();
+  visibleEntries = entriesPerPage; // Reset visible entries on filter change
+  applyFiltersAndSort();
 }
 
 function toggleEditMode(licenseId) {
@@ -598,18 +634,18 @@ function saveLicense(licenseId) {
   const row = document.getElementById(`license-row-${licenseId}`);
   const formData = new FormData();
   
-  formData.append('radiologist_id', row.querySelector('select').value);
-  formData.append('state', row.querySelector('input[type="text"]').value);
-  formData.append('specialty', row.querySelectorAll('input[type="text"]')[1].value);
-  formData.append('status', row.querySelectorAll('select')[1].value);
-  formData.append('tags', row.querySelectorAll('input[type="text"]')[2].value);
-  formData.append('expiration_date', row.querySelector('input[type="date"]').value);
+  formData.append('radiologist_id', row.querySelector('.edit-mode select').value);
+  formData.append('state', row.querySelector('.edit-mode input[type="text"]').value);
+  formData.append('specialty', row.querySelectorAll('.edit-mode input[type="text"]')[1].value);
+  formData.append('status', row.querySelectorAll('.edit-mode select')[1].value);
+  formData.append('tags', row.querySelectorAll('.edit-mode input[type="text"]')[2].value);
+  formData.append('expiration_date', row.querySelector('.edit-mode input[type="date"]').value);
 
   fetch(`/radmapping/licenses/${licenseId}/update`, {
     method: 'POST',
     body: formData
   }).then(() => {
-    loadLicenses();
+    fetchAllLicensesForClientSide(); // Re-fetch all data to ensure sort/filter integrity after save
   });
 }
 

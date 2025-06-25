@@ -226,7 +226,7 @@
 </div>
 
 <div id="addVacationModal" class="fixed inset-0 z-50 hidden bg-black bg-opacity-50 flex items-center justify-center p-4">
-    <div class="bg-white rounded-xl shadow-2xl w-full max-w-md transform transition-all">
+    <div class="bg-white rounded-xl shadow-2xl w-full max-w-md max-h-[90vh] overflow-y-auto transform transition-all" id="addVacationModalContent">
         <div class="flex items-center justify-between p-6 border-b border-gray-200">
             <div class="flex items-center">
                 <div class="w-8 h-8 bg-gradient-to-r from-emerald-500 to-teal-500 rounded-lg flex items-center justify-center mr-3">
@@ -289,7 +289,7 @@
 </div>
 
 <div id="editVacationModal" class="fixed inset-0 z-50 hidden bg-black bg-opacity-50 flex items-center justify-center p-4">
-    <div class="bg-white rounded-xl shadow-2xl w-full max-w-md transform transition-all">
+    <div class="bg-white rounded-xl shadow-2xl w-full max-w-md max-h-[90vh] overflow-y-auto transform transition-all" id="editVacationModalContent">
         <div class="flex items-center justify-between p-6 border-b border-gray-200">
             <div class="flex items-center">
                 <div class="w-8 h-8 bg-gradient-to-r from-blue-500 to-indigo-500 rounded-lg flex items-center justify-center mr-3">
@@ -353,7 +353,7 @@
 </div>
 
 <div id="deleteConfirmModal" class="fixed inset-0 z-50 hidden bg-black bg-opacity-50 flex items-center justify-center p-4">
-    <div class="bg-white rounded-xl shadow-2xl w-full max-w-md transform transition-all">
+    <div class="bg-white rounded-xl shadow-2xl w-full max-w-md max-h-[90vh] overflow-y-auto transform transition-all" id="deleteConfirmModalContent">
         <div class="flex items-center justify-between p-6 border-b border-gray-200">
             <div class="flex items-center">
                 <div class="w-8 h-8 bg-gradient-to-r from-red-500 to-pink-500 rounded-lg flex items-center justify-center mr-3">
@@ -548,7 +548,44 @@ document.addEventListener('DOMContentLoaded', function() {
     endDateInputs.forEach(input => {
         input.min = today;
     });
+
+    // --- Added for click-outside-to-close functionality ---
+    const addVacationModal = document.getElementById('addVacationModal');
+    const addVacationModalContent = document.getElementById('addVacationModalContent');
+
+    const editVacationModal = document.getElementById('editVacationModal');
+    const editVacationModalContent = document.getElementById('editVacationModalContent');
+
+    const deleteConfirmModal = document.getElementById('deleteConfirmModal');
+    const deleteConfirmModalContent = document.getElementById('deleteConfirmModalContent');
+
+    // Event listener for Add Vacation Modal
+    if (addVacationModal) {
+        addVacationModal.addEventListener('click', function(event) {
+            if (event.target === addVacationModal && addVacationModalContent && !addVacationModalContent.contains(event.target)) {
+                closeAddVacationModal();
+            }
+        });
+    }
+
+    // Event listener for Edit Vacation Modal
+    if (editVacationModal) {
+        editVacationModal.addEventListener('click', function(event) {
+            if (event.target === editVacationModal && editVacationModalContent && !editVacationModalContent.contains(event.target)) {
+                closeEditVacationModal();
+            }
+        });
+    }
+
+    // Event listener for Delete Confirmation Modal
+    if (deleteConfirmModal) {
+        deleteConfirmModal.addEventListener('click', function(event) {
+            if (event.target === deleteConfirmModal && deleteConfirmModalContent && !deleteConfirmModalContent.contains(event.target)) {
+                closeDeleteModal();
+            }
+        });
+    }
+    // --- End Added for click-outside-to-close functionality ---
 });
 </script>
 {% endblock %}
-

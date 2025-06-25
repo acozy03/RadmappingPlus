@@ -6,6 +6,7 @@
 <link href="https://cdn.jsdelivr.net/npm/select2@4.1.0-rc.0/dist/css/select2.min.css" rel="stylesheet" />
 <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/select2@4.1.0-rc.0/dist/js/select2.min.js"></script>
+{# Removed Alpine.js as we will use plain JS for click-away #}
 {% endblock %}
 
 {% block content %}
@@ -21,7 +22,6 @@
   </div>
 </div>
 
-<!-- Search and Status Filter Row -->
 <div class="mb-4 flex flex-col md:flex-row gap-4">
   <div class="flex-1">
     <input type="text"
@@ -30,7 +30,6 @@
            class="w-full p-2 border rounded"
            onkeyup="debounceSearch()" />
   </div>
-  <!-- Status Filter Buttons -->
   <div class="flex gap-2">
     <button onclick="filterByStatus('all')"
             class="px-4 py-2 rounded text-sm font-medium bg-gray-100 hover:bg-gray-200"
@@ -50,7 +49,6 @@
   </div>
 </div>
 
-<!-- Doctor List -->
 <ul id="doctorList" class="space-y-4">
   {% for doc in doctors %}
   <li class="relative flex items-center justify-between p-4 bg-gray-50 rounded hover:bg-gray-100 cursor-pointer doctor-item"
@@ -70,7 +68,6 @@
         </div>
       </div>
       <span class="text-blue-600 font-semibold">Details →</span>
-      <!-- Hover Popup -->
       <div class="doctor-popup absolute left-0 top-full mt-2 w-[20rem] bg-white border p-3 rounded shadow-md text-left pointer-events-none opacity-0 transition-opacity duration-150 z-50">
         <p class="text-sm font-medium">Timezone: <span class="text-gray-700">{{ doc.timezone }}</span></p>
         <p class="text-sm font-medium">Modalities: <span class="text-gray-700">{{ doc.modalities }}</span></p>
@@ -82,7 +79,6 @@
   {% endfor %}
 </ul>
 
-<!-- Pagination Controls -->
 <div class="mt-4 flex justify-between items-center">
   <div class="text-sm text-gray-700">
     Showing <span id="startItem">1</span> to <span id="endItem">{{ per_page }}</span> of <span id="totalItems">{{ total_count }}</span> entries
@@ -97,9 +93,8 @@
   </div>
 </div>
 
-<!-- Pin Doctors Modal -->
 <div id="pinModal" class="fixed inset-0 z-50 hidden bg-black bg-opacity-50 flex items-center justify-center">
-  <div class="bg-white rounded-lg shadow-lg w-[90%] max-w-4xl p-6">
+  <div class="bg-white rounded-lg shadow-lg w-[90%] max-w-4xl p-6 relative max-h-[90vh] overflow-y-auto" id="pinModalContent">
     <div class="flex justify-between items-center mb-4">
       <h3 class="text-lg font-semibold">Pin Doctors</h3>
       <button onclick="closePinModal()" class="text-gray-500 hover:text-gray-700">
@@ -157,9 +152,8 @@
   </div>
 </div>
 
-<!-- Add Doctor Modal -->
 <div id="addDoctorModal" class="fixed inset-0 z-50 hidden bg-black bg-opacity-50 flex items-center justify-center">
-  <div class="bg-white rounded-lg shadow-lg w-[90%] max-w-xl p-6">
+  <div class="bg-white rounded-lg shadow-lg w-[90%] max-w-3xl max-h-[90vh] overflow-y-auto p-6 relative" id="addDoctorModalContent">
     <div class="flex justify-between items-center mb-4">
       <h3 class="text-lg font-semibold">Add New Doctor</h3>
       <button onclick="closeAddDoctorModal()" class="text-gray-500 hover:text-gray-700">
@@ -505,6 +499,22 @@ window.addEventListener('DOMContentLoaded', () => {
     // If no pinned doctors, just load active doctors
     loadDoctors(true);
   }
+
+  // Add event listener for click outside for Add Doctor Modal
+  document.getElementById('addDoctorModal').addEventListener('click', function(event) {
+    const modalContent = document.getElementById('addDoctorModalContent');
+    if (modalContent && !modalContent.contains(event.target)) {
+      closeAddDoctorModal();
+    }
+  });
+
+    // Add event listener for click outside for Pin Doctors Modal
+  document.getElementById('pinModal').addEventListener('click', function(event) {
+    const pinModalContent = document.getElementById('pinModalContent');
+    if (pinModalContent && !pinModalContent.contains(event.target)) {
+      closePinModal();
+    }
+  });
 });
 </script>
 

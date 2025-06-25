@@ -20,7 +20,6 @@
            class="w-full p-2 border rounded"
            onkeyup="debounceSearch()" />
   </div>
-  <!-- Add Status Filter Buttons -->
   <div class="flex gap-2">
     <button onclick="filterByStatus('all')" 
             class="px-4 py-2 rounded text-sm font-medium bg-gray-100 hover:bg-gray-200" 
@@ -40,7 +39,6 @@
   </div>
 </div>
 
-<!-- Facilities List -->
 <ul id="facilityList" class="space-y-4">
   {% for facility in facilities %}
   <li class="relative flex items-center justify-between p-4 bg-gray-50 rounded hover:bg-gray-100 cursor-pointer facility-item"
@@ -56,7 +54,6 @@
     </div>
     <span class="text-blue-600 font-semibold">Details →</span>
 
-    <!-- Hover Popup -->
     <div class="facility-popup absolute left-0 top-full mt-2 w-[20rem] bg-white border p-3 rounded shadow-md text-left pointer-events-none opacity-0 transition-opacity duration-150 z-50">
       <p class="text-sm font-medium">Location: <span class="text-gray-700">{{ facility.location or 'N/A' }}</span></p>
       <p class="text-sm font-medium">PACS: <span class="text-gray-700">{{ facility.pacs or 'N/A' }}</span></p>
@@ -68,7 +65,6 @@
   {% endfor %}
 </ul>
 
-<!-- Pagination Controls -->
 <div class="mt-4 flex justify-between items-center">
   <div class="text-sm text-gray-700">
     Showing <span id="startItem">1</span> to <span id="endItem">{{ per_page }}</span> of <span id="totalItems">{{ total_count }}</span> entries
@@ -82,10 +78,9 @@
     </button>
   </div>
 </div>
-<!-- Add Facility Modal -->
-<div id="addFacilityModal" class="fixed inset-0 z-50 hidden bg-black bg-opacity-50 flex items-center justify-center">
-  <div class="bg-white rounded-lg shadow-lg w-[90%] max-w-xl p-6">
-    <div class="flex justify-between items-center mb-4">
+<div id="addFacilityModal" class="fixed inset-0 z-50 hidden bg-black bg-opacity-50 flex items-center justify-center p-4">
+  <div class="bg-white rounded-lg shadow-lg w-[90%] max-w-2xl max-h-[90vh] overflow-y-auto" id="addFacilityModalContent"> {# Changed max-w-xl to max-w-2xl #}
+    <div class="flex justify-between items-center mb-4 p-5 border-b border-gray-200"> {# Reduced header padding slightly #}
       <h3 class="text-lg font-semibold">Add New Facility</h3>
       <button onclick="closeAddFacilityModal()" class="text-gray-500 hover:text-gray-700">
         <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
@@ -93,7 +88,7 @@
         </svg>
       </button>
     </div>
-        <form method="POST" action="{{ url_for('facilities.add_facility') }}" class="space-y-4">
+        <form method="POST" action="{{ url_for('facilities.add_facility') }}" class="space-y-4 p-5"> {# Reduced form padding slightly #}
       <div>
         <label class="block text-sm font-medium text-gray-700">Name</label>
         <input type="text" name="name" required class="w-full border rounded px-3 py-2 text-sm">
@@ -145,11 +140,12 @@ function openAddFacilityModal() {
 
 function closeAddFacilityModal() {
   document.getElementById('addFacilityModal').classList.add('hidden');
-  document.getElementById('addFacilityForm').reset();
+  // Optional: Reset the form when closing
+  document.querySelector('#addFacilityModal form').reset();
 }
 
 function submitAddFacility(event) {
-  event.preventDefault();
+  event.preventDefault(); // Prevent default form submission
   
   const formData = new FormData(event.target);
   const data = {
@@ -158,6 +154,7 @@ function submitAddFacility(event) {
     pacs: formData.get('pacs'),
     tat_definition: formData.get('tat_definition'),
     modalities_assignment_period: formData.get('modalities_assignment_period'),
+    modalities: formData.get('modalities'),
     active_status: formData.get('active_status') ? 'true' : 'false'
   };
 
@@ -171,7 +168,7 @@ function submitAddFacility(event) {
   .then(response => {
     if (response.ok) {
       closeAddFacilityModal();
-      loadFacilities(); // Refresh the list
+      window.location.reload(); // Reload the page to show new facility
     } else {
       throw new Error('Failed to add facility');
     }
@@ -181,6 +178,37 @@ function submitAddFacility(event) {
     alert('Failed to add facility. Please try again.');
   });
 }
+
+// Attach the submit listener to the form on DOMContentLoaded
+document.addEventListener('DOMContentLoaded', () => {
+    const addFacilityForm = document.querySelector('#addFacilityModal form');
+    if (addFacilityForm) {
+        addFacilityForm.addEventListener('submit', submitAddFacility);
+    }
+
+    // Set the active filter button style on page load
+    document.querySelectorAll('[data-status]').forEach(button => {
+        button.classList.remove('active-filter', 'bg-blue-600', 'text-white');
+        if (button.dataset.status === 'active') {
+            button.classList.add('active-filter', 'bg-blue-600', 'text-white');
+        }
+    });
+    loadFacilities();
+
+    // --- Added for click-outside-to-close functionality ---
+    const addFacilityModal = document.getElementById('addFacilityModal');
+    const addFacilityModalContent = document.getElementById('addFacilityModalContent');
+
+    if (addFacilityModal) {
+        addFacilityModal.addEventListener('click', function(event) {
+            if (event.target === addFacilityModal && addFacilityModalContent && !addFacilityModalContent.contains(event.target)) {
+                closeAddFacilityModal();
+            }
+        });
+    }
+    // --- End Added for click-outside-to-close functionality ---
+});
+
 
 function debounceSearch() {
   clearTimeout(searchTimeout);
@@ -292,24 +320,6 @@ function hidePopup(element) {
   }
 }
 
-window.addEventListener('DOMContentLoaded', () => {
-  // Set the active filter button style on page load
-  document.querySelectorAll('[data-status]').forEach(button => {
-    button.classList.remove('active-filter', 'bg-blue-600', 'text-white');
-    if (button.dataset.status === 'active') {
-      button.classList.add('active-filter', 'bg-blue-600', 'text-white');
-    }
-  });
-  loadFacilities();
-});
-
-function openAddFacilityModal() {
-  document.getElementById('addFacilityModal').classList.remove('hidden');
-}
-
-function closeAddFacilityModal() {
-  document.getElementById('addFacilityModal').classList.add('hidden');
-} 
 </script>
 
 <style>
