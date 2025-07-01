@@ -1,3 +1,4 @@
+# app/routes/facilities.py
 from flask import Blueprint, render_template, session, redirect, url_for, request, jsonify
 from app.admin_required import admin_required
 from app.supabase_client import supabase # Assuming this is correctly configured from environment
@@ -178,6 +179,11 @@ def facility_profile(facility_id):
     # Get facility info
     fac = supabase.table("facilities").select("*").eq("id", facility_id).single().execute().data
 
+    # Fetch all prioritized facility IDs to check if the current facility is prioritized
+    prioritized_res = supabase.table("prioritized_facilities").select("facility_id").execute()
+    prioritized_facility_ids = {p["facility_id"] for p in (prioritized_res.data or [])}
+
+
     assignment_res = supabase.table("doctor_facility_assignments") \
         .select("*, radiologists(*)") \
         .eq("facility_id", facility_id) \
@@ -229,7 +235,8 @@ def facility_profile(facility_id):
         facility=fac,
         doctor_assignments=sorted_assignments,
         facility_contacts=contacts,
-        available_radiologists=available_radiologists
+        available_radiologists=available_radiologists,
+        prioritized_facility_ids=list(prioritized_facility_ids) # Pass to template for UI display
     )
 
 
@@ -548,4 +555,3 @@ def add_facility():
         )
 
     return redirect(url_for("facilities.facilities", rad_id=new_id))
-
