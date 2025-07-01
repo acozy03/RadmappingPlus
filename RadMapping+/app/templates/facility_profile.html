@@ -61,19 +61,51 @@
       </div>
       <div class="flex items-center space-x-3">
         <span class="inline-flex items-center justify-center w-8 h-8 bg-green-100 text-pink-600 rounded-full text-lg">🚑</span>
-        <div>
-          <div class="text-xs text-gray-500 font-semibold uppercase">QA Criteria</div>
-          <div class="text-base font-medium text-gray-900">{{ facility.qa_criteria or '' }}</div>
-        </div>
+          <div x-data="{ expanded: false }">
+    <div class="text-xs text-gray-500 font-semibold uppercase">QA Criteria</div>
+    <div class="text-base font-medium text-gray-900">
+      {% set full_text = facility.qa_criteria or '—' %}
+      {% if full_text|length > 50 %}
+        <template x-if="!expanded">
+          <span>
+            {{ full_text[:50] }}... <a href="#" @click.prevent="expanded = true" class="text-blue-600 hover:underline">Show More</a>
+          </span>
+        </template>
+        <template x-if="expanded">
+          <span>
+            {{ full_text }} <a href="#" @click.prevent="expanded = false" class="text-blue-600 hover:underline">Show less</a>
+          </span>
+        </template>
+      {% else %}
+        {{ full_text }}
+      {% endif %}
+    </div>
+  </div>
       </div>
       <div class="flex items-center space-x-3">
         <span class="inline-flex items-center justify-center w-8 h-8 bg-blue-100 text-pink-600 rounded-full text-lg">⚕️</span>
-        <div>
-          <div class="text-xs text-gray-500 font-semibold uppercase">Monitoring</div>
-          <div class="text-base font-medium text-gray-900">{{ facility.monitoring or '' }}</div>
-        </div>
-      </div>
-      <div class="flex items-center space-x-3">
+             <div x-data="{ expanded: false }">
+    <div class="text-xs text-gray-500 font-semibold uppercase">Monitoring</div>
+    <div class="text-base font-medium text-gray-900">
+      {% set full_text = facility.monitoring or '—' %}
+      {% if full_text|length > 50 %}
+        <template x-if="!expanded">
+          <span>
+            {{ full_text[:50] }}... <a href="#" @click.prevent="expanded = true" class="text-blue-600 hover:underline">Show More</a>
+          </span>
+        </template>
+        <template x-if="expanded">
+          <span>
+            {{ full_text }} <a href="#" @click.prevent="expanded = false" class="text-blue-600 hover:underline">Show less</a>
+          </span>
+        </template>
+      {% else %}
+        {{ full_text }}
+      {% endif %}
+    </div>
+  </div>
+  </div>
+  <div class="flex items-center space-x-3">
         <span class="inline-flex items-center justify-center w-8 h-8 rounded-full text-lg
           {% if facility.active_status == 'true' %}bg-green-100 text-green-600{% else %}bg-red-100 text-red-600{% endif %}">
           {% if facility.active_status == 'true' %}✅{% else %}❌{% endif %}
@@ -114,6 +146,14 @@
       <label class="block">
         <span class="font-semibold">Assignment Modalities</span>
         <input type="text" name="assignment_type" value="{{ facility.modalities or '' }}" class="input w-full border rounded px-3 py-2 text-sm" />
+      </label>
+       <label class="block">
+        <span class="font-semibold">QA Criteria</span>
+        <input type="text" name="qa_criteria" value="{{ facility.qa_criteria or '' }}" class="input w-full border rounded px-3 py-2 text-sm" />
+      </label>
+       <label class="block">
+        <span class="font-semibold">Monitoring</span>
+        <input type="text" name="monitoring" value="{{ facility.monitoring or '' }}" class="input w-full border rounded px-3 py-2 text-sm" />
       </label>
       <label class="flex items-center space-x-2 mt-4">
         <input type="checkbox" name="active_status" value="true" {% if facility.active_status == 'true' %}checked{% endif %} class="form-checkbox h-5 w-5 text-blue-600">

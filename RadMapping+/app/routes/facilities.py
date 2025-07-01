@@ -481,6 +481,8 @@ def update_facility(facility_id):
         'tat_definition': form.get('tat_definition'),
         'modalities_assignment_period': form.get('assignment_period'),
         'modalities': form.get('assignment_type'),
+        'qa_criteria': form.get('qa_criteria'),
+        'monitoring': form.get('monitoring'),
         'active_status': 'true' if form.get('active_status') == 'true' else 'false',
     }
 

@@ -206,7 +206,7 @@
       {% if full_text|length > 50 %}
         <template x-if="!expanded">
           <span>
-            {{ full_text[:50] }}... <a href="#" @click.prevent="expanded = true" class="text-blue-600 hover:underline">Show more</a>
+            {{ full_text[:50] }}... <a href="#" @click.prevent="expanded = true" class="text-blue-600 hover:underline">Show More</a>
           </span>
         </template>
         <template x-if="expanded">
