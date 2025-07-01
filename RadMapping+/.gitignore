@@ -7,7 +7,7 @@ __pycache__/
 *.pkl
 *.joblib
 
-
+radmapping_service.json
 utils/
 # Environments
 .env
@@ -31,7 +31,6 @@ supabase/migrations/
 # LlamaIndex
 index_store/
 vector_store/
-*.json
 *.jsonl
 *.npy
 

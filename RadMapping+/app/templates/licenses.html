@@ -515,7 +515,7 @@ function updateTable() {
             </div>
           </div>
         </span>
-        <select class="edit-mode hidden w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500">
+        <select class="edit-mode hidden w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500" name="doctor">
           ${doctorOptions}
         </select>
       </td>
@@ -525,15 +525,15 @@ function updateTable() {
             <i class="fas fa-map-marker-alt mr-1"></i>${cert.state}
           </span>
         </span>
-        <input type="text" class="edit-mode hidden w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500" value="${cert.state}">
+        <input type="text" class="edit-mode hidden w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500" value="${cert.state}" name="state">
       </td>
       <td class="px-6 py-4 whitespace-nowrap">
         <span class="view-mode text-sm text-gray-900">${cert.specialty || ''}</span>
-        <input type="text" class="edit-mode hidden w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500" value="${cert.specialty || ''}">
+        <input type="text" class="edit-mode hidden w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500" value="${cert.specialty || ''}" name="specialty">
       </td>
       <td class="px-6 py-4 whitespace-nowrap">
         <span class="view-mode">${statusBadge}</span>
-        <select class="edit-mode hidden w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500">
+        <select class="edit-mode hidden w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500" name="status">
           <option value="Active" ${cert.status === 'Active' ? 'selected' : ''}>Active</option>
           <option value="Pending" ${cert.status === 'Pending' ? 'selected' : ''}>Pending</option>
           <option value="Expired" ${cert.status === 'Expired' ? 'selected' : ''}>Expired</option>
@@ -546,7 +546,7 @@ function updateTable() {
             <i class="fas fa-tag mr-1"></i>${cert.tags}
           </span>` : '<span class="text-gray-400 text-sm">No tags</span>'}
         </span>
-        <input type="text" class="edit-mode hidden w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500" value="${cert.tags || ''}">
+        <input type="text" class="edit-mode hidden w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500" value="${cert.tags || ''}" name="tags">
       </td>
       <td class="px-6 py-4 whitespace-nowrap">
         <span class="view-mode">
@@ -555,7 +555,7 @@ function updateTable() {
             <span class="text-sm text-gray-900">${cert.expiration_date}</span>
           </div>
         </span>
-        <input type="date" class="edit-mode hidden w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500" value="${cert.expiration_date}">
+        <input type="date" class="edit-mode hidden w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500" value="${cert.expiration_date}" name="exp">
       </td>
       {% if session.user.role == 'admin' %}
       <td class="px-6 py-4 whitespace-nowrap text-sm font-medium">
@@ -633,19 +633,37 @@ function cancelEdit(licenseId) {
 function saveLicense(licenseId) {
   const row = document.getElementById(`license-row-${licenseId}`);
   const formData = new FormData();
-  
-  formData.append('radiologist_id', row.querySelector('.edit-mode select').value);
-  formData.append('state', row.querySelector('.edit-mode input[type="text"]').value);
-  formData.append('specialty', row.querySelectorAll('.edit-mode input[type="text"]')[1].value);
-  formData.append('status', row.querySelectorAll('.edit-mode select')[1].value);
-  formData.append('tags', row.querySelectorAll('.edit-mode input[type="text"]')[2].value);
-  formData.append('expiration_date', row.querySelector('.edit-mode input[type="date"]').value);
+
+  const doctor = row.querySelector('select[name="doctor"]');
+  const state = row.querySelector('input[name="state"]');
+  const specialty = row.querySelector('input[name="specialty"]');
+  const status = row.querySelector('select[name="status"]');
+  const tags = row.querySelector('input[name="tags"]');
+  const exp = row.querySelector('input[name="exp"]');
+
+  formData.append('radiologist_id', doctor?.value || '');
+  formData.append('state', state?.value || '');
+  formData.append('specialty', specialty?.value || '');
+  formData.append('status', status?.value || '');
+  formData.append('tags', tags?.value || '');
+  formData.append('expiration_date', exp?.value || '');
+
+  console.log("--- FormData contents ---");
+  for (let [key, val] of formData.entries()) {
+    console.log(key, "=", val);
+  }
 
   fetch(`/radmapping/licenses/${licenseId}/update`, {
     method: 'POST',
     body: formData
-  }).then(() => {
-    fetchAllLicensesForClientSide(); // Re-fetch all data to ensure sort/filter integrity after save
+  })
+  .then(res => res.json())
+  .then(data => {
+    console.log("✅ Update success:", data);
+    fetchAllLicensesForClientSide();
+  })
+  .catch(err => {
+    console.error("❌ Save error:", err);
   });
 }
 

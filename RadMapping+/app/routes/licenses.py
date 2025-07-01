@@ -44,12 +44,12 @@ def update_license(license_id):
     supabase = get_supabase_client()
 
     data = {
-        "radiologist_id": request.form.get("radiologist_id"),
-        "state": request.form.get("state"),
-        "specialty": request.form.get("specialty"),
-        "status": request.form.get("status"),
-        "tags": request.form.get("tags"),
-        "expiration_date": request.form.get("expiration_date")
+        "radiologist_id": request.form.get("radiologist_id") or None,
+        "state": request.form.get("state") or None,
+        "specialty": request.form.get("specialty") or None,
+        "status": request.form.get("status") or None,
+        "tags": request.form.get("tags") or None,
+        "expiration_date": request.form.get("expiration_date") or None
     }
 
     old_data = supabase.table("certifications").select("*").eq("id", license_id).single().execute().data
