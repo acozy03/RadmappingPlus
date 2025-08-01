@@ -1,9 +1,9 @@
+{# app/templates/daily.html #}
 {% extends "layout.html" %}
 {% block title %}Daily Schedule{% endblock %}
 
 {% block content %}
 
-  <!-- Add these hidden elements at the top of your template -->
   <script type="application/json" id="doctors-by-timezone">
     {{ doctors_by_timezone | tojson | safe }}
   </script>
@@ -14,17 +14,11 @@
     {{ doctors_on_shift_ids | tojson | safe }}
   </script>
 
-  <!-- Enhanced Header Section -->
   <div class="bg-gradient-to-r from-blue-50 to-indigo-50 rounded-xl shadow-sm p-4 sm:p-6 mb-6 w-full border border-blue-100">
     <div class="flex flex-col md:flex-row items-center justify-between gap-4">
-      <!-- Date Navigation -->
-      <!-- Top toolbar row: left (form) and right (timezone tiles) -->
       <div class="flex justify-between items-center flex-wrap gap-4 w-full">
-        <!-- Left side: Date nav + filters + search -->
         <div class="flex items-center gap-2 flex-wrap flex-grow">
-          <!-- Date nav form -->
           <form method="get" action="{{ url_for('daily.daily') }}" class="flex items-center gap-2 flex-wrap" id="dateForm">
-            <!-- Left arrow -->
             <a href="{{ url_for('daily.daily') }}?date={{ prev_date }}"
                class="p-2 hover:bg-blue-100 rounded-full transition-colors">
               <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6 text-blue-600" fill="none" viewBox="0 0 24 24" stroke="currentColor">
@@ -32,7 +26,6 @@
               </svg>
             </a>
 
-            <!-- Enhanced Date button with custom calendar -->
             <div class="relative">
               <button type="button"
                       onclick="toggleCalendar()"
@@ -44,9 +37,7 @@
              
               </button>
 
-              <!-- Custom Calendar Popup -->
               <div id="calendarPopup" class="hidden absolute top-full left-0 mt-2 bg-white rounded-xl shadow-2xl border border-gray-200 z-50 p-4 min-w-[320px]">
-                <!-- Calendar Header -->
                 <div class="flex items-center justify-between mb-4">
                   <button type="button" onclick="changeMonth(-1)" class="p-2 hover:bg-gray-100 rounded-lg transition-colors">
                     <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 text-gray-600" fill="none" viewBox="0 0 24 24" stroke="currentColor">
@@ -64,7 +55,6 @@
                   </button>
                 </div>
 
-                <!-- Calendar Grid -->
                 <div class="grid grid-cols-7 gap-1 mb-2">
                   <div class="text-center text-xs font-medium text-gray-500 py-2">Sun</div>
                   <div class="text-center text-xs font-medium text-gray-500 py-2">Mon</div>
@@ -75,10 +65,8 @@
                   <div class="text-center text-xs font-medium text-gray-500 py-2">Sat</div>
                 </div>
                 <div id="calendarDays" class="grid grid-cols-7 gap-1">
-                  <!-- Calendar days will be populated here -->
-                </div>
+                  </div>
 
-                <!-- Quick Actions -->
                 <div class="flex gap-2 mt-4 pt-4 border-t border-gray-200">
                   <button type="button" onclick="selectToday()" class="flex-1 px-3 py-2 text-sm bg-blue-100 text-blue-700 rounded-lg hover:bg-blue-200 transition-colors">
                     Today
@@ -90,7 +78,6 @@
               </div>
             </div>
 
-            <!-- Hidden native date input (fallback) -->
             <input type="date"
                    name="date"
                    id="date-picker"
@@ -98,7 +85,6 @@
                    onchange="this.form.submit()"
                    class="hidden" />
 
-            <!-- Timezone select -->
             <select name="timezone" onchange="this.form.submit()"
                     class="bg-white border border-blue-200 text-blue-700 rounded-lg px-3 py-1 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 shadow-sm">
               <option value="EST" {% if selected_timezone == 'EST' %}selected{% endif %}>EST</option>
@@ -108,7 +94,6 @@
 
             </select>
 
-            <!-- Right arrow -->
             <a href="{{ url_for('daily.daily') }}?date={{ next_date }}"
                class="p-2 hover:bg-blue-100 rounded-full transition-colors">
               <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6 text-blue-600" fill="none" viewBox="0 0 24 24" stroke="currentColor">
@@ -116,8 +101,6 @@
               </svg>
             </a>
 
-            <!-- Hour range -->
-           
             <select id="startHour" name="startHour" onchange="filterByCustomRange()" 
                     class="border border-blue-200 rounded-lg px-2 py-1 text-sm bg-white text-blue-700 focus:ring-2 focus:ring-blue-500 focus:outline-none shadow-sm">
               {% for slot in hour_slots %}
@@ -141,7 +124,6 @@
 
           </form>
 
-          <!-- Search bar -->
           <div class="flex-1 min-w-[200px] max-w-xl relative mx-auto">
 
             <div class="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
@@ -157,7 +139,6 @@
           </div>
         </div>
 
-        <!-- Right side: Timezone tiles -->
         <div class="flex gap-2 flex-nowrap">
           {% for zone in ["EST", "CST", "PST", "KST"] %}
             <div class="bg-white hover:bg-blue-50 px-3 py-2 rounded-lg shadow-sm timezone-tile transition-colors cursor-pointer whitespace-nowrap border border-blue-100"
@@ -173,7 +154,6 @@
     </div>
   </div>
 
-  <!-- ✅ Modal should go here, once only -->
   <div id="timezoneModal" class="fixed inset-0 bg-black bg-opacity-30 flex items-center justify-center z-50 hidden backdrop-blur-sm">
     <div class="bg-white w-full max-w-md p-6 rounded-xl shadow-xl relative border border-blue-100">
       <button onclick="closeTimezonePopup()" class="absolute top-3 right-3 text-gray-500 hover:text-gray-700 hover:bg-gray-100 rounded-full w-8 h-8 flex items-center justify-center transition-colors">
@@ -183,13 +163,11 @@
       </button>
       <h3 id="modalTimezoneTitle" class="text-lg font-semibold mb-4 text-blue-800"></h3>
       <div id="modalTimezoneContent" class="space-y-2 max-h-72 overflow-y-auto text-sm">
-        <!-- Filled dynamically -->
-      </div>
+        </div>
     </div>
   </div>
 
 
-  <!-- Daily Schedule -->
   <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
     {% for slot in hour_slots %}
       <div id="hour-{{ loop.index0 }}" class="bg-white border rounded shadow p-4" data-slot-datetime="{{ slot.datetime.isoformat() }}">
@@ -307,7 +285,6 @@
 
     <div class="doctor-popup-placeholder" data-popup-id="{{ doc.id }}"></div>
 
-    <!-- PRN or PRN+Routine badge -->
     <div class="absolute bottom-2 right-2 text-xs font-medium px-2 py-0.5 rounded-full shadow-sm
                 {{ 'bg-yellow-200 text-yellow-800' if is_routine else 'bg-purple-100 text-purple-700' }}">
       {{ 'PRN ROUTINES' if is_routine else 'PRN' }}
@@ -328,6 +305,8 @@
           onmouseleave="hideDoctorPopup(this)"
           data-start-dt="{{ doc.start_dt.isoformat() }}"
           data-end-dt="{{ doc.end_dt.isoformat() }}"
+          data-display-start-time="{{ doc.display_start_time }}" {# Added #}
+          data-display-end-time="{{ doc.display_end_time }}"   {# Added #}
           data-schedule-details="{{ doc.schedule_details or '' }}">
           <div class="flex items-center justify-between">
             <a href="{{ url_for('doctors.doctor_profile', rad_id=doc.id) }}" target="_blank" class="text-blue-700 font-semibold hover:underline">
@@ -337,10 +316,7 @@
           </div>
           <div class="text-sm text-gray-600 mt-1">
             <span class="font-semibold text-gray-800">Shift:</span>
-            {{ doc.start_time | ampm }} – {{ doc.end_time | ampm }}
-            {% if doc.break_start_dt and doc.break_end_dt %}
-              <br>
-            {% endif %}
+            {{ doc.display_start_time | ampm }} – {{ doc.display_end_time | ampm }}
           </div>
           <div class="text-sm text-gray-500 mt-1">
             {% if doc.modalities %}
@@ -373,7 +349,6 @@
       </div>
     {% endfor %}
   </div>
-  <!-- Doctor popup templates (only rendered once) -->
   <div id="all-doctor-popups" class="hidden">
     {% for doc in unique_doctors.values() %}
       <div id="popup-{{ doc.id }}" class="doctor-popup bg-white border p-4 rounded-lg shadow-lg w-[20rem]">
@@ -392,7 +367,8 @@
   <script>
     // Calendar functionality
     let currentCalendarDate = new Date('{{ today }}');
-    let selectedDate = '{{ today }}';
+    let selectedDate = new Date('{{ today }}'); 
+    // selectedDate.setDate(selectedDate.getDate() + 1);
 
     function toggleCalendar() {
       const popup = document.getElementById('calendarPopup');
@@ -621,14 +597,15 @@
 
 
  function colorDoctorBlocks() {
-      document.querySelectorAll("li[data-start-dt][data-end-dt]").forEach(el => {
+      document.querySelectorAll("li[data-start-dt][data-end-dt][data-display-start-time][data-display-end-time]").forEach(el => {
         const slotDiv = el.closest('[id^="hour-"]');
         if (!slotDiv) return;
-        const slotDtStr = slotDiv.getAttribute('data-slot-datetime');
+        const slotDtStr = slotDiv.getAttribute('data-slot-datetime'); // e.g., "2025-07-15T06:00:00Z"
         if (!slotDtStr) return;
-        const slotDt = new Date(slotDtStr);
-        const startDt = new Date(el.dataset.startDt);
-        const endDt = new Date(el.dataset.endDt);
+        const slotDt = new Date(slotDtStr); // This is the start of the current hour slot (timezone-aware)
+
+        const displayStartTimeStr = el.dataset.displayStartTime; // e.g., "06:00:00" or "17:00:00"
+        const displayEndTimeStr = el.dataset.displayEndTime;   // e.g., "14:00:00" or "22:00:00"
 
         el.classList.remove("bg-green-50", "border-green-200", "bg-yellow-50", "border-yellow-200", "bg-red-50", "border-red-200");
         const badge = el.querySelector(".shift-badge");
@@ -637,51 +614,70 @@
           badge.textContent = "";
         }
 
-        if (slotDt < endDt) {
-          const totalMs = endDt - startDt;
-          const msSinceStart = Math.max(slotDt - startDt, 0); // avoid negative if shift hasn't started
-          const msRemaining = totalMs - msSinceStart;
-          const percentageRemaining = (msRemaining / totalMs) * 100;
+        // Construct segment start and end Date objects, making them relative to the slot's date
+        let segmentStartDt = new Date(slotDt.toISOString().split('T')[0] + 'T' + displayStartTimeStr + 'Z'); // Assume UTC for consistency
+        let segmentEndDt = new Date(slotDt.toISOString().split('T')[0] + 'T' + displayEndTimeStr + 'Z');   // Assume UTC for consistency
 
-          const minutesLeft = Math.round(msRemaining / 60000);
-          const hours = Math.floor(minutesLeft / 60);
-          const minutes = minutesLeft % 60;
+        // Adjust segmentEndDt if it implies crossing midnight relative to segmentStartDt
+        if (segmentEndDt <= segmentStartDt) {
+            segmentEndDt = new Date(segmentEndDt.getTime() + 24 * 60 * 60 * 1000); // Add one day
+        }
 
-          let timeLeftStr;
-          if (minutesLeft < 60) {
-            timeLeftStr = '<1hr left';
-          } else if (minutes === 0) {
-            if (hours === 1) {
-              timeLeftStr = '1hr left';
-            } else if (hours < 24) {
-              timeLeftStr = `${hours}hrs left`;
-            } 
-          } else {
-            timeLeftStr = `${hours}h ${minutes}m left`;
-          }
+        // Now, calculate based on segment times
+        // `slotDt` is the start of the current hour block being rendered.
+        // `segmentStartDt` is the start of the *current working segment*.
+        // `segmentEndDt` is the end of the *current working segment*.
 
-          const nextHourDt = new Date(slotDt.getTime() + 60 * 60 * 1000);
-          const isLastHourBlock = nextHourDt >= endDt;
+        // Calculate how much time is remaining in the *current segment* from the *start of the current hour slot*.
+        const msRemainingInSegmentFromSlot = segmentEndDt.getTime() - slotDt.getTime();
 
-          if (isLastHourBlock || percentageRemaining <= 25) {
-            el.classList.add("bg-red-50", "border-red-200");
-            if (badge) {
-              badge.textContent = timeLeftStr;
-              badge.classList.add("bg-red-100", "text-red-800");
+        // Only proceed if there's actual remaining time in the segment from this hour slot onwards
+        if (msRemainingInSegmentFromSlot > 0) {
+            const minutesLeft = Math.round(msRemainingInSegmentFromSlot / 60000);
+            const hours = Math.floor(minutesLeft / 60);
+            const minutes = minutesLeft % 60;
+
+            let timeLeftStr;
+            if (minutesLeft <= 60 && hours === 0) { // Less than or equal to 60 minutes, and 0 hours means within the next hour.
+                timeLeftStr = '<1hr left';
+            } else if (minutes === 0) {
+                if (hours === 1) {
+                    timeLeftStr = '1hr left';
+                } else if (hours < 24) {
+                    timeLeftStr = `${hours}hrs left`;
+                } else { // For very long remaining hours in segment, might just show days or multiple hours
+                    timeLeftStr = `${hours}hrs left`;
+                }
+            } else {
+                timeLeftStr = `${hours}h ${minutes}m left`;
             }
-          } else if (percentageRemaining <= 75) {
-            el.classList.add("bg-yellow-50", "border-yellow-200");
-            if (badge) {
-              badge.textContent = timeLeftStr;
-              badge.classList.add("bg-yellow-100", "text-yellow-800");
+
+            // This is the total duration of the current working segment
+            const totalSegmentMs = segmentEndDt.getTime() - segmentStartDt.getTime();
+            // Determine coloring and badge text based on remaining time in segment
+            // Thresholds are now relative to the segment's total duration for percentage.
+            const percentageRemainingOfSegment = (msRemainingInSegmentFromSlot / totalSegmentMs) * 100;
+
+
+            if (percentageRemainingOfSegment <= 25 || minutesLeft <= 60) { // If <= 25% of segment left, or less than/equal to 1 hour left
+                el.classList.add("bg-red-50", "border-red-200");
+                if (badge) {
+                    badge.textContent = timeLeftStr;
+                    badge.classList.add("bg-red-100", "text-red-800");
+                }
+            } else if (percentageRemainingOfSegment <= 75) { // Between 25% and 75% left
+                el.classList.add("bg-yellow-50", "border-yellow-200");
+                if (badge) {
+                    badge.textContent = timeLeftStr;
+                    badge.classList.add("bg-yellow-100", "text-yellow-800");
+                }
+            } else { // More than 75% left
+                el.classList.add("bg-green-50", "border-green-200");
+                if (badge) {
+                    badge.textContent = timeLeftStr;
+                    badge.classList.add("bg-green-100", "text-green-800");
+                }
             }
-          } else {
-            el.classList.add("bg-green-50", "border-green-200");
-            if (badge) {
-              badge.textContent = timeLeftStr;
-              badge.classList.add("bg-green-100", "text-green-800");
-            }
-          }
         }
       });
     }
@@ -776,8 +772,6 @@ function filterDoctors() {
   });
 }
 
-
-
   function openTimezonePopup(zone) {
     const modal = document.getElementById("timezoneModal");
     const title = document.getElementById("modalTimezoneTitle");
@@ -834,7 +828,6 @@ function resetHourFilter() {
   const endSelect = document.getElementById("endHour");
 
   if (!startSelect || !endSelect) return;
-
   
   const today = new Date().toISOString().split("T")[0];
   const isToday = "{{ today }}" === new Date().toISOString().split('T')[0];

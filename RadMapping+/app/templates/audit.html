@@ -3,7 +3,6 @@
 
 {% block content %}
 
-  <!-- Search filters card -->
   <div class="bg-white rounded-lg shadow-sm border border-gray-200 p-6 mb-6">
     <div class="flex items-center justify-between mb-4">
       <h2 class="text-lg font-semibold text-gray-900">Search Filters</h2>
@@ -75,7 +74,7 @@
           </svg>
           Data Content
         </label>
-        <input type="text" id="data-filter" placeholder="Search within JSON data..." 
+        <input type="text" id="data-filter" placeholder="Search within data content..." 
                class="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 text-sm">
       </div>
     </div>
@@ -205,7 +204,6 @@
       </div>
     </div>
 
-    <!-- Results summary footer -->
     <div class="bg-gray-50 px-4 py-3 border-t border-gray-200">
       <div class="flex justify-between items-center text-sm text-gray-600">
         <span id="showing-count">Showing 0 entries</span>
@@ -215,7 +213,6 @@
   </div>
 </div>
 
-<!-- Modal for expanded data view with diff highlighting -->
 <div id="data-modal" class="fixed inset-0 bg-black bg-opacity-50 hidden flex items-center justify-center z-50">
   <div class="bg-white rounded-lg shadow-xl w-11/12 max-w-6xl max-h-[90vh] overflow-hidden">
     <div class="flex justify-between items-center border-b p-4 bg-gray-50">
@@ -275,57 +272,123 @@
   }
 </style>
 <script> 
-function openFromElement(el) {
-  const oldDataStr = el.dataset.old || 'null';
-  const newDataStr = el.dataset.new || 'null';
-  showModal(oldDataStr, newDataStr);
+// Helper function to recursively remove specified keys
+function cleanData(data) {
+  if (data === null || typeof data !== 'object') {
+    return data;
+  }
+
+  if (Array.isArray(data)) {
+    return data.map(item => cleanData(item));
+  }
+
+  const newObj = {};
+  for (const key in data) {
+    if (data.hasOwnProperty(key)) {
+      // Exclude these specific keys
+      if (key === 'id' || key === 'facility_id' || key === 'radiologist_id') {
+        continue;
+      }
+      newObj[key] = cleanData(data[key]);
+    }
+  }
+  return newObj;
 }
 
-    // Global functions for modal
-function showModal(oldDataStr, newDataStr) {
+// NEW helper function to format objects into plain text without outer brackets
+function formatObjectToPlainText(obj, indent = 0) {
+    if (obj === null || obj === undefined) {
+        return 'null';
+    }
+    // Primitives (numbers, strings, booleans)
+    if (typeof obj !== 'object') {
+        return obj.toString();
+    }
+
+    let lines = [];
+    const currentLevelIndent = '  '.repeat(indent); // Indentation for items/keys at the current level
+
+    // Handle Arrays
+    if (Array.isArray(obj)) {
+        if (obj.length === 0) {
+            return 'Empty List'; // Simpler, no brackets
+        }
+        obj.forEach(item => {
+            // Each array item gets a bullet point and is formatted recursively
+            lines.push(`${currentLevelIndent}- ${formatObjectToPlainText(item, indent + 1)}`);
+        });
+        return lines.join('\n');
+    }
+
+    // Handle Objects
+    const keys = Object.keys(obj);
+    if (keys.length === 0) {
+        return 'Empty Data'; // Simpler, no brackets
+    }
+
+    keys.forEach(key => {
+        const value = obj[key];
+        const formattedValue = formatObjectToPlainText(value, indent + 1); // Recursively format the value
+
+        if (typeof value === 'object' && value !== null && (Array.isArray(value) ? value.length > 0 : Object.keys(value).length > 0)) {
+            // If the value is a non-empty object/array, put it on a new line below its key
+            lines.push(`${currentLevelIndent}${key}:`);
+            lines.push(formattedValue); // formattedValue already has its own indentation
+        } else {
+            // Primitive values or empty objects/arrays stay on the same line as the key
+            lines.push(`${currentLevelIndent}${key}: ${formattedValue}`);
+        }
+    });
+    return lines.join('\n');
+}
+
+// Global functions for modal
+// Modified to display plain text without brackets, which removes highlighting for modal content.
+window.showModal = function(oldDataStr, newDataStr) {
   
   try {
-    // Parse and format the JSON data
     let oldData, newData;
-    
+
     try {
-      oldData = JSON.parse(oldDataStr);
+      oldData = oldDataStr === 'null' ? null : JSON.parse(oldDataStr);
     } catch (e) {
-      oldData = oldDataStr === 'null' ? null : oldDataStr;
+      oldData = oldDataStr; 
+    }
+
+    try {
+      newData = newDataStr === 'null' ? null : JSON.parse(newDataStr);
+    } catch (e) {
+      newData = newDataStr; 
     }
     
-    try {
-      newData = JSON.parse(newDataStr);
-    } catch (e) {
-      newData = newDataStr === 'null' ? null : newDataStr;
-    }
+    // Clean data by removing unwanted IDs before further processing
+    const cleanedOldData = cleanData(oldData);
+    const cleanedNewData = cleanData(newData);
+
+    // Format to plain text for display in modal
+    const oldFormatted = formatObjectToPlainText(cleanedOldData);
+    const newFormatted = formatObjectToPlainText(cleanedNewData);
     
-    const oldFormatted = oldData ? JSON.stringify(oldData, null, 2) : 'null';
-    const newFormatted = newData ? JSON.stringify(newData, null, 2) : 'null';
-    
-    // Highlight differences
-    const highlightedOld = highlightDifferences(oldFormatted, newFormatted, 'old');
-    const highlightedNew = highlightDifferences(oldFormatted, newFormatted, 'new');
-    
-    document.getElementById('old-data-display').innerHTML = highlightedOld;
-    document.getElementById('new-data-display').innerHTML = highlightedNew;
+    // Set textContent directly as highlighting is not compatible with this plain text format
+    document.getElementById('old-data-display').textContent = oldFormatted;
+    document.getElementById('new-data-display').textContent = newFormatted;
     
     document.getElementById('data-modal').classList.remove('hidden');
     
   } catch (error) {
     console.error('Error showing modal:', error);
-    // Fallback to plain text display
     document.getElementById('old-data-display').textContent = oldDataStr;
     document.getElementById('new-data-display').textContent = newDataStr;
     document.getElementById('data-modal').classList.remove('hidden');
   }
 }
 
-function closeModal() {
+window.closeModal = function() {
   document.getElementById('data-modal').classList.add('hidden');
 }
 
-function highlightDifferences(oldStr, newStr, type) {
+// These highlighting functions are kept for reference but are not used by showModal in the new plain text mode.
+window.highlightDifferences = function(oldStr, newStr, type) {
   if (oldStr === 'null' || newStr === 'null') {
     return type === 'old' ? oldStr : newStr;
   }
@@ -341,7 +404,6 @@ function highlightDifferences(oldStr, newStr, type) {
     const changes = findObjectDifferences(oldData, newData);
     let result = type === 'old' ? oldStr : newStr;
     
-    // Highlight changed values
     changes.forEach(change => {
       const valueToHighlight = type === 'old' ? change.oldValue : change.newValue;
       if (valueToHighlight !== undefined) {
@@ -358,10 +420,9 @@ function highlightDifferences(oldStr, newStr, type) {
   }
 }
 
-function findObjectDifferences(oldObj, newObj, path = '') {
+window.findObjectDifferences = function(oldObj, newObj, path = '') {
   const differences = [];
   
-  // Check all keys in both objects
   const allKeys = new Set([...Object.keys(oldObj || {}), ...Object.keys(newObj || {})]);
   
   allKeys.forEach(key => {
@@ -372,10 +433,8 @@ function findObjectDifferences(oldObj, newObj, path = '') {
     if (oldValue !== newValue) {
       if (typeof oldValue === 'object' && typeof newValue === 'object' && 
           oldValue !== null && newValue !== null) {
-        // Recursively check nested objects
         differences.push(...findObjectDifferences(oldValue, newValue, currentPath));
       } else {
-        // Direct value change
         differences.push({
           path: currentPath,
           oldValue: oldValue,
@@ -388,8 +447,15 @@ function findObjectDifferences(oldObj, newObj, path = '') {
   return differences;
 }
 
-function escapeRegExp(string) {
+window.escapeRegExp = function(string) {
   return string.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+}
+
+// Global function to open modal from element data attributes
+window.openFromElement = function(el) {
+  const oldDataStr = el.dataset.old || 'null';
+  const newDataStr = el.dataset.new || 'null';
+  showModal(oldDataStr, newDataStr);
 }
 
 // Close modal when clicking outside or pressing Escape
@@ -415,12 +481,48 @@ document.addEventListener('DOMContentLoaded', function() {
   let filteredRows = [...allRows];
   let currentSort = { column: 'timestamp', direction: 'desc' };
 
-
-
   formatTimestamps();
   sortRows();
   updateVisibleRows();
   updateCounts();
+
+  // Apply plain text formatting and ID filtering to table previews on load
+  document.querySelectorAll('.audit-row').forEach(row => {
+    // Get raw data from dataset attributes
+    const oldDataStr = row.querySelector('.old-data-cell div.relative').dataset.old || 'null';
+    const newDataStr = row.querySelector('.new-data-cell div.relative').dataset.new || 'null';
+
+    let oldData, newData;
+
+    // Safely parse JSON for previews
+    try { oldData = JSON.parse(oldDataStr); } catch (e) { oldData = null; }
+    try { newData = JSON.parse(newDataStr); } catch (e) { newData = null; }
+
+    // Clean data by removing unwanted IDs
+    const cleanedOldData = cleanData(oldData);
+    const cleanedNewData = cleanData(newData);
+
+    // Get the <pre> elements for preview display
+    const oldPreviewEl = row.querySelector('.old-data-container pre');
+    const newPreviewEl = row.querySelector('.new-data-container pre');
+
+    // Format and set the text content for the previews
+    if (oldPreviewEl) {
+      if (cleanedOldData) {
+        oldPreviewEl.textContent = formatObjectToPlainText(cleanedOldData);
+      } else {
+        oldPreviewEl.textContent = '—'; // Display dash if no old data
+      }
+    }
+    if (newPreviewEl) {
+      if (cleanedNewData) {
+        newPreviewEl.textContent = formatObjectToPlainText(cleanedNewData);
+      } else {
+        newPreviewEl.textContent = '—'; // Display dash if no new data
+      }
+    }
+  });
+
 
   const filters = {
     timestamp: document.getElementById('timestamp-filter'),

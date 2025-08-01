@@ -6,8 +6,25 @@ import uuid
 from app.middleware import with_supabase_auth
 from app.supabase_client import get_supabase_client
 from app.audit_log import log_audit_action
-
+import time 
+from flask import g
 facilities_bp = Blueprint('facilities', __name__)
+
+_cached_prioritized_facility_ids = None
+_last_prioritized_fetch_time = 0
+CACHE_EXPIRATION_SECONDS = 300 # Cache for 5 minutes (adjust as needed)
+
+def _get_prioritized_facility_ids_cached(supabase_client):
+    global _cached_prioritized_facility_ids, _last_prioritized_fetch_time
+
+    current_time = time.time()
+    # Refresh cache if it's empty or expired
+    if _cached_prioritized_facility_ids is None or (current_time - _last_prioritized_fetch_time > CACHE_EXPIRATION_SECONDS):
+        print("Refreshing prioritized facility IDs cache...")
+        prioritized_res = supabase_client.table("prioritized_facilities").select("facility_id").execute()
+        _cached_prioritized_facility_ids = {p["facility_id"] for p in (prioritized_res.data or [])}
+        _last_prioritized_fetch_time = current_time
+    return _cached_prioritized_facility_ids
 
 @facilities_bp.route('/facilities')
 @with_supabase_auth
@@ -16,36 +33,34 @@ def facilities():
     page = request.args.get('page', 1, type=int)
     per_page = 25
     offset = (page - 1) * per_page
+    status = request.args.get('status', 'active')
 
-    # Fetch all prioritized facility IDs
-    prioritized_res = supabase.table("prioritized_facilities").select("facility_id").execute()
-    prioritized_facility_ids = {p["facility_id"] for p in (prioritized_res.data or [])}
+    # Use the cached version
+    prioritized_facility_ids = _get_prioritized_facility_ids_cached(supabase)
 
-    # Build base query to get ALL facilities (no pagination yet)
-    query = supabase.table("facilities").select("*")
+    base_query = supabase.table("facilities").select("*")
 
-    # Execute query to get all facilities BEFORE any pagination
-    all_facilities_from_db = query.execute().data or []
+    if status == "active":
+        base_query = base_query.eq("active_status", "true")
+    elif status == "inactive":
+        base_query = base_query.eq("active_status", "false")
 
-    # Separate facilities into prioritized and unprioritized lists
+    all_facilities_from_db_raw = base_query.execute().data or []
+
     prioritized_facilities_list = []
     unprioritized_facilities_list = []
-    for fac in all_facilities_from_db:
+    for fac in all_facilities_from_db_raw:
         if fac["id"] in prioritized_facility_ids:
             prioritized_facilities_list.append(fac)
         else:
             unprioritized_facilities_list.append(fac)
 
-    # Sort prioritized facilities by name
     prioritized_facilities_list.sort(key=lambda f: f["name"].lower())
-    # Sort unprioritized facilities by name
     unprioritized_facilities_list.sort(key=lambda f: f["name"].lower())
 
-    # Combine them: prioritized first, then unprioritized
     sorted_facilities = prioritized_facilities_list + unprioritized_facilities_list
     total_count = len(sorted_facilities)
 
-    # Apply pagination on the fully sorted list
     visible_facilities = sorted_facilities[offset:offset + per_page]
 
     return render_template("facility_list.html",
@@ -53,63 +68,121 @@ def facilities():
                          total_count=total_count,
                          current_page=page,
                          per_page=per_page,
-                         prioritized_facility_ids=list(prioritized_facility_ids)) # Pass to template for UI display
+                         prioritized_facility_ids=list(prioritized_facility_ids))
 
 
 @facilities_bp.route('/facilities/search', methods=["GET"])
 @with_supabase_auth
 def search_facilities():
-    supabase = get_supabase_client()
-    search_term = request.args.get('search', '')
+    # It's crucial that get_supabase_client() is called here
+    # as it sets the session for the current request.
+    # The actual supabase client instance is then stored on 'g'.
+    # We will time the *first* Supabase interaction in this function,
+    # which will include the cost of set_session if it hasn't happened yet.
+    
+    function_start_time = time.time()
+
+    # Call get_supabase_client() which handles session setting and client caching
+    # for the current request context (g object).
+    start_supabase_client_access = time.time()
+    supabase = get_supabase_client() # This call might include set_session
+    time_to_get_supabase_client = time.time() - start_supabase_client_access
+    print(f"Time to get/initialize Supabase client (includes set_session if first access): {time_to_get_supabase_client:.4f}s")
+
+    search_term_name = request.args.get('search_name', '').strip()
+    state_filter = request.args.get('state', '').strip().upper()
     page = int(request.args.get('page', 1))
     per_page = int(request.args.get('per_page', 25))
     status = request.args.get('status', 'all')
-    fetch_all = request.args.get('fetch_all', 'false').lower() == 'true' # New parameter
+    fetch_all = request.args.get('fetch_all', 'false').lower() == 'true'
 
-    # Fetch all prioritized facility IDs
-    prioritized_res = supabase.table("prioritized_facilities").select("facility_id").execute()
-    prioritized_facility_ids = {p["facility_id"] for p in (prioritized_res.data or [])}
+    # The prioritized IDs cache is independent of the user session setup,
+    # so its timing remains separate and valid.
+    start_time_cache = time.time()
+    prioritized_facility_ids = _get_prioritized_facility_ids_cached(supabase) # Pass the obtained client
+    print(f"Time to fetch prioritized IDs (cached): {time.time() - start_time_cache:.4f}s")
 
-    # Build base query to get ALL matching facilities (no pagination yet)
-    query = supabase.table("facilities").select("*")
-    if search_term:
-        query = query.ilike("name", f"%{search_term}%")
+    # --- Detailed timing for actual query object building ---
+    query_object_build_start_time = time.time() # This is the true start for query object building
+
+    step_start = time.time()
+    query = supabase.table("facilities").select("id, name, location, active_status")
+    print(f"  - Time for .select() method call: {time.time() - step_start:.4f}s")
+
+    if search_term_name:
+        step_start = time.time()
+        query = query.ilike("name", f"%{search_term_name}%")
+        print(f"  - Time for .ilike() method call: {time.time() - step_start:.4f}s")
+
+    if state_filter:
+        step_start = time.time()
+        query = query.eq("location", state_filter)
+        print(f"  - Time for .eq('location') method call: {time.time() - step_start:.4f}s")
+
     if status == "active":
+        step_start = time.time()
         query = query.eq("active_status", "true")
+        print(f"  - Time for .eq('active_status') method call: {time.time() - step_start:.4f}s")
     elif status == "inactive":
+        step_start = time.time()
         query = query.eq("active_status", "false")
+        print(f"  - Time for .eq('active_status') method call: {time.time() - step_start:.4f}s")
 
-    # Execute query to get all matching facilities BEFORE any pagination
-    all_matching_facilities = query.execute().data or []
+    print(f"Total time to build Supabase query object (in Python): {time.time() - query_object_build_start_time:.4f}s")
+    # --- End detailed timing for query object building ---
 
-    # Separate matching facilities into prioritized and unprioritized lists
-    prioritized_matching_facilities = []
-    unprioritized_matching_facilities = []
-    for fac in all_matching_facilities:
-        if fac["id"] in prioritized_facility_ids:
-            prioritized_matching_facilities.append(fac)
+
+    start_time_meta_query = time.time()
+    all_matching_meta = query.execute().data or []
+    print(f"Time for initial filtered metadata query (DB roundtrip): {time.time() - start_time_meta_query:.4f}s")
+    print(f"Number of matching metadata records: {len(all_matching_meta)}")
+
+    start_time_sort = time.time()
+    prioritized_matching_facilities_meta = []
+    unprioritized_matching_facilities_meta = []
+    for fac_meta in all_matching_meta:
+        if fac_meta["id"] in prioritized_facility_ids:
+            prioritized_matching_facilities_meta.append(fac_meta)
         else:
-            unprioritized_matching_facilities.append(fac)
+            unprioritized_matching_facilities_meta.append(fac_meta)
 
-    # Sort each group by name
-    prioritized_matching_facilities.sort(key=lambda f: f["name"].lower())
-    unprioritized_matching_facilities.sort(key=lambda f: f["name"].lower())
+    prioritized_matching_facilities_meta.sort(key=lambda f: f["name"].lower())
+    unprioritized_matching_facilities_meta.sort(key=lambda f: f["name"].lower())
 
-    # Combine them: prioritized first, then unprioritized
-    sorted_matching_facilities = prioritized_matching_facilities + unprioritized_matching_facilities
-    total_count = len(sorted_matching_facilities) # Total count of filtered and sorted facilities
+    sorted_matching_facilities_meta = prioritized_matching_facilities_meta + unprioritized_matching_facilities_meta
+    total_count = len(sorted_matching_facilities_meta)
+    print(f"Time for Python-side prioritization and sorting: {time.time() - start_time_sort:.4f}s")
 
-    # Apply pagination ONLY if fetch_all is not true
-    if not fetch_all:
-        offset = (page - 1) * per_page
-        visible_facilities = sorted_matching_facilities[offset:offset + per_page]
+    start_time_ids = time.time()
+    visible_facilities_ids = []
+    
+    if fetch_all: # If fetching all, we don't need to do a second query with `in_`
+        # Instead, the `sorted_matching_facilities_meta` already contains
+        # all the filtered and sorted data needed if fetch_all is true.
+        visible_facilities = sorted_matching_facilities_meta
+        total_count = len(visible_facilities) # Re-confirm total count
+        print(f"Time for determining visible facility IDs (fetch_all): {time.time() - start_time_ids:.4f}s")
+        print(f"Skipping full details fetch as fetch_all is true.")
     else:
-        # If fetch_all is true, return all sorted facilities
-        visible_facilities = sorted_matching_facilities
+        offset = (page - 1) * per_page
+        visible_facilities_ids = [f["id"] for f in sorted_matching_facilities_meta[offset:offset + per_page]]
+        print(f"Time for determining visible facility IDs: {time.time() - start_time_ids:.4f}s")
 
+        # Log: Fetching full details for visible facilities
+        start_time_full_details = time.time()
+        visible_facilities = []
+        if visible_facilities_ids: # This check is still important for paginated views
+            print(f"DEBUG: Number of IDs for full details fetch: {len(visible_facilities_ids)}")
+            print(f"DEBUG: Sample IDs: {visible_facilities_ids[:5]}")
+            full_details_res = supabase.table("facilities").select("*").in_("id", visible_facilities_ids).execute()
+            full_details_map = {fac["id"]: fac for fac in (full_details_res.data or [])}
+            visible_facilities = [full_details_map[fac_id] for fac_id in visible_facilities_ids if fac_id in full_details_map]
+        print(f"Time for fetching full details (DB roundtrip): {time.time() - start_time_full_details:.4f}s")
+
+    # ... (rest of the function, including the final jsonify)
     return jsonify({
         "facilities": visible_facilities,
-        "total_count": total_count, # This is now the total count of filtered facilities
+        "total_count": total_count, # Use the total_count from sorted_matching_facilities_meta
         "current_page": page,
         "per_page": per_page
     })
@@ -122,37 +195,33 @@ def prioritize_facilities():
     data = request.get_json()
     facility_ids_to_prioritize = data.get('facility_ids', [])
 
-    # Validate that facility_ids_to_prioritize is a list
     if not isinstance(facility_ids_to_prioritize, list):
         return jsonify({'success': False, 'error': 'Invalid input: facility_ids must be a list.'}), 400
 
-    # Optional: Add a limit to the number of prioritized facilities if needed (e.g., 15)
-    # if len(facility_ids_to_prioritize) > 15:
-    #     return jsonify({'success': False, 'error': 'Cannot prioritize more than 15 facilities.'}), 400
-
     try:
-        # Delete all existing prioritized facilities (global update)
-        # For a truly global update, we don't need a user_id filter.
-        # This means all existing entries are removed and replaced by the new list.
-        supabase.table("prioritized_facilities").delete().neq("id", "00000000-0000-0000-0000-000000000000").execute() # Delete all
+        supabase.table("prioritized_facilities").delete().neq("id", "00000000-0000-0000-0000-000000000000").execute()
 
-        # Insert new prioritized facilities
         if facility_ids_to_prioritize:
             new_priorities = [{
-                "id": str(uuid.uuid4()), # Generate a new UUID for each entry
+                "id": str(uuid.uuid4()),
                 "facility_id": fac_id
             } for fac_id in facility_ids_to_prioritize]
 
             supabase.table("prioritized_facilities").insert(new_priorities).execute()
 
-        # Log audit action
+        # Invalidate the cache after an update
+        global _cached_prioritized_facility_ids, _last_prioritized_fetch_time
+        _cached_prioritized_facility_ids = None
+        _last_prioritized_fetch_time = 0 # Forces a refresh on next call
+
+
         log_audit_action(
             supabase=supabase,
             action="update",
             table_name="prioritized_facilities",
-            record_id="global_prioritization_update", # Use a generic ID for global changes
+            record_id="global_prioritization_update",
             user_email=session.get("user", {}).get("email", "unknown"),
-            old_data={"prioritized_facility_ids_before_update": None}, # Could fetch old for more detail
+            old_data={"prioritized_facility_ids_before_update": None},
             new_data={"prioritized_facility_ids_after_update": facility_ids_to_prioritize}
         )
 
@@ -168,9 +237,6 @@ def prioritize_facilities():
             new_data={"error_message": str(e), "requested_ids": facility_ids_to_prioritize}
         )
         return jsonify({'success': False, 'error': str(e)}), 500
-
-# The rest of your existing routes in facilities.py would follow here,
-# unchanged unless they need to interact with prioritization directly (e.g., UI for prioritization).
 
 @facilities_bp.route('/facilities/<string:facility_id>')
 @with_supabase_auth
@@ -484,6 +550,7 @@ def update_facility(facility_id):
         'qa_criteria': form.get('qa_criteria'),
         'monitoring': form.get('monitoring'),
         'active_status': 'true' if form.get('active_status') == 'true' else 'false',
+        'account_poc': form.get('account_poc')  
     }
 
     old_data = supabase.table('facilities').select('*').eq('id', facility_id).single().execute().data
@@ -539,7 +606,10 @@ def add_facility():
         "modalities_assignment_period": request.form.get("modalities_assignment_period"),
         "tat_definition": request.form.get("tat_definition"),
         "modalities": request.form.get("modalities"),
-        "active_status": "true" if request.form.get("active_status") == "true" else "false"
+        "active_status": "true" if request.form.get("active_status") == "true" else "false",
+        "qa_criteria": request.form.get("qa_criteria"),
+        "monitoring": request.form.get("monitoring"),
+        "account_poc": request.form.get("account_poc")  
     }
 
     # Insert the new doctor into the database

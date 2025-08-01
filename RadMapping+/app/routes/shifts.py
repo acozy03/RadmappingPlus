@@ -84,14 +84,23 @@ US_STATES = [
 def shifts():
     supabase = get_supabase_client()
     
-    # Get today's date and calculate the start and end of the current week (Mon-Sun)
-    now = datetime.now()
+    # Get the date from the query parameters, or default to today
+    date_str = request.args.get('date')
+    if date_str:
+        now = datetime.strptime(date_str, '%Y-%m-%d')
+    else:
+        now = datetime.now()
+    
     # Find the most recent Monday (or today if today is Monday)
     start_of_week = now - timedelta(days=now.weekday())
     end_of_week = start_of_week + timedelta(days=6)
     
     start_date_str = start_of_week.strftime("%Y-%m-%d")
     end_date_str = end_of_week.strftime("%Y-%m-%d")
+
+    # Calculate dates for navigation links
+    prev_week_start = (start_of_week - timedelta(weeks=1)).strftime('%Y-%m-%d')
+    next_week_start = (start_of_week + timedelta(weeks=1)).strftime('%Y-%m-%d')
 
     # Define hour slots for the entire week (00:00 to 23:00 for each day)
     hour_slots_by_day = defaultdict(list)
@@ -393,10 +402,13 @@ def shifts():
                            hourly_rvu_stats=hourly_rvu_stats,
                            start_date=start_of_week.strftime("%B %d, %Y"), # Pass week start date for header
                            end_date=end_of_week.strftime("%B %d, %Y"), # Pass week end date for header
+                           prev_week_start=prev_week_start,
+                           next_week_start=next_week_start,
                            doctors_by_hour=doctors_by_hour,
                            uncovered_states_by_hour=uncovered_states_by_hour,
                            covered_states_by_hour=covered_states_by_hour,
                            state_doctor_map_by_hour=state_doctor_map_by_hour,
                            facility_doctor_map_by_hour=facility_doctor_map_by_hour,
-                           datetime=datetime
-) 
+                           datetime=datetime,
+                           now=now
+)

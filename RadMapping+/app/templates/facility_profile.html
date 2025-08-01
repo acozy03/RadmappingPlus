@@ -32,6 +32,13 @@
         </div>
       </div>
       <div class="flex items-center space-x-3">
+        <span class="inline-flex items-center justify-center w-8 h-8 bg-pink-100 text-purple-600 rounded-full text-lg">📞</span>
+        <div>
+          <div class="text-xs text-gray-500 font-semibold uppercase">Account POC</div>
+          <div class="text-base font-medium text-gray-900">{{ facility.account_poc }}</div>
+        </div>
+      </div>
+      <div class="flex items-center space-x-3">
         <span class="inline-flex items-center justify-center w-8 h-8 bg-purple-100 text-purple-600 rounded-full text-lg">💾</span>
         <div>
           <div class="text-xs text-gray-500 font-semibold uppercase">PACS</div>
@@ -128,6 +135,10 @@
         <input type="text" name="name" value="{{ facility.name }}" class="input w-full border rounded px-3 py-2 text-sm" />
       </label>
       <label class="block">
+        <span class="font-semibold">Account POC</span>
+        <input type="text" name="account_poc" value="{{ facility.account_poc or '' }}" class="input w-full border rounded px-3 py-2 text-sm" />
+      </label>
+      <label class="block">
         <span class="font-semibold">Location</span>
         <input type="text" name="location" value="{{ facility.location or '' }}" class="input w-full border rounded px-3 py-2 text-sm" />
       </label>
@@ -135,6 +146,7 @@
         <span class="font-semibold">PACS</span>
         <input type="text" name="pacs" value="{{ facility.pacs or '' }}" class="input w-full border rounded px-3 py-2 text-sm" />
       </label>
+      
       <label class="block">
         <span class="font-semibold">TAT Definition</span>
         <input type="text" name="tat_definition" value="{{ facility.tat_definition or '' }}" class="input w-full border rounded px-3 py-2 text-sm" />
@@ -155,6 +167,7 @@
         <span class="font-semibold">Monitoring</span>
         <input type="text" name="monitoring" value="{{ facility.monitoring or '' }}" class="input w-full border rounded px-3 py-2 text-sm" />
       </label>
+
       <label class="flex items-center space-x-2 mt-4">
         <input type="checkbox" name="active_status" value="true" {% if facility.active_status == 'true' %}checked{% endif %} class="form-checkbox h-5 w-5 text-blue-600">
         <span class="text-sm font-medium">Active</span>

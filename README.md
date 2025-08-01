@@ -1,44 +1,154 @@
 # RadMapping+
 
-**RadMapping+** is a centralized platform for managing radiologist schedules, specialties, facility assignments, licensing, and workload analytics, along with other Vesta-related information. It integrates real-time data sync from Google Sheets with a secure Supabase backend and a Flask-based web dashboard.
+**RadMapping+** is a centralized platform for managing radiologist schedules, specialties, facility assignments, licensing, and workload analytics, along with other provider-related information. It integrates real-time data sync from Google Sheets with a secure Supabase backend and a Flask-based web dashboard.
 
 ---
 
-## Features
+## Table of Contents
 
-### Doctor Management
+* [Visual Demo](#visual-demo)
 
-* Profile pages with full information and an editable admin section
-* Specialty tracking, license status, and shift analytics
-* Monthly & daily schedule views (including PRN logic)
+  * [Landing Page](#landing-page)
+  * [Daily Schedule](#daily-schedule)
+  * [Monthly Schedule](#monthly-schedule)
+  * [Capacity](#capacity)
+  * [Doctor Directory](#doctor-directory)
+  * [Doctor Profile](#doctor-profile)
+  * [Facilities Directory](#facilities-directory)
+  * [Facility Profile](#facility-profile)
+  * [Specialties](#specialties)
+  * [Licenses](#licenses)
+  * [Vacations](#vacations)
+  * [Information](#information)
+  * [Contacts](#contacts)
+  * [Audit Log](#audit-log)
+  * [RAG AI Assistant](#rag-ai-assistant)
+* [Authentication & Roles](#authentication--roles)
+* [Tech Stack](#tech-stack)
+* [Setup](#setup)
 
-### Facility Management
+  * [Clone the repo](#1-clone-the-repo)
+  * [Create .env file](#2-create-env-file)
+  * [Install dependencies](#3-install-dependencies)
+  * [Run the app](#4-run-the-app)
+  * [Re-Deploy to Google Cloud](#5-re-deploy-to-google-cloud)
+* [Security](#security)
 
-* Assign radiologists with read permissions and stipulations
-* Contact tracking, sortable facility list, and state filtering
+  * [Roles](#roles)
+  * [Promote a User to Admin](#promote-a-user-to-admin)
+  * [Demote a User](#demote-a-user)
 
-### Scheduling
+---
 
-* Interactive calendar views (monthly & daily by hour)
-* Google Sheets integration for schedule sync
-* Real-time updates with schedule refresh triggers
+# Visual Demo
 
-### Specialties & Licensing
+## Landing Page
 
-* Bulk upload from Excel files with color-coded logic
-* Status filters and audit logs for every change
+![Landing Page](https://github.com/user-attachments/assets/a08ab8a3-8ee0-4088-a62e-b030cd204845)
 
-### Other Modules
+* Navigate to any page here upon landing on the site after authentication
 
-* Rad Vacations
-* Vesta Contacts
-* RVU tracking per radiologist
-* Capacity hour-by-hour planning
+## Daily Schedule
+
+![Daily Schedule](https://github.com/user-attachments/assets/4c0e0aa9-6531-42fa-9f4e-0eb58d4d1e63)
+
+* Navigate day-by-day by hour with color-coded availability and RVU
+* Tooltips and modals for more details
+* Special tags for PRN and other shift types
+
+## Monthly Schedule
+
+![Monthly Schedule](https://github.com/user-attachments/assets/e72f0517-6357-4bdc-bbda-008bcbd47f4c)
+
+* View entries at a glance
+* Pinned and sorted doctors
+* Color coded by shift type
+
+## Capacity
+
+![Capacity](https://github.com/user-attachments/assets/290968d6-287b-4a4c-8bfe-fcee1716197f)
+
+* View gaps based on expected vs actual RVU/hour
+* Search by facility, state, and hour block
+
+## Doctor Directory
+
+![Doctor Directory](https://github.com/user-attachments/assets/25900834-b253-44f4-bb9d-71c7d545e473)
+
+* Search doctors, filter by active status
+* Pinned doctors prioritized
+
+## Doctor Profile
+
+![Doctor Profile](https://github.com/user-attachments/assets/046cc3ec-5420-4a00-b747-e5dbd66f5142)
+
+* View/edit doctor info, facility assignments, and licenses
+* Changes are audit-logged
+
+## Facilities Directory
+
+![Facilities Directory](https://github.com/user-attachments/assets/efee3eaa-b7d8-4a1a-b7c2-881abbf13ab8)
+
+* Search facilities, filter by status or state
+* Prioritized facilities feature
+
+## Facility Profile
+
+![Facility Profile](https://github.com/user-attachments/assets/b21411ae-b0fc-4e90-8e87-2aa1a6cbc0a7)
+
+* View facility info and assigned doctors
+* Facility-specific contact info
+
+## Specialties
+
+![Specialties](https://github.com/user-attachments/assets/ae1bb453-2c97-4d8e-9405-374c434f5222)
+
+* See specialty-to-doctor assignments
+
+## Licenses
+
+![Licenses](https://github.com/user-attachments/assets/aca28cb1-b237-4d8e-82fe-bfc8eca35db3)
+
+* View/edit licenses
+* Expired licenses are auto-detected
+
+## Vacations
+
+![Vacations](https://github.com/user-attachments/assets/36259702-cff6-4950-9693-7d27ee850b27)
+
+* View current and upcoming vacations
+
+## Information
+
+![Information](https://github.com/user-attachments/assets/e11770a4-24de-44c4-8a0d-b6d2eec0bd87)
+
+* Provider-related policies and notes
+
+## Contacts
+
+![Contacts](https://github.com/user-attachments/assets/5d1e8e40-57b7-438a-90e3-27f92e115b00)
+
+* Contact management with roles
+
+## Audit Log
+
+![Audit Log](https://github.com/user-attachments/assets/4707ede0-8b3f-44e1-ae8a-3f817ec3da01)
+
+* View all changes from admins or sync
+* Searchable by field
+
+## RAG AI Assistant
+
+![RAG AI Assistant](https://github.com/user-attachments/assets/f3c74155-f98a-415f-b01b-ace630108023)
+
+* Converts user questions into SQL using OpenAI + LlamaIndex
+
+---
 
 ### Authentication & Roles
 
 * Google OAuth via Supabase
-* Role-based access: Admins can perform CRUD, Users have restricted views
+* Role-based access (Admin vs User)
 
 ---
 
@@ -63,7 +173,7 @@ git clone https://github.com/acozy03/RadmappingPlus.git
 cd RadMapping+
 ```
 
-### 2. Create `.env` file
+### 2. Create .env file
 
 ```
 SUPABASE_URL=
@@ -83,31 +193,21 @@ pip install -r requirements.txt
 
 ### 4. Run the app
 
-```bash
+```
 python -m flask run
 ```
 
-### 5. Deploy to Google Cloud
-
-Run these commands from the directory (on my computer): `PS C:\Users\Adrian Cosentino\Documents\radmapping+>`
+### 5. Re-Deploy to Google Cloud
 
 ```bash
-gcloud builds submit --tag gcr.io/radmapping-458916/flask-app
+gcloud builds submit --tag gcr.io/project-id/project-name
 gcloud run deploy flask-app \
-  --image gcr.io/radmapping-458916/flask-app \
+  --image gcr.io/project-id/project-name \
   --platform managed \
-  --region us-central1 \
+  --region region \
   --allow-unauthenticated \
   --env-vars-file .env.yaml
 ```
-
----
-
-## Google Sheets Sync
-
-* Set up a Google Apps Script webhook to hit `/sync-endpoint` whenever a specific cell is edited
-* Provide `sheet_name` in the payload to selectively update data
-* Schedule logic auto-parses PRN times, shifts over midnight, and date boundaries
 
 ---
 
@@ -115,7 +215,7 @@ gcloud run deploy flask-app \
 
 * Supabase Auth controls user access
 * All writes are logged with user IDs via audit logging
-* Editable sections are role-locked in the frontend and backend
+* Editable sections are role-locked
 
 ### Roles
 
@@ -124,28 +224,19 @@ gcloud run deploy flask-app \
 | Admin | Full edit access to all modules and fields (CRUD ops) |
 | User  | View-only access to the platform                      |
 
-#### Promote a User to Admin
+### Promote a User to Admin
 
-1. In Supabase, go to **Authentication** and copy the UID of the user.
-2. Navigate to the `users` table in the **Table Editor**.
-3. Click **Insert Row** and:
+1. In Supabase, go to **Authentication** and copy the UID.
+2. Navigate to the `users` table.
+3. Click **Insert Row**:
 
-   * Paste the UID into the `id` field
+   * Paste UID into `id`
    * Set `role` to `admin`
-   * Fill in the remaining fields as necessary
 
-#### Demote a User
+### Demote a User
 
-1. In the `users` table, locate the user.
-2. You can either:
+1. Find user in `users` table
+2. Either:
 
-   * Right-click and select **Delete Row**, or
-   * Double-click the `role` cell and change `admin` to `user`
-
----
-
-## Contributors
-
-Built by **Adrian Cosentino** with aid from **John Boxma**
-
----
+   * Delete the row
+   * Or change `role` to `user`

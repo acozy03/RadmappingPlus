@@ -1,3 +1,4 @@
+# app/routes/daily.py (Updated content)
 from flask import Blueprint, render_template, session, request, jsonify
 from app.supabase_client import get_supabase_client
 from app.middleware import with_supabase_auth
@@ -10,9 +11,11 @@ from app.schedule_sync import run_google_sheet_sync
 daily_bp = Blueprint('daily', __name__)
 
 def parse_time(base_date_str, time_str):
-    for fmt in ("%Y-%m-%d %I%p", "%Y-%m-%d %I:%M%p", "%Y-%m-%d %I%M%p"):
+    for fmt in ("%Y-%m-%d %I%p", "%Y-%m-%d %I:%M%p", "%Y-%m-%d %I%M%p", "%Y-%m-%d %H:%M:%S"):
         try:
-            return datetime.strptime(f"{base_date_str} {time_str.upper()}", fmt)
+            dt_obj = datetime.strptime(f"{base_date_str} {time_str.upper()}", fmt)
+            # Make the datetime object timezone-aware in UTC
+            return dt_obj.replace(tzinfo=timezone.utc)
         except ValueError:
             continue
     raise ValueError(f"Invalid time format: {time_str}")
@@ -63,7 +66,8 @@ def daily():
     today = today_date.strftime("%Y-%m-%d")
     prev_date = (today_date - timedelta(days=1)).strftime("%Y-%m-%d")
     next_date = (today_date + timedelta(days=1)).strftime("%Y-%m-%d")
-    base_date = datetime.combine(today_date, datetime.min.time())
+    # Make base_date timezone-aware in UTC
+    base_date = datetime.combine(today_date, datetime.min.time()).replace(tzinfo=timezone.utc)
     max_end_dt = base_date
 
     shift_res = supabase.table("monthly_schedule") \
@@ -76,57 +80,97 @@ def daily():
     for entry in shift_res.data:
         if entry.get("radiologists") and entry.get("start_time") and entry.get("end_time"):
             doc = entry["radiologists"]
-            start_date = entry.get("start_date") or today
-            end_date = entry.get("end_date") or today
+            start_date_str_entry = entry.get("start_date") or today
+            end_date_str_entry = entry.get("end_date") or today
+            
             try:
-                start_dt = datetime.strptime(f"{start_date} {entry['start_time']}", "%Y-%m-%d %H:%M:%S")
-                end_dt = datetime.strptime(f"{end_date} {entry['end_time']}", "%Y-%m-%d %H:%M:%S")
-                if end_dt < start_dt:
+                # Use parse_time to get timezone-aware datetimes
+                start_dt = parse_time(start_date_str_entry, entry['start_time'])
+                end_dt = parse_time(end_date_str_entry, entry['end_time'])
+                if end_dt <= start_dt: # Use <= to handle shifts that end exactly at start time (e.g., 00:00-00:00) or cross midnight
                     end_dt += timedelta(days=1)
 
                 break_start_dt, break_end_dt = None, None
                 if entry.get("break_start") and entry.get("break_end"):
-                    break_start_dt = datetime.strptime(f"{start_date} {entry['break_start']}", "%Y-%m-%d %H:%M:%S")
-                    break_end_dt = datetime.strptime(f"{start_date} {entry['break_end']}", "%Y-%m-%d %H:%M:%S")
-                    if break_end_dt < break_start_dt:
+                    # Use parse_time for break times too
+                    break_start_dt = parse_time(start_date_str_entry, entry['break_start'])
+                    break_end_dt = parse_time(start_date_str_entry, entry['break_end'])
+                    if break_end_dt <= break_start_dt: # Handle breaks that cross midnight
                         break_end_dt += timedelta(days=1)
 
-                doc.update({
+                full_doc_info = doc.copy()
+                full_doc_info.update({
                     "start_time": entry["start_time"],
                     "end_time": entry["end_time"],
                     "schedule_details": entry.get("schedule_details", ""),
-                    "start_date": start_date,
-                    "end_date": end_date,
-                    "start_dt": start_dt,
-                    "end_dt": end_dt,
-                    "break_start_dt": break_start_dt,
-                    "break_end_dt": break_end_dt
+                    "start_date": start_date_str_entry, # String date for template
+                    "end_date": end_date_str_entry,     # String date for template
+                    "start_dt": start_dt,               # Datetime object for logic
+                    "end_dt": end_dt,                   # Datetime object for logic
+                    "break_start_dt": break_start_dt,   # Datetime object for logic
+                    "break_end_dt": break_end_dt        # Datetime object for logic
                 })
-                doc["prn_ranges"] = extract_prn_ranges(doc.get("schedule_details", ""), start_date)
+                full_doc_info["prn_ranges"] = extract_prn_ranges(full_doc_info.get("schedule_details", ""), start_date_str_entry)
+                
+                # Determine working segments
+                working_segments = []
+                if break_start_dt and break_end_dt and break_start_dt < end_dt and break_end_dt > start_dt:
+                    # Segment before break
+                    if start_dt < break_start_dt:
+                        working_segments.append({
+                            "segment_start_dt": start_dt,
+                            "segment_end_dt": break_start_dt,
+                            "display_start_time_str": entry["start_time"],
+                            "display_end_time_str": entry["break_start"]
+                        })
+                    # Segment after break
+                    if break_end_dt < end_dt:
+                        working_segments.append({
+                            "segment_start_dt": break_end_dt,
+                            "segment_end_dt": end_dt,
+                            "display_start_time_str": entry["break_end"],
+                            "display_end_time_str": entry["end_time"]
+                        })
+                else:
+                    # No break or invalid break, so the whole shift is one segment
+                    working_segments.append({
+                        "segment_start_dt": start_dt,
+                        "segment_end_dt": end_dt,
+                        "display_start_time_str": entry["start_time"],
+                        "display_end_time_str": entry["end_time"]
+                    })
+                full_doc_info["working_segments"] = working_segments
 
-                doctors_on_shift.append(doc)
+                doctors_on_shift.append(full_doc_info)
                 if end_dt > max_end_dt:
                     max_end_dt = end_dt
             except Exception as e:
                 print(f"[❌] Error parsing shift time for doc {doc.get('name', 'Unknown')}: {e}")
 
-        elif entry.get("radiologists"):
+        # Handle PRN doctors without explicit start/end times if they have PRN ranges
+        elif entry.get("radiologists") and entry.get("schedule_details"):
             doc = entry["radiologists"]
-            start_date = entry.get("start_date") or today
-            doc.update({
-                "schedule_details": entry.get("schedule_details", ""),
-                "start_date": start_date,
-                "end_date": entry.get("end_date") or today,
-                "start_dt": None,
-                "end_dt": None,
-                "break_start_dt": None,
-                "break_end_dt": None
-            })
-            doc["prn_ranges"] = extract_prn_ranges(doc.get("schedule_details", ""), start_date)
+            start_date_str_entry = entry.get("start_date") or today
+            prn_ranges = extract_prn_ranges(entry.get("schedule_details", ""), start_date_str_entry)
+            if prn_ranges:
+                full_doc_info = doc.copy()
+                full_doc_info.update({
+                    "schedule_details": entry.get("schedule_details", ""),
+                    "start_date": start_date_str_entry,
+                    "end_date": entry.get("end_date") or today,
+                    "prn_ranges": prn_ranges, # List of (datetime_start, datetime_end) tuples
+                    "start_dt": None, # Explicitly None for non-regular shifts
+                    "end_dt": None,   # Explicitly None for non-regular shifts
+                    "break_start_dt": None,
+                    "break_end_dt": None,
+                    "working_segments": [] # PRN shifts don't have "fixed" segments like this
+                })
+                doctors_on_shift.append(full_doc_info)
+                for prn_start_dt, prn_end_dt in prn_ranges:
+                    if prn_end_dt > max_end_dt:
+                        max_end_dt = prn_end_dt
 
-            if doc["prn_ranges"]:  
-                doctors_on_shift.append(doc)
-
+    # Also fetch shifts for tomorrow that might span into today's view (cross-midnight)
     tomorrow_str = (today_date + timedelta(days=1)).strftime("%Y-%m-%d")
     tomorrow_shift_res = supabase.table("monthly_schedule") \
         .select("*, radiologists(*)") \
@@ -137,59 +181,128 @@ def daily():
         if entry.get("radiologists") and entry.get("start_time") and entry.get("end_time"):
             doc = entry["radiologists"]
             try:
-                start_dt = datetime.strptime(f"{tomorrow_str} {entry['start_time']}", "%Y-%m-%d %H:%M:%S")
-                end_dt = datetime.strptime(f"{tomorrow_str} {entry['end_time']}", "%Y-%m-%d %H:%M:%S")
-                if end_dt < start_dt:
+                # Use parse_time for tomorrow's shifts too
+                start_dt = parse_time(tomorrow_str, entry['start_time'])
+                end_dt = parse_time(tomorrow_str, entry['end_time'])
+                if end_dt <= start_dt:
                     end_dt += timedelta(days=1)
-                if start_dt < max_end_dt:
-                    doc.update({
+                
+                # Only include if it overlaps with today's date (or tomorrow's if it started today)
+                # Effectively, if the end_dt is after the beginning of today's view
+                if start_dt < max_end_dt and end_dt > base_date: # Refined overlap check
+                    break_start_dt, break_end_dt = None, None
+                    if entry.get("break_start") and entry.get("break_end"):
+                        # Use parse_time for break times too
+                        break_start_dt = parse_time(tomorrow_str, entry['break_start'])
+                        break_end_dt = parse_time(tomorrow_str, entry['break_end'])
+                        if break_end_dt <= break_start_dt:
+                            break_end_dt += timedelta(days=1)
+
+                    full_doc_info = doc.copy()
+                    full_doc_info.update({
                         "start_time": entry["start_time"],
                         "end_time": entry["end_time"],
                         "schedule_details": entry.get("schedule_details", ""),
                         "start_date": tomorrow_str,
                         "end_date": tomorrow_str,
                         "start_dt": start_dt,
-                        "end_dt": end_dt
+                        "end_dt": end_dt,
+                        "break_start_dt": break_start_dt,
+                        "break_end_dt": break_end_dt
                     })
-                    doctors_on_shift.append(doc)
+                    full_doc_info["prn_ranges"] = extract_prn_ranges(full_doc_info.get("schedule_details", ""), tomorrow_str)
+
+                    working_segments = []
+                    if break_start_dt and break_end_dt and break_start_dt < end_dt and break_end_dt > start_dt:
+                        if start_dt < break_start_dt:
+                            working_segments.append({
+                                "segment_start_dt": start_dt,
+                                "segment_end_dt": break_start_dt,
+                                "display_start_time_str": entry["start_time"],
+                                "display_end_time_str": entry["break_start"]
+                            })
+                        if break_end_dt < end_dt:
+                            working_segments.append({
+                                "segment_start_dt": break_end_dt,
+                                "segment_end_dt": end_dt,
+                                "display_start_time_str": entry["break_end"],
+                                "display_end_time_str": entry["end_time"]
+                            })
+                    else:
+                        working_segments.append({
+                            "segment_start_dt": start_dt,
+                            "segment_end_dt": end_dt,
+                            "display_start_time_str": entry["start_time"],
+                            "display_end_time_str": entry["end_time"]
+                        })
+                    full_doc_info["working_segments"] = working_segments
+
+                    doctors_on_shift.append(full_doc_info)
+                    if end_dt > max_end_dt:
+                        max_end_dt = end_dt
             except Exception as e:
                 print(f"[❌] Error parsing tomorrow's shift for {doc.get('name', 'Unknown')}: {e}")
 
-    hour_slots = []
-    current_hour = base_date
-    while current_hour < max_end_dt:
-        hour_slots.append({
-            "datetime": current_hour,
-            "label": current_hour.strftime("%I %p").lstrip("0"),
-            "hour": current_hour.hour,
-            "date": current_hour.strftime("%Y-%m-%d"),
-        })
-        current_hour += timedelta(hours=1)
+    # Ensure max_end_dt is at least 24 hours from base_date if no shifts extend
+    if max_end_dt <= base_date:
+        max_end_dt = base_date + timedelta(days=1) # Default to showing at least 24 hours
 
-    today_str = today_date.strftime("%Y-%m-%d")
-    tomorrow_str = (today_date + timedelta(days=1)).strftime("%Y-%m-%d")
+    hour_slots = []
+    current_hour_dt = base_date
+    while current_hour_dt < max_end_dt:
+        hour_slots.append({
+            "datetime": current_hour_dt,
+            "label": current_hour_dt.strftime("%I %p").lstrip("0"),
+            "hour": current_hour_dt.hour,
+            "date": current_hour_dt.strftime("%Y-%m-%d"),
+        })
+        current_hour_dt += timedelta(hours=1)
+
+    # Populate doctors_by_hour with segmented shifts
+    doctors_by_hour = defaultdict(list)
+    for doc in doctors_on_shift:
+        if "working_segments" in doc and doc["working_segments"]:
+            for segment in doc["working_segments"]:
+                segment_start_dt = segment["segment_start_dt"]
+                segment_end_dt = segment["segment_end_dt"]
+                display_start_time_str = segment["display_start_time_str"]
+                display_end_time_str = segment["display_end_time_str"]
+
+                for slot in hour_slots:
+                    slot_start_dt = slot["datetime"]
+                    slot_end_dt = slot_start_dt + timedelta(hours=1)
+
+                    # Check if the hour slot overlaps with this working segment
+                    if segment_start_dt < slot_end_dt and segment_end_dt > slot_start_dt:
+                        doctor_display_info = {
+                            "id": doc["id"],
+                            "name": doc["name"],
+                            "timezone": doc["timezone"],
+                            "modalities": doc["modalities"],
+                            "schedule_details": doc["schedule_details"],
+                            "display_start_time": display_start_time_str, # This will be the start of the current segment
+                            "display_end_time": display_end_time_str,      # This will be the end of the current segment
+                            "start_dt": doc["start_dt"], # Include original start_dt
+                            "end_dt": doc["end_dt"]     # Include original end_dt
+                        }
+                        doctors_by_hour[slot_start_dt].append(doctor_display_info)
+        # For PRN doctors, they are handled separately and do not use display_start_time/display_end_time for now
+        # The existing logic for doctors_prn_by_hour already covers them based on prn_ranges.
+        # This only affects the regular "On shift" doctors.
+
+
+    today_str_display = today_date.strftime("%Y-%m-%d")
+    tomorrow_str_display = (today_date + timedelta(days=1)).strftime("%Y-%m-%d")
     for slot in hour_slots:
-        if slot['date'] == today_str:
+        if slot['date'] == today_str_display:
             slot['day_label'] = 'Today'
-        elif slot['date'] == tomorrow_str:
+        elif slot['date'] == tomorrow_str_display:
             slot['day_label'] = 'Tomorrow'
         else:
             slot['day_label'] = slot['date']
 
-    doctors_by_hour = defaultdict(list)
-    for doc in doctors_on_shift:
-        for slot in hour_slots:
-            slot_start = slot["datetime"]
-            slot_end = slot_start + timedelta(hours=1)
-            is_on_break = (
-                doc.get("break_start_dt") and doc.get("break_end_dt") and
-                doc["break_start_dt"] < slot_end and doc["break_end_dt"] > slot_start
-            )
-            if doc.get("start_dt") and doc.get("end_dt") and doc["start_dt"] < slot_end and doc["end_dt"] > slot_start and not is_on_break:
-
-                doctors_by_hour[slot_start].append(doc)
-
-
+    # doctors_by_hour is already populated above
+    
     doctors_prn_by_hour = defaultdict(list)
     doctors_prn_with_routine_by_hour = defaultdict(list)
 
@@ -228,14 +341,20 @@ def daily():
         tz = doctor.get("timezone", "Unknown") or "Unknown"
         doctors_by_timezone[tz].append(doctor)
 
-    doctors_on_shift_ids = {doc["id"] for doc in doctors_on_shift if doc.get("id")}
-    doctors_currently_on_shift_ids = {
-        doc["id"]
-        for doc in doctors_on_shift
-        if doc.get("id") and
-        doc.get("start_time") and doc.get("end_time") and
-        int(doc["start_time"].split(":")[0]) <= datetime.now().hour < int(doc["end_time"].split(":")[0])
-    }
+    doctors_on_shift_ids = {doc["id"] for doc in doctors_on_shift if doc.get("id") and doc.get("start_dt") and doc.get("end_dt")}
+    
+    # Calculate doctors_currently_on_shift_ids based on effective working segments
+    doctors_currently_on_shift_ids = set()
+    current_time_aware = datetime.now(timezone.utc) # Get current time with timezone
+    
+    # Iterate over doctors_on_shift which now contain 'working_segments'
+    for doc in doctors_on_shift:
+        if doc.get("id") and doc.get("working_segments"):
+            for segment in doc["working_segments"]:
+                # Check if current_time_aware falls within any of the doctor's working segments
+                if segment["segment_start_dt"] <= current_time_aware and segment["segment_end_dt"] > current_time_aware:
+                    doctors_currently_on_shift_ids.add(doc["id"])
+                    break # Found them in a working segment, no need to check other segments
 
     prev_date_hour_pairs = set()
     for slot in hour_slots:
@@ -263,8 +382,8 @@ def daily():
         d, h = get_prev_week_same_day_and_hour(dt)
         historical_rvu = capacity_lookup.get((d, h)) if d else None
         current_total_rvu = sum(
-            get_latest_nonzero_rvu(rvu_rows.get(doc["id"], {}))
-            for doc in doctors_by_hour.get(dt, [])
+            get_latest_nonzero_rvu(rvu_rows.get(doc_info["id"], {})) # Use doc_info from doctors_by_hour
+            for doc_info in doctors_by_hour.get(dt, []) # Iterate over the potentially segmented doctors here
         )
         hourly_rvu_stats[dt] = {
             "historical": historical_rvu,
@@ -278,25 +397,25 @@ def daily():
         prev_date=prev_date,
         next_date=next_date,
         hour_slots=hour_slots,
-         doctors_prn_with_routine_by_hour=doctors_prn_with_routine_by_hour,
+        doctors_prn_with_routine_by_hour=doctors_prn_with_routine_by_hour,
         doctors_prn_by_hour=doctors_prn_by_hour,
-        doctors_on_shift=doctors_on_shift,
-        doctors_by_hour=doctors_by_hour,
+        doctors_on_shift=doctors_on_shift, # This now contains "working_segments"
+        doctors_by_hour=doctors_by_hour, # This now contains "display_start_time" and "display_end_time"
         doctors_by_timezone=dict(doctors_by_timezone),
-        doctors_on_shift_ids=list(doctors_on_shift_ids),
-        doctors_currently_on_shift_ids=list(doctors_currently_on_shift_ids),
+        doctors_on_shift_ids=list(doctors_on_shift_ids), # still useful for other parts
+        doctors_currently_on_shift_ids=list(doctors_currently_on_shift_ids), # based on actual segments
         selected_timezone=request.args.get("timezone", "EST"),
         timezone_offset = {
-    'EST': 0,
-    'CST': -1,
-    'PST': -3,
-    'UTC': +5,
-    'KST': +13
-}.get(request.args.get("timezone", "EST"), 0),
+            'EST': 0,
+            'CST': -1,
+            'PST': -3,
+            'UTC': +5,
+            'KST': +13
+        }.get(request.args.get("timezone", "EST"), 0),
         hourly_rvu_stats=hourly_rvu_stats,
         rvu_rows=rvu_rows,
         get_latest_nonzero_rvu=get_latest_nonzero_rvu,
-        unique_doctors={doc["id"]: doc for doc in doctors_on_shift if doc.get("id")}
+        unique_doctors={doc["id"]: doc for doc in doctors_on_shift if doc.get("id")} # still useful for popups
     )
 
 def get_prev_week_same_day_and_hour(dt):
