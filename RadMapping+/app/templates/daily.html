@@ -362,13 +362,14 @@
           {% endif %}
         </div>
       </div>
-    {% endfor %}
+    {% endfor %} 
   </div>
   <script>
     // Calendar functionality
     let currentCalendarDate = new Date('{{ today }}');
+    currentCalendarDate.setDate(currentCalendarDate.getDate() + 1);
     let selectedDate = new Date('{{ today }}'); 
-    // selectedDate.setDate(selectedDate.getDate() + 1);
+    selectedDate.setDate(selectedDate.getDate() + 1);
 
     function toggleCalendar() {
       const popup = document.getElementById('calendarPopup');
