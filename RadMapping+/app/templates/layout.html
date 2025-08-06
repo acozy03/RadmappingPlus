@@ -10,10 +10,7 @@
   <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
 </head>
 <body class="bg-gray-100 text-gray-800 overflow-x-hidden">
-
-<!-- ✅ Full-screen Background Wrapper (for ALL pages now) -->
 <div class="dashboard-container relative min-h-screen">
-  <!-- 🔵 Animated Particles -->
   <div class="background-particles pointer-events-none absolute inset-0 z-0">
     <div class="particle" style="--delay: 0s; --x: 10%; --y: 20%;"></div>
     <div class="particle" style="--delay: 0.5s; --x: 80%; --y: 10%;"></div>
@@ -25,25 +22,19 @@
     <div class="particle" style="--delay: 3.5s; --x: 60%; --y: 70%;"></div>
   </div>
 
-  <!-- 🟣 Gradient Orbs -->
   <div class="gradient-orb orb-1"></div>
   <div class="gradient-orb orb-2"></div>
 
-  <!-- ✅ Foreground Page Content -->
   <div class="relative z-10 {% if request.endpoint == 'landing.landing' %}h-screen flex flex-col{% endif %}">
     {% if session.user and request.endpoint != 'auth.login' %}
-    <!-- ✅ MINIMAL CLEAN NAVIGATION HEADER -->
     <div class="navbar-wrapper">
       <nav class="navbar-enhanced {% if request.endpoint == 'landing.landing' %}flex-shrink-0{% endif %}">
-        <!-- Subtle animated background gradient -->
         <div class="navbar-gradient"></div>
         
-        <!-- Glass morphism overlay -->
         <div class="navbar-glass"></div>
         
         <div class="max-w-[115rem] mx-auto px-4 relative z-10">
           <div class="flex h-14 items-center justify-between">
-            <!-- Logo Section - Just the icon -->
             <div class="flex-shrink-0">
               <a href="{{ url_for('landing.landing') }}" class="navbar-logo-minimal group">
                 <div class="logo-icon-minimal">
@@ -52,7 +43,6 @@
               </a>
             </div>
 
-            <!-- Desktop Navigation - Clean text only with more spacing -->
             <div class="hidden lg:flex items-center space-x-3">
               {% set routes = [
                 {'endpoint': 'daily.daily', 'label': 'Daily Schedule'},
@@ -77,7 +67,6 @@
               {% endfor %}
             </div>
 
-            <!-- Mobile Menu Button -->
             <div class="lg:hidden">
               <button class="mobile-menu-btn" onclick="toggleMobileMenu()">
                 <div class="hamburger-line"></div>
@@ -86,7 +75,6 @@
               </button>
             </div>
 
-            <!-- User Section -->
             <div class="flex-shrink-0">
               <div class="user-section">
                 <a href="{{ url_for('auth.logout') }}" class="logout-btn">
@@ -98,7 +86,6 @@
           </div>
         </div>
 
-        <!-- Mobile Menu -->
         <div class="mobile-menu" id="mobileMenu">
           <div class="mobile-menu-content">
             {% for route in routes %}
@@ -116,7 +103,6 @@
     {% if request.endpoint == 'auth.login' %}
       {% block login_content %}{% endblock %}
     {% else %}
-      <!-- Single content block with conditional wrappers -->
       {% if request.endpoint == 'landing.landing' %}
         <div class="flex-1 overflow-hidden">
       {% else %}
@@ -145,7 +131,6 @@ function toggleMobileMenu() {
   btn.classList.toggle('hamburger-active');
 }
 
-// Close mobile menu when clicking outside
 document.addEventListener('click', function(event) {
   const menu = document.getElementById('mobileMenu');
   const btn = document.querySelector('.mobile-menu-btn');

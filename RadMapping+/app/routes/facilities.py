@@ -1,7 +1,7 @@
 # app/routes/facilities.py
 from flask import Blueprint, render_template, session, redirect, url_for, request, jsonify
 from app.admin_required import admin_required
-from app.supabase_client import supabase # Assuming this is correctly configured from environment
+from app.supabase_client import supabase 
 import uuid
 from app.middleware import with_supabase_auth
 from app.supabase_client import get_supabase_client
@@ -12,13 +12,12 @@ facilities_bp = Blueprint('facilities', __name__)
 
 _cached_prioritized_facility_ids = None
 _last_prioritized_fetch_time = 0
-CACHE_EXPIRATION_SECONDS = 300 # Cache for 5 minutes (adjust as needed)
+CACHE_EXPIRATION_SECONDS = 300
 
 def _get_prioritized_facility_ids_cached(supabase_client):
     global _cached_prioritized_facility_ids, _last_prioritized_fetch_time
 
     current_time = time.time()
-    # Refresh cache if it's empty or expired
     if _cached_prioritized_facility_ids is None or (current_time - _last_prioritized_fetch_time > CACHE_EXPIRATION_SECONDS):
         print("Refreshing prioritized facility IDs cache...")
         prioritized_res = supabase_client.table("prioritized_facilities").select("facility_id").execute()
@@ -34,8 +33,6 @@ def facilities():
     per_page = 25
     offset = (page - 1) * per_page
     status = request.args.get('status', 'active')
-
-    # Use the cached version
     prioritized_facility_ids = _get_prioritized_facility_ids_cached(supabase)
 
     base_query = supabase.table("facilities").select("*")
@@ -74,16 +71,9 @@ def facilities():
 @facilities_bp.route('/facilities/search', methods=["GET"])
 @with_supabase_auth
 def search_facilities():
-    # It's crucial that get_supabase_client() is called here
-    # as it sets the session for the current request.
-    # The actual supabase client instance is then stored on 'g'.
-    # We will time the *first* Supabase interaction in this function,
-    # which will include the cost of set_session if it hasn't happened yet.
     
     function_start_time = time.time()
 
-    # Call get_supabase_client() which handles session setting and client caching
-    # for the current request context (g object).
     start_supabase_client_access = time.time()
     supabase = get_supabase_client() # This call might include set_session
     time_to_get_supabase_client = time.time() - start_supabase_client_access
@@ -96,14 +86,11 @@ def search_facilities():
     status = request.args.get('status', 'all')
     fetch_all = request.args.get('fetch_all', 'false').lower() == 'true'
 
-    # The prioritized IDs cache is independent of the user session setup,
-    # so its timing remains separate and valid.
     start_time_cache = time.time()
-    prioritized_facility_ids = _get_prioritized_facility_ids_cached(supabase) # Pass the obtained client
+    prioritized_facility_ids = _get_prioritized_facility_ids_cached(supabase) 
     print(f"Time to fetch prioritized IDs (cached): {time.time() - start_time_cache:.4f}s")
 
-    # --- Detailed timing for actual query object building ---
-    query_object_build_start_time = time.time() # This is the true start for query object building
+    query_object_build_start_time = time.time() 
 
     step_start = time.time()
     query = supabase.table("facilities").select("id, name, location, active_status")
@@ -129,8 +116,6 @@ def search_facilities():
         print(f"  - Time for .eq('active_status') method call: {time.time() - step_start:.4f}s")
 
     print(f"Total time to build Supabase query object (in Python): {time.time() - query_object_build_start_time:.4f}s")
-    # --- End detailed timing for query object building ---
-
 
     start_time_meta_query = time.time()
     all_matching_meta = query.execute().data or []
@@ -156,11 +141,9 @@ def search_facilities():
     start_time_ids = time.time()
     visible_facilities_ids = []
     
-    if fetch_all: # If fetching all, we don't need to do a second query with `in_`
-        # Instead, the `sorted_matching_facilities_meta` already contains
-        # all the filtered and sorted data needed if fetch_all is true.
+    if fetch_all: 
         visible_facilities = sorted_matching_facilities_meta
-        total_count = len(visible_facilities) # Re-confirm total count
+        total_count = len(visible_facilities) 
         print(f"Time for determining visible facility IDs (fetch_all): {time.time() - start_time_ids:.4f}s")
         print(f"Skipping full details fetch as fetch_all is true.")
     else:
@@ -168,10 +151,9 @@ def search_facilities():
         visible_facilities_ids = [f["id"] for f in sorted_matching_facilities_meta[offset:offset + per_page]]
         print(f"Time for determining visible facility IDs: {time.time() - start_time_ids:.4f}s")
 
-        # Log: Fetching full details for visible facilities
         start_time_full_details = time.time()
         visible_facilities = []
-        if visible_facilities_ids: # This check is still important for paginated views
+        if visible_facilities_ids: 
             print(f"DEBUG: Number of IDs for full details fetch: {len(visible_facilities_ids)}")
             print(f"DEBUG: Sample IDs: {visible_facilities_ids[:5]}")
             full_details_res = supabase.table("facilities").select("*").in_("id", visible_facilities_ids).execute()
@@ -179,10 +161,9 @@ def search_facilities():
             visible_facilities = [full_details_map[fac_id] for fac_id in visible_facilities_ids if fac_id in full_details_map]
         print(f"Time for fetching full details (DB roundtrip): {time.time() - start_time_full_details:.4f}s")
 
-    # ... (rest of the function, including the final jsonify)
     return jsonify({
         "facilities": visible_facilities,
-        "total_count": total_count, # Use the total_count from sorted_matching_facilities_meta
+        "total_count": total_count, 
         "current_page": page,
         "per_page": per_page
     })
@@ -209,10 +190,9 @@ def prioritize_facilities():
 
             supabase.table("prioritized_facilities").insert(new_priorities).execute()
 
-        # Invalidate the cache after an update
         global _cached_prioritized_facility_ids, _last_prioritized_fetch_time
         _cached_prioritized_facility_ids = None
-        _last_prioritized_fetch_time = 0 # Forces a refresh on next call
+        _last_prioritized_fetch_time = 0 
 
 
         log_audit_action(
@@ -242,10 +222,8 @@ def prioritize_facilities():
 @with_supabase_auth
 def facility_profile(facility_id):
     supabase = get_supabase_client()
-    # Get facility info
     fac = supabase.table("facilities").select("*").eq("id", facility_id).single().execute().data
 
-    # Fetch all prioritized facility IDs to check if the current facility is prioritized
     prioritized_res = supabase.table("prioritized_facilities").select("facility_id").execute()
     prioritized_facility_ids = {p["facility_id"] for p in (prioritized_res.data or [])}
 
@@ -255,7 +233,6 @@ def facility_profile(facility_id):
         .eq("facility_id", facility_id) \
         .execute()
 
-    # Sort by radiologist name (case-insensitive)
     sorted_assignments = sorted(
         assignment_res.data,
         key=lambda a: (a.get("radiologists") or {}).get("name", "").lower()
@@ -264,12 +241,10 @@ def facility_profile(facility_id):
     print(f"Sorted assignments: {sorted_assignments}")
     assigned_radiologist_ids = {a["radiologist_id"] for a in sorted_assignments}
 
-     # Get all radiologists
     all_rads_res = supabase.table("radiologists").select("id, name").order("name").execute()
     all_radiologists = all_rads_res.data or []
     available_radiologists = [r for r in all_radiologists if r["id"] not in assigned_radiologist_ids]
     
-    # Get facility contacts
     contacts_res = supabase.table("facility_contact_assignments") \
         .select("*") \
         .eq("facility_id", facility_id) \
@@ -277,7 +252,6 @@ def facility_profile(facility_id):
 
     contacts = contacts_res.data or []
 
-    # Sort contacts by custom priority
     preferred_order = [
         "Primary Contact",
         "Secondary Contact",
@@ -293,7 +267,7 @@ def facility_profile(facility_id):
         try:
             return preferred_order.index(contact['role'])
         except ValueError:
-            return 999  # unknown roles go to the end
+            return 999 
 
     contacts.sort(key=sort_key)
 
@@ -302,7 +276,7 @@ def facility_profile(facility_id):
         doctor_assignments=sorted_assignments,
         facility_contacts=contacts,
         available_radiologists=available_radiologists,
-        prioritized_facility_ids=list(prioritized_facility_ids) # Pass to template for UI display
+        prioritized_facility_ids=list(prioritized_facility_ids) 
     )
 
 
@@ -366,7 +340,6 @@ def delete_facility_contact_api(facility_id, contact_id):
     try:
         supabase = get_supabase_client()
         
-        # First verify the contact exists and belongs to the facility
         verify = supabase.table("facility_contact_assignments")\
             .select("*")\
             .eq("id", contact_id)\
@@ -376,7 +349,7 @@ def delete_facility_contact_api(facility_id, contact_id):
         if not verify.data:
             return jsonify({"success": False, "error": "Contact not found"}), 404
 
-        old_data = verify.data[0] # Get old data before deletion
+        old_data = verify.data[0] 
         result = supabase.table("facility_contact_assignments")\
             .delete()\
             .eq("id", contact_id)\
@@ -409,7 +382,6 @@ def bulk_update_assignments(facility_id):
     assignment_ids = request.form.getlist("assignment_ids[]") or request.form.getlist("assignment_ids")
 
     for assignment_id in assignment_ids:
-        # Get old data for doctor_facility_assignments
         old_assignment_data = supabase.table('doctor_facility_assignments').select('*').eq('id', assignment_id).single().execute().data
 
         # Update assignment's can_read status
@@ -421,7 +393,6 @@ def bulk_update_assignments(facility_id):
             'notes': notes
         }
 
-        # Check if assignment data has actually changed before updating
         assignment_changed = False
         if old_assignment_data:
             if old_assignment_data.get('can_read') != new_assignment_data['can_read'] or \
@@ -444,13 +415,10 @@ def bulk_update_assignments(facility_id):
                     new_data=new_assignment_data
                 )
 
-        # Get corresponding radiologist ID from the assignment
-        rad_id = old_assignment_data['radiologist_id'] # Use old_assignment_data for rad_id
+        rad_id = old_assignment_data['radiologist_id'] 
 
-        # Get old data for radiologists
         old_radiologist_data = supabase.table('radiologists').select('*').eq('id', rad_id).single().execute().data
 
-        # Update fields on the radiologists table
         reads_stats = 'reads_stats_' + rad_id in request.form
         reads_routines = 'reads_routines_' + rad_id in request.form
         stipulations = request.form.get(f'stipulations_{rad_id}', '')
@@ -461,7 +429,6 @@ def bulk_update_assignments(facility_id):
             'stipulations': stipulations
         }
 
-        # Check if radiologist data has actually changed before updating
         radiologist_changed = False
         if old_radiologist_data:
             if old_radiologist_data.get('reads_stats') != new_radiologist_data['reads_stats'] or \
@@ -574,7 +541,6 @@ def update_facility(facility_id):
 def remove_assignment(facility_id, assignment_id):
     supabase = get_supabase_client()
     old_data = supabase.table("doctor_facility_assignments").select("*").eq("id", assignment_id).single().execute().data
-    # Delete the assignment
     res = supabase.table("doctor_facility_assignments").delete().eq("id", assignment_id).execute()
     
     if not hasattr(res, "error"):
@@ -595,7 +561,6 @@ def remove_assignment(facility_id, assignment_id):
 @admin_required
 def add_facility():
     supabase = get_supabase_client()
-    # Generate a new UUID for the doctor
     new_id = str(uuid.uuid4())
     
     data = {
@@ -612,7 +577,6 @@ def add_facility():
         "account_poc": request.form.get("account_poc")  
     }
 
-    # Insert the new doctor into the database
     res = supabase.table("facilities").insert(data).execute()
 
     if not hasattr(res, "error"):

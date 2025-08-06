@@ -32,7 +32,6 @@ logger = logging.getLogger(__name__)
 
 chat_bp = Blueprint('chat', __name__)
 
-# Constants
 MAX_CHAT_MEMORY = 10
 MAX_RETRY_ATTEMPTS = 3
 QUERY_TIMEOUT = 30  # seconds
@@ -51,7 +50,7 @@ def add_to_chat_memory(role: str, content: str):
         "content": content,
         "timestamp": datetime.now().isoformat()
     })
-    # Keep only last MAX_CHAT_MEMORY messages
+
     if len(memory) > MAX_CHAT_MEMORY:
         memory = memory[-MAX_CHAT_MEMORY:]
     session['chat_memory'] = memory
@@ -64,15 +63,14 @@ def format_chat_history() -> str:
         return ""
     
     history = "Previous conversation context:\n"
-    for msg in memory[-5:]:  # Only use last 5 messages for context
+    for msg in memory[-5:]:  
         history += f"{msg['role']}: {msg['content']}\n"
     return history
 
 def validate_sql_query(query: str) -> tuple[bool, str]:
     """Validate SQL query for safety and basic syntax."""
     query_lower = query.lower().strip()
-    
-    # Check for dangerous operations
+
     dangerous_keywords = ['drop', 'delete', 'truncate', 'alter', 'create', 'insert', 'update']
     for keyword in dangerous_keywords:
         if f' {keyword} ' in f' {query_lower} ':
@@ -90,19 +88,16 @@ def validate_sql_query(query: str) -> tuple[bool, str]:
 
 def extract_sql_from_response(response_text: str) -> Optional[str]:
     """Extract SQL query from LLM response with multiple fallback methods."""
-    # Method 1: Look for ```sql blocks
     sql_match = re.search(r'```sql\s*(.*?)\s*```', response_text, re.DOTALL | re.IGNORECASE)
     if sql_match:
         return sql_match.group(1).strip().rstrip(';')
-    
-    # Method 2: Look for any code blocks
+
     code_match = re.search(r'```\s*(.*?)\s*```', response_text, re.DOTALL)
     if code_match:
         potential_sql = code_match.group(1).strip().rstrip(';')
         if potential_sql.lower().startswith('select'):
             return potential_sql
-    
-    # Method 3: Look for SELECT statements in plain text
+ 
     select_match = re.search(r'(SELECT.*?)(?:\n\n|\Z)', response_text, re.DOTALL | re.IGNORECASE)
     if select_match:
         return select_match.group(1).strip().rstrip(';')
@@ -240,7 +235,7 @@ def create_enhanced_schema() -> str:
         try:
             sample_rows = get_sample_rows()
             for table, rows in sample_rows.items():
-                if rows:  # Only add if we have data
+                if rows:  
                     base_schema += f"\n\nSample data from {table}:\n"
                     for i, row in enumerate(rows[:2]):  # Limit to 2 samples
                         base_schema += f"Row {i+1}: {json.dumps(row, indent=2, default=str)}\n"
@@ -252,10 +247,10 @@ def create_enhanced_schema() -> str:
 def initialize_llama_index(force_rebuild: bool = False):
     """Initialize LlamaIndex with better error handling."""
     try:
-        # Create storage directory if it doesn't exist
+
         os.makedirs("index_store", exist_ok=True)
         
-        # Check if we should rebuild or load existing index
+   
         index_exists = os.path.exists("index_store/index.json")
         
         if not force_rebuild and index_exists:
@@ -267,34 +262,34 @@ def initialize_llama_index(force_rebuild: bool = False):
             except Exception as e:
                 logger.warning(f"Failed to load existing index, rebuilding: {e}")
         
-        # Create new index
+ 
         logger.info("Creating new LlamaIndex...")
         
-        # Initialize LLM with better settings
+    
         llm = LlamaOpenAI(
             model="gpt-4o",
-            temperature=0.2,  # Lower temperature for more consistent SQL generation
+            temperature=0.2,  
             api_key=os.getenv("OPENAI_API_KEY"),
             organization=os.getenv("OPENAI_ORG_ID"),
             max_tokens=1000
         )
         
-        # Create enhanced schema document
+      
         schema_content = create_enhanced_schema()
         
-        # Write to temporary file
+  
         schema_file = "temp_schema.txt"
         with open(schema_file, "w", encoding="utf-8") as f:
             f.write(schema_content)
         
         try:
-            # Create and store the index
+         
             documents = SimpleDirectoryReader(input_files=[schema_file]).load_data()
             index = VectorStoreIndex.from_documents(documents, service_context=llm)
             index.storage_context.persist(persist_dir="index_store")
             logger.info("Successfully created and stored new index")
         finally:
-            # Clean up temporary file
+       
             if os.path.exists(schema_file):
                 os.remove(schema_file)
         
@@ -304,7 +299,6 @@ def initialize_llama_index(force_rebuild: bool = False):
         logger.error(f"Error initializing LlamaIndex: {e}")
         raise
 
-# Initialize the index when the module loads
 try:
     index = initialize_llama_index()
 except Exception as e:
@@ -326,7 +320,6 @@ def execute_query_with_retry(supabase, sql_query: str, max_retries: int = 2) -> 
         except Exception as e:
             error_msg = str(e).lower()
             
-            # Check for specific error types that shouldn't be retried
             non_retryable_errors = [
                 'syntax error', 'column does not exist', 'table does not exist',
                 'permission denied', 'invalid input syntax'
@@ -396,10 +389,9 @@ def chat():
     
     if not question:
         return jsonify({'error': 'Question cannot be empty'}), 400
-    
-    # Add user question to chat memory
+
     add_to_chat_memory("user", question)
-    # Step 1: Reword the question using OpenAI
+
     try:
         client = OpenAI(
             api_key=os.getenv("OPENAI_API_KEY"),
@@ -432,30 +424,28 @@ def chat():
         )
 
         rewritten_question = clarification_response.choices[0].message.content.strip()
-        logger.info(f"[🔁] Rewritten question: {rewritten_question}")
+        logger.info(f"Rewritten question: {rewritten_question}")
     except Exception as e:
         logger.warning(f"Rewriting failed, using original question: {e}")
         rewritten_question = question
 
     try:
-        # Create query engine with optimized settings
+  
         query_engine = index.as_query_engine(
-            similarity_top_k=5,  # Get more context
-            response_mode="compact",  # More focused responses
+            similarity_top_k=5,  
+            response_mode="compact",  
             streaming=False
         )
         
         # Create enhanced prompt
         chat_history = format_chat_history()
         enhanced_prompt = create_enhanced_prompt(rewritten_question, chat_history)
-        
-        # Get SQL query from LlamaIndex with retry logic
+
         for attempt in range(MAX_RETRY_ATTEMPTS):
             try:
                 response = query_engine.query(enhanced_prompt)
                 response_text = str(response)
                 
-                # Extract SQL query
                 sql_query = extract_sql_from_response(response_text)
                 
                 if not sql_query:
@@ -465,7 +455,6 @@ def chat():
                         return jsonify({'error': error_msg, 'llm_response': response_text}), 400
                     continue
                 
-                # Validate SQL query
                 is_valid, validation_msg = validate_sql_query(sql_query)
                 if not is_valid:
                     if attempt == MAX_RETRY_ATTEMPTS - 1:
@@ -474,7 +463,6 @@ def chat():
                         return jsonify({'error': error_msg, 'sql_query': sql_query}), 400
                     continue
                 
-                # Execute query with retry logic
                 success, result_data, error_msg = execute_query_with_retry(supabase, sql_query)
                 
                 if not success:
@@ -483,7 +471,6 @@ def chat():
                         return jsonify({'error': error_msg, 'sql_query': sql_query}), 400
                     continue
                 
-                # Successfully executed query
                 break
                 
             except Exception as e:
@@ -494,7 +481,6 @@ def chat():
                     return jsonify({'error': error_msg}), 500
                 continue
         
-        # Format results using OpenAI
         try:
             client = OpenAI(
                 api_key=os.getenv("OPENAI_API_KEY"),
@@ -531,7 +517,6 @@ def chat():
             
             formatted_response = format_response.choices[0].message.content
             
-            # Add assistant response to chat memory
             add_to_chat_memory("assistant", formatted_response)
             
             return jsonify({
@@ -542,7 +527,7 @@ def chat():
             
         except Exception as e:
             logger.error(f"Error formatting response: {e}")
-            # Fallback to basic formatting
+         
             fallback_response = f"I found {len(result_data)} result(s) for your query."
             add_to_chat_memory("assistant", fallback_response)
             return jsonify({

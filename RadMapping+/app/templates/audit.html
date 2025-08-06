@@ -272,7 +272,6 @@
   }
 </style>
 <script> 
-// Helper function to recursively remove specified keys
 function cleanData(data) {
   if (data === null || typeof data !== 'object') {
     return data;
@@ -285,7 +284,6 @@ function cleanData(data) {
   const newObj = {};
   for (const key in data) {
     if (data.hasOwnProperty(key)) {
-      // Exclude these specific keys
       if (key === 'id' || key === 'facility_id' || key === 'radiologist_id') {
         continue;
       }
@@ -295,26 +293,23 @@ function cleanData(data) {
   return newObj;
 }
 
-// NEW helper function to format objects into plain text without outer brackets
 function formatObjectToPlainText(obj, indent = 0) {
     if (obj === null || obj === undefined) {
         return 'null';
     }
-    // Primitives (numbers, strings, booleans)
     if (typeof obj !== 'object') {
         return obj.toString();
     }
 
     let lines = [];
-    const currentLevelIndent = '  '.repeat(indent); // Indentation for items/keys at the current level
+    const currentLevelIndent = '  '.repeat(indent); 
 
     // Handle Arrays
     if (Array.isArray(obj)) {
         if (obj.length === 0) {
-            return 'Empty List'; // Simpler, no brackets
+            return 'Empty List'; 
         }
         obj.forEach(item => {
-            // Each array item gets a bullet point and is formatted recursively
             lines.push(`${currentLevelIndent}- ${formatObjectToPlainText(item, indent + 1)}`);
         });
         return lines.join('\n');
@@ -323,27 +318,23 @@ function formatObjectToPlainText(obj, indent = 0) {
     // Handle Objects
     const keys = Object.keys(obj);
     if (keys.length === 0) {
-        return 'Empty Data'; // Simpler, no brackets
+        return 'Empty Data'; 
     }
 
     keys.forEach(key => {
         const value = obj[key];
-        const formattedValue = formatObjectToPlainText(value, indent + 1); // Recursively format the value
+        const formattedValue = formatObjectToPlainText(value, indent + 1); 
 
         if (typeof value === 'object' && value !== null && (Array.isArray(value) ? value.length > 0 : Object.keys(value).length > 0)) {
-            // If the value is a non-empty object/array, put it on a new line below its key
             lines.push(`${currentLevelIndent}${key}:`);
-            lines.push(formattedValue); // formattedValue already has its own indentation
+            lines.push(formattedValue); 
         } else {
-            // Primitive values or empty objects/arrays stay on the same line as the key
             lines.push(`${currentLevelIndent}${key}: ${formattedValue}`);
         }
     });
     return lines.join('\n');
 }
 
-// Global functions for modal
-// Modified to display plain text without brackets, which removes highlighting for modal content.
 window.showModal = function(oldDataStr, newDataStr) {
   
   try {
@@ -361,15 +352,12 @@ window.showModal = function(oldDataStr, newDataStr) {
       newData = newDataStr; 
     }
     
-    // Clean data by removing unwanted IDs before further processing
     const cleanedOldData = cleanData(oldData);
     const cleanedNewData = cleanData(newData);
 
-    // Format to plain text for display in modal
     const oldFormatted = formatObjectToPlainText(cleanedOldData);
     const newFormatted = formatObjectToPlainText(cleanedNewData);
     
-    // Set textContent directly as highlighting is not compatible with this plain text format
     document.getElementById('old-data-display').textContent = oldFormatted;
     document.getElementById('new-data-display').textContent = newFormatted;
     
@@ -387,7 +375,6 @@ window.closeModal = function() {
   document.getElementById('data-modal').classList.add('hidden');
 }
 
-// These highlighting functions are kept for reference but are not used by showModal in the new plain text mode.
 window.highlightDifferences = function(oldStr, newStr, type) {
   if (oldStr === 'null' || newStr === 'null') {
     return type === 'old' ? oldStr : newStr;
@@ -451,14 +438,12 @@ window.escapeRegExp = function(string) {
   return string.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
 }
 
-// Global function to open modal from element data attributes
 window.openFromElement = function(el) {
   const oldDataStr = el.dataset.old || 'null';
   const newDataStr = el.dataset.new || 'null';
   showModal(oldDataStr, newDataStr);
 }
 
-// Close modal when clicking outside or pressing Escape
 document.addEventListener('click', function(e) {
   const modal = document.getElementById('data-modal');
   if (e.target === modal) {
@@ -486,7 +471,6 @@ document.addEventListener('DOMContentLoaded', function() {
   updateVisibleRows();
   updateCounts();
 
-  // Apply plain text formatting and ID filtering to table previews on load
   document.querySelectorAll('.audit-row').forEach(row => {
     // Get raw data from dataset attributes
     const oldDataStr = row.querySelector('.old-data-cell div.relative').dataset.old || 'null';
@@ -494,31 +478,27 @@ document.addEventListener('DOMContentLoaded', function() {
 
     let oldData, newData;
 
-    // Safely parse JSON for previews
     try { oldData = JSON.parse(oldDataStr); } catch (e) { oldData = null; }
     try { newData = JSON.parse(newDataStr); } catch (e) { newData = null; }
 
-    // Clean data by removing unwanted IDs
     const cleanedOldData = cleanData(oldData);
     const cleanedNewData = cleanData(newData);
 
-    // Get the <pre> elements for preview display
     const oldPreviewEl = row.querySelector('.old-data-container pre');
     const newPreviewEl = row.querySelector('.new-data-container pre');
 
-    // Format and set the text content for the previews
     if (oldPreviewEl) {
       if (cleanedOldData) {
         oldPreviewEl.textContent = formatObjectToPlainText(cleanedOldData);
       } else {
-        oldPreviewEl.textContent = '—'; // Display dash if no old data
+        oldPreviewEl.textContent = '—'; 
       }
     }
     if (newPreviewEl) {
       if (cleanedNewData) {
         newPreviewEl.textContent = formatObjectToPlainText(cleanedNewData);
       } else {
-        newPreviewEl.textContent = '—'; // Display dash if no new data
+        newPreviewEl.textContent = '—'; 
       }
     }
   });

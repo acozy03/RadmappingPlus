@@ -13,14 +13,12 @@ def log_audit_action(
     def enrich_with_names(data: dict) -> dict:
         enriched = dict(data)
         try:
-            # Radiologist name lookup
             rad_id = data.get("radiologist_id")
             if rad_id:
                 rad_res = supabase.table("radiologists").select("name").eq("id", rad_id).limit(1).execute()
                 if rad_res.data:
                     enriched["radiologist_name"] = rad_res.data[0]["name"]
 
-            # Facility name lookup
             fac_id = data.get("facility_id")
             if fac_id:
                 fac_res = supabase.table("facilities").select("name").eq("id", fac_id).limit(1).execute()

@@ -258,10 +258,8 @@ const itemsPerPage = parseInt("{{ per_page }}", 10);
 let totalCount = parseInt("{{ total_count }}", 10);
 let searchTimeout;
 let currentStatusFilter = 'active';
-
-// Initialize PRIORITIZED_FACILITIES array from the server-side data
 const PRIORITIZED_FACILITIES = {{ prioritized_facility_ids|tojson }};
-let allFacilitiesData = []; // Store all facilities fetched for the prioritize modal
+let allFacilitiesData = [];
 
 function openAddFacilityModal() {
   document.getElementById('addFacilityModal').classList.remove('hidden');
@@ -269,12 +267,11 @@ function openAddFacilityModal() {
 
 function closeAddFacilityModal() {
   document.getElementById('addFacilityModal').classList.add('hidden');
-  // Optional: Reset the form when closing
   document.querySelector('#addFacilityModal form').reset();
 }
 
 function submitAddFacility(event) {
-  event.preventDefault(); // Prevent default form submission
+  event.preventDefault(); 
 
   const formData = new FormData(event.target);
   const data = {
@@ -297,7 +294,7 @@ function submitAddFacility(event) {
   .then(response => {
     if (response.ok) {
       closeAddFacilityModal();
-      window.location.reload(); // Reload the page to show new facility
+      window.location.reload(); 
     } else {
       throw new Error('Failed to add facility');
     }
@@ -307,15 +304,12 @@ function submitAddFacility(event) {
     alert('Failed to add facility. Please try again.');
   });
 }
-
-// Attach the submit listener to the form on DOMContentLoaded
 document.addEventListener('DOMContentLoaded', () => {
     const addFacilityForm = document.querySelector('#addFacilityModal form');
     if (addFacilityForm) {
         addFacilityForm.addEventListener('submit', submitAddFacility);
     }
 
-    // Set the active filter button style on page load
     document.querySelectorAll('[data-status]').forEach(button => {
         button.classList.remove('active-filter', 'bg-blue-600', 'text-white');
         if (button.dataset.status === 'active') {
@@ -324,7 +318,6 @@ document.addEventListener('DOMContentLoaded', () => {
     });
     loadFacilities();
 
-    // --- Added for click-outside-to-close functionality ---
     const addFacilityModal = document.getElementById('addFacilityModal');
     const addFacilityModalContent = document.getElementById('addFacilityModalContent');
 
@@ -346,7 +339,6 @@ document.addEventListener('DOMContentLoaded', () => {
             }
         });
     }
-    // --- End Added for click-outside-to-close functionality ---
 });
 
 
@@ -359,10 +351,9 @@ function debounceSearch() {
 }
 
 function loadFacilities() {
-  const searchTermName = document.getElementById('searchBox').value; // Get name search term
-  const stateFilter = document.getElementById('stateFilter').value; // New: Get selected state
+  const searchTermName = document.getElementById('searchBox').value; 
+  const stateFilter = document.getElementById('stateFilter').value; 
 
-  // Update the fetch URL to include both search parameters
   fetch(`/radmapping/facilities/search?page=${currentPage}&search_name=${encodeURIComponent(searchTermName)}&state=${encodeURIComponent(stateFilter)}&status=${currentStatusFilter}`)
     .then(response => response.json())
     .then(data => {
@@ -373,7 +364,6 @@ function loadFacilities() {
 
 function filterByStatus(status) {
   currentStatusFilter = status;
-  // Update button styles
   document.querySelectorAll('[data-status]').forEach(button => {
     button.classList.remove('active-filter', 'bg-blue-600', 'text-white');
     button.classList.add('bg-gray-100', 'text-black');
@@ -397,7 +387,6 @@ function updateTable(facilities) {
     li.onmouseenter = () => showPopup(li);
     li.onmouseleave = () => hidePopup(li);
 
-    // Check if the facility is prioritized
     const isPrioritized = PRIORITIZED_FACILITIES.includes(facility.id);
 
     li.innerHTML = `
@@ -468,11 +457,8 @@ function hidePopup(element) {
   }
 }
 
-
-// New Prioritize Facilities Modal Functions
 function openPrioritizeModal() {
   document.getElementById('prioritizeModal').classList.remove('hidden');
-  // Fetch all facilities to populate the checklist
   fetchAllFacilitiesForPrioritization();
 }
 
@@ -481,12 +467,9 @@ function closePrioritizeModal() {
 }
 
 function fetchAllFacilitiesForPrioritization() {
-    // Corrected: Request all facilities by setting fetch_all=true
-    // Also, ensure no search term or status filter from the main list affects this specific call.
-    fetch(`/radmapping/facilities/search?search_name=&state=&status=all&fetch_all=true`) // Updated state parameter
+    fetch(`/radmapping/facilities/search?search_name=&state=&status=all&fetch_all=true`) 
         .then(response => response.json())
         .then(data => {
-            // data.facilities should now contain ALL facilities (up to Supabase's internal limit, if any, but not yours)
             allFacilitiesData = data.facilities;
             populatePrioritizeChecklist();
         })
@@ -496,7 +479,7 @@ function fetchAllFacilitiesForPrioritization() {
 
 function populatePrioritizeChecklist() {
   const checklist = document.getElementById('prioritizeFacilitiesList');
-  checklist.innerHTML = ''; // Clear existing items
+  checklist.innerHTML = '';
 
   allFacilitiesData.forEach(facility => {
     const isPrioritized = PRIORITIZED_FACILITIES.includes(facility.id);
@@ -517,7 +500,7 @@ function populatePrioritizeChecklist() {
     `;
     checklist.appendChild(checkboxDiv);
   });
-  updatePriorityCounter(); // Initialize counter
+  updatePriorityCounter(); 
 }
 
 function updatePriorityCounter() {
@@ -560,7 +543,7 @@ function savePrioritizedFacilities() {
   .then(response => response.json())
   .then(data => {
     if (data.success) {
-      window.location.reload(); // Reload the page to reflect new prioritization
+      window.location.reload(); 
     } else {
       alert('Error saving prioritized facilities: ' + data.error);
     }
@@ -574,7 +557,6 @@ function savePrioritizedFacilities() {
 </script>
 
 <style>
-/* Form Styles */
 .form-checkbox {
   border-radius: 0.25rem;
   border-color: #d1d5db;
@@ -585,7 +567,6 @@ function savePrioritizedFacilities() {
   border-color: #2563eb;
 }
 
-/* Modal Styles */
 #addFacilityModal, #prioritizeModal {
   backdrop-filter: blur(4px);
 }

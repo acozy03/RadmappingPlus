@@ -531,7 +531,6 @@
 </div>
 
 <script>
-    // Calendar functions
     let currentCalendarDate = new Date('{{ now.strftime("%Y-%m-%d") }}');
     
     function toggleCalendar() {
@@ -594,16 +593,12 @@
         dayElement.type = 'button';
         dayElement.className = 'w-8 h-8 text-sm rounded-lg transition-colors hover:bg-blue-100 focus:outline-none focus:ring-2 focus:ring-blue-500';
         dayElement.textContent = date.getDate();
-        
-        
-
         dayElement.onclick = () => selectDate(date.getFullYear(), date.getMonth(), date.getDate());
         calendarDays.appendChild(dayElement);
       }
     }
     
     document.addEventListener('DOMContentLoaded', function() {
-        // Close calendar when clicking outside
         document.addEventListener('click', function(event) {
             const calendarPopup = document.getElementById('calendarPopup');
             const dateButton = event.target.closest('button[onclick="toggleCalendar()"]');

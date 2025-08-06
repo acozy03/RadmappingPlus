@@ -22,12 +22,10 @@ def monthly():
     start_day = request.args.get("start_day", default=1, type=int)
     days_in_month = monthrange(year, month)[1]
 
-    # Show the full month
     window_dates = [datetime(year, month, d) for d in range(1, days_in_month + 1)]
     start_day = 1
     end_day = days_in_month
 
-    # Get pagination parameters for doctors
     start_doctor = request.args.get('start_doctor', default=0, type=int)
     doctors_per_page = 70
 
@@ -35,22 +33,17 @@ def monthly():
 
     total_doctors = len(all_doctors)
     
-    # Get pinned doctors for the current user using their email
     user_email = session["user"]["email"]
     pinned_data = fetch_all_rows_monthly("pinned_doctors", "*", filters={"user_id": user_email})
     pinned_doctor_ids = [p["doctor_id"] for p in pinned_data]
 
-    # Separate pinned and unpinned doctors
     pinned_doctors = [doc for doc in all_doctors if doc["id"] in pinned_doctor_ids]
     unpinned_doctors = [doc for doc in all_doctors if doc["id"] not in pinned_doctor_ids]
 
-    # Sort doctors alphabetically within their groups
     pinned_doctors = sorted(pinned_doctors, key=lambda d: d['name'])
     unpinned_doctors = sorted(unpinned_doctors, key=lambda d: d['name'])
 
-    # Handle pagination
     if start_doctor == 0:
-        # First page: Show pinned doctors + fill remaining slots with unpinned
         if pinned_doctors:
             remaining_slots = doctors_per_page - len(pinned_doctors)
             if remaining_slots > 0:
@@ -60,27 +53,20 @@ def monthly():
         else:
             doctors = unpinned_doctors[:doctors_per_page]
     else:
-        # Subsequent pages: Show unpinned doctors starting after those shown on first page
         if pinned_doctors:
-            # Calculate how many unpinned doctors were shown on first page
             first_page_unpinned = max(0, doctors_per_page - len(pinned_doctors))
             # Start index for unpinned doctors
             unpinned_start = first_page_unpinned + (start_doctor - doctors_per_page)
             doctors = unpinned_doctors[unpinned_start:unpinned_start + doctors_per_page]
         else:
-            # If no pinned doctors, regular pagination
             doctors = unpinned_doctors[start_doctor:start_doctor + doctors_per_page]
 
-    # Get all schedules for the full month
     start_str = window_dates[0].strftime("%Y-%m-%d")
     end_str = window_dates[-1].strftime("%Y-%m-%d")
     visible_doctor_ids = [str(d["id"]) for d in doctors]
 
-   
-    # Use the fixed helper function
     schedule_data = fetch_schedule_data(visible_doctor_ids, start_str, end_str)
 
-    # Create a calendar dictionary for easy lookup
     calendar = defaultdict(dict)
     for entry in schedule_data:
         start = datetime.strptime(entry["start_date"], "%Y-%m-%d")
@@ -92,17 +78,12 @@ def monthly():
 
     month_name = pycalendar.month_name[month]
 
-    # Calculate total pages for pagination
     if pinned_doctors:
-        # If we have pinned doctors, they take up the first page
-        # Remaining unpinned doctors are spread across subsequent pages
         remaining_unpinned = len(unpinned_doctors)
         if len(pinned_doctors) < doctors_per_page:
-            # Some unpinned doctors appear on first page
             remaining_unpinned -= (doctors_per_page - len(pinned_doctors))
         total_pages = 1 + max(0, (remaining_unpinned + doctors_per_page - 1) // doctors_per_page)
     else:
-        # Regular pagination if no pinned doctors
         total_pages = (total_doctors + doctors_per_page - 1) // doctors_per_page
 
     return render_template("monthly.html",
@@ -136,13 +117,11 @@ def pin_doctors():
     if len(doctor_ids) > 15:
         return jsonify({'success': False, 'error': 'Cannot pin more than 15 doctors'})
     
-    # Delete existing pins for this user
     supabase.table("pinned_doctors") \
         .delete() \
         .eq("user_id", user_email) \
         .execute()
     
-    # Add new pins
     if doctor_ids:
         pins = [{
             "id": str(uuid.uuid4()),
@@ -169,27 +148,22 @@ def search_schedule():
     year = request.args.get('year', datetime.now().year, type=int)
     month = request.args.get('month', datetime.now().month, type=int)
 
-    # Build base query
     query = supabase.table("radiologists").select("*")
 
     if search_term:
         query = query.ilike('name', f'%{search_term}%')
 
-    # Get all matching doctors (for calendar filtering)
     full_result = query.execute()
     all_matches = full_result.data
     total_count = len(all_matches)
 
-    # Paginate for the UI
     paginated_matches = sorted(all_matches, key=lambda d: d['name'])[offset:offset + per_page]
 
     matched_ids = [doc["id"] for doc in paginated_matches]
     
-    # Get calendar range
     first_day = datetime(year, month, 1).date()
     last_day = datetime(year, month, pycalendar.monthrange(year, month)[1]).date()
 
-    # Fetch monthly schedule for matched doctors
     schedule_resp = supabase.table("monthly_schedule") \
         .select("*") \
         .gte("start_date", first_day.isoformat()) \
@@ -224,8 +198,6 @@ def bulk_schedule():
     start_time = request.form.get("start_time")
     end_time = request.form.get("end_time")
     notes = request.form.get("schedule_details")
-
-    # Check if it's a special case (OFF, VACATION, REACH AS NEEDED)
     is_special_case = notes in ['OFF', 'VACATION', 'REACH AS NEEDED']
 
     if not all([doctor_id, start_date, end_date]) or (not is_special_case and not all([start_time, end_time])):
@@ -239,8 +211,6 @@ def bulk_schedule():
     while current <= end:
         date_str = current.strftime("%Y-%m-%d")
       
-        
-        # Check if schedule already exists
         existing = supabase.table("monthly_schedule") \
             .select("id") \
             .eq("radiologist_id", doctor_id) \
@@ -275,35 +245,28 @@ def pattern_schedule():
     supabase = get_supabase_client()
     if session["user"]["role"] != "admin":
         return "Unauthorized", 403
-
-
     
     doctor_id = request.form.get("doctor")
     start_date = request.form.get("start_date")
     end_date = request.form.get("end_date")
     start_time = request.form.get("start_time")
     end_time = request.form.get("end_time")
-    days = request.form.getlist("days")  # Get list of selected days
+    days = request.form.getlist("days")  
     notes = request.form.get("schedule_details")
 
-    # Check if it's a special case (OFF, VACATION, REACH AS NEEDED)
     is_special_case = notes in ['OFF', 'VACATION', 'REACH AS NEEDED']
 
     if not all([doctor_id, start_date, end_date, days]) or (not is_special_case and not all([start_time, end_time])):
         return "Missing data", 400
 
-    # Convert dates to datetime objects
     start = datetime.strptime(start_date, "%Y-%m-%d")
     end = datetime.strptime(end_date, "%Y-%m-%d")
     current = start
 
     while current <= end:
-        # Check if current day is in selected days
+     
         if str(current.weekday()) in days:
             date_str = current.strftime("%Y-%m-%d")
-   
-            
-            # Check if schedule already exists
             existing = supabase.table("monthly_schedule") \
                 .select("id") \
                 .eq("radiologist_id", doctor_id) \
@@ -367,7 +330,6 @@ def update_schedule(rad_id):
         "schedule_details": details or None
     }
 
-    # Check if a schedule entry already exists for this doctor on this date
     existing = supabase.table("monthly_schedule") \
         .select("id") \
         .eq("radiologist_id", rad_id) \
@@ -375,11 +337,9 @@ def update_schedule(rad_id):
         .eq("end_date", date).execute()
 
     if existing.data:
-        # Update existing entry
         supabase.table("monthly_schedule").update(data) \
             .eq("id", existing.data[0]["id"]).execute()
     else:
-        # Insert new entry
         data["radiologist_id"] = rad_id
         data["start_date"] = date
         data["end_date"] = date

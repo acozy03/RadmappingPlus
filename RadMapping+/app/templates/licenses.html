@@ -235,13 +235,11 @@
 </div>
 
 <style>
-/* Custom styles for enhanced appearance */
 .active-filter {
   transform: translateY(-1px);
   box-shadow: 0 4px 12px rgba(59, 130, 246, 0.3);
 }
 
-/* Smooth transitions for status badges */
 .status-badge {
   transition: all 0.2s ease-in-out;
 }
@@ -250,13 +248,11 @@
   transform: scale(1.05);
 }
 
-/* Enhanced table row hover effects */
 tbody tr:hover {
   transform: translateY(-1px);
   box-shadow: 0 4px 12px rgba(0, 0, 0, 0.05);
 }
 
-/* Custom scrollbar for table */
 .overflow-x-auto::-webkit-scrollbar {
   height: 8px;
 }
@@ -285,18 +281,16 @@ tbody tr:hover {
 <script>
 let currentStatusFilter = 'all';
 let currentSearchTerm = '';
-const entriesPerPage = 25; // Define how many entries to show per "load more"
+const entriesPerPage = 25;
 let visibleEntries = entriesPerPage;
-let allLicensesData = []; // Store all licenses to enable client-side sorting and filtering across pages
-let filteredLicenses = []; // Stores the currently filtered (but not yet paginated) licenses
-let currentSort = { column: 'doctor', direction: 'asc' }; // New: track current sort, default to doctor asc
+let allLicensesData = []; 
+let filteredLicenses = []; 
+let currentSort = { column: 'doctor', direction: 'asc' }; 
 let searchTimeout; 
-// Get radiologists data from the hidden div
 const radiologists = JSON.parse(document.getElementById('radiologistsData').dataset.radiologists);
 
-// Load licenses when page loads
 document.addEventListener('DOMContentLoaded', function() {
-  fetchAllLicensesForClientSide(); // Initial load to get all data for client-side operations
+  fetchAllLicensesForClientSide(); 
 
   document.querySelectorAll('th[data-sort]').forEach(header => {
     header.addEventListener('click', function() {
@@ -309,15 +303,14 @@ document.addEventListener('DOMContentLoaded', function() {
       }
       
       updateSortIndicators();
-      visibleEntries = entriesPerPage; // Reset visible entries on sort change
-      applyFiltersAndSort(); // Re-apply filters and sort all data
+      visibleEntries = entriesPerPage; 
+      applyFiltersAndSort(); 
     });
   });
 
     let isLoading = false;
   window.addEventListener('scroll', function() {
     if (isLoading) return;
-    // Check if user has scrolled to the bottom (within 200px)
     if (window.innerHeight + window.scrollY >= document.body.offsetHeight - 200) {
       if (visibleEntries < filteredLicenses.length) {
         isLoading = true;
@@ -357,27 +350,24 @@ function debounceSearch() {
   clearTimeout(searchTimeout);
   searchTimeout = setTimeout(() => {
     currentSearchTerm = document.getElementById('licenseSearch').value;
-    visibleEntries = entriesPerPage; // Reset visible entries on search change
+    visibleEntries = entriesPerPage; 
     applyFiltersAndSort();
   }, 300);
 }
 
 function fetchAllLicensesForClientSide() {
-    // This function will fetch all licenses without pagination
-    fetch(`/radmapping/licenses/search?no_pagination=true`) // Assuming a parameter to fetch all
+    fetch(`/radmapping/licenses/search?no_pagination=true`) 
         .then(response => response.json())
         .then(data => {
             allLicensesData = data.certifications;
-            applyFiltersAndSort(); // Apply filters and sort after fetching all data
+            applyFiltersAndSort(); 
         })
         .catch(error => console.error('Error fetching all licenses:', error));
 }
 
 
 function applyFiltersAndSort() {
-  let tempFilteredData = [...allLicensesData]; // Use a temporary array for filtering
-
-  // Apply search term filter
+  let tempFilteredData = [...allLicensesData];
   const searchTerm = document.getElementById('licenseSearch').value.toLowerCase();
   if (searchTerm) {
     tempFilteredData = tempFilteredData.filter(cert => 
@@ -388,7 +378,6 @@ function applyFiltersAndSort() {
     );
   }
 
-  // Apply doctor filter
   const doctorId = document.getElementById('doctorFilter').value;
   if (doctorId) {
     tempFilteredData = tempFilteredData.filter(cert => 
@@ -396,14 +385,12 @@ function applyFiltersAndSort() {
     );
   }
 
-  // Apply status filter
   if (currentStatusFilter !== 'all') {
     tempFilteredData = tempFilteredData.filter(cert => 
       cert.status === currentStatusFilter
     );
   }
 
-  // Apply sorting
   tempFilteredData.sort((a, b) => {
     let valueA, valueB;
 
@@ -433,7 +420,7 @@ function applyFiltersAndSort() {
         valueB = new Date(b.expiration_date);
         break;
       default:
-        return 0; // No sort
+        return 0; 
     }
 
     if (valueA < valueB) {
@@ -445,16 +432,15 @@ function applyFiltersAndSort() {
     return 0;
   });
 
-  filteredLicenses = tempFilteredData; // Store the filtered and sorted data
-  updateTable(); // Update the table with the paginated portion
-  updateCounts(); // Update showing/total counts
+  filteredLicenses = tempFilteredData; 
+  updateTable(); 
+  updateCounts(); 
 }
 
 function updateTable() {
   const tbody = document.getElementById('licensesTableBody');
-  tbody.innerHTML = ''; // Clear existing rows
+  tbody.innerHTML = ''; 
 
-  // Slice the filteredLicenses based on visibleEntries for infinite scroll
   const licensesToDisplay = filteredLicenses.slice(0, visibleEntries);
   
   if (licensesToDisplay.length === 0) {
@@ -478,12 +464,10 @@ function updateTable() {
     row.dataset.tags = cert.tags;
     row.dataset.expiration = cert.expiration_date;
 
-    // Create doctor select options
     const doctorOptions = radiologists.map(rad => 
       `<option value="${rad.id}" ${rad.id === cert.radiologist_id ? 'selected' : ''}>${rad.name}</option>`
     ).join('');
     
-    // Create status badge
     let statusBadge = '';
     if (cert.status === 'Active') {
       statusBadge = `<span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-green-100 text-green-800">
@@ -586,7 +570,6 @@ function updateTable() {
 }
 
 function updateVisibleRows() {
-    // This function will re-render the table content based on visibleEntries
     updateTable();
     updateCounts();
 }
@@ -597,14 +580,8 @@ function updateCounts() {
     document.getElementById('total-count').textContent = `Total: ${filteredLicenses.length} entries`;
 }
 
-// The `changePage` function is no longer needed with infinite scroll.
-// function changePage(direction) { ... }
-
-
 function filterByStatus(status) {
   currentStatusFilter = status;
-  
-  // Update button styles
   document.querySelectorAll('[data-status]').forEach(button => {
     button.classList.remove('active-filter', 'bg-blue-600', 'text-white');
     button.classList.add('bg-gray-100', 'text-gray-700');
@@ -614,7 +591,7 @@ function filterByStatus(status) {
     }
   });
   
-  visibleEntries = entriesPerPage; // Reset visible entries on filter change
+  visibleEntries = entriesPerPage; 
   applyFiltersAndSort();
 }
 
@@ -659,11 +636,11 @@ function saveLicense(licenseId) {
   })
   .then(res => res.json())
   .then(data => {
-    console.log("✅ Update success:", data);
+    console.log("Update success:", data);
     fetchAllLicensesForClientSide();
   })
   .catch(err => {
-    console.error("❌ Save error:", err);
+    console.error("Save error:", err);
   });
 }
 

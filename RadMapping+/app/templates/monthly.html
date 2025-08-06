@@ -34,10 +34,8 @@
         </div>
     </div>
 
-    <!-- Virtual Scrolling Container -->
     <div id="schedule-container" class="flex-1 min-h-0 overflow-auto max-w-full">
         <div id="schedule-scroll-wrapper" class="w-full border-b border-gray-200 mb-2">
-            <!-- Fixed Header Table -->
             <table class="w-full min-w-[1200px] table-fixed text-base">
                 <thead class="bg-gray-50 sticky top-0 z-30">
                     <tr class="h-16">
@@ -55,25 +53,16 @@
                 </thead>
             </table>
 
-            <!-- Virtual Scrolling Body -->
             <div class="virtual-scroll-body" style="position: relative;">
-                <!-- Top Spacer -->
                 <div id="virtual-top-spacer" style="height: 0px;"></div>
-                
-                <!-- Visible Rows Container -->
                 <table class="w-full min-w-[1200px] table-fixed text-base" id="virtual-table">
                     <tbody id="virtual-tbody">
-                        <!-- Virtual rows will be inserted here -->
                     </tbody>
                 </table>
-                
-                <!-- Bottom Spacer -->
                 <div id="virtual-bottom-spacer" style="height: 0px;"></div>
             </div>
         </div>
     </div>
-
-    <!-- Pagination Controls -->
     <div class="mt-4 px-4 flex-shrink-0">
         <div class="flex gap-2">
             {% if start_doctor > 0 %}
@@ -92,7 +81,6 @@
     </div>
 </div>
 
-<!-- All your existing modals remain exactly the same
 <!-- Schedule Modal -->
 <!-- <div id="scheduleModal" class="fixed inset-0 z-50 hidden bg-black bg-opacity-50 flex items-center justify-center">
   <div class="bg-white rounded-lg shadow-lg w-[90%] max-w-md p-6">
@@ -127,7 +115,6 @@
   </div>
 </div>   -->
 
-<!-- Scheduling Tools Modal -->
 <div id="toolsModal" class="fixed inset-0 z-50 hidden bg-black bg-opacity-50 flex items-center justify-center">
   <div class="bg-white rounded-lg shadow-lg w-[90%] max-w-4xl p-6">
     <div class="flex justify-between items-center mb-4">
@@ -140,7 +127,6 @@
     </div>
     
     <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
-      <!-- Bulk Schedule -->
       <div class="bg-gray-50 p-4 rounded-lg">
         <h4 class="font-medium mb-3">Bulk Schedule</h4>
         <form method="POST" action="{{ url_for('monthly.bulk_schedule') }}" class="space-y-3">
@@ -169,7 +155,6 @@
         </form>
       </div>
 
-      <!-- Pattern Schedule -->
       <div class="bg-gray-50 p-4 rounded-lg">
         <h4 class="font-medium mb-3">Pattern Schedule</h4>
         <form method="POST" action="{{ url_for('monthly.pattern_schedule') }}" class="space-y-3">
@@ -231,7 +216,6 @@
   </div>
 </div>
 
-<!-- Pin Doctors Modal -->
 <div id="pinModal" class="fixed inset-0 z-50 hidden bg-black bg-opacity-50 flex items-center justify-center">
   <div class="bg-white rounded-lg shadow-lg w-[90%] max-w-4xl p-6">
     <div class="flex justify-between items-center mb-4">
@@ -344,12 +328,10 @@ tr:hover td[style*="position: sticky"] {
   background: #e0f2fe !important;
 }
 
-/* Virtual scrolling styles */
 .virtual-scroll-body {
   position: relative;
 }
 
-/* Add to the existing style section */
 #schedule-container {
     scroll-behavior: auto !important;
     overscroll-behavior: contain;
@@ -361,12 +343,11 @@ tr:hover td[style*="position: sticky"] {
 }
 
 #virtual-table {
-    transform: translateZ(0); /* Force hardware acceleration */
+    transform: translateZ(0);
 }
 </style>
 
 <script>
-// Your existing variables from Jinja2
 const calendar = {{ calendar|tojson }};
 const daysInMonth = {{ days_in_month }};
 const year = {{ year }};
@@ -376,7 +357,6 @@ const serverToday = "{{ today_str }}";
 const doctorsData = {{ doctors|tojson }};
 const pinnedDoctors = {{ pinned_doctors|tojson }};
 
-// Virtual scrolling implementation with fixed scrolling behavior
 class VirtualScheduleTable {
      constructor() {
         this.container = document.getElementById('schedule-container');
@@ -384,27 +364,21 @@ class VirtualScheduleTable {
         this.topSpacer = document.getElementById('virtual-top-spacer');
         this.bottomSpacer = document.getElementById('virtual-bottom-spacer');
 
-        this.rowHeight = 64; // Height of each row in pixels
-        // Increased buffer rows to ensure content is always rendered before it's seen
-        this.bufferRows = 5; // Number of rows to render above and below the viewport
-        this.visibleRows = Math.ceil(this.container.clientHeight / this.rowHeight) + (this.bufferRows * 2); // Visible rows + buffer on both sides
-
+        this.rowHeight = 64; 
+        this.bufferRows = 5; 
+        this.visibleRows = Math.ceil(this.container.clientHeight / this.rowHeight) + (this.bufferRows * 2); 
         this.allDoctors = doctorsData;
-        this.filteredDoctors = [...this.allDoctors]; // Start with all doctors
+        this.filteredDoctors = [...this.allDoctors]; 
         this.startIndex = 0;
         this.endIndex = Math.min(this.visibleRows, this.filteredDoctors.length);
-
-        // Scroll throttling improved
         this.isScrolling = false;
-        this.lastScrollTop = 0; // Track last scroll position
-
+        this.lastScrollTop = 0; 
         this.init();
     }
     
      init() {
         this.container.addEventListener('scroll', this.throttledScroll.bind(this), { passive: true });
         window.addEventListener('resize', this.handleResize.bind(this));
-        // Initial render on load
         this.render();
     }
     
@@ -420,17 +394,8 @@ class VirtualScheduleTable {
     
     handleScroll() {
         const scrollTop = this.container.scrollTop;
-
-        // Calculate new start index with buffer
-        // Math.max(0, ...) ensures startIndex doesn't go below 0
         const newStartIndex = Math.max(0, Math.floor(scrollTop / this.rowHeight) - this.bufferRows);
-
-        // Calculate new end index with buffer
-        // Math.min(..., this.filteredDoctors.length) ensures endIndex doesn't exceed data length
         const newEndIndex = Math.min(newStartIndex + this.visibleRows + this.bufferRows, this.filteredDoctors.length);
-
-        // Only update if the range of visible items has genuinely changed
-        // This prevents unnecessary re-renders for tiny scrolls within the buffer zone
         if (newStartIndex !== this.startIndex || newEndIndex !== this.endIndex) {
             this.startIndex = newStartIndex;
             this.endIndex = newEndIndex;
@@ -440,29 +405,20 @@ class VirtualScheduleTable {
     }
     
     handleResize() {
-        // Recalculate visible rows on resize
         this.visibleRows = Math.ceil(this.container.clientHeight / this.rowHeight) + (this.bufferRows * 2);
-        // Ensure startIndex and endIndex are still valid for the new visibleRows
         this.startIndex = Math.max(0, Math.floor(this.container.scrollTop / this.rowHeight) - this.bufferRows);
         this.endIndex = Math.min(this.startIndex + this.visibleRows + this.bufferRows, this.filteredDoctors.length);
         this.render();
     }
     
      render() {
-        // Store current scroll position to prevent jumps during re-render
         const currentScrollTop = this.container.scrollTop;
-
-        // Update spacers
         const topHeight = this.startIndex * this.rowHeight;
         const bottomHeight = (this.filteredDoctors.length - this.endIndex) * this.rowHeight;
 
         this.topSpacer.style.height = `${topHeight}px`;
         this.bottomSpacer.style.height = `${bottomHeight}px`;
-
-        // Clear existing rows
         this.tbody.innerHTML = '';
-
-        // Render visible rows including the buffer
         for (let i = this.startIndex; i < this.endIndex; i++) {
             const doctor = this.filteredDoctors[i];
             if (doctor) {
@@ -471,29 +427,20 @@ class VirtualScheduleTable {
             }
         }
 
-        // Attempt to restore scroll position. This is crucial for smooth scrolling.
-        // Only adjust if the scroll position has significantly changed or if it's not at the very top.
-        // Small adjustments are often natural for virtual scrolling.
         if (Math.abs(this.container.scrollTop - currentScrollTop) > 1 && currentScrollTop !== 0) {
             this.container.scrollTop = currentScrollTop;
         } else if (currentScrollTop === 0 && this.startIndex !== 0) {
-            // If at the very top, and startIndex isn't 0, force it to 0
-            // This is a common edge case for scrolling to the very beginning
              this.container.scrollTop = 0;
         }
     }
 
     
      createDoctorRow(doctor) {
-        // ... (This function remains largely the same, ensure cell heights match this.rowHeight)
         const row = document.createElement('tr');
         row.className = 'hover:bg-gray-50 h-16';
-        row.style.height = `${this.rowHeight}px`; // Explicitly set height
-
-        // Doctor name cell (sticky)
+        row.style.height = `${this.rowHeight}px`; 
         const nameCell = document.createElement('td');
         nameCell.className = 'sticky left-0 bg-white z-20 w-48 px-4 py-2 font-medium text-left';
-        // Check if doctor is pinned to determine star
         const isPinned = pinnedDoctors.includes(doctor.id);
         nameCell.innerHTML = `
             <div class="flex items-center gap-2">
@@ -505,8 +452,6 @@ class VirtualScheduleTable {
             </div>
         `;
         row.appendChild(nameCell);
-
-        // Schedule cells for each day
         for (let day = 1; day <= daysInMonth; day++) {
             const date = new Date(year, month - 1, day);
             const dateStr = date.toISOString().split('T')[0];
@@ -514,10 +459,9 @@ class VirtualScheduleTable {
 
             const cell = document.createElement('td');
             cell.className = `w-48 px-4 py-3 text-center ${this.getCellClass(schedule, dateStr)}`;
-            cell.style.height = `${this.rowHeight}px`; // Ensure consistent height
+            cell.style.height = `${this.rowHeight}px`; 
 
             if (schedule) {
-                // Ensure the filter is applied here, as per our last conversation
                 cell.innerHTML = this.createScheduleCell(schedule, doctor.id, dateStr);
             }
             // // Add 'Add' button for admin if no schedule exists
@@ -583,12 +527,8 @@ createScheduleCell(schedule, doctorId, dateStr) {
 
         const clickHandler = isAdmin ? `onclick="openScheduleModal('${doctorId}', '${dateStr}', '${schedule.start_time || ''}', '${schedule.end_time || ''}', \`${details.replace(/`/g, '\\`')}\`)"` : '';
         const cursorClass = isAdmin ? 'cursor-pointer' : '';
-
-        // Get the current filter state here to ensure it's always applied
         const filterValue = document.getElementById('scheduleFilter').value;
         const showTime = filterValue === 'time';
-
-        // Apply display style directly based on the filter state
         const timeDisplayStyle = showTime ? 'block' : 'none';
         const descDisplayStyle = showTime ? 'none' : 'block';
 
@@ -612,43 +552,34 @@ createScheduleCell(schedule, doctorId, dateStr) {
     }
     
  filter(searchTerm) {
-        // No need to store current scroll top here, as render will handle it.
 
-        // Re-apply pinned doctors logic after filtering
         const filtered = this.allDoctors.filter(doctor =>
             doctor.name.toLowerCase().includes(searchTerm.toLowerCase())
         );
 
-        // Separate pinned and unpinned doctors from the filtered list
         const pinnedFiltered = filtered.filter(doc => pinnedDoctors.includes(doc.id));
         const unpinnedFiltered = filtered.filter(doc => !pinnedDoctors.includes(doc.id));
 
-        // Sort unpinned doctors alphabetically by name
         unpinnedFiltered.sort((a, b) => a.name.localeCompare(b.name));
 
-        // Combine them: pinned doctors first, then the rest (filtered and sorted)
         this.filteredDoctors = [...pinnedFiltered, ...unpinnedFiltered];
 
-        this.startIndex = 0; // Reset scroll to top on filter
+        this.startIndex = 0; 
         this.endIndex = Math.min(this.visibleRows, this.filteredDoctors.length);
-        this.container.scrollTop = 0; // Force scroll to top on filter
+        this.container.scrollTop = 0; 
         this.render();
     }
 }
 
-// Initialize virtual table
 let virtualTable;
 let searchTimeout;
 
-// Your existing functions with virtual table integration
 function handleSearch() {
     const searchTerm = document.getElementById('searchInput').value.toLowerCase();
     if (virtualTable) {
         virtualTable.filter(searchTerm);
     }
 }
-
-// All your existing modal and utility functions remain exactly the same
 function openScheduleModal(doctorId, date, startTime, endTime, details) {
   document.getElementById('modalDate').value = date;
   document.getElementById('modalYear').value = year;
@@ -691,19 +622,17 @@ function scrollToTodayColumn() {
 
   if (th && wrapper) {
     const thOffset = th.offsetLeft;
-    const stickyOffset = 192; // Width of sticky column
+    const stickyOffset = 192; 
     const scrollAmount = thOffset - stickyOffset;
     wrapper.scrollLeft = scrollAmount;
   }
 }
 
-// Initialize everything
 window.addEventListener('DOMContentLoaded', function() {
   virtualTable = new VirtualScheduleTable();
   
   setTimeout(scrollToTodayColumn, 500);
   
-  // Filter logic
   const filter = document.getElementById('scheduleFilter');
   function applyFilter() {
     const showTime = filter.value === 'time';
@@ -722,7 +651,6 @@ window.addEventListener('resize', function() {
   setTimeout(scrollToTodayColumn, 500);
 });
 
-// All your existing modal handling functions remain the same
 function handleNoTimeChange() {
   const noTime = document.getElementById('modalNoTime').value;
   const start = document.getElementById('modalStartTime');

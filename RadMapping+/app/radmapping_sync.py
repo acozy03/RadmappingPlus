@@ -10,10 +10,6 @@ import json
 from datetime import datetime, timezone
 from dotenv import load_dotenv
 
-# Moved to be local to the function, but kept global for initial clarity
-# assignments_added = []
-# assignments_removed = []
-
 load_dotenv()
 
 SUPABASE_URL = os.getenv("SUPABASE_URL")
@@ -24,14 +20,9 @@ if not SERVICE_ACCOUNT_PATH or not os.path.exists(SERVICE_ACCOUNT_PATH):
     raise FileNotFoundError(f"Service account file not found at: {SERVICE_ACCOUNT_PATH}")
 
 SCOPES = ['https://www.googleapis.com/auth/drive.readonly']
-
-# Initialize global creds and drive object once if they are truly global singletons
-# If process_cell_update is called frequently and needs fresh creds, move this inside
-# For now, let's assume global is fine.
 creds = service_account.Credentials.from_service_account_file(SERVICE_ACCOUNT_PATH, scopes=SCOPES)
 drive = build("drive", "v3", credentials=creds)
 
-# Load service account info for use in process_cell_update if re-initializing drive there
 try:
     with open(SERVICE_ACCOUNT_PATH, 'r') as f:
         SERVICE_ACCOUNT_INFO = json.load(f)
@@ -50,23 +41,17 @@ def enrich_assignment_names(assignments: list, rad_map: dict, fac_map: dict) -> 
     return enriched
 
 
-def process_cell_update(sheet_id: str, row: int, col: int) -> tuple[dict, int]: # Added type hints for return
-    print(f"📥 Starting radmapping sync for sheet={sheet_id}, row={row}, col={col}")
+def process_cell_update(sheet_id: str, row: int, col: int) -> tuple[dict, int]:
+    print(f"Starting radmapping sync for sheet={sheet_id}, row={row}, col={col}")
 
     supabase: Client = create_client(SUPABASE_URL, SUPABASE_KEY)
-
-    # Re-initialize creds and drive if needed per function call, otherwise remove these lines
-    # Using global creds and drive initialized at the top of the file would be more efficient
-    # If you remove these lines, ensure the global 'drive' object is correctly accessible
-    # for download operations. For simplicity, keeping the re-init for now with the fix
-    # for SERVICE_ACCOUNT_INFO.
     _creds_local = service_account.Credentials.from_service_account_info(SERVICE_ACCOUNT_INFO, scopes=SCOPES)
     _drive_local = build("drive", "v3", credentials=_creds_local)
 
     temp_file = f"/tmp/radmapping_{uuid.uuid4()}.xlsx"
 
-    print(f"📄 Downloading Google Sheet to {temp_file}...")
-    request = _drive_local.files().export_media( # Use the local drive object
+    print(f"Downloading Google Sheet to {temp_file}...")
+    request = _drive_local.files().export_media( 
         fileId=sheet_id,
         mimeType="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
     )
@@ -76,15 +61,15 @@ def process_cell_update(sheet_id: str, row: int, col: int) -> tuple[dict, int]: 
             done = False
             while not done:
                 status, done = downloader.next_chunk()
-                print(f"⏳ Download progress: {int(status.progress() * 100)}%")
+                print(f"Download progress: {int(status.progress() * 100)}%")
     except Exception as e:
-        print(f"❌ Error downloading file: {e}")
+        print(f"Error downloading file: {e}")
         return {"error": f"Failed to download Google Sheet: {e}"}, 500
 
 
     try:
         wb = openpyxl.load_workbook(temp_file)
-        ws = wb["RAD MAPPING "] # Consider making this configurable or robust
+        ws = wb["RAD MAPPING "] 
     except KeyError:
         return {"error": "Sheet 'RAD MAPPING ' not found in the workbook."}, 400
     except Exception as e:
@@ -92,7 +77,7 @@ def process_cell_update(sheet_id: str, row: int, col: int) -> tuple[dict, int]: 
     finally:
         if os.path.exists(temp_file):
             os.remove(temp_file)
-            print(f"🧹 Temp file deleted.")
+            print(f"Temp file deleted.")
 
 
     facility_name = str(ws.cell(row=row, column=1).value).strip().upper()
@@ -108,7 +93,7 @@ def process_cell_update(sheet_id: str, row: int, col: int) -> tuple[dict, int]: 
     if not facility_id:
         return {"error": f"Facility not found: {facility_name}"}, 404
 
-    print(f"🏥 Matched facility: {facility_name} → {facility_id}")
+    print(f"Matched facility: {facility_name} → {facility_id}")
 
     radiologists_res = supabase.table("radiologists").select("id, name").execute()
     if radiologists_res.data is None:
@@ -122,7 +107,6 @@ def process_cell_update(sheet_id: str, row: int, col: int) -> tuple[dict, int]: 
     seen_rads_in_sheet = set()
     new_assignments_from_sheet = []
     
-    # Constants for font colors for better readability
     COLOR_RED = "FFFF0000"
     COLOR_BLUE = "FF0000FF"
     COLOR_MAGENTA = "FFFF00FF"
@@ -139,7 +123,7 @@ def process_cell_update(sheet_id: str, row: int, col: int) -> tuple[dict, int]: 
         matching = rad_lookup.get(name_part, [])
 
         if len(matching) != 1:
-            print(f"❌ Could not uniquely match doctor: {name_part} (Matches found: {len(matching)})")
+            print(f"Could not uniquely match doctor: {name_part} (Matches found: {len(matching)})")
             continue
 
         rad_id = matching[0]
@@ -178,42 +162,37 @@ def process_cell_update(sheet_id: str, row: int, col: int) -> tuple[dict, int]: 
 
     assignments_added = []
     assignments_removed = []
-    assignments_updated = [] # To track actual updates
-
-    # Process removals (assignments in DB but not in sheet)
+    assignments_updated = [] 
     for rad_id, assignment in existing_assignments_map.items():
         if rad_id not in seen_rads_in_sheet:
-            print(f"🗑️ Removing stale assignment for rad_id={rad_id}, facility_id={facility_id}")
+            print(f"Removing stale assignment for rad_id={rad_id}, facility_id={facility_id}")
             supabase.table("doctor_facility_assignments") \
                 .delete().eq("radiologist_id", rad_id).eq("facility_id", facility_id).execute()
             assignments_removed.append(assignment)
 
-    # Process additions and updates
     for new_assignment in new_assignments_from_sheet:
         rad_id = new_assignment["radiologist_id"]
         existing = existing_assignments_map.get(rad_id)
 
         if existing:
-            # Check if existing assignment needs update
             changed = (
                 new_assignment["can_read"] != existing["can_read"] or
                 new_assignment["notes"] != (existing["notes"] or "")
             )
             if changed:
-                print(f"🔄 Updating assignment for rad_id={rad_id}, facility_id={facility_id}")
+                print(f"Updating assignment for rad_id={rad_id}, facility_id={facility_id}")
                 supabase.table("doctor_facility_assignments") \
                     .update(new_assignment) \
                     .eq("radiologist_id", rad_id) \
                     .eq("facility_id", facility_id) \
                     .execute()
-                assignments_removed.append(existing) # Log old state for audit
-                assignments_added.append({**new_assignment, "id": existing["id"]}) # Log new state for audit (with existing ID)
-                assignments_updated.append(new_assignment) # Track actual updates
+                assignments_removed.append(existing) 
+                assignments_added.append({**new_assignment, "id": existing["id"]}) 
+                assignments_updated.append(new_assignment) 
             else:
                 print(f"Skipping unchanged assignment for rad_id={rad_id}, facility_id={facility_id}")
         else:
-            # Insert new assignment
-            print(f"➕ Adding new assignment for rad_id={rad_id}, facility_id={facility_id}")
+            print(f"Adding new assignment for rad_id={rad_id}, facility_id={facility_id}")
             new_record_id = str(uuid.uuid4())
             record_to_insert = {
                 "id": new_record_id,
@@ -222,42 +201,34 @@ def process_cell_update(sheet_id: str, row: int, col: int) -> tuple[dict, int]: 
             supabase.table("doctor_facility_assignments").insert(record_to_insert).execute()
             assignments_added.append(record_to_insert)
 
-    # Create lookup dictionaries for audit log enrichment
     rad_name_map = {r["id"]: r["name"] for r in radiologists}
     fac_name_map = {f["id"]: f["name"] for f in facilities}
 
-    # Enrich assignment logs with names
     assignments_added_named = enrich_assignment_names(assignments_added, rad_name_map, fac_name_map)
     assignments_removed_named = enrich_assignment_names(assignments_removed, rad_name_map, fac_name_map)
 
-    # Log single audit entry
     audit_entry = {
         "action": "sync",
         "table_name": "doctor_facility_assignments",
-        "record_id": facility_id, # This is the facility_id, not a specific assignment ID
+        "record_id": facility_id, 
         "user_email": "radmapping@sync",
         "timestamp": datetime.now(timezone.utc).isoformat(),
         "old_data": {"assignments_removed": assignments_removed_named},
         "new_data": {
             "assignments_added": assignments_added_named,
             "summary": {
-                "added": len(assignments_added), # Count of truly new records
-                "removed": len(assignments_removed), # Count of removed or replaced records
-                "updated": len(assignments_updated) # Count of records that were modified
+                "added": len(assignments_added), 
+                "removed": len(assignments_removed),
+                "updated": len(assignments_updated) 
             }
         }
     }
-
-    # Ensure the 'app.audit_log' module is correctly set up if you intend to use log_audit_action
-    # from app.audit_log import log_audit_action
-    # log_audit_action(...) # If you switch to using the function
 
     try:
         supabase.table("audit_log").insert(audit_entry).execute()
         print("Audit log entry created successfully.")
     except Exception as e:
-        print(f"🚨 Failed to create audit log entry: {e}")
-        # Decide if this should block the main operation or just be a warning
+        print(f"Failed to create audit log entry: {e}")
 
     return {
         "status": "success",

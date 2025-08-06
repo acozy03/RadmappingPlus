@@ -16,14 +16,12 @@ def contacts():
     try:
         supabase = get_supabase_client()
  
-        # Get contacts
         result = supabase.table("vesta_contacts").select("*").execute()
         
         if hasattr(result, 'error'):
      
             return render_template("contacts.html", contacts=[], departments=[], error="Error fetching contacts")
         
-        # Get unique departments
         departments = sorted(set(contact['department'] for contact in result.data))
             
         return render_template("contacts.html", contacts=result.data, departments=departments)

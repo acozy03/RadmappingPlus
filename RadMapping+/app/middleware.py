@@ -8,7 +8,6 @@ def with_supabase_auth(f):
         if not session.get("user"):
             return redirect(url_for("auth.login"))
             
-        # Get a client with the current session's auth token
         supabase = get_supabase_client()
         
         return f(*args, **kwargs)

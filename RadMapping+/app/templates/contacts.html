@@ -310,7 +310,6 @@
     box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06);
 }
 
-/* Custom scrollbar for any overflow content */
 .overflow-x-auto::-webkit-scrollbar {
     height: 6px;
 }
@@ -329,26 +328,22 @@
     background: linear-gradient(to right, #2563eb, #4338ca);
 }
 
-/* Department navigation active state */
 .department-nav-btn.active {
     background: linear-gradient(to right, #3b82f6, #4f46e5);
     color: white;
     box-shadow: 0 4px 6px -1px rgba(59, 130, 246, 0.5);
 }
 
-/* Smooth transitions */
 * {
     transition: all 0.2s ease-in-out;
 }
 
-/* Enhanced focus states */
 input:focus, textarea:focus, select:focus {
     box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.1);
 }
 </style>
 
 <script>
-// Modal functions
 function openAddContactModal() {
     document.getElementById('addContactModal').classList.remove('hidden');
 }
@@ -357,7 +352,6 @@ function closeAddContactModal() {
     document.getElementById('addContactModal').classList.add('hidden');
 }
 
-// Edit mode functions
 function toggleEditMode(contactId) {
     const row = document.getElementById(`contact-row-${contactId}`);
     row.querySelectorAll('.view-mode').forEach(el => el.classList.add('hidden'));
@@ -389,12 +383,10 @@ function saveContact(contactId) {
     });
 }
 
-// Enhanced delete with confirmation modal
 function deleteContact(contactId) {
     const modal = document.getElementById('deleteConfirmModal');
     const confirmBtn = document.getElementById('confirmDeleteBtn');
     
-    // Set up the confirm button to perform the delete
     confirmBtn.onclick = function() {
         fetch(`/radmapping/contacts/${contactId}/delete`, {
             method: 'POST'
@@ -403,7 +395,6 @@ function deleteContact(contactId) {
         });
     };
     
-    // Show the modal
     modal.classList.remove('hidden');
 }
 
@@ -411,7 +402,6 @@ function closeDeleteModal() {
     document.getElementById('deleteConfirmModal').classList.add('hidden');
 }
 
-// Enhanced search function
 function filterContacts() {
     const searchTerm = document.getElementById('contactSearch').value.toLowerCase();
     const sections = document.querySelectorAll('.department-section');
@@ -441,17 +431,14 @@ function filterContacts() {
             }
         });
         
-        // Update the counter
         const counter = section.querySelector('.contact-counter');
         if (counter) {
             counter.textContent = `${visibleRows} contact${visibleRows !== 1 ? 's' : ''}`;
         }
         
-        // Show/hide the entire section based on whether it has any visible rows
         section.style.display = visibleRows > 0 ? '' : 'none';
     });
     
-    // Show/hide no results message
     const noResults = document.getElementById('noResults');
     if (totalVisible === 0 && searchTerm.trim() !== '') {
         noResults.classList.remove('hidden');
@@ -459,7 +446,6 @@ function filterContacts() {
         noResults.classList.add('hidden');
     }
     
-    // Reset department nav active state if searching
     if (searchTerm.trim() !== '') {
         document.querySelectorAll('.department-nav-btn').forEach(btn => {
             btn.classList.remove('active');
@@ -468,9 +454,7 @@ function filterContacts() {
     }
 }
 
-// Department filter function
 function filterByDepartment(department) {
-    // Update active button
     document.querySelectorAll('.department-nav-btn').forEach(btn => {
         btn.classList.remove('active');
         btn.classList.add('bg-gray-100', 'text-gray-700');
@@ -486,7 +470,6 @@ function filterByDepartment(department) {
         clickedBtn.classList.remove('bg-gray-100', 'text-gray-700');
     }
     
-    // Filter sections
     document.querySelectorAll('.department-section').forEach(section => {
         if (section.getAttribute('data-department') === department) {
             section.style.display = '';
@@ -495,12 +478,10 @@ function filterByDepartment(department) {
         }
     });
     
-    // Hide no results message
     document.getElementById('noResults').classList.add('hidden');
 }
 
 function showAllDepartments() {
-    // Update active button
     document.querySelectorAll('.department-nav-btn').forEach(btn => {
         btn.classList.remove('active');
         btn.classList.add('bg-gray-100', 'text-gray-700');
@@ -510,49 +491,39 @@ function showAllDepartments() {
     document.querySelectorAll('.department-nav-btn')[0].classList.add('active');
     document.querySelectorAll('.department-nav-btn')[0].classList.remove('bg-gray-100', 'text-gray-700');
     
-    // Show all sections
     document.querySelectorAll('.department-section').forEach(section => {
         section.style.display = '';
     });
     
-    // Reset search
     document.getElementById('contactSearch').value = '';
     filterContacts();
 }
 
-// Initialize on page load
 document.addEventListener('DOMContentLoaded', function() {
-    // Set "All" as active by default
     document.querySelectorAll('.department-nav-btn')[0].classList.add('active');
     document.querySelectorAll('.department-nav-btn')[0].classList.remove('bg-gray-100', 'text-gray-700');
 
-    // --- Added for click-outside-to-close functionality ---
     const addContactModal = document.getElementById('addContactModal');
     const addContactModalContent = document.getElementById('addContactModalContent');
 
     const deleteConfirmModal = document.getElementById('deleteConfirmModal');
     const deleteConfirmModalContent = document.getElementById('deleteConfirmModalContent');
 
-    // Event listener for Add Contact Modal
     if (addContactModal) {
         addContactModal.addEventListener('click', function(event) {
-            // Check if the click was on the backdrop and not inside the modal content
             if (event.target === addContactModal && addContactModalContent && !addContactModalContent.contains(event.target)) {
                 closeAddContactModal();
             }
         });
     }
 
-    // Event listener for Delete Confirmation Modal
     if (deleteConfirmModal) {
         deleteConfirmModal.addEventListener('click', function(event) {
-            // Check if the click was on the backdrop and not inside the modal content
             if (event.target === deleteConfirmModal && deleteConfirmModalContent && !deleteConfirmModalContent.contains(event.target)) {
                 closeDeleteModal();
             }
         });
     }
-    // --- End Added for click-outside-to-close functionality ---
 });
 </script>
 {% endblock %}

@@ -365,7 +365,6 @@
     {% endfor %} 
   </div>
   <script>
-    // Calendar functionality
     let currentCalendarDate = new Date('{{ today }}');
     currentCalendarDate.setDate(currentCalendarDate.getDate() + 1);
     let selectedDate = new Date('{{ today }}'); 
@@ -399,7 +398,6 @@
       const date = new Date(year, month, day);
       const dateString = date.toISOString().split('T')[0];
       
-      // Update the hidden input and submit the form
       document.getElementById('date-picker').value = dateString;
       document.getElementById('dateForm').submit();
     }
@@ -452,7 +450,6 @@
       }
     }
 
-    // Close calendar when clicking outside
     document.addEventListener('click', function(event) {
       const calendarPopup = document.getElementById('calendarPopup');
       const dateButton = event.target.closest('button[onclick="toggleCalendar()"]');
@@ -462,7 +459,6 @@
       }
     });
 
-    // Rest of the existing JavaScript functions...
     function showTimezonePopup(parent) {
       const popup = parent.querySelector('.timezone-popup');
       if (popup) {
@@ -493,19 +489,15 @@
     const clone = template.cloneNode(true);
     clone.classList.add("absolute", "top-0", "z-50", "opacity-100", "scale-100", "active-popup");
 
-    // Remove any previous popup
     const existing = parent.querySelector('.active-popup');
     if (existing) existing.remove();
 
-    // Detect if popup would overflow the screen
     const parentRect = parent.getBoundingClientRect();
     const willOverflowRight = (parentRect.right + 350) > window.innerWidth;
 
     if (willOverflowRight) {
-      // Position to the left
       clone.classList.add("right-full", "mr-2");
     } else {
-      // Default position to the right
       clone.classList.add("left-full", "ml-2");
     }
 
@@ -571,15 +563,12 @@
     const currentHour = now.getHours();
     const target = document.getElementById(`hour-${currentHour}`);
 
-    // Only apply if we're viewing today's date
     if (target && "{{ today }}" === new Date().toISOString().split('T')[0]) {
-      // Add highlight class
       target.classList.add("ring-2", "ring-blue-200", "ring-offset-2");
     }
   }
 
   function setInitialHourFilter() {
-    // Only set initial filter if we're viewing today's date
     if ("{{ today }}" === new Date().toISOString().split('T')[0]) {
       const now = new Date();
       const currentHour = now.getHours();
@@ -601,12 +590,12 @@
       document.querySelectorAll("li[data-start-dt][data-end-dt][data-display-start-time][data-display-end-time]").forEach(el => {
         const slotDiv = el.closest('[id^="hour-"]');
         if (!slotDiv) return;
-        const slotDtStr = slotDiv.getAttribute('data-slot-datetime'); // e.g., "2025-07-15T06:00:00Z"
+        const slotDtStr = slotDiv.getAttribute('data-slot-datetime'); 
         if (!slotDtStr) return;
-        const slotDt = new Date(slotDtStr); // This is the start of the current hour slot (timezone-aware)
+        const slotDt = new Date(slotDtStr); 
 
-        const displayStartTimeStr = el.dataset.displayStartTime; // e.g., "06:00:00" or "17:00:00"
-        const displayEndTimeStr = el.dataset.displayEndTime;   // e.g., "14:00:00" or "22:00:00"
+        const displayStartTimeStr = el.dataset.displayStartTime; 
+        const displayEndTimeStr = el.dataset.displayEndTime;  
 
         el.classList.remove("bg-green-50", "border-green-200", "bg-yellow-50", "border-yellow-200", "bg-red-50", "border-red-200");
         const badge = el.querySelector(".shift-badge");
@@ -615,64 +604,52 @@
           badge.textContent = "";
         }
 
-        // Construct segment start and end Date objects, making them relative to the slot's date
-        let segmentStartDt = new Date(slotDt.toISOString().split('T')[0] + 'T' + displayStartTimeStr + 'Z'); // Assume UTC for consistency
-        let segmentEndDt = new Date(slotDt.toISOString().split('T')[0] + 'T' + displayEndTimeStr + 'Z');   // Assume UTC for consistency
+        let segmentStartDt = new Date(slotDt.toISOString().split('T')[0] + 'T' + displayStartTimeStr + 'Z'); 
+        let segmentEndDt = new Date(slotDt.toISOString().split('T')[0] + 'T' + displayEndTimeStr + 'Z');  
 
-        // Adjust segmentEndDt if it implies crossing midnight relative to segmentStartDt
         if (segmentEndDt <= segmentStartDt) {
-            segmentEndDt = new Date(segmentEndDt.getTime() + 24 * 60 * 60 * 1000); // Add one day
+            segmentEndDt = new Date(segmentEndDt.getTime() + 24 * 60 * 60 * 1000); 
         }
 
-        // Now, calculate based on segment times
-        // `slotDt` is the start of the current hour block being rendered.
-        // `segmentStartDt` is the start of the *current working segment*.
-        // `segmentEndDt` is the end of the *current working segment*.
-
-        // Calculate how much time is remaining in the *current segment* from the *start of the current hour slot*.
         const msRemainingInSegmentFromSlot = segmentEndDt.getTime() - slotDt.getTime();
 
-        // Only proceed if there's actual remaining time in the segment from this hour slot onwards
         if (msRemainingInSegmentFromSlot > 0) {
             const minutesLeft = Math.round(msRemainingInSegmentFromSlot / 60000);
             const hours = Math.floor(minutesLeft / 60);
             const minutes = minutesLeft % 60;
 
             let timeLeftStr;
-            if (minutesLeft <= 60 && hours === 0) { // Less than or equal to 60 minutes, and 0 hours means within the next hour.
+            if (minutesLeft <= 60 && hours === 0) { 
                 timeLeftStr = '<1hr left';
             } else if (minutes === 0) {
                 if (hours === 1) {
                     timeLeftStr = '1hr left';
                 } else if (hours < 24) {
                     timeLeftStr = `${hours}hrs left`;
-                } else { // For very long remaining hours in segment, might just show days or multiple hours
+                } else { 
                     timeLeftStr = `${hours}hrs left`;
                 }
             } else {
                 timeLeftStr = `${hours}h ${minutes}m left`;
             }
 
-            // This is the total duration of the current working segment
             const totalSegmentMs = segmentEndDt.getTime() - segmentStartDt.getTime();
-            // Determine coloring and badge text based on remaining time in segment
-            // Thresholds are now relative to the segment's total duration for percentage.
             const percentageRemainingOfSegment = (msRemainingInSegmentFromSlot / totalSegmentMs) * 100;
 
 
-            if (percentageRemainingOfSegment <= 25 || minutesLeft <= 60) { // If <= 25% of segment left, or less than/equal to 1 hour left
+            if (percentageRemainingOfSegment <= 25 || minutesLeft <= 60) { 
                 el.classList.add("bg-red-50", "border-red-200");
                 if (badge) {
                     badge.textContent = timeLeftStr;
                     badge.classList.add("bg-red-100", "text-red-800");
                 }
-            } else if (percentageRemainingOfSegment <= 75) { // Between 25% and 75% left
+            } else if (percentageRemainingOfSegment <= 75) { 
                 el.classList.add("bg-yellow-50", "border-yellow-200");
                 if (badge) {
                     badge.textContent = timeLeftStr;
                     badge.classList.add("bg-yellow-100", "text-yellow-800");
                 }
-            } else { // More than 75% left
+            } else { 
                 el.classList.add("bg-green-50", "border-green-200");
                 if (badge) {
                     badge.textContent = timeLeftStr;
@@ -724,13 +701,11 @@ function filterDoctors() {
     }
   }
 
-  // Update timezone modal items
   document.querySelectorAll('.doctor-item').forEach(item => {
     const doctorName = item.querySelector('.doctor-name').textContent.toLowerCase();
     item.style.display = doctorName.includes(searchTerm) ? '' : 'none';
   });
 
-  // Filter doctor list items inside each hourly block
   document.querySelectorAll('[id^="hour-"]').forEach(hourBlock => {
     const doctorItems = hourBlock.querySelectorAll('li');
     let anyVisible = false;
@@ -781,7 +756,6 @@ function filterDoctors() {
     title.textContent = `Doctors in ${zone}`;
     content.innerHTML = "";
 
-    // Parse the JSON data from the template variables
     const tzDocs = JSON.parse(document.getElementById('doctors-by-timezone').textContent);
     const docIdsNow = JSON.parse(document.getElementById('doctors-currently-on-shift').textContent);
     const docIdsToday = JSON.parse(document.getElementById('doctors-on-shift').textContent);
@@ -815,7 +789,6 @@ function filterDoctors() {
     document.getElementById("timezoneModal").classList.add("hidden");
   }
 
-  // Close modal if clicking outside it
   document.addEventListener("click", function (e) {
     const modal = document.getElementById("timezoneModal");
     const box = modal.querySelector("div.bg-white");
@@ -833,10 +806,8 @@ function resetHourFilter() {
   const today = new Date().toISOString().split("T")[0];
   const isToday = "{{ today }}" === new Date().toISOString().split('T')[0];
   if (isToday) {
-    // Reset to current hour
     setInitialHourFilter();
   } else {
-    // Reset to full day
     startSelect.value = "0";
     endSelect.value = "";
   }

@@ -392,13 +392,11 @@
 </div>
 
 <style>
-/* Enhanced hover effects */
 .vacation-row:hover {
     transform: translateY(-1px);
     box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06);
 }
 
-/* Custom scrollbar */
 .overflow-x-auto::-webkit-scrollbar {
     height: 6px;
 }
@@ -417,19 +415,16 @@
     background: linear-gradient(to right, #059669, #0f766e);
 }
 
-/* Smooth transitions */
 * {
     transition: all 0.2s ease-in-out;
 }
 
-/* Enhanced focus states */
 input:focus, textarea:focus, select:focus {
     box-shadow: 0 0 0 3px rgba(16, 185, 129, 0.1);
 }
 </style>
 
 <script>
-// Vacation data for JavaScript
 const vacations = {{ vacations|tojson }};
 
 // Modal functions
@@ -446,7 +441,6 @@ function openEditVacationModal(vacationId) {
     if (vacation) {
         document.getElementById('editVacationId').value = vacationId;
         document.getElementById('editRadiologistId').value = vacation.radiologist_id;
-        // Convert datetime objects back to 'YYYY-MM-DD' string for date inputs
         if (vacation.start_date) {
             const startDate = new Date(vacation.start_date);
             document.getElementById('editStartDate').value = startDate.toISOString().split('T')[0];
@@ -464,12 +458,10 @@ function closeEditVacationModal() {
     document.getElementById('editVacationModal').classList.add('hidden');
 }
 
-// Enhanced delete with confirmation modal
 function deleteVacation(vacationId) {
     const modal = document.getElementById('deleteConfirmModal');
     const confirmBtn = document.getElementById('confirmDeleteBtn');
     
-    // Set up the confirm button to perform the delete
     confirmBtn.onclick = function() {
         fetch(`{{ url_for('vacations.delete_vacation') }}`, {
             method: 'POST',
@@ -482,7 +474,6 @@ function deleteVacation(vacationId) {
         });
     };
     
-    // Show the modal
     modal.classList.remove('hidden');
 }
 
@@ -490,7 +481,6 @@ function closeDeleteModal() {
     document.getElementById('deleteConfirmModal').classList.add('hidden');
 }
 
-// Enhanced search function
 function filterVacations() {
     const searchTerm = document.getElementById('vacationSearch').value.toLowerCase();
     const rows = document.querySelectorAll('.vacation-row');
@@ -517,7 +507,6 @@ function filterVacations() {
         }
     });
     
-    // Handle no results state
     if (visibleRows === 0 && searchTerm.trim() !== '') {
         if (noVacationsRow) noVacationsRow.style.display = 'none';
         noSearchResults.classList.remove('hidden');
@@ -529,7 +518,6 @@ function filterVacations() {
     }
 }
 
-// Set minimum date to today for date inputs
 document.addEventListener('DOMContentLoaded', function() {
     const today = new Date().toISOString().split('T')[0];
     const startDateInputs = document.querySelectorAll('input[name="start_date"]');
@@ -539,7 +527,7 @@ document.addEventListener('DOMContentLoaded', function() {
         input.min = today;
         input.addEventListener('change', function() {
             const endDateInput = this.closest('form').querySelector('input[name="end_date"]');
-            if (endDateInput) { // Ensure endDateInput exists before setting min
+            if (endDateInput) { 
                 endDateInput.min = this.value;
             }
         });
@@ -549,7 +537,6 @@ document.addEventListener('DOMContentLoaded', function() {
         input.min = today;
     });
 
-    // --- Added for click-outside-to-close functionality ---
     const addVacationModal = document.getElementById('addVacationModal');
     const addVacationModalContent = document.getElementById('addVacationModalContent');
 
@@ -559,7 +546,6 @@ document.addEventListener('DOMContentLoaded', function() {
     const deleteConfirmModal = document.getElementById('deleteConfirmModal');
     const deleteConfirmModalContent = document.getElementById('deleteConfirmModalContent');
 
-    // Event listener for Add Vacation Modal
     if (addVacationModal) {
         addVacationModal.addEventListener('click', function(event) {
             if (event.target === addVacationModal && addVacationModalContent && !addVacationModalContent.contains(event.target)) {
@@ -568,7 +554,6 @@ document.addEventListener('DOMContentLoaded', function() {
         });
     }
 
-    // Event listener for Edit Vacation Modal
     if (editVacationModal) {
         editVacationModal.addEventListener('click', function(event) {
             if (event.target === editVacationModal && editVacationModalContent && !editVacationModalContent.contains(event.target)) {
@@ -577,7 +562,6 @@ document.addEventListener('DOMContentLoaded', function() {
         });
     }
 
-    // Event listener for Delete Confirmation Modal
     if (deleteConfirmModal) {
         deleteConfirmModal.addEventListener('click', function(event) {
             if (event.target === deleteConfirmModal && deleteConfirmModalContent && !deleteConfirmModalContent.contains(event.target)) {
@@ -585,7 +569,6 @@ document.addEventListener('DOMContentLoaded', function() {
             }
         });
     }
-    // --- End Added for click-outside-to-close functionality ---
 });
 </script>
 {% endblock %}

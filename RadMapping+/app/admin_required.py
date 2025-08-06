@@ -26,7 +26,6 @@ def admin_required(f):
                 print(f"User {email} is not admin")
                 abort(403)
 
-            # Optionally cache role back to session
             session["user"]["role"] = role
         except Exception as e:
             print(f"Error fetching role for {email}: {e}")

@@ -2,7 +2,7 @@ from flask import Blueprint, render_template, session, redirect, url_for, reques
 from app.admin_required import admin_required
 from app.supabase_client import get_supabase_client
 from app.middleware import with_supabase_auth
-from app.audit_log import log_audit_action # Import the audit log function
+from app.audit_log import log_audit_action 
 from datetime import datetime, timedelta
 from calendar import monthrange
 import uuid
@@ -14,16 +14,13 @@ doctors_bp = Blueprint('doctors', __name__)
 @with_supabase_auth
 def doctor_list():
     supabase = get_supabase_client()
-    # Get pagination parameters
     page = request.args.get('page', 1, type=int)
     per_page = 25
     offset = (page - 1) * per_page
 
-    # Get all doctors for the modal
     all_doctors_res = supabase.table("radiologists").select("*").order("name").execute()
     all_doctors = all_doctors_res.data
 
-    # Get pinned doctors for the current user using their email
     user_email = session["user"]["email"]
     pinned_res = supabase.table("pinned_doctors") \
         .select("doctor_id") \
@@ -31,7 +28,6 @@ def doctor_list():
         .execute()
     pinned_doctor_ids = [p["doctor_id"] for p in pinned_res.data]
 
-    # Sort doctors so pinned appear first
     sorted_doctors = sorted(all_doctors, key=lambda doc: str(doc['id']) not in pinned_doctor_ids)
     total_count = len(sorted_doctors)
     start = (page - 1) * per_page
@@ -56,7 +52,6 @@ def search_doctors():
     search_term = request.args.get('search', '')
     status = request.args.get('status', 'all')
 
-    # Get pinned doctors for the current user using their email
     user_email = session["user"]["email"]
     pinned_res = supabase.table("pinned_doctors") \
         .select("doctor_id") \
@@ -64,7 +59,6 @@ def search_doctors():
         .execute()
     pinned_doctor_ids = [p["doctor_id"] for p in pinned_res.data]
 
-    # Build base query for all filters
     base_query = supabase.table("radiologists").select("*")
     if search_term:
         base_query = base_query.or_(f"name.ilike.%{search_term}%")
@@ -73,24 +67,19 @@ def search_doctors():
     elif status == 'inactive':
         base_query = base_query.eq('active_status', False)
 
-    # Get all matching doctors (for total count)
     all_matching = base_query.execute().data
 
-    # Separate pinned and unpinned
     pinned_doctors = [doc for doc in all_matching if str(doc["id"]) in pinned_doctor_ids]
     unpinned_doctors = [doc for doc in all_matching if str(doc["id"]) not in pinned_doctor_ids]
 
-    # Sort both lists alphabetically by name
     pinned_doctors = sorted(pinned_doctors, key=lambda d: d["name"])
     unpinned_doctors = sorted(unpinned_doctors, key=lambda d: d["name"])
 
-    # Pagination logic
     if page == 1:
-        # First page: pinned + fill with unpinned
+      
         remaining_slots = per_page - len(pinned_doctors)
         visible_doctors = pinned_doctors + unpinned_doctors[:max(0, remaining_slots)]
     else:
-        # Subsequent pages: only unpinned, skipping those already shown
         start = (page - 1) * per_page - len(pinned_doctors)
         end = start + per_page
         visible_doctors = unpinned_doctors[start:end]
@@ -120,27 +109,23 @@ def doctor_profile(rad_id):
     supabase = get_supabase_client()
     now = datetime.now()
     today_str = datetime.now().strftime("%Y-%m-%d")
-    # Grab query params or fallback to current
     year = request.args.get("year", default=now.year, type=int)
     month = request.args.get("month", default=now.month, type=int)
     
-    # Get month calendar navigation
     prev_month = month - 1 if month > 1 else 12
     prev_year = year - 1 if month == 1 else year
     next_month = month + 1 if month < 12 else 1
     next_year = year + 1 if month == 12 else year
 
-    # For calendar rendering
     now = datetime(year, month, 1)
     days_in_month = monthrange(year, month)[1]
 
-    # Get doctor and schedule
     try:
         doctor_res = supabase.table("radiologists").select("*").eq("id", rad_id).single().execute()
         doctor = doctor_res.data
-        print(f"🔍 Loaded doctor with id {rad_id}: {doctor}")
+        print(f"Loaded doctor with id {rad_id}: {doctor}")
     except APIError as e:
-        print(f"❌ Failed to load doctor with id {rad_id}:", e)
+        print(f"Failed to load doctor with id {rad_id}:", e)
         return render_template("errors/404.html", message="Doctor not found"), 404
 
     schedule_res = supabase.table("monthly_schedule") \
@@ -150,7 +135,6 @@ def doctor_profile(rad_id):
         .gte("end_date", f"{year}-{month:02d}-01") \
         .execute()
 
-    # Build calendar for the month, mapping each day to the schedule entry if it covers that day
     calendar = {}
     for entry in schedule_res.data:
         start = datetime.strptime(entry["start_date"], "%Y-%m-%d")
@@ -167,14 +151,12 @@ def doctor_profile(rad_id):
 
     certifications = certs_res.data
 
-    # Extract the most recent non-empty specialty from certifications
     doctor_specialty = None
     for cert in reversed(certifications):
         if cert.get('specialty'):
             doctor_specialty = cert['specialty']
             break
 
-    # Fetch specialties from specialty_permissions
     specialty_perms = supabase.table("specialty_permissions") \
         .select("*, specialty_studies(name, description)") \
         .eq("radiologist_id", rad_id) \
@@ -188,11 +170,9 @@ def doctor_profile(rad_id):
 
     assigned_facilities = facility_res.data
 
-    # Get all facilities for the add facility dropdown
     all_facilities_res = supabase.table("facilities").select("*").order("name").execute()
     all_facilities = all_facilities_res.data
 
-    # Filter out already assigned facilities
     assigned_facility_ids = {assignment["facilities"]["id"] for assignment in assigned_facilities}
     available_facilities = [fac for fac in all_facilities if fac["id"] not in assigned_facility_ids]
 
@@ -208,7 +188,7 @@ def doctor_profile(rad_id):
     if rvu_row:
         latest_rvu_col, rvu = get_latest_monthly_rvu_column(rvu_row)
     else:
-        latest_rvu_col, rvu = None, None  # fallback if no RVU row found
+        latest_rvu_col, rvu = None, None  
 
 
 
@@ -250,7 +230,6 @@ def update_schedule(rad_id):
         "schedule_details": details or None
     }
 
-    # Check if a schedule entry already exists for this doctor on this date
     existing = supabase.table("monthly_schedule") \
         .select("id, start_time, end_time, schedule_details") \
         .eq("radiologist_id", rad_id) \
@@ -259,7 +238,7 @@ def update_schedule(rad_id):
 
     if existing.data:
         old_data = existing.data[0]
-        # Update existing entry
+      
         res = supabase.table("monthly_schedule").update(data) \
             .eq("id", old_data["id"]).execute()
         if not hasattr(res, "error"):
@@ -273,7 +252,7 @@ def update_schedule(rad_id):
                 new_data={**data, "id": old_data["id"], "radiologist_id": rad_id, "start_date": date, "end_date": date}
             )
     else:
-        # Insert new entry
+       
         new_id = str(uuid.uuid4())
         data["id"] = new_id
         data["radiologist_id"] = rad_id
@@ -414,19 +393,16 @@ def update_doctor(rad_id):
             "reads_stats": request.form.get("reads_stats"), 
         }
         
-        # Remove None values to avoid overwriting with nulls
         data = {k: v for k, v in data.items() if v is not None}
         
-        # Update RVU if present
         rvu_val = request.form.get("rvu_score", "").strip()
         rvu_month = request.form.get("rvu_month", "").strip().lower()
 
-        # Default to current month (e.g. "jun") if blank
         if rvu_month in ("", "none", None):
             rvu_month = datetime.now().strftime("%b").lower()
 
         if rvu_val and rvu_month:
-            # Fetch the radiologist name
+    
             rad_info = supabase.table("radiologists").select("name").eq("id", rad_id).single().execute()
             rad_name = rad_info.data["name"] if rad_info.data else None
 
@@ -434,26 +410,21 @@ def update_doctor(rad_id):
             old_rvu_data_res = supabase.table("rad_avg_monthly_rvu").select("*").eq("radiologist_id", rad_id).limit(1).execute()
             old_rvu_data = old_rvu_data_res.data[0] if old_rvu_data_res.data else None
 
-            # Insert a new row if none exists yet
             if not old_rvu_data:
                 supabase.table("rad_avg_monthly_rvu").insert({
                     "radiologist_id": rad_id,
                     "name": rad_name
                 }).execute()
-                old_rvu_data = None  # Still None, for audit logging
+                old_rvu_data = None  
           
-
-            # Prepare the upsert payload with dynamic month and name
             rvu_payload = {
                 "radiologist_id": rad_id,
                 "name": rad_name,
                 rvu_month: float(rvu_val)
             }
            
-            # Perform upsert on the RVU table
             rvu_res = supabase.table("rad_avg_monthly_rvu").upsert(rvu_payload, on_conflict="radiologist_id").execute()
 
-            # Log the audit action if successful
             if not hasattr(rvu_res, "error"):
                 log_audit_action(
                     supabase=supabase,
@@ -488,7 +459,6 @@ def update_doctor(rad_id):
 @admin_required
 def add_doctor():
     supabase = get_supabase_client()
-    # Generate a new UUID for the doctor
     new_id = str(uuid.uuid4())
     
     data = {
@@ -507,7 +477,6 @@ def add_doctor():
         "reads_stats": request.form.get("reads_stats"),
     }
 
-    # Insert the new doctor into the database
     res = supabase.table("radiologists").insert(data).execute()
 
     if not hasattr(res, "error"):
@@ -549,7 +518,7 @@ def remove_doctor(rad_id):
 def add_facility_assignment(rad_id):
     supabase = get_supabase_client()
 
-    can_read = request.form.get("can_read", "false")  # expect one of: "true", "pending", "false"
+    can_read = request.form.get("can_read", "false")  
     if can_read not in ["true", "pending", "false"]:
         return "Invalid can_read value", 400
 
@@ -585,16 +554,13 @@ def add_facility_assignment(rad_id):
 @admin_required
 def get_doctor_specialties(doctor_id):
     supabase = get_supabase_client()
-    # Get all specialties
     specialties_res = supabase.table("specialty_studies").select("*").order("name").execute()
     specialties = specialties_res.data
-    # Get all permissions for this doctor
     perms_res = supabase.table("specialty_permissions") \
         .select("specialty_id, can_read") \
         .eq("radiologist_id", doctor_id) \
         .execute()
     perms = {p['specialty_id']: p['can_read'] for p in perms_res.data}
-    # Build response
     result = []
     for spec in specialties:
         result.append({
@@ -612,22 +578,19 @@ def update_doctor_specialties(doctor_id):
     supabase = get_supabase_client()
     data = request.get_json()
     specialty_ids = set(data.get('specialty_ids', []))
-    # Get all specialties
     specialties_res = supabase.table("specialty_studies").select("id").execute()
     all_specialty_ids = {s['id'] for s in specialties_res.data}
-    # Get current permissions
     perms_res = supabase.table("specialty_permissions") \
         .select("id, specialty_id, can_read") \
         .eq("radiologist_id", doctor_id) \
         .execute()
-    perms_map = {p['specialty_id']: p for p in perms_res.data} # Store full permission object
+    perms_map = {p['specialty_id']: p for p in perms_res.data}
 
-    # Update or create permissions
     for spec_id in all_specialty_ids:
         should_have = spec_id in specialty_ids
         if spec_id in perms_map:
             old_perm = perms_map[spec_id]
-            if old_perm["can_read"] != should_have: # Only update if status changed
+            if old_perm["can_read"] != should_have: 
                 new_perm_data = {"can_read": should_have}
                 res = supabase.table("specialty_permissions").update(new_perm_data).eq("id", old_perm["id"]).execute()
                 if not hasattr(res, "error"):
@@ -638,7 +601,7 @@ def update_doctor_specialties(doctor_id):
                         record_id=old_perm["id"],
                         user_email=session.get("user", {}).get("email", "unknown"),
                         old_data=old_perm,
-                        new_data={**old_perm, **new_perm_data} # Merge old with new to form complete new data
+                        new_data={**old_perm, **new_perm_data} 
                     )
         elif should_have:
             new_id = str(uuid.uuid4())
@@ -661,13 +624,6 @@ def update_doctor_specialties(doctor_id):
                 )
     return jsonify({"status": "success"})
 
-# @doctors_bp.route('/doctors/<string:rad_id>/licenses/<string:cert_id>/delete', methods=["POST"])
-# @with_supabase_auth
-# @admin_required
-# def delete_certification(rad_id, cert_id):
-#     supabase = get_supabase_client()
-#     supabase.table("certifications").delete().eq("id", cert_id).execute()
-#     return redirect(url_for('licenses.licenses_page'))
 
 @doctors_bp.route('/doctors/<string:rad_id>/add_certification', methods=['POST'])
 @with_supabase_auth
@@ -705,7 +661,6 @@ def update_assignment(assignment_id):
     try:
         supabase = get_supabase_client()
 
-        # Fetch the assignment to retain radiologist_id and for old_data
         current_res = supabase.table("doctor_facility_assignments") \
             .select("*") \
             .eq("id", assignment_id) \
@@ -716,9 +671,7 @@ def update_assignment(assignment_id):
             return "Assignment not found", 404
         
         old_data = current_res.data
-
-        # Read dropdown value for can_read: true, pending, or false
-        can_read = request.form.get("can_read", "false")  # Default to "false" if missing
+        can_read = request.form.get("can_read", "false")  
         if can_read not in ["true", "pending", "false"]:
             return "Invalid can_read value", 400
 
@@ -728,7 +681,7 @@ def update_assignment(assignment_id):
         update_data = {
             "can_read": can_read,
             "notes": notes,
-            "radiologist_id": old_data["radiologist_id"] # Ensure radiologist_id is included for logging new_data
+            "radiologist_id": old_data["radiologist_id"] 
         }
 
         res = supabase.table("doctor_facility_assignments") \
@@ -744,7 +697,7 @@ def update_assignment(assignment_id):
                 record_id=assignment_id,
                 user_email=session.get("user", {}).get("email", "unknown"),
                 old_data=old_data,
-                new_data={**old_data, **update_data} # Merge old with new to form complete new data
+                new_data={**old_data, **update_data}
             )
 
         return redirect(request.referrer or url_for('doctors.doctor_profile', rad_id=old_data["radiologist_id"]))
@@ -800,14 +753,14 @@ def radmapping_sync():
         col = data.get("col")
 
         if not sheet_id or not row or not col:
-            print("⚠️ Missing fields:", data)
+            print("Missing fields:", data)
             return jsonify({"error": "Missing required fields"}), 400
         result, status_code = process_cell_update(sheet_id, int(row), int(col))
-        print("✅ Sync success:", result)
+        print("Sync success:", result)
         return jsonify(result), status_code
 
     except Exception as e:
         import traceback
-        print("❌ Exception occurred during radmapping_sync:")
+        print("Exception occurred during radmapping_sync:")
         print(traceback.format_exc())
         return jsonify({"error": "Internal server error"}), 500

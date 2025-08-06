@@ -27,19 +27,16 @@ def create_app():
         audit_bp
     )
 
-    # Inject session into Jinja templates
     @app.context_processor
     def inject_session():
         return dict(session=session)
 
-    # Inject 'now' into Jinja templates
     @app.context_processor
     def inject_now():
         current_time = datetime.now()
         print(f"Injecting 'now' into Jinja context: {current_time}") 
         return {'now': current_time}
 
-    # Add ampm filter
     def format_ampm(value):
         if value:
             return datetime.strptime(value, "%H:%M:%S").strftime("%I:%M %p")
@@ -49,30 +46,24 @@ def create_app():
     def shift_minutes_filter(value):
         from datetime import datetime
         if isinstance(value, str):
-            # Try to parse the time string
             try:
-                # First try with seconds
                 t = datetime.strptime(value, "%H:%M:%S")
             except ValueError:
                 try:
-                    # Then try without seconds
                     t = datetime.strptime(value, "%H:%M")
                 except ValueError:
-                    # If both fail, log the error and return None
                     print(f"Error parsing time string: {value}")
                     return None
             
-            # Convert to minutes since midnight
             return t.hour * 60 + t.minute
             
         elif isinstance(value, datetime):
             return value.hour * 60 + value.minute
             
-        return None  # Return None for invalid input types
+        return None 
 
     app.jinja_env.filters['shift_minutes'] = shift_minutes_filter
 
-    # Register blueprints
     app.register_blueprint(auth_bp, url_prefix='/auth')
     app.register_blueprint(daily_bp, url_prefix='/radmapping')
     app.register_blueprint(monthly_bp, url_prefix='/radmapping')
@@ -87,7 +78,6 @@ def create_app():
     app.register_blueprint(licenses_bp, url_prefix='/radmapping')
     app.register_blueprint(shifts_bp, url_prefix='/radmapping')
     app.register_blueprint(audit_bp, url_prefix='/radmapping')
-    # Redirect root URL to login or landing page
     @app.route('/')
     def index():
         print("--- Entering root URL ('/') ---")
@@ -97,14 +87,12 @@ def create_app():
             print("User is logged in. Redirecting to landing page.")
             return redirect(url_for("landing.landing"))
         
-        # Logic for unauthenticated users accessing '/'
-        next_url = request.args.get('next') # From query parameter (e.g., /?next=/some/path)
-        referrer_url = request.referrer     # From HTTP Referer header
+        next_url = request.args.get('next') 
+        referrer_url = request.referrer     
         
         print(f"Unauthenticated user at '/'. Request.args.get('next'): {next_url}")
         print(f"Unauthenticated user at '/'. Request.referrer: {referrer_url}")
 
-        # Prioritize 'next' query param, then referrer, then default landing
         final_redirect_url = next_url or referrer_url or url_for('landing.landing')
         
         session['redirect_after_login'] = final_redirect_url

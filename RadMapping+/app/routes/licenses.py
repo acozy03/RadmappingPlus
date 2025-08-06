@@ -72,17 +72,11 @@ def update_license(license_id):
 @licenses_bp.route('/licenses/search', methods=["GET"])
 @with_supabase_auth
 def search_licenses():
-    # Use fetch_all_rows directly here
-    # Since we are fetching ALL, the pagination parameters (page, per_page, offset) are no longer directly used
-    # for the Supabase query itself, but you'll still use them for client-side slicing.
 
     select_query = "*, radiologists(name)"
 
-    # Fetch all data initially
     all_certifications_from_db = fetch_all_rows(table="certifications", select_query=select_query)
 
-    # Convert the list of dicts to a Supabase-like response structure
-    # This allows us to apply filters on the full dataset in Python before sending to client
     temp_query_data = all_certifications_from_db
 
     search_term = request.args.get('search', '').lower()
@@ -94,7 +88,7 @@ def search_licenses():
     for cert in temp_query_data:
         match_search = True
         if search_term:
-            # Check if search term exists in state, specialty, tags, or radiologist name
+     
             state_match = cert.get('state', '').lower().startswith(search_term)
             specialty_match = cert.get('specialty', '').lower().startswith(search_term)
             tags_match = cert.get('tags', '').lower().startswith(search_term) if cert.get('tags') else False
@@ -116,20 +110,16 @@ def search_licenses():
         if match_search and match_doctor and match_status:
             filtered_certifications.append(cert)
             
-    # Sort the filtered data in Python before sending it
-    # This ensures consistency with your client-side sorting expectations
-    # You might want to get the sort column and direction from request.args
-    # For now, let's assume default sort by expiration_date desc for the initial full pull
     filtered_certifications.sort(key=lambda x: x.get('expiration_date', ''), reverse=True)
 
 
     total_count = len(filtered_certifications)
 
     return jsonify({
-        'certifications': filtered_certifications, # Now sending the pre-filtered and sorted list
+        'certifications': filtered_certifications, 
         'total_count': total_count,
-        'current_page': 1, # These pagination details are largely symbolic now for the frontend
-        'per_page': total_count # Indicate that all data is being sent
+        'current_page': 1, 
+        'per_page': total_count 
     })
 
 
@@ -183,7 +173,6 @@ def licenses_page():
 
         return redirect(url_for("licenses.licenses_page"))
 
-    # This initial render does not need to fetch all, as the JS will immediately fetch all.
     certs_res = supabase.table("certifications") \
         .select("*, radiologists(name)") \
         .order("expiration_date", desc=True) \
@@ -220,5 +209,5 @@ def license_sync():
 
     except Exception as e:
         import traceback
-        print("❌ Error in license_sync:", traceback.format_exc())
+        print("Error in license_sync:", traceback.format_exc())
         return jsonify({"error": "Internal server error"}), 500

@@ -228,8 +228,6 @@ const itemsPerPage = parseInt("{{ per_page }}", 10);
 let totalCount = parseInt("{{ total_count }}", 10);
 let searchTimeout;
 let currentStatusFilter = 'active';
-
-// Initialize PINNED_DOCTORS array from the server-side data
 const PINNED_DOCTORS = {{ pinned_doctors|tojson }};
 
 function debounceSearch() {
@@ -242,7 +240,6 @@ function debounceSearch() {
 
 function filterByStatus(status) {
   currentStatusFilter = status;
-  // Update button styles
   document.querySelectorAll('[data-status]').forEach(button => {
     button.classList.remove('active-filter', 'bg-blue-600', 'text-white');
     button.classList.add('bg-gray-100', 'text-black');
@@ -252,32 +249,22 @@ function filterByStatus(status) {
     }
   });
   currentPage = 1;
-  loadDoctors(true); // Always force load when changing filters
+  loadDoctors(true);
 }
 
-// Only load doctors when explicitly requested (search or filter)
 function loadDoctors(forceLoad = false) {
   const searchTerm = document.getElementById('searchBox').value;
-  
-  // Always load if:
-  // 1. Force load is true (pagination/filter changes)
-  // 2. There's a search term
-  // 3. Filter is not active
-  // 4. We're not on page 1
   if (!forceLoad && !searchTerm && currentStatusFilter === 'active' && currentPage === 1) {
     return;
   }
   
-  // If we have pinned doctors and we're on page 1, fetch them first
   if (currentPage === 1 && PINNED_DOCTORS.length > 0) {
     fetch(`/radmapping/doctors/search?page=1&search=${encodeURIComponent(searchTerm)}&status=${currentStatusFilter}&include_pinned=true`)
       .then(response => response.json())
       .then(pinnedData => {
-        // Then fetch the current page's doctors
         fetch(`/radmapping/doctors/search?page=${currentPage}&search=${encodeURIComponent(searchTerm)}&status=${currentStatusFilter}`)
           .then(response => response.json())
           .then(data => {
-            // Combine pinned doctors with current page doctors, removing duplicates
             const pinnedDoctors = pinnedData.doctors.filter(doc => PINNED_DOCTORS.includes(doc.id));
             const otherDoctors = data.doctors.filter(doc => !PINNED_DOCTORS.includes(doc.id));
             const combinedDoctors = [...pinnedDoctors, ...otherDoctors];
@@ -286,7 +273,6 @@ function loadDoctors(forceLoad = false) {
           });
       });
   } else {
-    // Normal fetch for other pages or when no pinned doctors
     fetch(`/radmapping/doctors/search?page=${currentPage}&search=${encodeURIComponent(searchTerm)}&status=${currentStatusFilter}`)
       .then(response => response.json())
       .then(data => {
@@ -299,8 +285,6 @@ function loadDoctors(forceLoad = false) {
 function updateTable(doctors) {
   const tbody = document.getElementById('doctorList');
   tbody.innerHTML = '';
-  
-  // Sort doctors to keep pinned ones at the top
   doctors.sort((a, b) => {
     const aPinned = PINNED_DOCTORS.includes(a.id);
     const bPinned = PINNED_DOCTORS.includes(b.id);
@@ -366,7 +350,7 @@ function changePage(direction) {
     currentPage--;
   }
   
-  loadDoctors(true); // Force load when changing pages
+  loadDoctors(true); 
 }
 
 function showPopup(element) {
@@ -425,7 +409,6 @@ function updatePinCounter() {
   const checkedBoxes = document.querySelectorAll('.pin-checkbox:checked');
   const counter = document.getElementById('pinCounter');
   counter.textContent = `${checkedBoxes.length}/15 selected`;
-  // Disable checkboxes if limit reached
   const uncheckedBoxes = document.querySelectorAll('.pin-checkbox:not(:checked)');
   if (checkedBoxes.length >= 15) {
     uncheckedBoxes.forEach(box => box.disabled = true);
@@ -465,7 +448,6 @@ function closeAddDoctorModal() {
 }
 
 window.addEventListener('DOMContentLoaded', () => {
-  // Set the active filter button style on page load
   document.querySelectorAll('[data-status]').forEach(button => {
     button.classList.remove('active-filter', 'bg-blue-600', 'text-white');
     if (button.dataset.status === 'active') {
@@ -473,17 +455,14 @@ window.addEventListener('DOMContentLoaded', () => {
     }
   });
   
-  // First load pinned doctors if any exist
   if (PINNED_DOCTORS.length > 0) {
     fetch(`/radmapping/doctors/search?page=1&search=&status=all&include_pinned=true`)
       .then(response => response.json())
       .then(pinnedData => {
-        // Then apply active filter
         if (currentStatusFilter === 'active') {
           fetch(`/radmapping/doctors/search?page=${currentPage}&search=&status=active`)
             .then(response => response.json())
             .then(data => {
-              // Combine pinned doctors with current page doctors, removing duplicates
               const pinnedDoctors = pinnedData.doctors.filter(doc => PINNED_DOCTORS.includes(doc.id));
               const otherDoctors = data.doctors.filter(doc => !PINNED_DOCTORS.includes(doc.id));
               const combinedDoctors = [...pinnedDoctors, ...otherDoctors];
@@ -496,11 +475,8 @@ window.addEventListener('DOMContentLoaded', () => {
         }
       });
   } else if (currentStatusFilter === 'active') {
-    // If no pinned doctors, just load active doctors
     loadDoctors(true);
   }
-
-  // Add event listener for click outside for Add Doctor Modal
   document.getElementById('addDoctorModal').addEventListener('click', function(event) {
     const modalContent = document.getElementById('addDoctorModalContent');
     if (modalContent && !modalContent.contains(event.target)) {
@@ -508,7 +484,6 @@ window.addEventListener('DOMContentLoaded', () => {
     }
   });
 
-    // Add event listener for click outside for Pin Doctors Modal
   document.getElementById('pinModal').addEventListener('click', function(event) {
     const pinModalContent = document.getElementById('pinModalContent');
     if (pinModalContent && !pinModalContent.contains(event.target)) {
@@ -519,7 +494,6 @@ window.addEventListener('DOMContentLoaded', () => {
 </script>
 
 <style>
-/* Form Styles */
 .form-checkbox {
   border-radius: 0.25rem;
   border-color: #d1d5db;
@@ -530,7 +504,6 @@ window.addEventListener('DOMContentLoaded', () => {
   border-color: #2563eb;
 }
 
-/* Modal Styles */
 #addDoctorModal {
   backdrop-filter: blur(4px);
 }

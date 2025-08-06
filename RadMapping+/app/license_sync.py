@@ -17,15 +17,14 @@ def process_license_cell_update(sheet_id, row, col):
 
     data = ws.get_all_values()
     if row >= len(data):
-        print(f"❌ Row {row} out of range")
+        print(f"Row {row} out of range")
         return
 
-    headers = data[0]  # doctor names
-    specialties = data[1]  # specialty row
+    headers = data[0]  
+    specialties = data[1]  
     target_row = data[row]
     state = target_row[0].strip()
 
-    # Load radiologists
     radiologists = supabase.table("radiologists").select("id", "name").execute().data
 
     updated_rows = []
@@ -37,7 +36,6 @@ def process_license_cell_update(sheet_id, row, col):
         if not raw_name or not specialty or not cell_value:
             continue
 
-        # Match radiologist
         match_id = None
         target = raw_name.lower().split()[0]
         for r in radiologists:
@@ -47,10 +45,9 @@ def process_license_cell_update(sheet_id, row, col):
                 break
 
         if not match_id:
-            print(f"❌ No match for: {raw_name}")
+            print(f"No match for: {raw_name}")
             continue
 
-        # Parse expiration date
         try:
             exp_date = datetime.strptime(cell_value, "%m/%d/%Y").date()
         except Exception:

@@ -1,11 +1,10 @@
 from flask import Blueprint, render_template, session, redirect, url_for, request, jsonify
 from app.admin_required import admin_required
-# from app.supabase_client import supabase # This 'supabase' is likely unused and can be removed
-from datetime import datetime, timedelta # Import datetime
+from datetime import datetime, timedelta 
 import uuid
 from app.middleware import with_supabase_auth
 from app.supabase_client import get_supabase_client
-import logging # Import logging
+import logging 
 from app.audit_log import log_audit_action
 vacations_bp = Blueprint('vacations', __name__)
 
@@ -16,42 +15,33 @@ def vacations_page():
     
     logging.info("Fetching doctors and vacations for vacations_page.")
 
-    # Fetch all doctors
     doctors_res = supabase.table("radiologists").select("*").order("name").execute()
     doctors = doctors_res.data
     logging.info(f"Fetched {len(doctors)} doctors.")
 
-    # Fetch all vacations
     vacations_res = supabase.table("vacations").select("*, radiologists(*)").execute()
     vacations = vacations_res.data
     logging.info(f"Fetched {len(vacations)} vacations from Supabase.")
 
-    # Convert start_date and end_date strings to datetime objects for template rendering
     processed_vacations = []
     for vacation in vacations:
-        # Create a mutable copy if you're modifying elements directly in the list
-        # For simplicity, if we append to new list, we don't need shallow copy.
-        # If modifying in place within the original list, use vacation = vacation.copy()
-        
-        # Log the raw dates before conversion
         logging.info(f"Processing vacation ID: {vacation.get('id')}, Raw Start Date: {vacation.get('start_date')}, Raw End Date: {vacation.get('end_date')}")
 
         if vacation.get("start_date"):
             try:
-                # Assuming format is 'YYYY-MM-DD' from database
                 vacation["start_date"] = datetime.strptime(vacation["start_date"], "%Y-%m-%d")
                 logging.info(f"Converted start_date: {vacation['start_date']}")
             except ValueError as e:
                 logging.error(f"Error converting start_date '{vacation.get('start_date')}' for vacation {vacation.get('id')}: {e}")
-                vacation["start_date"] = None # Set to None or handle as invalid
+                vacation["start_date"] = None 
         if vacation.get("end_date"):
             try:
                 vacation["end_date"] = datetime.strptime(vacation["end_date"], "%Y-%m-%d")
                 logging.info(f"Converted end_date: {vacation['end_date']}")
             except ValueError as e:
                 logging.error(f"Error converting end_date '{vacation.get('end_date')}' for vacation {vacation.get('id')}: {e}")
-                vacation["end_date"] = None # Set to None or handle as invalid
-        processed_vacations.append(vacation) # Append to a new list if you want to avoid modifying original list in place
+                vacation["end_date"] = None 
+        processed_vacations.append(vacation) 
 
     today = datetime.now().date()
     month_start = today.replace(day=1)

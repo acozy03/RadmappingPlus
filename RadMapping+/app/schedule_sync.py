@@ -46,7 +46,6 @@ def run_google_sheet_sync(sheet_name: str = "March 2025"):
         return None
 
     def extract_all_times(cell_value):
-        # Step 1: selectively remove parentheses that contain 'PRN'
         def remove_prn_parens(text):
             return re.sub(r'\(([^)]*PRN[^)]*)\)', '', text, flags=re.IGNORECASE)
 
@@ -54,7 +53,6 @@ def run_google_sheet_sync(sheet_name: str = "March 2025"):
 
         matches = []
 
-        # Step 2: match all time ranges from the cleaned string
         for match in time_pattern.finditer(stripped):
             start_time = parse_time(match.group(1))
             end_time = parse_time(match.group(2))
@@ -62,7 +60,6 @@ def run_google_sheet_sync(sheet_name: str = "March 2025"):
                 matches.append((match.start(), start_time))
                 matches.append((match.end(), end_time))
 
-        # Step 3: add lone times not already part of a range
         for match in lone_time_pattern.finditer(stripped):
             t = parse_time(match.group(1))
             if not t:
@@ -146,7 +143,7 @@ def run_google_sheet_sync(sheet_name: str = "March 2025"):
                     "schedule_details": cell_value.title(),
                 })
             else:
-                print(f"⚠️ Unrecognized content: '{cell_value}' (Row {row_idx}, Col {col_idx})")
+                print(f"Unrecognized content: '{cell_value}' (Row {row_idx}, Col {col_idx})")
                 schedule_rows.append({
                     "id": str(uuid.uuid4()),
                     "radiologist_id": rad_id,
@@ -159,7 +156,6 @@ def run_google_sheet_sync(sheet_name: str = "March 2025"):
                     "schedule_details": cell_value,
                 })
 
-    # Delete existing entries for the month
     try:
         month_name, year = worksheet.title.strip().split()
         month_num = list(calendar.month_name).index(month_name)
@@ -172,16 +168,16 @@ def run_google_sheet_sync(sheet_name: str = "March 2025"):
             .gte("start_date", first_day.isoformat()) \
             .lte("start_date", last_day.isoformat()) \
             .execute()
-        print(f"🗑️ Old entries for {worksheet.title} deleted.")
+        print(f"Old entries for {worksheet.title} deleted.")
     except Exception as e:
-        print(f"❌ Failed to parse sheet title '{worksheet.title}': {e}")
+        print(f"Failed to parse sheet title '{worksheet.title}': {e}")
 
     if schedule_rows:
-        print("✅ Inserting rows...")
+        print("Inserting rows...")
         supabase.table("monthly_schedule").insert(schedule_rows).execute()
-        print(f"✅ Inserted {len(schedule_rows)} schedule rows.")
+        print(f"Inserted {len(schedule_rows)} schedule rows.")
     else:
-        print("⚠️ No valid schedule entries found.")
+        print("No valid schedule entries found.")
 
     return {
         "deleted_month": sheet_name,

@@ -244,7 +244,6 @@
 </div>
 
 <style>
-/* Custom styles for enhanced appearance */
 .line-clamp-3 {
   display: -webkit-box;
   -webkit-line-clamp: 3;
@@ -252,12 +251,10 @@
   overflow: hidden;
 }
 
-/* Enhanced card hover effects */
 .specialty-card:hover {
   box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.1), 0 10px 10px -5px rgba(0, 0, 0, 0.04);
 }
 
-/* Custom scrollbar for modals */
 .overflow-y-auto::-webkit-scrollbar {
   width: 6px;
 }
@@ -276,7 +273,6 @@
   background: linear-gradient(to bottom, #7c3aed, #2563eb);
 }
 
-/* Loading animation */
 @keyframes pulse {
   0%, 100% { opacity: 1; }
   50% { opacity: 0.5; }
@@ -369,7 +365,6 @@ function showDoctorsForSpecialty(specialtyId, specialtyName) {
       
       list.innerHTML = '';
       doctors.forEach(doc => {
-        // Fixed: Removed status dots from doctor display
         const div = document.createElement('div');
         div.className = 'flex items-center gap-3 p-4 rounded-lg hover:bg-gray-50 doctor-item border border-gray-200 transition-colors';
         div.innerHTML = `
@@ -475,8 +470,6 @@ function submitEditDoctors(e) {
   .then(data => {
     if (data.status === 'success') {
       closeEditDoctorsModal();
-      // Optionally, you might want to refresh the specialty cards or just indicate success
-      // window.location.reload(); // If you want to force a full refresh
     } else {
       alert('Failed to update doctors');
     }
@@ -510,7 +503,6 @@ function closeDeleteSpecialtyModal() {
   document.getElementById('deleteSpecialtyModal').classList.add('hidden');
 }
 
-// Add event listeners for click outside to close modals
 document.addEventListener('DOMContentLoaded', function() {
   const addSpecialtyModal = document.getElementById('addSpecialtyModal');
   const addSpecialtyModalContent = document.getElementById('addSpecialtyModalContent');
@@ -524,7 +516,6 @@ document.addEventListener('DOMContentLoaded', function() {
   const specialtyDoctorsModal = document.getElementById('specialtyDoctorsModal');
   const specialtyDoctorsModalContent = document.getElementById('specialtyDoctorsModalContent');
 
-  // Helper function to attach click-outside listener
   function setupClickOutsideToClose(modalElement, modalContentElement, closeFunction) {
     if (modalElement && modalContentElement) {
       modalElement.addEventListener('click', function(event) {

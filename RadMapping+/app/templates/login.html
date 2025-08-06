@@ -32,12 +32,10 @@
 
   const { data: { session } } = await supabase.auth.getSession()
 
-  // Get the next URL from template
   const nextUrl = "{{ next_url | e }}" 
   console.log("nextUrl from Flask template:", nextUrl)
 
   if (!session) {
-    // Auto-trigger login with `next` param encoded in redirect URL
     await supabase.auth.signInWithOAuth({
       provider: 'google',
       options: {
@@ -54,7 +52,6 @@
       await supabase.auth.signOut()
       window.location.href = 'https://www.google.com'   
     } else {
-      // Send session to Flask backend
       const res = await fetch("/auth/session", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
@@ -67,7 +64,7 @@
 
       if (res.ok) {
         console.log("Redirecting to:", nextUrl)
-        window.location.href = nextUrl  // Redirect to intended page
+        window.location.href = nextUrl 
       } else {
         alert("Failed to sync session with backend.")
         supabase.auth.signOut()
