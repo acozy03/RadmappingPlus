@@ -1,5 +1,6 @@
 from app.supabase_client import get_supabase_client
 
+# Helper functions to fetch all rows from table to get around 1000 row limit
 def fetch_all_rows(table: str, select_query: str = "*", batch_size: int = 1000):
     supabase = get_supabase_client()
     all_data = []
