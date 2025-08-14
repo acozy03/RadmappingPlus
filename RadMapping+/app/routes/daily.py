@@ -440,3 +440,4 @@ def sync_schedule():
     except Exception as e:
         print(f"Sync failed: {e}")
         return jsonify({"status": "error", "message": str(e)}), 500
+    

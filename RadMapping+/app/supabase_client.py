@@ -1,7 +1,7 @@
 import os
 import logging
 import jwt
-from flask import session, g, redirect, url_for
+from flask import session, g, redirect, url_for, request 
 from supabase import create_client, Client
 
 url = os.getenv("SUPABASE_URL", "").strip()
@@ -24,7 +24,7 @@ def get_supabase_client():
 
         if access_token and refresh_token:
             try:
-                logging.debug("Attempting to set Supabase session with tokens")
+                logging.debug("Attempting to set Supabase session with tokens from Flask session")
                 supabase.auth.set_session(access_token, refresh_token)
                 g.supabase_session_set = True
                 logging.debug("Successfully set Supabase session")
@@ -32,8 +32,22 @@ def get_supabase_client():
                 logging.error(f"Supabase session setting failed: {e}")
                 session.clear()
         else:
-            logging.warning("Missing or invalid access/refresh token.")
+            logging.warning("Missing or invalid access/refresh token in Flask session.")
             session.clear()
-
+    
+    auth_header = request.headers.get('Authorization')
+    if auth_header and not session.get("user"):
+        logging.info(f"Received Authorization header: {auth_header}")
+        try:
+            token_type, access_token = auth_header.split()
+            if token_type.lower() == 'bearer':
+                logging.debug("Attempting to set Supabase session from Authorization header")
+                supabase.auth.set_session(access_token, "") 
+                
+                g.supabase_session_set = True
+                logging.debug("Successfully set Supabase session from header")
+        except Exception as e:
+            logging.error(f"Failed to set Supabase session from header: {e}")
+            
     g.supabase_client = supabase
     return g.supabase_client

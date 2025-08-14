@@ -4,14 +4,23 @@
 {% block content %}
 <div class="max-w-6xl mx-auto">
     <div class="mb-8">
-        <div class="flex items-center mb-4">
-            <div class="w-12 h-12 bg-gradient-to-r from-blue-600 to-indigo-600 rounded-xl flex items-center justify-center mr-4">
-                <i class="fas fa-info-circle text-white text-xl"></i>
+        <div class="flex items-center justify-between flex-wrap gap-4 mb-4">
+            <div class="flex items-center">
+                <div class="w-12 h-12 bg-gradient-to-r from-blue-600 to-indigo-600 rounded-xl flex items-center justify-center mr-4">
+                    <i class="fas fa-info-circle text-white text-xl"></i>
+                </div>
+                <div>
+                    <h1 class="text-3xl font-bold text-gray-900">General Information</h1>
+                    <p class="text-gray-600">Important information and guidelines for the radiology department</p>
+                </div>
             </div>
-            <div>
-                <h1 class="text-3xl font-bold text-gray-900">General Information</h1>
-                <p class="text-gray-600">Important information and guidelines for the radiology department</p>
-            </div>
+            {% if session.user.role == 'admin' %}
+            <button onclick="openAddModal()" 
+                    class="inline-flex items-center px-6 py-3 bg-gradient-to-r from-blue-600 to-indigo-600 text-white font-medium rounded-lg shadow-lg hover:shadow-xl transform hover:-translate-y-0.5 transition-all duration-200">
+                <i class="fas fa-plus mr-2"></i>
+                Add New Article
+            </button>
+            {% endif %}
         </div>
         
         <div class="relative max-w-md">
@@ -27,377 +36,258 @@
     </div>
 
     <div class="grid grid-cols-1 lg:grid-cols-2 gap-6" id="infoSections">
-        
-        <section class="bg-white rounded-xl shadow-sm border border-gray-200 p-6 hover:shadow-md transition-shadow">
-            <div class="flex items-start mb-4">
-                <div class="w-10 h-10 bg-gradient-to-r from-purple-100 to-blue-100 rounded-lg flex items-center justify-center mr-3 flex-shrink-0">
-                    <i class="fas fa-calendar-alt text-purple-600"></i>
-                </div>
-                <h2 class="text-xl font-semibold text-gray-900">Weekend Cosigns</h2>
-            </div>
-            <div class="prose prose-gray max-w-none">
-                <div class="bg-blue-50 border-l-4 border-blue-400 p-4 rounded-r-lg">
-                    <p class="text-gray-700 leading-relaxed">
-                        If we receive an exam and do not have a credentialed radiologist available, this needs to be escalated to Operations before assigning to a non-credentialed doctor. Operations should check with the scheduled on-call person before confirming assignment.
-                    </p>
-                </div>
-            </div>
-        </section>
+        {% for article in articles %}
+        <section class="bg-white rounded-xl shadow-sm border border-gray-200 p-6 hover:shadow-md transition-shadow info-article" data-id="{{ article.id }}" data-title="{{ article.title }}" data-content="{{ article.content }}" data-category="{{ article.category }}" data-theme="{{ article.theme }}" data-icon="{{ article.icon }}">
+            <div class="flex items-start mb-4 justify-between">
+                <div class="flex items-start">
+                    {% set icon_class = article.icon %}
+                    {% set theme = article.theme %}
+                    
+                    {% set icon_theme = 'bg-blue-100 to-blue-100 text-blue-600' %}
+                    {% set content_bg = 'bg-blue-50' %}
+                    {% set content_border = 'border-blue-400' %}
 
-        <section class="bg-white rounded-xl shadow-sm border border-gray-200 p-6 hover:shadow-md transition-shadow">
-            <div class="flex items-start mb-4">
-                <div class="w-10 h-10 bg-gradient-to-r from-orange-100 to-red-100 rounded-lg flex items-center justify-center mr-3 flex-shrink-0">
-                    <i class="fas fa-comments text-orange-600"></i>
-                </div>
-                <h2 class="text-xl font-semibold text-gray-900">Tiger Text Guidelines</h2>
-            </div>
-            <div class="prose prose-gray max-w-none">
-                <div class="bg-orange-50 border-l-4 border-orange-400 p-4 rounded-r-lg mb-4">
-                    <p class="text-gray-700 leading-relaxed">
-                        When the facilities (except for <span class="font-medium">Salinas, Lake Granbury, and The Breast Centers</span>) reach out on Tiger Text about anything outside of a Radiologist call back and or a Critical Finding, please be sure to follow the below:
-                    </p>
-                </div>
-                <div class="bg-yellow-50 border border-yellow-200 rounded-lg p-4">
-                    <p class="text-gray-700 leading-relaxed">
-                        We need to be sure to answer their question but also include <span class="font-medium">"However, TT should only be used for Radiologist Call Backs and Critical Findings. Please reach out Via email (support@vestatelemed.com) and or via phone (407-738-4085) for any other inquiries"</span>.
-                    </p>
-                </div>
-            </div>
-        </section>
-
-        <section class="lg:col-span-2 bg-white rounded-xl shadow-sm border border-gray-200 p-6 hover:shadow-md transition-shadow">
-            <div class="flex items-start mb-4">
-                <div class="w-10 h-10 bg-gradient-to-r from-green-100 to-emerald-100 rounded-lg flex items-center justify-center mr-3 flex-shrink-0">
-                    <i class="fas fa-clock text-green-600"></i>
-                </div>
-                <h2 class="text-xl font-semibold text-gray-900">Routine Addendums (24 hour TAT)</h2>
-            </div>
-            <div class="prose prose-gray max-w-none">
-                <div class="bg-green-50 border-l-4 border-green-400 p-4 rounded-r-lg mb-4">
-                    <p class="text-gray-800 font-semibold mb-3">Once the update has hit TAT in needs addendum status (24 hour mark):</p>
-                    <ul class="list-disc pl-5 space-y-2 text-gray-700">
-                        <li>Confirm the study comments are updated properly.</li>
-                        <li>Confirm the exam is assigned to the original reading radiologist.</li>
-                        <li>Was the report released or is it a preliminary report?</li>
-                    </ul>
-                </div>
-                
-                <div class="grid md:grid-cols-2 gap-4 mb-4">
-                    <div class="bg-blue-50 border border-blue-200 rounded-lg p-4">
-                        <p class="text-blue-800 font-semibold mb-2">If released:</p>
-                        <p class="text-gray-700 text-sm">The exam should remain in the reading Radiologist work list. Follow up and include that the update has been pending for 24 hours now.</p>
+                    {% if theme == 'purple-blue' %}
+                        {% set icon_theme = 'from-purple-100 to-blue-100 text-purple-600' %}
+                        {% set content_bg = 'bg-purple-50' %}
+                        {% set content_border = 'border-purple-400' %}
+                    {% elif theme == 'orange-red' %}
+                        {% set icon_theme = 'from-orange-100 to-red-100 text-orange-600' %}
+                        {% set content_bg = 'bg-orange-50' %}
+                        {% set content_border = 'border-orange-400' %}
+                    {% elif theme == 'green-emerald' %}
+                        {% set icon_theme = 'from-green-100 to-emerald-100 text-green-600' %}
+                        {% set content_bg = 'bg-green-50' %}
+                        {% set content_border = 'border-green-400' %}
+                    {% elif theme == 'indigo-purple' %}
+                        {% set icon_theme = 'from-indigo-100 to-purple-100 text-indigo-600' %}
+                        {% set content_bg = 'bg-indigo-50' %}
+                        {% set content_border = 'border-indigo-400' %}
+                    {% elif theme == 'teal-cyan' %}
+                        {% set icon_theme = 'from-teal-100 to-cyan-100 text-teal-600' %}
+                        {% set content_bg = 'bg-teal-50' %}
+                        {% set content_border = 'border-teal-400' %}
+                    {% elif theme == 'pink-rose' %}
+                        {% set icon_theme = 'from-pink-100 to-rose-100 text-pink-600' %}
+                        {% set content_bg = 'bg-pink-50' %}
+                        {% set content_border = 'border-pink-400' %}
+                    {% elif theme == 'amber-yellow' %}
+                        {% set icon_theme = 'from-amber-100 to-yellow-100 text-amber-600' %}
+                        {% set content_bg = 'bg-amber-50' %}
+                        {% set content_border = 'border-amber-400' %}
+                    {% elif theme == 'red-pink' %}
+                        {% set icon_theme = 'from-red-100 to-pink-100 text-red-600' %}
+                        {% set content_bg = 'bg-red-50' %}
+                        {% set content_border = 'border-red-400' %}
+                    {% endif %}
+                    
+                    <div class="w-10 h-10 bg-gradient-to-r {{ icon_theme }} rounded-lg flex items-center justify-center mr-3 flex-shrink-0">
+                        <i class="{{ icon_class }}"></i>
                     </div>
-                    <div class="bg-yellow-50 border border-yellow-200 rounded-lg p-4">
-                        <p class="text-yellow-800 font-semibold mb-2">If preliminary report:</p>
-                        <p class="text-gray-700 text-sm">Confirm that the original reading Radiologist was reached out to. If no response or update, remove the report (add to the drive) and reassign for a complete new read.</p>
+                    <div>
+                        <h2 class="text-xl font-semibold text-gray-900">{{ article.title }}</h2>
+                        <span class="text-xs text-gray-500">{{ article.category }}</span>
                     </div>
                 </div>
-                
-                <div class="bg-red-50 border border-red-200 rounded-lg p-4">
-                    <p class="text-red-700 font-semibold flex items-center">
-                        <i class="fas fa-exclamation-triangle mr-2"></i>
-                        Once the update has hit 48 hours in needs addendum status: ESCALATE
-                    </p>
+                {% if session.user.role == 'admin' %}
+                <div class="flex-shrink-0 flex space-x-2">
+                    <button onclick="openEditModal(this)"
+                            class="text-blue-600 hover:text-blue-800 transition-colors">
+                        <i class="fas fa-edit"></i>
+                    </button>
+                    <button onclick="deleteArticle('{{ article.id }}')"
+                            class="text-red-600 hover:text-red-800 transition-colors">
+                        <i class="fas fa-trash-alt"></i>
+                    </button>
                 </div>
-            </div>
-        </section>
-
-        <section class="lg:col-span-2 bg-white rounded-xl shadow-sm border border-gray-200 p-6 hover:shadow-md transition-shadow">
-            <div class="flex items-start mb-4">
-                <div class="w-10 h-10 bg-gradient-to-r from-indigo-100 to-purple-100 rounded-lg flex items-center justify-center mr-3 flex-shrink-0">
-                    <i class="fas fa-moon text-indigo-600"></i>
-                </div>
-                <h2 class="text-xl font-semibold text-gray-900">Late Night/Early Morning Coverage</h2>
+                {% endif %}
             </div>
             <div class="prose prose-gray max-w-none">
-                <div class="bg-indigo-50 border-l-4 border-indigo-400 p-4 rounded-r-lg mb-4">
-                    <p class="text-gray-700 leading-relaxed mb-2">Doctors which can be reached during the late nights/early mornings and the time frames:</p>
-                    <p class="text-gray-600 italic text-sm">Each doctor should only be reached once a night. Please do not continue to reach out if they do not respond or log in.</p>
-                </div>
-                
-                <div class="grid md:grid-cols-2 gap-6">
-                    <div class="bg-blue-50 border border-blue-200 rounded-lg p-4">
-                        <h3 class="font-semibold text-blue-800 mb-3 flex items-center">
-                            <i class="fas fa-clock mr-2"></i>9pm-12am EST
-                        </h3>
-                        <p class="text-gray-700 text-sm mb-3">Please check with Caroline first</p>
-                        <ul class="space-y-1">
-                            <li class="flex items-center text-sm text-gray-700">
-                                <span class="w-2 h-2 bg-blue-400 rounded-full mr-2"></span>Kumar
-                            </li>
-                            <li class="flex items-center text-sm text-gray-700">
-                                <span class="w-2 h-2 bg-blue-400 rounded-full mr-2"></span>Preusen
-                            </li>
-                            <li class="flex items-center text-sm text-gray-700">
-                                <span class="w-2 h-2 bg-blue-400 rounded-full mr-2"></span>Malek
-                            </li>
-                            <li class="flex items-center text-sm text-gray-700">
-                                <span class="w-2 h-2 bg-yellow-400 rounded-full mr-2"></span>Sanghi - only if scheduled, request to come early
-                            </li>
-                        </ul>
-                    </div>
-
-                    <div class="bg-purple-50 border border-purple-200 rounded-lg p-4">
-                        <h3 class="font-semibold text-purple-800 mb-3 flex items-center">
-                            <i class="fas fa-clock mr-2"></i>12am-3am EST
-                        </h3>
-                        <p class="text-gray-700 text-sm mb-3">Okay to reach out without escalation but make a logical judgment call</p>
-                        <ul class="space-y-1">
-                            <li class="flex items-center text-sm text-gray-700">
-                                <span class="w-2 h-2 bg-yellow-400 rounded-full mr-2"></span>Bouassaly - only if scheduled, request to come early
-                            </li>
-                            <li class="flex items-center text-sm text-gray-700">
-                                <span class="w-2 h-2 bg-purple-400 rounded-full mr-2"></span>Dar
-                            </li>
-                            <li class="flex items-center text-sm text-gray-700">
-                                <span class="w-2 h-2 bg-purple-400 rounded-full mr-2"></span>Dolin
-                            </li>
-                            <li class="flex items-center text-sm text-gray-700">
-                                <span class="w-2 h-2 bg-purple-400 rounded-full mr-2"></span>Gabe
-                            </li>
-                            <li class="flex items-center text-sm text-gray-700">
-                                <span class="w-2 h-2 bg-yellow-400 rounded-full mr-2"></span>Jafery - only if scheduled, request to come early
-                            </li>
-                            <li class="flex items-center text-sm text-gray-700">
-                                <span class="w-2 h-2 bg-purple-400 rounded-full mr-2"></span>Solanki
-                            </li>
-                            <li class="flex items-center text-sm text-gray-700">
-                                <span class="w-2 h-2 bg-purple-400 rounded-full mr-2"></span>Shaker
-                            </li>
-                        </ul>
-                    </div>
-                </div>
-                
-                <div class="bg-red-50 border border-red-200 rounded-lg p-4 mt-4">
-                    <p class="text-red-700 font-semibold flex items-center mb-2">
-                        <i class="fas fa-exclamation-triangle mr-2"></i>
-                        PLEASE BE SURE TO CHECK THE SCHEDULE BEFORE REACHING OUT
-                    </p>
-                    <p class="text-gray-700 text-sm">If the schedule shows "VACATION" or "DO NOT REACH OUT" - Please be sure we DO NOT reach out for help.</p>
+                <div class="{{ content_bg }} border-l-4 {{ content_border }} p-4 rounded-r-lg">
+                    <p class="text-gray-700 leading-relaxed" style="white-space: pre-wrap;">{{ article.content }}</p>
                 </div>
             </div>
         </section>
-
-        <section class="bg-white rounded-xl shadow-sm border border-gray-200 p-6 hover:shadow-md transition-shadow">
-            <div class="flex items-start mb-4">
-                <div class="w-10 h-10 bg-gradient-to-r from-teal-100 to-cyan-100 rounded-lg flex items-center justify-center mr-3 flex-shrink-0">
-                    <i class="fas fa-phone text-teal-600"></i>
-                </div>
-                <h2 class="text-xl font-semibold text-gray-900">Communicating with Radiologists</h2>
+        {% else %}
+        <div class="col-span-full text-center py-12">
+            <div class="w-16 h-16 bg-gray-100 rounded-full flex items-center justify-center mx-auto mb-4">
+                <i class="fas fa-folder-open text-gray-400 text-xl"></i>
             </div>
-            <div class="prose prose-gray max-w-none">
-                <div class="bg-red-50 border-l-4 border-red-400 p-4 rounded-r-lg mb-4">
-                    <p class="text-gray-700 leading-relaxed">
-                        Please be sure to <span class="font-semibold text-red-600">NOT call the doctors without permission</span> from Operations or a Lead. The ONLY time the team should immediately call a doctor without approval is for a <span class="font-semibold">STROKE exam</span>.
-                    </p>
-                </div>
-                <div class="bg-teal-50 border border-teal-200 rounded-lg p-4">
-                    <p class="text-gray-700 leading-relaxed">
-                        When communicating with the doctors, the first option should be via <span class="font-medium">text/Google chat</span>. The Radiologist information has their preferred way to communicate which will provide you with the number to text or direct you to Google chat.
-                    </p>
-                </div>
-            </div>
-        </section>
-
-        <section class="bg-white rounded-xl shadow-sm border border-gray-200 p-6 hover:shadow-md transition-shadow">
-            <div class="flex items-start mb-4">
-                <div class="w-10 h-10 bg-gradient-to-r from-pink-100 to-rose-100 rounded-lg flex items-center justify-center mr-3 flex-shrink-0">
-                    <i class="fas fa-file-alt text-pink-600"></i>
-                </div>
-                <h2 class="text-xl font-semibold text-gray-900">Routine Radiologist Call Back Protocol</h2>
-            </div>
-            <div class="prose prose-gray max-w-none">
-                <div class="bg-pink-50 border-l-4 border-pink-400 p-4 rounded-r-lg mb-4">
-                    <p class="text-gray-700 leading-relaxed mb-3">
-                        The protocol has been updated. Please refer to the following document for specific changes:
-                    </p>
-                    <a href="https://docs.google.com/document/d/1D00HVju4C1F1a0w16u5OoqUGy3TpqYxq/edit" 
-                       class="inline-flex items-center px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors text-sm font-medium"
-                       target="_blank">
-                        <i class="fas fa-external-link-alt mr-2"></i>
-                        View Updated Protocol
-                    </a>
-                </div>
-            </div>
-        </section>
-        <section class="lg:col-span-2 bg-white rounded-xl shadow-sm border border-gray-200 p-6 hover:shadow-md transition-shadow">
-            <div class="flex items-start mb-4">
-                <div class="w-10 h-10 bg-gradient-to-r from-amber-100 to-yellow-100 rounded-lg flex items-center justify-center mr-3 flex-shrink-0">
-                    <i class="fas fa-clipboard-check text-amber-600"></i>
-                </div>
-                <h2 class="text-xl font-semibold text-gray-900">Peer Review - Rolling Plains</h2>
-            </div>
-            <div class="prose prose-gray max-w-none">
-                <div class="bg-amber-50 border-l-4 border-amber-400 p-4 rounded-r-lg">
-                    <p class="text-gray-700 leading-relaxed">
-                        Rolling Plains would like for <span class="font-semibold">EVERY Peer Review Scoring Report</span> to be sent to them via email moving forward. The peer review protocol has been updated as well.
-                    </p>
-                </div>
-            </div>
-        </section>
-
-        <section class="lg:col-span-2 bg-white rounded-xl shadow-sm border border-gray-200 p-6 hover:shadow-md transition-shadow">
-            <div class="flex items-start mb-6">
-                <div class="w-10 h-10 bg-gradient-to-r from-red-100 to-pink-100 rounded-lg flex items-center justify-center mr-3 flex-shrink-0">
-                    <i class="fas fa-exclamation-triangle text-red-600"></i>
-                </div>
-                <h2 class="text-xl font-semibold text-gray-900">Escalation Procedures</h2>
-            </div>
-            
-            <div class="grid lg:grid-cols-3 gap-6">
-                <div class="bg-red-50 border border-red-200 rounded-lg p-4">
-                    <h3 class="text-lg font-semibold text-red-700 mb-4 flex items-center">
-                        <i class="fas fa-fire mr-2"></i>High Level Escalations
-                    </h3>
-                    <ul class="space-y-3 text-sm">
-                        <li class="flex items-start">
-                            <span class="w-2 h-2 bg-red-500 rounded-full mr-2 mt-2 flex-shrink-0"></span>
-                            <span class="text-gray-700">IT Issues in which a Facility/Hospital cannot send exams. <span class="font-semibold text-red-600">Escalate to Management</span></span>
-                        </li>
-                        <li class="flex items-start">
-                            <span class="w-2 h-2 bg-red-500 rounded-full mr-2 mt-2 flex-shrink-0"></span>
-                            <span class="text-gray-700">Radiologist out for an emergency with a large gap in coverage. <span class="font-semibold text-red-600">Escalate to Management</span></span>
-                        </li>
-                        <li class="flex items-start">
-                            <span class="w-2 h-2 bg-red-500 rounded-full mr-2 mt-2 flex-shrink-0"></span>
-                            <span class="text-gray-700">Ramsoft or Emsow PACS is down</span>
-                        </li>
-                        <li class="flex items-start">
-                            <span class="w-2 h-2 bg-red-500 rounded-full mr-2 mt-2 flex-shrink-0"></span>
-                            <span class="text-gray-700">Multiple Radiologists unable to dictate. <span class="font-semibold text-red-600">Escalate to Management</span></span>
-                        </li>
-                        <li class="flex items-start">
-                            <span class="w-2 h-2 bg-red-500 rounded-full mr-2 mt-2 flex-shrink-0"></span>
-                            <span class="text-gray-700">No Credentialed Radiologists available. <span class="font-semibold text-red-600">Escalate to Operations</span></span>
-                        </li>
-                    </ul>
-                </div>
-
-                <div class="bg-yellow-50 border border-yellow-200 rounded-lg p-4">
-                    <h3 class="text-lg font-semibold text-yellow-700 mb-4 flex items-center">
-                        <i class="fas fa-exclamation-circle mr-2"></i>Medium Level Escalations
-                    </h3>
-                    <ul class="space-y-3 text-sm">
-                        <li class="flex items-start">
-                            <span class="w-2 h-2 bg-yellow-500 rounded-full mr-2 mt-2 flex-shrink-0"></span>
-                            <span class="text-gray-700">Code Stroke - Anything nearing 30 mins. <span class="font-semibold text-yellow-600">Must escalate to Operations</span></span>
-                        </li>
-                        <li class="flex items-start">
-                            <span class="w-2 h-2 bg-yellow-500 rounded-full mr-2 mt-2 flex-shrink-0"></span>
-                            <span class="text-gray-700">STAT Exams - Over 2 hours <span class="font-semibold text-yellow-600">must escalate to Operations</span></span>
-                        </li>
-                        <li class="flex items-start">
-                            <span class="w-2 h-2 bg-yellow-500 rounded-full mr-2 mt-2 flex-shrink-0"></span>
-                            <span class="text-gray-700">Single Radiologist unable to dictate. <span class="font-semibold text-yellow-600">Escalate to Operations</span></span>
-                        </li>
-                        <li class="flex items-start">
-                            <span class="w-2 h-2 bg-yellow-500 rounded-full mr-2 mt-2 flex-shrink-0"></span>
-                            <span class="text-gray-700">Facility/Hospital HL7 down. <span class="font-semibold text-yellow-600">Escalate to Operations</span></span>
-                        </li>
-                    </ul>
-                </div>
-
-                <div class="bg-green-50 border border-green-200 rounded-lg p-4">
-                    <h3 class="text-lg font-semibold text-green-700 mb-4 flex items-center">
-                        <i class="fas fa-info-circle mr-2"></i>Low Level Escalations
-                    </h3>
-                    <ul class="space-y-3 text-sm">
-                        <li class="flex items-start">
-                            <span class="w-2 h-2 bg-green-500 rounded-full mr-2 mt-2 flex-shrink-0"></span>
-                            <span class="text-gray-700">Specialty exams over 2 hours. <span class="font-semibold text-green-600">Escalate to Operations</span></span>
-                        </li>
-                        <li class="flex items-start">
-                            <span class="w-2 h-2 bg-green-500 rounded-full mr-2 mt-2 flex-shrink-0"></span>
-                            <span class="text-gray-700">Non-essential function problems. <span class="font-semibold text-green-600">Email Operations/IT</span></span>
-                        </li>
-                        <li class="flex items-start">
-                            <span class="w-2 h-2 bg-green-500 rounded-full mr-2 mt-2 flex-shrink-0"></span>
-                            <span class="text-gray-700">Software configuration requests. <span class="font-semibold text-green-600">Email Operations/IT</span></span>
-                        </li>
-                        <li class="flex items-start">
-                            <span class="w-2 h-2 bg-green-500 rounded-full mr-2 mt-2 flex-shrink-0"></span>
-                            <span class="text-gray-700">Radiologist requesting more routine exams can be escalated next morning.</span>
-                        </li>
-                    </ul>
-                </div>
-            </div>
-        </section>
+            <p class="text-gray-500 font-medium">No articles found</p>
+            <p class="text-gray-400 text-sm">Add a new article to get started</p>
+        </div>
+        {% endfor %}
     </div>
 </div>
 
-<style>
-section:hover {
-    transform: translateY(-2px);
-}
+<div id="addModal" class="fixed inset-0 z-50 hidden bg-black bg-opacity-50 flex items-center justify-center p-4" onclick="if(event.target === this) closeAddModal();">
+    <div class="bg-white rounded-xl shadow-2xl w-full max-w-xl max-h-[90vh] overflow-y-auto transform transition-all" onclick="event.stopPropagation();">
+        <div class="flex items-center justify-between p-6 border-b border-gray-200">
+            <h3 class="text-lg font-semibold text-gray-900">Add New Article</h3>
+            <button onclick="closeAddModal()" class="p-2 text-gray-400 hover:text-gray-600 hover:bg-gray-100 rounded-lg transition-colors">
+                <i class="fas fa-times"></i>
+            </button>
+        </div>
+        <form method="POST" action="{{ url_for('info.add_article') }}" class="p-6 space-y-4">
+            <div>
+                <label class="block text-sm font-medium text-gray-700 mb-1">Title</label>
+                <input type="text" name="title" required class="w-full px-4 py-3 border border-gray-300 rounded-lg">
+            </div>
+            <div>
+                <label class="block text-sm font-medium text-gray-700 mb-1">Category</label>
+                <input type="text" name="category" class="w-full px-4 py-3 border border-gray-300 rounded-lg">
+            </div>
+            <div>
+                <label class="block text-sm font-medium text-gray-700 mb-1">Color Theme</label>
+                <select name="theme" class="w-full px-4 py-3 border border-gray-300 rounded-lg">
+                    {% for theme in available_themes %}
+                    <option value="{{ theme }}">{{ theme }}</option>
+                    {% endfor %}
+                </select>
+            </div>
+            <div>
+                <label class="block text-sm font-medium text-gray-700 mb-1">Icon</label>
+                <select name="icon" class="w-full px-4 py-3 border border-gray-300 rounded-lg">
+                    {% for icon in available_icons %}
+                    <option value="{{ icon }}">{{ icon }}</option>
+                    {% endfor %}
+                </select>
+            </div>
+            <div>
+                <label class="block text-sm font-medium text-gray-700 mb-1">Content</label>
+                <textarea name="content" rows="6" required class="w-full px-4 py-3 border border-gray-300 rounded-lg resize-none"></textarea>
+            </div>
+            <div class="flex justify-end gap-3 pt-2">
+                <button type="button" onclick="closeAddModal()" class="px-4 py-2 text-gray-700 bg-gray-100 rounded-lg">Cancel</button>
+                <button type="submit" class="px-6 py-2 bg-gradient-to-r from-blue-600 to-indigo-600 text-white rounded-lg">Add Article</button>
+            </div>
+        </form>
+    </div>
+</div>
 
-.overflow-y-auto::-webkit-scrollbar {
-    width: 6px;
-}
-
-.overflow-y-auto::-webkit-scrollbar-track {
-    background: #f1f5f9;
-    border-radius: 3px;
-}
-
-.overflow-y-auto::-webkit-scrollbar-thumb {
-    background: linear-gradient(to bottom, #3b82f6, #1d4ed8);
-    border-radius: 3px;
-}
-
-.overflow-y-auto::-webkit-scrollbar-thumb:hover {
-    background: linear-gradient(to bottom, #2563eb, #1e40af);
-}
-
-* {
-    transition: all 0.2s ease-in-out;
-}
-
-input:focus {
-    box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.1);
-}
-</style>
+<div id="editModal" class="fixed inset-0 z-50 hidden bg-black bg-opacity-50 flex items-center justify-center p-4" onclick="if(event.target === this) closeEditModal();">
+    <div class="bg-white rounded-xl shadow-2xl w-full max-w-xl max-h-[90vh] overflow-y-auto transform transition-all" onclick="event.stopPropagation();">
+        <div class="flex items-center justify-between p-6 border-b border-gray-200">
+            <h3 class="text-lg font-semibold text-gray-900">Edit Article</h3>
+            <button onclick="closeEditModal()" class="p-2 text-gray-400 hover:text-gray-600 hover:bg-gray-100 rounded-lg transition-colors">
+                <i class="fas fa-times"></i>
+            </button>
+        </div>
+        <form id="editForm" method="POST" class="p-6 space-y-4">
+            <input type="hidden" name="id" id="editArticleId">
+            <div>
+                <label class="block text-sm font-medium text-gray-700 mb-1">Title</label>
+                <input type="text" name="title" id="editTitle" required class="w-full px-4 py-3 border border-gray-300 rounded-lg">
+            </div>
+            <div>
+                <label class="block text-sm font-medium text-gray-700 mb-1">Category</label>
+                <input type="text" name="category" id="editCategory" class="w-full px-4 py-3 border border-gray-300 rounded-lg">
+            </div>
+            <div>
+                <label class="block text-sm font-medium text-gray-700 mb-1">Color Theme</label>
+                <select name="theme" id="editTheme" class="w-full px-4 py-3 border border-gray-300 rounded-lg">
+                    {% for theme in available_themes %}
+                    <option value="{{ theme }}">{{ theme }}</option>
+                    {% endfor %}
+                </select>
+            </div>
+            <div>
+                <label class="block text-sm font-medium text-gray-700 mb-1">Icon</label>
+                <select name="icon" id="editIcon" class="w-full px-4 py-3 border border-gray-300 rounded-lg">
+                    {% for icon in available_icons %}
+                    <option value="{{ icon }}">{{ icon }}</option>
+                    {% endfor %}
+                </select>
+            </div>
+            <div>
+                <label class="block text-sm font-medium text-gray-700 mb-1">Content</label>
+                <textarea name="content" id="editContent" rows="6" required class="w-full px-4 py-3 border border-gray-300 rounded-lg resize-none"></textarea>
+            </div>
+            <div class="flex justify-end gap-3 pt-2">
+                <button type="button" onclick="closeEditModal()" class="px-4 py-2 text-gray-700 bg-gray-100 rounded-lg">Cancel</button>
+                <button type="submit" class="px-6 py-2 bg-gradient-to-r from-blue-600 to-indigo-600 text-white rounded-lg">Save Changes</button>
+            </div>
+        </form>
+    </div>
+</div>
 
 <script>
-function filterInfo() {
-    const searchTerm = document.getElementById('infoSearch').value.toLowerCase();
-    const sections = document.querySelectorAll('#infoSections > section');
-    
-    sections.forEach(section => {
-        const title = section.querySelector('h2').textContent.toLowerCase();
-        const content = section.textContent.toLowerCase();
+    function openAddModal() {
+        document.getElementById('addModal').classList.remove('hidden');
+    }
+
+    function closeAddModal() {
+        document.getElementById('addModal').classList.add('hidden');
+    }
+
+    function openEditModal(button) {
+        const article = button.closest('.info-article');
+        const id = article.dataset.id;
+        const title = article.dataset.title;
+        const content = article.dataset.content;
+        const category = article.dataset.category;
+        const theme = article.dataset.theme;
+        const icon = article.dataset.icon;
         
-        if (title.includes(searchTerm) || content.includes(searchTerm)) {
-            section.style.display = 'block';
-            section.style.opacity = '1';
-            section.style.transform = 'translateY(0)';
-        } else {
-            section.style.display = 'none';
-            section.style.opacity = '0';
-            section.style.transform = 'translateY(10px)';
-        }
-    });
-    
-    const visibleSections = Array.from(sections).filter(section => section.style.display !== 'none');
-    if (visibleSections.length === 0 && searchTerm.trim() !== '') {
-        if (!document.getElementById('noResults')) {
-            const noResults = document.createElement('div');
-            noResults.id = 'noResults';
-            noResults.className = 'col-span-full text-center py-12';
-            noResults.innerHTML = `
-                <div class="w-16 h-16 bg-gray-100 rounded-full flex items-center justify-center mx-auto mb-4">
-                    <i class="fas fa-search text-gray-400 text-xl"></i>
-                </div>
-                <p class="text-gray-500 font-medium">No information found</p>
-                <p class="text-gray-400 text-sm">Try searching with different keywords</p>
-            `;
-            document.getElementById('infoSections').appendChild(noResults);
-        }
-    } else {
-        const noResults = document.getElementById('noResults');
-        if (noResults) {
-            noResults.remove();
+        const editForm = document.getElementById('editForm');
+        editForm.action = `/radmapping/info/${id}/edit`;
+        document.getElementById('editArticleId').value = id;
+        document.getElementById('editTitle').value = title;
+        document.getElementById('editContent').value = content;
+        document.getElementById('editCategory').value = category;
+        document.getElementById('editTheme').value = theme;
+        document.getElementById('editIcon').value = icon;
+        document.getElementById('editModal').classList.remove('hidden');
+    }
+
+    function closeEditModal() {
+        document.getElementById('editModal').classList.add('hidden');
+    }
+
+    function deleteArticle(id) {
+        if (confirm('Are you sure you want to delete this article?')) {
+            const form = document.createElement('form');
+            form.method = 'POST';
+            form.action = `/radmapping/info/${id}/delete`;
+            document.body.appendChild(form);
+            form.submit();
         }
     }
-}
+
+    function filterInfo() {
+        const searchTerm = document.getElementById('infoSearch').value.toLowerCase();
+        const articles = document.querySelectorAll('.info-article');
+        let visibleCount = 0;
+        articles.forEach(article => {
+            const title = article.dataset.title.toLowerCase();
+            const content = article.dataset.content.toLowerCase();
+            const category = article.dataset.category.toLowerCase();
+            if (title.includes(searchTerm) || content.includes(searchTerm) || category.includes(searchTerm)) {
+                article.style.display = 'block';
+                visibleCount++;
+            } else {
+                article.style.display = 'none';
+            }
+        });
+
+        const noResultsDiv = document.getElementById('no-results');
+        if (visibleCount === 0) {
+            if (!noResultsDiv) {
+                const noResults = document.createElement('div');
+                noResults.id = 'no-results';
+                noResults.className = 'col-span-full text-center py-12';
+                noResults.innerHTML = `
+                    <div class="w-16 h-16 bg-gray-100 rounded-full flex items-center justify-center mx-auto mb-4">
+                        <i class="fas fa-search text-gray-400 text-xl"></i>
+                    </div>
+                    <p class="text-gray-500 font-medium">No articles found</p>
+                    <p class="text-gray-400 text-sm">Try searching with different keywords</p>
+                `;
+                document.getElementById('infoSections').appendChild(noResults);
+            }
+        } else if (noResultsDiv) {
+            noResultsDiv.remove();
+        }
+    }
 </script>
 {% endblock %}

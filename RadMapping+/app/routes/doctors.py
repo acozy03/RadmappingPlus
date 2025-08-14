@@ -764,3 +764,26 @@ def radmapping_sync():
         print("Exception occurred during radmapping_sync:")
         print(traceback.format_exc())
         return jsonify({"error": "Internal server error"}), 500
+
+@doctors_bp.route('/api/doctors', methods=['GET'])
+# @with_supabase_auth
+def get_doctors_api():
+    """
+    A public API endpoint to get doctor data from the radiologists table.
+    """
+    try:
+        supabase = get_supabase_client()
+        search_term = request.args.get('search', '')
+
+        if not search_term:
+            return jsonify({'error': 'No search term provided.'}), 400
+
+        results = supabase.table("radiologists").select("*").ilike('name', f'%{search_term}%').execute()
+
+        if results.data:
+            return jsonify(results.data), 200
+        else:
+            return jsonify({'message': 'No doctors found.'}), 404
+
+    except Exception as e:
+        return jsonify({'error': str(e)}), 500
