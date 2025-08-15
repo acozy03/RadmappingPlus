@@ -562,19 +562,19 @@ def remove_assignment(facility_id, assignment_id):
 def add_facility():
     supabase = get_supabase_client()
     new_id = str(uuid.uuid4())
-    
+    data = request.get_json()
     data = {
         "id": new_id,
-        "name": request.form.get("name"),
-        "pacs": request.form.get("pacs"),
-        "location": request.form.get("location"),
-        "modalities_assignment_period": request.form.get("modalities_assignment_period"),
-        "tat_definition": request.form.get("tat_definition"),
-        "modalities": request.form.get("modalities"),
-        "active_status": "true" if request.form.get("active_status") == "true" else "false",
-        "qa_criteria": request.form.get("qa_criteria"),
-        "monitoring": request.form.get("monitoring"),
-        "account_poc": request.form.get("account_poc")  
+        "name": data.get("name"),
+        "location": data.get("location"),
+        "pacs": data.get("pacs"),
+        "tat_definition": data.get("tat_definition"),
+        "modalities_assignment_period": data.get("modalities_assignment_period"),
+        "modalities": data.get("modalities"),
+        "qa_criteria": data.get("qa_criteria"),
+        "monitoring": data.get("monitoring"),
+        "active_status": 'true' if data.get("active_status") else 'false',
+        "account_poc": data.get("account_poc")
     }
 
     res = supabase.table("facilities").insert(data).execute()
