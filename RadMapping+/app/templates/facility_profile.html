@@ -325,11 +325,11 @@
     <td class="px-4 py-2 border-b">{{ assignment.notes or "—" }}</td>
                 {% if session.user.role == 'admin' %}
                 <td class="px-4 py-2 border-b">
-                  <form action="{{ url_for('facilities.remove_assignment', facility_id=facility.id, assignment_id=assignment.id) }}" method="POST" style="display: inline;">
-                    <button type="submit" class="bg-red-100 text-red-700 px-3 py-1 rounded hover:bg-red-200 text-sm" onclick="return confirm('Are you sure you want to remove this assignment?')">
-                      Remove
-                    </button>
-                  </form>
+                  <form action="{{ url_for('facilities.remove_assignment', facility_id=facility.id, assignment_id=assignment.id) }}" method="POST" style="display: inline;" onsubmit="return confirm('Are you sure you want to remove this assignment?');">
+  <button type="submit" class="bg-red-100 text-red-700 px-3 py-1 rounded hover:bg-red-200 text-sm">
+    Remove
+  </button>
+</form>
                 </td>
                 {% endif %}
               </tr>

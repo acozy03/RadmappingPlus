@@ -401,14 +401,15 @@ def update_doctor(rad_id):
         if rvu_month in ("", "none", None):
             rvu_month = datetime.now().strftime("%b").lower()
 
-        if rvu_val and rvu_month:
-    
+        old_rvu_data_res = supabase.table("rad_avg_monthly_rvu").select("*").eq("radiologist_id", rad_id).limit(1).execute()
+        old_rvu_data = old_rvu_data_res.data[0] if old_rvu_data_res.data else None
+        
+        current_rvu = float(rvu_val) if rvu_val else None
+        old_rvu_val = old_rvu_data.get(rvu_month) if old_rvu_data else None
+
+        if current_rvu is not None and current_rvu != old_rvu_val:
             rad_info = supabase.table("radiologists").select("name").eq("id", rad_id).single().execute()
             rad_name = rad_info.data["name"] if rad_info.data else None
-
-            # Check for existing RVU row
-            old_rvu_data_res = supabase.table("rad_avg_monthly_rvu").select("*").eq("radiologist_id", rad_id).limit(1).execute()
-            old_rvu_data = old_rvu_data_res.data[0] if old_rvu_data_res.data else None
 
             if not old_rvu_data:
                 supabase.table("rad_avg_monthly_rvu").insert({
@@ -436,19 +437,26 @@ def update_doctor(rad_id):
                     new_data=rvu_payload
                 )
 
+        # New logic to check for changes before logging the main doctor update
+        profile_changed = False
+        if old_data:
+            for key, value in data.items():
+                if old_data.get(key) != value:
+                    profile_changed = True
+                    break
 
-        result = supabase.table("radiologists").update(data).eq("id", rad_id).execute()
-
-        if not hasattr(result, "error"):
-            log_audit_action(
-                supabase=supabase,
-                action="update",
-                table_name="radiologists",
-                record_id=rad_id,
-                user_email=session.get("user", {}).get("email", "unknown"),
-                old_data=old_data,
-                new_data=data
-            )
+        if profile_changed:
+            result = supabase.table("radiologists").update(data).eq("id", rad_id).execute()
+            if not hasattr(result, "error"):
+                log_audit_action(
+                    supabase=supabase,
+                    action="update",
+                    table_name="radiologists",
+                    record_id=rad_id,
+                    user_email=session.get("user", {}).get("email", "unknown"),
+                    old_data=old_data,
+                    new_data=data
+                )
 
         return redirect(url_for("doctors.doctor_profile", rad_id=rad_id))
     except Exception as e:
