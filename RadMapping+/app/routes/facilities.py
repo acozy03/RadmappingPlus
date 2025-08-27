@@ -114,6 +114,14 @@ def search_facilities():
         step_start = time.time()
         query = query.eq("active_status", "false")
         print(f"  - Time for .eq('active_status') method call: {time.time() - step_start:.4f}s")
+    elif status == "hold":
+        step_start = time.time()
+        query = query.eq("active_status", "hold")
+        print(f"  - Time for .eq('active_status') method call: {time.time() - step_start:.4f}s")
+    elif status == "pending":
+        step_start = time.time()
+        query = query.eq("active_status", "pending")
+        print(f"  - Time for .eq('active_status') method call: {time.time() - step_start:.4f}s")
 
     print(f"Total time to build Supabase query object (in Python): {time.time() - query_object_build_start_time:.4f}s")
 
@@ -516,7 +524,7 @@ def update_facility(facility_id):
         'modalities': form.get('assignment_type'),
         'qa_criteria': form.get('qa_criteria'),
         'monitoring': form.get('monitoring'),
-        'active_status': 'true' if form.get('active_status') == 'true' else 'false',
+        'active_status': form.get('active_status'),
         'account_poc': form.get('account_poc')  
     }
 

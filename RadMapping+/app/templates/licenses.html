@@ -1,6 +1,12 @@
 {% extends "layout.html" %}
 {% block title %}Licenses{% endblock %}
 
+{% block head %}
+<link href="https://cdn.jsdelivr.net/npm/select2@4.1.0-rc.0/dist/css/select2.min.css" rel="stylesheet" />
+<script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/select2@4.1.0-rc.0/dist/js/select2.min.js"></script>
+{% endblock %}
+
 {% block content %}
 <div id="radiologistsData" data-radiologists='{{ radiologists|tojson|safe }}' class="hidden"></div>
 
@@ -110,24 +116,22 @@
       <input
         type="text"
         id="licenseSearch"
-        placeholder="Search by state, doctor, specialty, or tags..." {# Updated placeholder #}
+        placeholder="Search by state, doctor, specialty, or tags..."
         class="w-full pl-10 pr-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-colors"
         onkeyup="debounceSearch()" />
     </div>
     
     <div class="w-full lg:w-64 relative">
       <div class="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
-        <i class="fas fa-user-md text-gray-400"></i>
+        <i class="fas fa-map-marker-alt text-gray-400"></i>
       </div>
       <select
-        id="doctorFilter"
+        id="stateFilter"
         class="w-full pl-10 pr-8 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-colors appearance-none bg-white"
         onchange="applyFiltersAndSort()">
-        <option value="">All Doctors</option>
-        {% for rad in radiologists %}
-        {% if rad.active_status == true %}
-        <option value="{{ rad.id }}">{{ rad.name }}</option>
-        {% endif %}
+        <option value="">All States</option>
+        {% for state in us_states %}
+        <option value="{{ state }}">{{ state }}</option>
         {% endfor %}
       </select>
       <div class="absolute inset-y-0 right-0 pr-3 flex items-center pointer-events-none">
@@ -141,15 +145,15 @@
               data-status="all">
         <i class="fas fa-list mr-2"></i>All
       </button>
-      <button onclick="filterByStatus('Active')" 
+      <button onclick="filterByStatus('true')" 
               class="px-4 py-2 rounded-lg text-sm font-medium transition-all duration-200 bg-gray-100 text-gray-700 hover:bg-green-100 hover:text-green-700" 
-              data-status="Active">
-        <i class="fas fa-check-circle mr-2"></i>Active
+              data-status="true">
+        <i class="fas fa-check-circle mr-2"></i>Active Doctors
       </button>
-      <button onclick="filterByStatus('Expired')" 
+      <button onclick="filterByStatus('false')" 
               class="px-4 py-2 rounded-lg text-sm font-medium transition-all duration-200 bg-gray-100 text-gray-700 hover:bg-red-100 hover:text-red-700" 
-              data-status="Expired">
-        <i class="fas fa-exclamation-triangle mr-2"></i>Expired
+              data-status="false">
+        <i class="fas fa-exclamation-triangle mr-2"></i>Inactive Doctors
       </button>
     </div>
   </div>
@@ -378,16 +382,16 @@ function applyFiltersAndSort() {
     );
   }
 
-  const doctorId = document.getElementById('doctorFilter').value;
-  if (doctorId) {
+  const stateFilter = document.getElementById('stateFilter').value;
+  if (stateFilter) {
     tempFilteredData = tempFilteredData.filter(cert => 
-      String(cert.radiologist_id) === doctorId
+      cert.state === stateFilter
     );
   }
-
+  
   if (currentStatusFilter !== 'all') {
     tempFilteredData = tempFilteredData.filter(cert => 
-      cert.status === currentStatusFilter
+      String(cert.radiologists.active_status) === currentStatusFilter
     );
   }
 
@@ -455,7 +459,9 @@ function updateTable() {
     
     const row = document.createElement('tr');
     row.id = `license-row-${cert.id}`;
-    row.className = `license-row hover:bg-gray-50 transition-colors duration-150 ${isExpired ? 'bg-red-50 ' : 'bg-green-50 '}`;
+    // MODIFIED: Use doctor's active_status for row background color
+    const isActiveDoctor = String(cert.radiologists.active_status) === 'true';
+    row.className = `license-row hover:bg-gray-50 transition-colors duration-150 ${isActiveDoctor ? 'bg-green-50 ' : 'bg-red-50 '}`;
     row.dataset.doctorId = cert.radiologist_id;
     row.dataset.doctorName = cert.radiologists.name;
     row.dataset.state = cert.state;

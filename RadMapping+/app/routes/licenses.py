@@ -12,6 +12,15 @@ import uuid
 
 licenses_bp = Blueprint('licenses', __name__)
 
+US_STATES = [
+    'Alabama', 'Alaska', 'Arizona', 'Arkansas', 'California', 'Colorado', 'Connecticut', 'Delaware', 'Florida', 'Georgia',
+    'Hawaii', 'Idaho', 'Illinois', 'Indiana', 'Iowa', 'Kansas', 'Kentucky', 'Louisiana', 'Maine', 'Maryland', 'Massachusetts',
+    'Michigan', 'Minnesota', 'Mississippi', 'Missouri', 'Montana', 'Nebraska', 'Nevada', 'New Hampshire', 'New Jersey',
+    'New Mexico', 'New York', 'North Carolina', 'North Dakota', 'Ohio', 'Oklahoma', 'Oregon', 'Pennsylvania', 'Rhode Island',
+    'South Carolina', 'South Dakota', 'Tennessee', 'Texas', 'Utah', 'Vermont', 'Virginia', 'Washington', 'West Virginia',
+    'Wisconsin', 'Wyoming'
+]
+
 
 @licenses_bp.route('/doctors/<string:rad_id>/licenses/<string:cert_id>/delete', methods=["POST"])
 @with_supabase_auth
@@ -73,22 +82,21 @@ def update_license(license_id):
 @with_supabase_auth
 def search_licenses():
 
-    select_query = "*, radiologists(name)"
+    select_query = "*, radiologists(name, active_status)"
 
     all_certifications_from_db = fetch_all_rows(table="certifications", select_query=select_query)
 
     temp_query_data = all_certifications_from_db
 
     search_term = request.args.get('search', '').lower()
-    doctor_id = request.args.get('doctor', '')
-    status = request.args.get('status', 'all')
+    state = request.args.get('state', '')
+    doctor_status = request.args.get('status', 'all')
 
     filtered_certifications = []
 
     for cert in temp_query_data:
         match_search = True
         if search_term:
-     
             state_match = cert.get('state', '').lower().startswith(search_term)
             specialty_match = cert.get('specialty', '').lower().startswith(search_term)
             tags_match = cert.get('tags', '').lower().startswith(search_term) if cert.get('tags') else False
@@ -97,17 +105,18 @@ def search_licenses():
             if not (state_match or specialty_match or tags_match or radiologist_name_match):
                 match_search = False
 
-        match_doctor = True
-        if doctor_id:
-            if str(cert.get('radiologist_id')) != doctor_id:
-                match_doctor = False
-
-        match_status = True
-        if status != 'all':
-            if cert.get('status') != status:
-                match_status = False
+        match_state = True
+        if state:
+            if cert.get('state') != state:
+                match_state = False
         
-        if match_search and match_doctor and match_status:
+        match_doctor_status = True
+        if doctor_status != 'all':
+            active_status_str = str(cert.get('radiologists', {}).get('active_status', False)).lower()
+            if active_status_str != doctor_status:
+                match_doctor_status = False
+        
+        if match_search and match_state and match_doctor_status:
             filtered_certifications.append(cert)
             
     filtered_certifications.sort(key=lambda x: x.get('expiration_date', ''), reverse=True)
@@ -187,7 +196,8 @@ def licenses_page():
                            radiologists=radiologists,
                            now=now,
                            total_count=0,
-                           current_page=1)
+                           current_page=1,
+                           us_states=US_STATES)
 
 
 @licenses_bp.route('/licenses/license-sync', methods=["POST"])

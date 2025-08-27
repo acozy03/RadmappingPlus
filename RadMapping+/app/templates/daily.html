@@ -90,7 +90,6 @@
               <option value="EST" {% if selected_timezone == 'EST' %}selected{% endif %}>EST</option>
               <option value="CST" {% if selected_timezone == 'CST' %}selected{% endif %}>CST</option>
               <option value="PST" {% if selected_timezone == 'PST' %}selected{% endif %}>PST</option>
-              <option value="KST" {% if selected_timezone == 'KST' %}selected{% endif %}>KST</option>
 
             </select>
 
@@ -140,7 +139,7 @@
         </div>
 
         <div class="flex gap-2 flex-nowrap">
-          {% for zone in ["EST", "CST", "PST", "KST"] %}
+          {% for zone in ["EST", "CST", "PST"] %}
             <div class="bg-white hover:bg-blue-50 px-3 py-2 rounded-lg shadow-sm timezone-tile transition-colors cursor-pointer whitespace-nowrap border border-blue-100"
                  onclick="openTimezonePopup('{{ zone }}')">
               <div class="flex items-center gap-2">

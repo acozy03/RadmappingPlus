@@ -100,6 +100,16 @@
             data-status="inactive">
       Inactive
     </button>
+    <button onclick="filterByStatus('hold')"
+            class="px-4 py-2 rounded text-sm font-medium bg-gray-100 hover:bg-gray-200"
+            data-status="hold">
+      Hold
+    </button>
+    <button onclick="filterByStatus('pending')"
+            class="px-4 py-2 rounded text-sm font-medium bg-gray-100 hover:bg-gray-200"
+            data-status="pending">
+      Pending
+    </button>
   </div>
 </div>
 
@@ -110,7 +120,7 @@
       onmouseenter="showPopup(this)"
       onmouseleave="hidePopup(this)">
     <div class="flex items-center gap-3">
-      <div class="w-2 h-2 rounded-full {% if facility.active_status == 'true' %}bg-green-500{% else %}bg-red-500{% endif %}"></div>
+      <div class="w-2 h-2 rounded-full {% if facility.active_status == 'true' %}bg-green-500{% elif facility.active_status == 'false' %}bg-red-500{% elif facility.active_status == 'hold' %}bg-blue-500{% elif facility.active_status == 'pending' %}bg-yellow-500{% endif %}"></div>
       <div>
         <div class="flex items-center gap-1">
             {% if facility.id in prioritized_facility_ids %}
@@ -394,7 +404,10 @@ function updateTable(facilities) {
 
     li.innerHTML = `
       <div class="flex items-center gap-3">
-        <div class="w-2 h-2 rounded-full ${facility.active_status === 'true' ? 'bg-green-500' : 'bg-red-500'}"></div>
+       <div class="w-2 h-2 rounded-full ${
+  { 'true': 'bg-green-500', 'false': 'bg-red-500', 'hold': 'bg-blue-500', 'pending': 'bg-yellow-500' }[facility.active_status] || ''
+}"></div>
+
         <div>
           <div class="flex items-center gap-1">
             ${isPrioritized ? '<span title="Prioritized Facility" class="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium bg-purple-100 text-purple-800 mr-2">PRIO</span>' : ''}

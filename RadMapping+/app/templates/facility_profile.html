@@ -5,7 +5,7 @@
 {% block content %}
 <div x-data="{ editing: false }">
   <div class="mb-8">
-    <div class="bg-white rounded-lg shadow p-6 border flex flex-col sm:flex-row items-center justify-between gap-4{% if facility.active_status == 'true' %} border-green-500{% else %} border-red-500{% endif %}">
+    <div class="bg-white rounded-lg shadow p-6 border flex flex-col sm:flex-row items-center justify-between gap-4{% if facility.active_status == 'true' %} border-green-500{% elif facility.active_status == 'false' %} border-red-500{% elif facility.active_status == 'pending' %} border-yellow-500{% endif %}">
       <h2 class="text-3xl font-bold text-blue-800 text-center sm:text-left mb-2 sm:mb-0 flex-1">
         {{ facility.name }}
         {% if facility.id in prioritized_facility_ids %}
@@ -114,13 +114,13 @@
   </div>
   <div class="flex items-center space-x-3">
         <span class="inline-flex items-center justify-center w-8 h-8 rounded-full text-lg
-          {% if facility.active_status == 'true' %}bg-green-100 text-green-600{% else %}bg-red-100 text-red-600{% endif %}">
-          {% if facility.active_status == 'true' %}✅{% else %}❌{% endif %}
+          {% if facility.active_status == 'true' %}bg-green-100 text-green-600{% elif facility.active_status == 'false' %}bg-red-100 text-red-600{% elif facility.active_status == 'hold' %}bg-blue-100 text-blue-600{% elif facility.active_status == 'pending' %}bg-yellow-100 text-black-600{% endif %}">
+          {% if facility.active_status == 'true' %}✅{% elif facility.active_status == 'false' %}❌{% elif facility.active_status == 'hold' %}⏳{% elif facility.active_status == 'pending' %}⏳{% endif %}
         </span>
         <div>
           <div class="text-xs text-gray-500 font-semibold uppercase">Status</div>
-          <div class="text-base font-medium {% if facility.active_status == 'true' %}text-green-700{% else %}text-red-700{% endif %}">
-            {% if facility.active_status == 'true' %}Active{% else %}Inactive{% endif %}
+          <div class="text-base font-medium {% if facility.active_status == 'true' %}text-green-700{% elif facility.active_status == 'false' %}text-red-700{% elif facility.active_status == 'hold' %}text-blue-700% elif facility.active_status == 'pending' %}text-black-700{% endif %}">
+            {% if facility.active_status == 'true' %}Active{% elif facility.active_status == 'false' %}Inactive{% elif facility.active_status == 'hold' %}Hold{% elif facility.active_status == 'pending' %}Pending{% endif %}
           </div>
         </div>
         
@@ -168,10 +168,17 @@
         <input type="text" name="monitoring" value="{{ facility.monitoring or '' }}" class="input w-full border rounded px-3 py-2 text-sm" />
       </label>
 
-      <label class="flex items-center space-x-2 mt-4">
-        <input type="checkbox" name="active_status" value="true" {% if facility.active_status == 'true' %}checked{% endif %} class="form-checkbox h-5 w-5 text-blue-600">
-        <span class="text-sm font-medium">Active</span>
-      </label>
+     <label class="flex items-center space-x-2 mt-4">
+  <span class="text-sm font-medium">Status:</span>
+  <select name="active_status" class="form-select h-8 px-2 border rounded-md text-sm text-gray-700">
+    <option value="true" {% if facility.active_status == 'true' %}selected{% endif %}>Active</option>
+    <option value="false" {% if facility.active_status == 'false' %}selected{% endif %}>Inactive</option>
+    <option value="hold" {% if facility.active_status == 'hold' %}selected{% endif %}>On Hold</option>
+    <option value="pending" {% if facility.active_status == 'pending' %}selected{% endif %}>Pending</option>
+  
+  </select>
+</label>
+
       <div class="col-span-2">
         <button type="submit" class="bg-blue-600 text-white px-4 py-2 rounded text-sm font-semibold mt-2">
           Save Changes

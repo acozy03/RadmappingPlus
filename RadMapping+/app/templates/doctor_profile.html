@@ -220,6 +220,10 @@
   <div x-show="editing" class="mb-8">
     <form method="POST" action="{{ url_for('doctors.update_doctor', rad_id=doctor.id) }}" class="bg-white rounded-lg shadow p-6 border grid grid-cols-1 sm:grid-cols-2 gap-6">
       <label class="block">
+    <span class="font-semibold">Name</span>
+    <input type="text" name="name" value="{{ doctor.name }}" required class="input w-full border rounded px-3 py-2 text-sm" />
+  </label>
+      <label class="block">
         <span class="font-semibold">Email</span>
         <input type="text" name="email" value="{{ doctor.email or '' }}" class="input w-full border rounded px-3 py-2 text-sm" />
       </label>

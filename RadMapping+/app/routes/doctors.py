@@ -377,10 +377,10 @@ def bulk_update_schedule(rad_id):
 def update_doctor(rad_id):
     try:
         supabase = get_supabase_client()
-      
         old_data = supabase.table("radiologists").select("*").eq("id", rad_id).single().execute().data
         
         data = {
+            "name": request.form.get("name"),
             "email": request.form.get("email"),
             "phone": request.form.get("phone"),
             "pacs": request.form.get("pacs"),
