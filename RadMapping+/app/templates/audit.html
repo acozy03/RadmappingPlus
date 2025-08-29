@@ -83,9 +83,9 @@
   <div class="bg-white rounded-lg shadow-sm border border-gray-200 overflow-hidden">
     <div class="overflow-x-auto">
       <table class="w-full text-sm text-left">
-        <thead class="text-xs text-gray-700 uppercase bg-gray-50 border-b border-gray-200">
+        <thead class="text-xs text-gray-700 uppercase bg-gray-50 border-b border-gray-200 sticky top-0 z-10">
           <tr>
-            <th class="px-4 py-4 cursor-pointer hover:bg-gray-100 transition-colors" data-sort="timestamp">
+            <th class="px-4 py-4 cursor-pointer hover:bg-gray-100 transition-colors sticky left-0 bg-gray-50 z-20" data-sort="timestamp">
               <div class="flex items-center">
                 Timestamp
                 <span class="ml-2 text-gray-400 sort-indicator">↕</span>
@@ -122,10 +122,9 @@
         <tbody id="audit-log-body">
           {% for entry in logs %}
           <tr class="bg-white border-b hover:bg-gray-50 transition-colors audit-row">
-            <td class="px-4 py-4 whitespace-nowrap timestamp-cell">
+            <td class="px-4 py-4 whitespace-nowrap timestamp-cell sticky left-0 bg-white z-10">
               <div class="formatted-timestamp text-sm font-medium text-gray-900" data-raw="{{ entry.timestamp }}">{{ entry.timestamp }}</div>
-
-                <div class="relative-time text-xs text-gray-500"></div>
+              <div class="relative-time text-xs text-gray-500"></div>
             </td>
             <td class="px-4 py-4 user-cell">
               <div class="text-sm text-gray-900">{{ entry.user_email or '—' }}</div>
@@ -151,35 +150,31 @@
               <div class="text-xs font-mono text-gray-600 bg-gray-50 px-2 py-1 rounded">{{ entry.record_id }}</div>
             </td>
             <td class="px-4 py-4 old-data-cell">
-  <div
-    class="relative max-w-xs cursor-pointer hover:bg-gray-100 rounded p-1 transition-colors"
-    onclick="openFromElement(this)"
-    data-old='{{ entry.old_data | tojson }}'
-    data-new='{{ entry.new_data | tojson }}'>
-    
-    <div class="old-data-container">
-      <pre class="text-xs text-gray-600 max-h-24 overflow-y-auto bg-gray-50 p-2 rounded border">
+              <div
+                class="relative max-w-xs cursor-pointer hover:bg-gray-100 rounded p-1 transition-colors"
+                onclick="openFromElement(this)"
+                data-old='{{ entry.old_data | tojson }}'
+                data-new='{{ entry.new_data | tojson }}'>
+                <div class="old-data-container">
+                  <pre class="text-xs text-gray-600 max-h-24 overflow-y-auto bg-gray-50 p-2 rounded border">
 {{ entry.old_data | tojson(indent=2) if entry.old_data else 'null' }}
-      </pre>
-    </div>
-  </div>
-</td>
-
-<td class="px-4 py-4 new-data-cell">
-  <div
-    class="relative max-w-xs cursor-pointer hover:bg-gray-100 rounded p-1 transition-colors"
-    onclick="openFromElement(this)"
-    data-old='{{ entry.old_data | tojson }}'
-    data-new='{{ entry.new_data | tojson }}'>
-    
-    <div class="new-data-container">
-      <pre class="text-xs text-gray-800 max-h-24 overflow-y-auto bg-gray-50 p-2 rounded border">
+                  </pre>
+                </div>
+              </div>
+            </td>
+            <td class="px-4 py-4 new-data-cell">
+              <div
+                class="relative max-w-xs cursor-pointer hover:bg-gray-100 rounded p-1 transition-colors"
+                onclick="openFromElement(this)"
+                data-old='{{ entry.old_data | tojson }}'
+                data-new='{{ entry.new_data | tojson }}'>
+                <div class="new-data-container">
+                  <pre class="text-xs text-gray-800 max-h-24 overflow-y-auto bg-gray-50 p-2 rounded border">
 {{ entry.new_data | tojson(indent=2) if entry.new_data else 'null' }}
-      </pre>
-    </div>
-  </div>
-</td>
-
+                  </pre>
+                </div>
+              </div>
+            </td>
           </tr>
           {% endfor %}
         </tbody>
@@ -206,8 +201,8 @@
 
     <div class="bg-gray-50 px-4 py-3 border-t border-gray-200">
       <div class="flex justify-between items-center text-sm text-gray-600">
-        <span id="showing-count">Showing 0 entries</span>
-        <span id="total-count">Total: 0 entries</span>
+        <span id="showing-count">Showing {{ logs|length }} entries</span>
+        <span id="total-count">Total: {{ total_count }} entries</span>
       </div>
     </div>
   </div>
@@ -271,6 +266,10 @@
     background-color: #f8fafc;
   }
 </style>
+<script id="initial-logs-data" type="application/json">
+  {{ logs | tojson }}
+</script>
+{% block scripts %}
 <script> 
 function cleanData(data) {
   if (data === null || typeof data !== 'object') {
@@ -456,243 +455,279 @@ document.addEventListener('keydown', function(e) {
     closeModal();
   }
 });
-</script>
-{% block scripts %}
-<script>
+let currentPage = 1;
+const perPage = {{ per_page }};
+let isLoading = false;
+let allLogs = [];
+let filteredLogs = [];
+let currentSort = { column: 'timestamp', direction: 'desc' };
+let totalCount = {{ total_count }};
+
 document.addEventListener('DOMContentLoaded', function() {
-  const entriesPerPage = 50;
-  let visibleEntries = entriesPerPage;
-  let allRows = Array.from(document.querySelectorAll('.audit-row'));
-  let filteredRows = [...allRows];
-  let currentSort = { column: 'timestamp', direction: 'desc' };
+    loadInitialLogs();
 
-  formatTimestamps();
-  sortRows();
-  updateVisibleRows();
-  updateCounts();
-
-  document.querySelectorAll('.audit-row').forEach(row => {
-    // Get raw data from dataset attributes
-    const oldDataStr = row.querySelector('.old-data-cell div.relative').dataset.old || 'null';
-    const newDataStr = row.querySelector('.new-data-cell div.relative').dataset.new || 'null';
-
-    let oldData, newData;
-
-    try { oldData = JSON.parse(oldDataStr); } catch (e) { oldData = null; }
-    try { newData = JSON.parse(newDataStr); } catch (e) { newData = null; }
-
-    const cleanedOldData = cleanData(oldData);
-    const cleanedNewData = cleanData(newData);
-
-    const oldPreviewEl = row.querySelector('.old-data-container pre');
-    const newPreviewEl = row.querySelector('.new-data-container pre');
-
-    if (oldPreviewEl) {
-      if (cleanedOldData) {
-        oldPreviewEl.textContent = formatObjectToPlainText(cleanedOldData);
-      } else {
-        oldPreviewEl.textContent = '—'; 
-      }
-    }
-    if (newPreviewEl) {
-      if (cleanedNewData) {
-        newPreviewEl.textContent = formatObjectToPlainText(cleanedNewData);
-      } else {
-        newPreviewEl.textContent = '—'; 
-      }
-    }
-  });
-
-
-  const filters = {
-    timestamp: document.getElementById('timestamp-filter'),
-    user: document.getElementById('user-filter'),
-    action: document.getElementById('action-filter'),
-    table: document.getElementById('table-filter'),
-    record: document.getElementById('record-filter'),
-    data: document.getElementById('data-filter')
-  };
-
-  Object.values(filters).forEach(filter => {
-    filter.addEventListener('input', applyFilters);
-    filter.addEventListener('keyup', applyFilters);
-  });
-
-  document.getElementById('reset-filters').addEventListener('click', () => {
-    Object.values(filters).forEach(filter => filter.value = '');
-    applyFilters();
-  });
-
-  document.querySelectorAll('th[data-sort]').forEach(header => {
-    header.addEventListener('click', function() {
-      const column = this.dataset.sort;
-      if (currentSort.column === column) {
-        currentSort.direction = currentSort.direction === 'asc' ? 'desc' : 'asc';
-      } else {
-        currentSort.column = column;
-        currentSort.direction = 'asc';
-      }
-
-      document.querySelectorAll('.sort-indicator').forEach(i => {
-        i.textContent = '↕';
-        i.classList.remove('active');
-      });
-
-      const indicator = this.querySelector('.sort-indicator');
-      indicator.textContent = currentSort.direction === 'asc' ? '↑' : '↓';
-      indicator.classList.add('active');
-
-      sortRows();
-      updateVisibleRows();
+    window.addEventListener('scroll', function() {
+      if (window.innerHeight + window.scrollY >= document.body.offsetHeight - 200 && !isLoading) {
+            loadMoreLogs();
+        }
     });
-  });
 
-  let isLoading = false;
-  window.addEventListener('scroll', function() {
-    if (isLoading) return;
-    if (window.innerHeight + window.scrollY >= document.body.offsetHeight - 200) {
-      if (visibleEntries < filteredRows.length) {
+    const filters = {
+        timestamp: document.getElementById('timestamp-filter'),
+        user: document.getElementById('user-filter'),
+        action: document.getElementById('action-filter'),
+        table: document.getElementById('table-filter'),
+        record: document.getElementById('record-filter'),
+        data: document.getElementById('data-filter')
+    };
+
+    Object.values(filters).forEach(filter => {
+        filter.addEventListener('input', applyFilters);
+        filter.addEventListener('keyup', applyFilters);
+    });
+
+    document.getElementById('reset-filters').addEventListener('click', () => {
+        Object.values(filters).forEach(filter => filter.value = '');
+        applyFilters();
+    });
+
+    document.querySelectorAll('th[data-sort]').forEach(header => {
+        header.addEventListener('click', function() {
+            const column = this.dataset.sort;
+            if (currentSort.column === column) {
+                currentSort.direction = currentSort.direction === 'asc' ? 'desc' : 'asc';
+            } else {
+                currentSort.column = column;
+                currentSort.direction = 'desc';
+            }
+            updateSortIndicators();
+            applyFilters();
+        });
+    });
+
+    function loadInitialLogs() {
+        allLogs = JSON.parse(document.getElementById('initial-logs-data').textContent);
+        applyFilters();
+        updateCounts();
+        formatTimestamps();
+    }
+
+    function loadMoreLogs() {
+        if (filteredLogs.length >= totalCount) return;
+
         isLoading = true;
         document.getElementById('loading-more').classList.remove('hidden');
-        setTimeout(() => {
-          visibleEntries += entriesPerPage;
-          updateVisibleRows();
-          document.getElementById('loading-more').classList.add('hidden');
-          isLoading = false;
-        }, 300);
-      }
+        currentPage++;
+
+        const url = `/radmapping/audit/load_more?page=${currentPage}`;
+        fetch(url)
+            .then(response => response.json())
+            .then(newLogs => {
+                allLogs = allLogs.concat(newLogs);
+                document.getElementById('loading-more').classList.add('hidden');
+                applyFilters();
+            })
+            .catch(error => {
+                console.error("Failed to load more logs:", error);
+                document.getElementById('loading-more').classList.add('hidden');
+            })
+            .finally(() => {
+                isLoading = false;
+            });
     }
-  });
 
-  
-  function formatTimestamps() {
-    document.querySelectorAll('.formatted-timestamp').forEach(function(el) {
-      const raw = el.dataset.raw || el.textContent.trim();
-      const relativeEl = el.nextElementSibling;
-      const date = new Date(raw);
-      if (!isNaN(date)) {
-        el.textContent = formatDate(date);
-        if (relativeEl) relativeEl.textContent = getRelativeTime(date);
-      }
-    });
-  }
+    function formatTimestamps() {
+        document.querySelectorAll('.formatted-timestamp').forEach(function(el) {
+            const raw = el.dataset.raw || el.textContent.trim();
+            const relativeEl = el.nextElementSibling;
+            const date = new Date(raw);
+            if (!isNaN(date)) {
+                el.textContent = formatDate(date);
+                if (relativeEl) relativeEl.textContent = getRelativeTime(date);
+            }
+        });
+    }
 
-  function formatDate(date) {
-    return new Intl.DateTimeFormat('en-US', {
-      year: 'numeric',
-      month: '2-digit',
-      day: '2-digit',
-      hour: '2-digit',
-      minute: '2-digit',
-      hour12: true
-    }).format(date);
-  }
+    function formatDate(date) {
+        return new Intl.DateTimeFormat('en-US', {
+            year: 'numeric',
+            month: '2-digit',
+            day: '2-digit',
+            hour: '2-digit',
+            minute: '2-digit',
+            hour12: true
+        }).format(date);
+    }
 
-  function getRelativeTime(date) {
-    const now = new Date();
-    const diffMs = now - date;
-    const diffMins = Math.floor(diffMs / 60000);
-    const diffHours = Math.floor(diffMins / 60);
-    const diffDays = Math.floor(diffHours / 24);
-    if (diffMins < 1) return 'Just now';
-    if (diffMins < 60) return `${diffMins}m ago`;
-    if (diffHours < 24) return `${diffHours}h ago`;
-    if (diffDays < 7) return `${diffDays}d ago`;
-    return date.toLocaleDateString();
-  }
+    function getRelativeTime(date) {
+        const now = new Date();
+        const diffMs = now - date;
+        const diffMins = Math.floor(diffMs / 60000);
+        const diffHours = Math.floor(diffMins / 60);
+        const diffDays = Math.floor(diffHours / 24);
+        if (diffMins < 1) return 'Just now';
+        if (diffMins < 60) return `${diffMins}m ago`;
+        if (diffHours < 24) return `${diffHours}h ago`;
+        if (diffDays < 7) return `${diffDays}d ago`;
+        return date.toLocaleDateString();
+    }
+    
+    function applyFilters() {
+        const filters = {
+            timestamp: document.getElementById('timestamp-filter').value.toLowerCase().trim(),
+            user: document.getElementById('user-filter').value.toLowerCase().trim(),
+            action: document.getElementById('action-filter').value.toLowerCase().trim(),
+            table: document.getElementById('table-filter').value.toLowerCase().trim(),
+            record: document.getElementById('record-filter').value.toLowerCase().trim(),
+            data: document.getElementById('data-filter').value.toLowerCase().trim()
+        };
 
-  function applyFilters() {
-    const timestampFilter = filters.timestamp.value.toLowerCase().trim();
-    const userFilter = filters.user.value.toLowerCase().trim();
-    const actionFilter = filters.action.value.toLowerCase().trim();
-    const tableFilter = filters.table.value.toLowerCase().trim();
-    const recordFilter = filters.record.value.toLowerCase().trim();
-    const dataFilter = filters.data.value.toLowerCase().trim();
+        filteredLogs = allLogs.filter(log => {
+            const timestampText = new Date(log.timestamp).toLocaleString().toLowerCase();
+            const userText = (log.user_email || '').toLowerCase();
+            const actionText = (log.action || '').toLowerCase();
+            const tableText = (log.table_name || '').toLowerCase();
+            const recordText = (log.record_id || '').toLowerCase();
+            const dataText = (JSON.stringify(log.old_data) || '') + ' ' + (JSON.stringify(log.new_data) || '');
 
-    filteredRows = allRows.filter(row => {
-      const timestampCell = row.querySelector('.timestamp-cell');
-      const userCell = row.querySelector('.user-cell');
-      const actionCell = row.querySelector('.action-cell');
-      const tableCell = row.querySelector('.table-cell');
-      const recordCell = row.querySelector('.record-cell');
-      const oldDataCell = row.querySelector('.old-data-cell');
-      const newDataCell = row.querySelector('.new-data-cell');
+            return (!filters.timestamp || timestampText.includes(filters.timestamp)) &&
+                   (!filters.user || userText.includes(filters.user)) &&
+                   (!filters.action || actionText.includes(filters.action)) &&
+                   (!filters.table || tableText.includes(filters.table)) &&
+                   (!filters.record || recordText.includes(filters.record)) &&
+                   (!filters.data || dataText.toLowerCase().includes(filters.data));
+        });
 
-      const timestampText = timestampCell?.textContent.toLowerCase() || '';
-      const userText = userCell?.textContent.toLowerCase() || '';
-      const actionText = actionCell?.textContent.toLowerCase() || '';
-      const tableText = tableCell?.textContent.toLowerCase() || '';
-      const recordText = recordCell?.textContent.toLowerCase() || '';
-      const dataText = (oldDataCell?.textContent || '') + ' ' + (newDataCell?.textContent || '');
+        sortAndRenderLogs();
+        updateCounts();
+    }
+    
+    function sortAndRenderLogs() {
+        filteredLogs.sort((a, b) => {
+            let valueA, valueB;
+            switch(currentSort.column) {
+                case 'timestamp':
+                    valueA = new Date(a.timestamp);
+                    valueB = new Date(b.timestamp);
+                    break;
+                case 'user':
+                    valueA = (a.user_email || '').toLowerCase();
+                    valueB = (b.user_email || '').toLowerCase();
+                    break;
+                case 'action':
+                    valueA = (a.action || '').toLowerCase();
+                    valueB = (b.action || '').toLowerCase();
+                    break;
+                case 'table':
+                    valueA = (a.table_name || '').toLowerCase();
+                    valueB = (b.table_name || '').toLowerCase();
+                    break;
+                case 'record':
+                    valueA = (a.record_id || '').toLowerCase();
+                    valueB = (b.record_id || '').toLowerCase();
+                    break;
+                default:
+                    return 0;
+            }
+            if (valueA < valueB) return currentSort.direction === 'asc' ? -1 : 1;
+            if (valueA > valueB) return currentSort.direction === 'asc' ? 1 : -1;
+            return 0;
+        });
 
-      return (!timestampFilter || timestampText.includes(timestampFilter)) &&
-             (!userFilter || userText.includes(userFilter)) &&
-             (!actionFilter || actionText.includes(actionFilter)) &&
-             (!tableFilter || tableText.includes(tableFilter)) &&
-             (!recordFilter || recordText.includes(recordFilter)) &&
-             (!dataFilter || dataText.toLowerCase().includes(dataFilter));
-    });
+        renderLogs(filteredLogs);
+    }
+    
+    function renderLogs(logs) {
+        const tbody = document.getElementById('audit-log-body');
+        tbody.innerHTML = '';
+        if (logs.length === 0) {
+            document.getElementById('no-results').classList.remove('hidden');
+        } else {
+            document.getElementById('no-results').classList.add('hidden');
+            logs.forEach(entry => {
+                const row = createLogEntryRow(entry);
+                tbody.appendChild(row);
+            });
+        }
+        formatTimestamps();
+    }
 
-    visibleEntries = entriesPerPage;
-    sortRows();
-    updateVisibleRows();
-    updateCounts();
-  }
-
-  function sortRows() {
-    filteredRows.sort((a, b) => {
-      let valueA, valueB;
-      switch(currentSort.column) {
-        case 'timestamp':
-          valueA = new Date(a.querySelector('.timestamp-cell .formatted-timestamp').dataset.raw);
-          valueB = new Date(b.querySelector('.timestamp-cell .formatted-timestamp').dataset.raw);
-          break;
-        case 'user':
-          valueA = a.querySelector('.user-cell').textContent.trim();
-          valueB = b.querySelector('.user-cell').textContent.trim();
-          break;
-        case 'action':
-          valueA = a.querySelector('.action-cell').textContent.trim();
-          valueB = b.querySelector('.action-cell').textContent.trim();
-          break;
-        case 'table':
-          valueA = a.querySelector('.table-cell').textContent.trim();
-          valueB = b.querySelector('.table-cell').textContent.trim();
-          break;
-        case 'record':
-          valueA = a.querySelector('.record-cell').textContent.trim();
-          valueB = b.querySelector('.record-cell').textContent.trim();
-          break;
-        default:
-          valueA = 0;
-          valueB = 0;
-      }
-
-      if (valueA < valueB) return currentSort.direction === 'asc' ? -1 : 1;
-      if (valueA > valueB) return currentSort.direction === 'asc' ? 1 : -1;
-      return 0;
-    });
-
-    const tbody = document.getElementById('audit-log-body');
-    filteredRows.forEach(row => tbody.appendChild(row));
-  }
-
-  function updateVisibleRows() {
-    allRows.forEach(row => row.classList.add('hidden'));
-    filteredRows.slice(0, visibleEntries).forEach(row => row.classList.remove('hidden'));
-
-    const noResults = document.getElementById('no-results');
-    noResults.classList.toggle('hidden', filteredRows.length > 0);
-  }
-
-  function updateCounts() {
-    document.getElementById('showing-count').textContent = `Showing ${Math.min(visibleEntries, filteredRows.length)} entries`;
-    document.getElementById('total-count').textContent = `Total: ${filteredRows.length} entries`;
-
- 
-  }
+    function createLogEntryRow(entry) {
+        const row = document.createElement('tr');
+        row.className = `bg-white border-b hover:bg-gray-50 transition-colors audit-row`;
+        row.innerHTML = `
+            <td class="px-4 py-4 whitespace-nowrap timestamp-cell sticky left-0 bg-white z-10">
+              <div class="formatted-timestamp text-sm font-medium text-gray-900" data-raw="${entry.timestamp}">${entry.timestamp}</div>
+              <div class="relative-time text-xs text-gray-500"></div>
+            </td>
+            <td class="px-4 py-4 user-cell">
+              <div class="text-sm text-gray-900">${entry.user_email || '—'}</div>
+            </td>
+            <td class="px-4 py-4 action-cell">
+              <span class="inline-flex px-2 py-1 text-xs font-semibold rounded-full
+                ${entry.action === 'insert' ? 'bg-green-100 text-green-800' :
+                  entry.action === 'update' ? 'bg-blue-100 text-blue-800' :
+                  entry.action === 'delete' ? 'bg-red-100 text-red-800' :
+                  'bg-gray-100 text-gray-800'}">
+                ${entry.action.toUpperCase()}
+              </span>
+            </td>
+            <td class="px-4 py-4 table-cell">
+              <div class="text-sm font-medium text-gray-900">${entry.table_name}</div>
+            </td>
+            <td class="px-4 py-4 record-cell">
+              <div class="text-xs font-mono text-gray-600 bg-gray-50 px-2 py-1 rounded">${entry.record_id}</div>
+            </td>
+            <td class="px-4 py-4 old-data-cell">
+              <div
+                class="relative max-w-xs cursor-pointer hover:bg-gray-100 rounded p-1 transition-colors"
+                onclick="openFromElement(this)"
+                data-old='${JSON.stringify(entry.old_data)}'
+                data-new='${JSON.stringify(entry.new_data)}'>
+                <div class="old-data-container">
+                  <pre class="text-xs text-gray-600 max-h-24 overflow-y-auto bg-gray-50 p-2 rounded border">
+${JSON.stringify(entry.old_data, null, 2) || 'null'}
+                  </pre>
+                </div>
+              </div>
+            </td>
+            <td class="px-4 py-4 new-data-cell">
+              <div
+                class="relative max-w-xs cursor-pointer hover:bg-gray-100 rounded p-1 transition-colors"
+                onclick="openFromElement(this)"
+                data-old='${JSON.stringify(entry.old_data)}'
+                data-new='${JSON.stringify(entry.new_data)}'>
+                <div class="new-data-container">
+                  <pre class="text-xs text-gray-800 max-h-24 overflow-y-auto bg-gray-50 p-2 rounded border">
+${JSON.stringify(entry.new_data, null, 2) || 'null'}
+                  </pre>
+                </div>
+              </div>
+            </td>
+        `;
+        return row;
+    }
+    
+    function updateSortIndicators() {
+        document.querySelectorAll('.sort-indicator').forEach(i => {
+            i.textContent = '↕';
+            i.classList.remove('active');
+        });
+        const indicator = document.querySelector(`th[data-sort="${currentSort.column}"] .sort-indicator`);
+        if (indicator) {
+            indicator.textContent = currentSort.direction === 'asc' ? '↑' : '↓';
+            indicator.classList.add('active');
+        }
+    }
+    
+    function updateCounts() {
+        document.getElementById('showing-count').textContent = `Showing ${filteredLogs.length} entries`;
+        document.getElementById('total-count').textContent = `Total: ${totalCount} entries`;
+    }
 });
 </script>
+<script id="initial-logs-data" type="application/json">
+  {{ logs | tojson }}
+</script>
 {% endblock %}
-
 {% endblock %}

@@ -27,7 +27,7 @@ def monthly():
     end_day = days_in_month
 
     start_doctor = request.args.get('start_doctor', default=0, type=int)
-    doctors_per_page = 70
+    doctors_per_page = 200
 
     all_doctors = fetch_all_rows_monthly("radiologists", "*", filters={"active_status": True})
 

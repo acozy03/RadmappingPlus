@@ -137,6 +137,17 @@
     text-align: center;
 }
 
+thead.sticky {
+  position: sticky;
+  top: 0;
+  z-index: 40; /* higher than cells */
+  background: white; /* so rows don’t show through */
+}
+thead.sticky th {
+  background: white;
+  z-index: 50;
+}
+
 /* Dashboard Cards */
 .dashboard-card {
     position: relative;
