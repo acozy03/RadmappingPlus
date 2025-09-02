@@ -581,7 +581,7 @@ def add_facility():
         "modalities": data.get("modalities"),
         "qa_criteria": data.get("qa_criteria"),
         "monitoring": data.get("monitoring"),
-        "active_status": 'true' if data.get("active_status") else 'false',
+        "active_status": data.get("active_status"),
         "account_poc": data.get("account_poc")
     }
 

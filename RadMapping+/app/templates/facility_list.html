@@ -136,7 +136,18 @@
     <div class="facility-popup absolute left-0 top-full mt-2 w-[20rem] bg-white border p-3 rounded shadow-md text-left pointer-events-none opacity-0 transition-opacity duration-150 z-50">
       <p class="text-sm font-medium">Location: <span class="text-gray-700">{{ facility.location or 'N/A' }}</span></p>
       <p class="text-sm font-medium">PACS: <span class="text-gray-700">{{ facility.pacs or 'N/A' }}</span></p>
-      <p class="text-sm font-medium">Status: <span class="text-gray-700">{{ 'Active' if facility.active_status == 'true' else 'Inactive' }}</span></p>
+      {% set _s = facility.active_status %}
+<p class="text-sm font-medium">
+  Status:
+  <span class="text-gray-700">
+    {% if _s == 'true' %}Active
+    {% elif _s == 'false' %}Inactive
+    {% elif _s == 'hold' %}On Hold
+    {% elif _s == 'pending' %}Pending
+    {% else %}Unknown{% endif %}
+  </span>
+</p>
+
       <p class="text-sm font-medium">TAT Definition: <span class="text-gray-700">{{ facility.tat_definition or 'N/A' }}</span></p>
       <p class="text-sm font-medium">Modalities Period: <span class="text-gray-700">{{ facility.modalities_assignment_period or 'N/A' }}</span></p>
     </div>
@@ -204,11 +215,14 @@
         <label class="block text-sm font-medium text-gray-700">Account POC</label>
         <input type="text" name="account_poc" class="w-full border rounded px-3 py-2 text-sm">
       </div>
-      <div class="flex items-center space-x-4">
-        <div class="flex items-center">
-          <input type="checkbox" name="active_status" value="true" class="form-checkbox h-4 w-4 text-blue-600">
-          <label for="active_status" class="ml-2 block text-sm text-gray-900">Active Status</label>
-        </div>
+            <div>
+        <label class="block text-sm font-medium text-gray-700">Status</label>
+        <select name="active_status" class="w-full border rounded px-3 py-2 text-sm">
+          <option value="true" selected>Active</option>
+          <option value="false">Inactive</option>
+          <option value="hold">On Hold</option>
+          <option value="pending">Pending</option>
+        </select>
       </div>
       <div class="flex justify-end">
         <button type="submit" class="bg-blue-600 text-white px-4 py-2 rounded hover:bg-blue-700">
@@ -284,6 +298,7 @@ function submitAddFacility(event) {
   event.preventDefault(); 
 
   const formData = new FormData(event.target);
+  const status = (formData.get('active_status') || 'pending').toLowerCase();
   const data = {
     name: formData.get('name'),
     location: formData.get('location'),
@@ -294,7 +309,7 @@ function submitAddFacility(event) {
     qa_criteria: formData.get('qa_criteria'),
     monitoring: formData.get('monitoring'),
     account_poc: formData.get('account_poc'),
-    active_status: formData.get('active_status') ? 'true' : 'false'
+    active_status: status, 
   };
 
   fetch('/radmapping/facilities/add', {
@@ -367,12 +382,36 @@ function loadFacilities() {
   const searchTermName = document.getElementById('searchBox').value; 
   const stateFilter = document.getElementById('stateFilter').value; 
 
-  fetch(`/radmapping/facilities/search?page=${currentPage}&search_name=${encodeURIComponent(searchTermName)}&state=${encodeURIComponent(stateFilter)}&status=${currentStatusFilter}`)
+  const statusParam =
+    currentStatusFilter === 'active'   ? 'true'  :
+    currentStatusFilter === 'inactive' ? 'false' :
+    currentStatusFilter;
+
+  fetch(`/radmapping/facilities/search?page=${currentPage}&search_name=${encodeURIComponent(searchTermName)}&state=${encodeURIComponent(stateFilter)}&status=${statusParam}`)
     .then(response => response.json())
     .then(data => {
       updateTable(data.facilities);
       updatePagination(data.total_count);
     });
+}
+
+function getStatusLabel(v) {
+  switch (v) {
+    case 'true': return 'Active';
+    case 'false': return 'Inactive';
+    case 'hold': return 'On Hold';
+    case 'pending': return 'Pending';
+    default: return 'Unknown';
+  }
+}
+function getStatusDotClass(v) {
+  switch (v) {
+    case 'true': return 'bg-green-500';
+    case 'false': return 'bg-red-500';
+    case 'hold': return 'bg-blue-500';
+    case 'pending': return 'bg-yellow-500';
+    default: return '';
+  }
 }
 
 function filterByStatus(status) {
@@ -421,7 +460,9 @@ function updateTable(facilities) {
       <div class="facility-popup absolute left-0 top-full mt-2 w-[20rem] bg-white border p-3 rounded shadow-md text-left pointer-events-none opacity-0 transition-opacity duration-150 z-50">
         <p class="text-sm font-medium">Location: <span class="text-gray-700">${facility.location || 'N/A'}</span></p>
         <p class="text-sm font-medium">PACS: <span class="text-gray-700">${facility.pacs || 'N/A'}</span></p>
-        <p class="text-sm font-medium">Status: <span class="text-gray-700">${facility.active_status === 'true' ? 'Active' : 'Inactive'}</span></p>
+        <p class="text-sm font-medium">
+  Status: <span class="text-gray-700">${getStatusLabel(facility.active_status)}</span>
+</p>
         <p class="text-sm font-medium">TAT Definition: <span class="text-gray-700">${facility.tat_definition || 'N/A'}</span></p>
         <p class="text-sm font-medium">Modalities Period: <span class="text-gray-700">${facility.modalities_assignment_period || 'N/A'}</span></p>
       </div>

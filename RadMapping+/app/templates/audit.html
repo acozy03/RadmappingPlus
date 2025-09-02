@@ -3,207 +3,160 @@
 
 {% block content %}
 
-  <div class="bg-white rounded-lg shadow-sm border border-gray-200 p-6 mb-6">
-    <div class="flex items-center justify-between mb-4">
-      <h2 class="text-lg font-semibold text-gray-900">Search Filters</h2>
+<div class="bg-white rounded-lg shadow-sm border border-gray-200 p-6 mb-6">
+  <div class="flex items-center justify-between mb-4">
+    <h2 class="text-lg font-semibold text-gray-900">Search Filters</h2>
+    <div class="flex flex-col md:flex-row space-y-2 md:space-y-0 md:space-x-2">
+      <div class="flex items-center space-x-2">
+        <label for="start-date-filter" class="text-sm font-medium text-gray-700 whitespace-nowrap">From:</label>
+        <input type="date" id="start-date-filter" class="px-3 py-2 border rounded-md shadow-sm focus:outline-none focus:ring-2 focus:ring-blue-500 text-sm">
+        <label for="end-date-filter" class="text-sm font-medium text-gray-700 whitespace-nowrap">To:</label>
+        <input type="date" id="end-date-filter" class="px-3 py-2 border rounded-md shadow-sm focus:outline-none focus:ring-2 focus:ring-blue-500 text-sm">
+        <button id="load-date-range" class="px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700 transition-colors text-sm font-medium">
+          Load
+        </button>
+      </div>
       <button id="reset-filters" class="px-4 py-2 bg-gray-100 text-gray-700 rounded-md hover:bg-gray-200 transition-colors text-sm font-medium">
         Clear All Filters
       </button>
     </div>
-    
-    <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-      <div class="space-y-2">
-        <label for="timestamp-filter" class="block text-sm font-medium text-gray-700">
-          <svg class="inline w-4 h-4 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z"></path>
-          </svg>
-          Timestamp
-        </label>
-        <input type="text" id="timestamp-filter" placeholder="Search by date/time..." 
-               class="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 text-sm">
-      </div>
-      
-      <div class="space-y-2">
-        <label for="user-filter" class="block text-sm font-medium text-gray-700">
-          <svg class="inline w-4 h-4 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z"></path>
-          </svg>
-          User
-        </label>
-        <input type="text" id="user-filter" placeholder="Search by user email..." 
-               class="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 text-sm">
-      </div>
-      
-      <div class="space-y-2">
-        <label for="action-filter" class="block text-sm font-medium text-gray-700">
-          <svg class="inline w-4 h-4 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 10V3L4 14h7v7l9-11h-7z"></path>
-          </svg>
-          Action
-        </label>
-        <input type="text" id="action-filter" placeholder="insert, update, delete..." 
-               class="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 text-sm">
-      </div>
-      
-      <div class="space-y-2">
-        <label for="table-filter" class="block text-sm font-medium text-gray-700">
-          <svg class="inline w-4 h-4 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 7v10c0 2.21 3.582 4 8 4s8-1.79 8-4V7M4 7c0 2.21 3.582 4 8 4s8-1.79 8-4M4 7c0-2.21 3.582-4 8-4s8 1.79 8 4"></path>
-          </svg>
-          Table
-        </label>
-        <input type="text" id="table-filter" placeholder="Search by table name..." 
-               class="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 text-sm">
-      </div>
-      
-      <div class="space-y-2">
-        <label for="record-filter" class="block text-sm font-medium text-gray-700">
-          <svg class="inline w-4 h-4 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M7 7h.01M7 3h5c.512 0 1.024.195 1.414.586l7 7a2 2 0 010 2.828l-7 7a2 2 0 01-2.828 0l-7-7A1.994 1.994 0 013 12V7a4 4 0 014-4z"></path>
-          </svg>
-          Record ID
-        </label>
-        <input type="text" id="record-filter" placeholder="Search by record ID..." 
-               class="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 text-sm">
-      </div>
-      
-      <div class="space-y-2">
-        <label for="data-filter" class="block text-sm font-medium text-gray-700">
-          <svg class="inline w-4 h-4 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"></path>
-          </svg>
-          Data Content
-        </label>
-        <input type="text" id="data-filter" placeholder="Search within data content..." 
-               class="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 text-sm">
+  </div>
+
+  <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+    <div class="space-y-2">
+      <label for="timestamp-filter" class="block text-sm font-medium text-gray-700">
+        <svg class="inline w-4 h-4 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z"></path>
+        </svg>
+        Timestamp
+      </label>
+      <input type="text" id="timestamp-filter" placeholder="Search by date/time..." 
+             class="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 text-sm">
+    </div>
+
+    <div class="space-y-2">
+      <label for="user-filter" class="block text-sm font-medium text-gray-700">
+        <svg class="inline w-4 h-4 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z"></path>
+        </svg>
+        User
+      </label>
+      <input type="text" id="user-filter" placeholder="Search by user email..."
+             class="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 text-sm">
+    </div>
+
+    <div class="space-y-2">
+      <label for="action-filter" class="block text-sm font-medium text-gray-700">
+        <svg class="inline w-4 h-4 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 10V3L4 14h7v7l9-11h-7z"></path>
+        </svg>
+        Action
+      </label>
+      <input type="text" id="action-filter" placeholder="insert, update, delete..."
+             class="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 text-sm">
+    </div>
+
+    <div class="space-y-2">
+      <label for="table-filter" class="block text-sm font-medium text-gray-700">
+        <svg class="inline w-4 h-4 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 7v10c0 2.21 3.582 4 8 4s8-1.79 8-4V7M4 7c0 2.21 3.582 4 8 4s8-1.79 8-4M4 7c0-2.21 3.582-4 8-4s8 1.79 8 4"></path>
+        </svg>
+        Table
+      </label>
+      <input type="text" id="table-filter" placeholder="Search by table name..."
+             class="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 text-sm">
+    </div>
+
+    <div class="space-y-2">
+      <label for="record-filter" class="block text-sm font-medium text-gray-700">
+        <svg class="inline w-4 h-4 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M7 7h.01M7 3h5c.512 0 1.024.195 1.414.586l7 7a2 2 0 010 2.828l-7 7a2 2 0 01-2.828 0l-7-7A1.994 1.994 0 013 12V7a4 4 0 014-4z"></path>
+        </svg>
+        Record ID
+      </label>
+      <input type="text" id="record-filter" placeholder="Search by record ID..."
+             class="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 text-sm">
+    </div>
+
+    <div class="space-y-2">
+      <label for="data-filter" class="block text-sm font-medium text-gray-700">
+        <svg class="inline w-4 h-4 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"></path>
+        </svg>
+        Data Content
+      </label>
+      <input type="text" id="data-filter" placeholder="Search within data content..."
+             class="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 text-sm">
+    </div>
+  </div>
+</div>
+
+<div class="bg-white rounded-lg shadow-sm border border-gray-200 overflow-hidden">
+  <div class="overflow-x-auto">
+    <table class="w-full text-sm text-left">
+      <thead class="text-xs text-gray-700 uppercase bg-gray-50 border-b border-gray-200 sticky top-0 z-10">
+        <tr>
+          <th class="px-4 py-4 cursor-pointer hover:bg-gray-100 transition-colors sticky left-0 bg-gray-50 z-20" data-sort="timestamp">
+            <div class="flex items-center">
+              Timestamp
+              <span class="ml-2 text-gray-400 sort-indicator">↕</span>
+            </div>
+          </th>
+          <th class="px-4 py-4 cursor-pointer hover:bg-gray-100 transition-colors" data-sort="user">
+            <div class="flex items-center">
+              User
+              <span class="ml-2 text-gray-400 sort-indicator">↕</span>
+            </div>
+          </th>
+          <th class="px-4 py-4 cursor-pointer hover:bg-gray-100 transition-colors" data-sort="action">
+            <div class="flex items-center">
+              Action
+              <span class="ml-2 text-gray-400 sort-indicator">↕</span>
+            </div>
+          </th>
+          <th class="px-4 py-4 cursor-pointer hover:bg-gray-100 transition-colors" data-sort="table">
+            <div class="flex items-center">
+              Table
+              <span class="ml-2 text-gray-400 sort-indicator">↕</span>
+            </div>
+          </th>
+          <th class="px-4 py-4 cursor-pointer hover:bg-gray-100 transition-colors" data-sort="record">
+            <div class="flex items-center">
+              Record ID
+              <span class="ml-2 text-gray-400 sort-indicator">↕</span>
+            </div>
+          </th>
+          <th class="px-4 py-4">Old Data</th>
+          <th class="px-4 py-4">New Data</th>
+        </tr>
+      </thead>
+      <tbody id="audit-log-body">
+      </tbody>
+    </table>
+
+    <div id="no-results" class="hidden p-8 text-center text-gray-500">
+      <svg class="mx-auto h-12 w-12 text-gray-400 mb-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9.172 16.172a4 4 0 015.656 0M9 12h6m-6-4h6m2 5.291A7.962 7.962 0 0112 15c-2.34 0-4.47.881-6.08 2.33l-.926-.926A9.953 9.953 0 0112 13c2.74 0 5.23 1.1 7.08 2.88l-.926.926A7.963 7.963 0 0112 15z"></path>
+      </svg>
+      <p class="text-lg font-medium">No matching audit logs found</p>
+      <p class="text-sm text-gray-400 mt-1">Try adjusting your search filters</p>
+    </div>
+
+    <div id="loading-more" class="hidden p-4 text-center text-gray-500">
+      <div class="inline-flex items-center">
+        <svg class="animate-spin -ml-1 mr-3 h-5 w-5 text-gray-500" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+          <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
+          <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+        </svg>
+        Loading entries...
       </div>
     </div>
   </div>
 
-  <div class="bg-white rounded-lg shadow-sm border border-gray-200 overflow-hidden">
-    <div class="overflow-x-auto">
-      <table class="w-full text-sm text-left">
-        <thead class="text-xs text-gray-700 uppercase bg-gray-50 border-b border-gray-200 sticky top-0 z-10">
-          <tr>
-            <th class="px-4 py-4 cursor-pointer hover:bg-gray-100 transition-colors sticky left-0 bg-gray-50 z-20" data-sort="timestamp">
-              <div class="flex items-center">
-                Timestamp
-                <span class="ml-2 text-gray-400 sort-indicator">↕</span>
-              </div>
-            </th>
-            <th class="px-4 py-4 cursor-pointer hover:bg-gray-100 transition-colors" data-sort="user">
-              <div class="flex items-center">
-                User
-                <span class="ml-2 text-gray-400 sort-indicator">↕</span>
-              </div>
-            </th>
-            <th class="px-4 py-4 cursor-pointer hover:bg-gray-100 transition-colors" data-sort="action">
-              <div class="flex items-center">
-                Action
-                <span class="ml-2 text-gray-400 sort-indicator">↕</span>
-              </div>
-            </th>
-            <th class="px-4 py-4 cursor-pointer hover:bg-gray-100 transition-colors" data-sort="table">
-              <div class="flex items-center">
-                Table
-                <span class="ml-2 text-gray-400 sort-indicator">↕</span>
-              </div>
-            </th>
-            <th class="px-4 py-4 cursor-pointer hover:bg-gray-100 transition-colors" data-sort="record">
-              <div class="flex items-center">
-                Record ID
-                <span class="ml-2 text-gray-400 sort-indicator">↕</span>
-              </div>
-            </th>
-            <th class="px-4 py-4">Old Data</th>
-            <th class="px-4 py-4">New Data</th>
-          </tr>
-        </thead>
-        <tbody id="audit-log-body">
-          {% for entry in logs %}
-          <tr class="bg-white border-b hover:bg-gray-50 transition-colors audit-row">
-            <td class="px-4 py-4 whitespace-nowrap timestamp-cell sticky left-0 bg-white z-10">
-              <div class="formatted-timestamp text-sm font-medium text-gray-900" data-raw="{{ entry.timestamp }}">{{ entry.timestamp }}</div>
-              <div class="relative-time text-xs text-gray-500"></div>
-            </td>
-            <td class="px-4 py-4 user-cell">
-              <div class="text-sm text-gray-900">{{ entry.user_email or '—' }}</div>
-            </td>
-            <td class="px-4 py-4 action-cell">
-              <span class="inline-flex px-2 py-1 text-xs font-semibold rounded-full
-                {% if entry.action == 'insert' %}
-                  bg-green-100 text-green-800
-                {% elif entry.action == 'update' %}
-                  bg-blue-100 text-blue-800
-                {% elif entry.action == 'delete' %}
-                  bg-red-100 text-red-800
-                {% else %}
-                  bg-gray-100 text-gray-800
-                {% endif %}">
-                {{ entry.action|upper }}
-              </span>
-            </td>
-            <td class="px-4 py-4 table-cell">
-              <div class="text-sm font-medium text-gray-900">{{ entry.table_name }}</div>
-            </td>
-            <td class="px-4 py-4 record-cell">
-              <div class="text-xs font-mono text-gray-600 bg-gray-50 px-2 py-1 rounded">{{ entry.record_id }}</div>
-            </td>
-            <td class="px-4 py-4 old-data-cell">
-              <div
-                class="relative max-w-xs cursor-pointer hover:bg-gray-100 rounded p-1 transition-colors"
-                onclick="openFromElement(this)"
-                data-old='{{ entry.old_data | tojson }}'
-                data-new='{{ entry.new_data | tojson }}'>
-                <div class="old-data-container">
-                  <pre class="text-xs text-gray-600 max-h-24 overflow-y-auto bg-gray-50 p-2 rounded border">
-{{ entry.old_data | tojson(indent=2) if entry.old_data else 'null' }}
-                  </pre>
-                </div>
-              </div>
-            </td>
-            <td class="px-4 py-4 new-data-cell">
-              <div
-                class="relative max-w-xs cursor-pointer hover:bg-gray-100 rounded p-1 transition-colors"
-                onclick="openFromElement(this)"
-                data-old='{{ entry.old_data | tojson }}'
-                data-new='{{ entry.new_data | tojson }}'>
-                <div class="new-data-container">
-                  <pre class="text-xs text-gray-800 max-h-24 overflow-y-auto bg-gray-50 p-2 rounded border">
-{{ entry.new_data | tojson(indent=2) if entry.new_data else 'null' }}
-                  </pre>
-                </div>
-              </div>
-            </td>
-          </tr>
-          {% endfor %}
-        </tbody>
-      </table>
-      
-      <div id="no-results" class="hidden p-8 text-center text-gray-500">
-        <svg class="mx-auto h-12 w-12 text-gray-400 mb-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9.172 16.172a4 4 0 015.656 0M9 12h6m-6-4h6m2 5.291A7.962 7.962 0 0112 15c-2.34 0-4.47.881-6.08 2.33l-.926-.926A9.953 9.953 0 0112 13c2.74 0 5.23 1.1 7.08 2.88l-.926.926A7.963 7.963 0 0112 15z"></path>
-        </svg>
-        <p class="text-lg font-medium">No matching audit logs found</p>
-        <p class="text-sm text-gray-400 mt-1">Try adjusting your search filters</p>
-      </div>
-      
-      <div id="loading-more" class="hidden p-4 text-center text-gray-500">
-        <div class="inline-flex items-center">
-          <svg class="animate-spin -ml-1 mr-3 h-5 w-5 text-gray-500" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
-            <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
-            <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
-          </svg>
-          Loading more entries...
-        </div>
-      </div>
-    </div>
-
-    <div class="bg-gray-50 px-4 py-3 border-t border-gray-200">
-      <div class="flex justify-between items-center text-sm text-gray-600">
-        <span id="showing-count">Showing {{ logs|length }} entries</span>
-        <span id="total-count">Total: {{ total_count }} entries</span>
-      </div>
+  <div class="bg-gray-50 px-4 py-3 border-t border-gray-200">
+    <div class="flex justify-between items-center text-sm text-gray-600">
+      <span id="showing-count">Showing 0 entries</span>
+      <span id="total-count">Total: {{ total_count }} entries</span>
     </div>
   </div>
 </div>
@@ -270,464 +223,497 @@
   {{ logs | tojson }}
 </script>
 {% block scripts %}
-<script> 
-function cleanData(data) {
-  if (data === null || typeof data !== 'object') {
-    return data;
-  }
-
-  if (Array.isArray(data)) {
-    return data.map(item => cleanData(item));
-  }
-
-  const newObj = {};
-  for (const key in data) {
-    if (data.hasOwnProperty(key)) {
-      if (key === 'id' || key === 'facility_id' || key === 'radiologist_id') {
-        continue;
-      }
-      newObj[key] = cleanData(data[key]);
+<script>
+  function cleanData(data) {
+    if (data === null || typeof data !== 'object') {
+      return data;
     }
-  }
-  return newObj;
-}
 
-function formatObjectToPlainText(obj, indent = 0) {
+    if (Array.isArray(data)) {
+      return data.map(item => cleanData(item));
+    }
+
+    const newObj = {};
+    for (const key in data) {
+      if (data.hasOwnProperty(key)) {
+        if (key === 'id' || key === 'facility_id' || key === 'radiologist_id') {
+          continue;
+        }
+        newObj[key] = cleanData(data[key]);
+      }
+    }
+    return newObj;
+  }
+
+  function formatObjectToPlainText(obj, indent = 0) {
     if (obj === null || obj === undefined) {
-        return 'null';
+      return 'null';
     }
     if (typeof obj !== 'object') {
-        return obj.toString();
+      return obj.toString();
     }
 
     let lines = [];
-    const currentLevelIndent = '  '.repeat(indent); 
+    const currentLevelIndent = '  '.repeat(indent);
 
     // Handle Arrays
     if (Array.isArray(obj)) {
-        if (obj.length === 0) {
-            return 'Empty List'; 
-        }
-        obj.forEach(item => {
-            lines.push(`${currentLevelIndent}- ${formatObjectToPlainText(item, indent + 1)}`);
-        });
-        return lines.join('\n');
+      if (obj.length === 0) {
+        return 'Empty List';
+      }
+      obj.forEach(item => {
+        lines.push(`${currentLevelIndent}- ${formatObjectToPlainText(item, indent + 1)}`);
+      });
+      return lines.join('\n');
     }
 
     // Handle Objects
     const keys = Object.keys(obj);
     if (keys.length === 0) {
-        return 'Empty Data'; 
+      return 'Empty Data';
     }
 
     keys.forEach(key => {
-        const value = obj[key];
-        const formattedValue = formatObjectToPlainText(value, indent + 1); 
+      const value = obj[key];
+      const formattedValue = formatObjectToPlainText(value, indent + 1);
 
-        if (typeof value === 'object' && value !== null && (Array.isArray(value) ? value.length > 0 : Object.keys(value).length > 0)) {
-            lines.push(`${currentLevelIndent}${key}:`);
-            lines.push(formattedValue); 
-        } else {
-            lines.push(`${currentLevelIndent}${key}: ${formattedValue}`);
-        }
+      if (typeof value === 'object' && value !== null && (Array.isArray(value) ? value.length > 0 : Object.keys(value).length > 0)) {
+        lines.push(`${currentLevelIndent}${key}:`);
+        lines.push(formattedValue);
+      } else {
+        lines.push(`${currentLevelIndent}${key}: ${formattedValue}`);
+      }
     });
     return lines.join('\n');
-}
-
-window.showModal = function(oldDataStr, newDataStr) {
-  
-  try {
-    let oldData, newData;
-
-    try {
-      oldData = oldDataStr === 'null' ? null : JSON.parse(oldDataStr);
-    } catch (e) {
-      oldData = oldDataStr; 
-    }
-
-    try {
-      newData = newDataStr === 'null' ? null : JSON.parse(newDataStr);
-    } catch (e) {
-      newData = newDataStr; 
-    }
-    
-    const cleanedOldData = cleanData(oldData);
-    const cleanedNewData = cleanData(newData);
-
-    const oldFormatted = formatObjectToPlainText(cleanedOldData);
-    const newFormatted = formatObjectToPlainText(cleanedNewData);
-    
-    document.getElementById('old-data-display').textContent = oldFormatted;
-    document.getElementById('new-data-display').textContent = newFormatted;
-    
-    document.getElementById('data-modal').classList.remove('hidden');
-    
-  } catch (error) {
-    console.error('Error showing modal:', error);
-    document.getElementById('old-data-display').textContent = oldDataStr;
-    document.getElementById('new-data-display').textContent = newDataStr;
-    document.getElementById('data-modal').classList.remove('hidden');
   }
-}
 
-window.closeModal = function() {
-  document.getElementById('data-modal').classList.add('hidden');
-}
+  window.showModal = function(oldDataStr, newDataStr) {
+    try {
+      let oldData, newData;
 
-window.highlightDifferences = function(oldStr, newStr, type) {
-  if (oldStr === 'null' || newStr === 'null') {
-    return type === 'old' ? oldStr : newStr;
+      try {
+        oldData = oldDataStr === 'null' ? null : JSON.parse(oldDataStr);
+      } catch (e) {
+        oldData = oldDataStr;
+      }
+
+      try {
+        newData = newDataStr === 'null' ? null : JSON.parse(newDataStr);
+      } catch (e) {
+        newData = newDataStr;
+      }
+
+      const cleanedOldData = cleanData(oldData);
+      const cleanedNewData = cleanData(newData);
+
+      const oldFormatted = formatObjectToPlainText(cleanedOldData);
+      const newFormatted = formatObjectToPlainText(cleanedNewData);
+
+      document.getElementById('old-data-display').textContent = oldFormatted;
+      document.getElementById('new-data-display').textContent = newFormatted;
+
+      document.getElementById('data-modal').classList.remove('hidden');
+
+    } catch (error) {
+      console.error('Error showing modal:', error);
+      document.getElementById('old-data-display').textContent = oldDataStr;
+      document.getElementById('new-data-display').textContent = newDataStr;
+      document.getElementById('data-modal').classList.remove('hidden');
+    }
   }
-  
-  try {
-    const oldData = JSON.parse(oldStr);
-    const newData = JSON.parse(newStr);
-    
-    if (typeof oldData !== 'object' || typeof newData !== 'object') {
+
+  window.closeModal = function() {
+    document.getElementById('data-modal').classList.add('hidden');
+  }
+
+  window.highlightDifferences = function(oldStr, newStr, type) {
+    if (oldStr === 'null' || newStr === 'null') {
       return type === 'old' ? oldStr : newStr;
     }
-    
-    const changes = findObjectDifferences(oldData, newData);
-    let result = type === 'old' ? oldStr : newStr;
-    
-    changes.forEach(change => {
-      const valueToHighlight = type === 'old' ? change.oldValue : change.newValue;
-      if (valueToHighlight !== undefined) {
-        const escapedValue = escapeRegExp(JSON.stringify(valueToHighlight));
-        const regex = new RegExp(`(${escapedValue})`, 'g');
-        result = result.replace(regex, '<span class="highlight-change">$1</span>');
+
+    try {
+      const oldData = JSON.parse(oldStr);
+      const newData = JSON.parse(newStr);
+
+      if (typeof oldData !== 'object' || typeof newData !== 'object') {
+        return type === 'old' ? oldStr : newStr;
+      }
+
+      const changes = findObjectDifferences(oldData, newData);
+      let result = type === 'old' ? oldStr : newStr;
+
+      changes.forEach(change => {
+        const valueToHighlight = type === 'old' ? change.oldValue : change.newValue;
+        if (valueToHighlight !== undefined) {
+          const escapedValue = escapeRegExp(JSON.stringify(valueToHighlight));
+          const regex = new RegExp(`(${escapedValue})`, 'g');
+          result = result.replace(regex, '<span class="highlight-change">$1</span>');
+        }
+      });
+
+      return result;
+
+    } catch (e) {
+      return type === 'old' ? oldStr : newStr;
+    }
+  }
+
+  window.findObjectDifferences = function(oldObj, newObj, path = '') {
+    const differences = [];
+
+    const allKeys = new Set([...Object.keys(oldObj || {}), ...Object.keys(newObj || {})]);
+
+    allKeys.forEach(key => {
+      const currentPath = path ? `${path}.${key}` : key;
+      const oldValue = oldObj ? oldObj[key] : undefined;
+      const newValue = newObj ? newObj[key] : undefined;
+
+      if (oldValue !== newValue) {
+        if (typeof oldValue === 'object' && typeof newValue === 'object' &&
+            oldValue !== null && newValue !== null) {
+          differences.push(...findObjectDifferences(oldValue, newValue, currentPath));
+        } else {
+          differences.push({
+            path: currentPath,
+            oldValue: oldValue,
+            newValue: newValue
+          });
+        }
       }
     });
-    
-    return result;
-    
-  } catch (e) {
-    return type === 'old' ? oldStr : newStr;
-  }
-}
 
-window.findObjectDifferences = function(oldObj, newObj, path = '') {
-  const differences = [];
-  
-  const allKeys = new Set([...Object.keys(oldObj || {}), ...Object.keys(newObj || {})]);
-  
-  allKeys.forEach(key => {
-    const currentPath = path ? `${path}.${key}` : key;
-    const oldValue = oldObj ? oldObj[key] : undefined;
-    const newValue = newObj ? newObj[key] : undefined;
-    
-    if (oldValue !== newValue) {
-      if (typeof oldValue === 'object' && typeof newValue === 'object' && 
-          oldValue !== null && newValue !== null) {
-        differences.push(...findObjectDifferences(oldValue, newValue, currentPath));
-      } else {
-        differences.push({
-          path: currentPath,
-          oldValue: oldValue,
-          newValue: newValue
-        });
-      }
+    return differences;
+  }
+
+  window.escapeRegExp = function(string) {
+    return string.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+  }
+
+  window.openFromElement = function(el) {
+    const oldDataStr = el.dataset.old || 'null';
+    const newDataStr = el.dataset.new || 'null';
+    showModal(oldDataStr, newDataStr);
+  }
+
+  document.addEventListener('click', function(e) {
+    const modal = document.getElementById('data-modal');
+    if (e.target === modal) {
+      closeModal();
+    }
+  });
+
+  document.addEventListener('keydown', function(e) {
+    if (e.key === 'Escape') {
+      closeModal();
     }
   });
   
-  return differences;
-}
+  let allLogs = [];
+  let filteredLogs = [];
+  let currentSort = { column: 'timestamp', direction: 'desc' };
+  let totalCount = {{ total_count }};
+  const entriesPerPage = 50;
+  let visibleEntries = entriesPerPage;
 
-window.escapeRegExp = function(string) {
-  return string.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
-}
-
-window.openFromElement = function(el) {
-  const oldDataStr = el.dataset.old || 'null';
-  const newDataStr = el.dataset.new || 'null';
-  showModal(oldDataStr, newDataStr);
-}
-
-document.addEventListener('click', function(e) {
-  const modal = document.getElementById('data-modal');
-  if (e.target === modal) {
-    closeModal();
+  function formatTimestamps() {
+    document.querySelectorAll('.formatted-timestamp').forEach(function(el) {
+      const raw = el.dataset.raw || el.textContent.trim();
+      const relativeEl = el.nextElementSibling;
+      const date = new Date(raw);
+      if (!isNaN(date)) {
+        el.textContent = formatDate(date);
+        if (relativeEl) relativeEl.textContent = getRelativeTime(date);
+      }
+    });
   }
+
+  function formatDate(date) {
+    return new Intl.DateTimeFormat('en-US', {
+      year: 'numeric',
+      month: '2-digit',
+      day: '2-digit',
+      hour: '2-digit',
+      minute: '2-digit',
+      hour12: true
+    }).format(date);
+  }
+
+  function getRelativeTime(date) {
+    const now = new Date();
+    const diffMs = now - date;
+    const diffMins = Math.floor(diffMs / 60000);
+    const diffHours = Math.floor(diffMins / 60);
+    const diffDays = Math.floor(diffHours / 24);
+    if (diffMins < 1) return 'Just now';
+    if (diffMins < 60) return `${diffMins}m ago`;
+    if (diffHours < 24) return `${diffHours}h ago`;
+    if (diffDays < 7) return `${diffDays}d ago`;
+    return date.toLocaleDateString();
+  }
+  let hasLoaded = false;
+  document.addEventListener('DOMContentLoaded', function() {
+    setupInitialDates();
+    
+    document.getElementById('load-date-range').addEventListener('click', (e) => {
+  e.preventDefault?.();
+  loadLogsByDate(false); 
 });
 
-document.addEventListener('keydown', function(e) {
-  if (e.key === 'Escape') {
-    closeModal();
-  }
-});
-let currentPage = 1;
-const perPage = {{ per_page }};
-let isLoading = false;
-let allLogs = [];
-let filteredLogs = [];
-let currentSort = { column: 'timestamp', direction: 'desc' };
-let totalCount = {{ total_count }};
-
-document.addEventListener('DOMContentLoaded', function() {
-    loadInitialLogs();
-
-    window.addEventListener('scroll', function() {
-      if (window.innerHeight + window.scrollY >= document.body.offsetHeight - 200 && !isLoading) {
-            loadMoreLogs();
-        }
+    
+    document.querySelectorAll('input').forEach(input => {
+      input.addEventListener('input', applyFilters);
     });
-
-    const filters = {
-        timestamp: document.getElementById('timestamp-filter'),
-        user: document.getElementById('user-filter'),
-        action: document.getElementById('action-filter'),
-        table: document.getElementById('table-filter'),
-        record: document.getElementById('record-filter'),
-        data: document.getElementById('data-filter')
-    };
-
-    Object.values(filters).forEach(filter => {
-        filter.addEventListener('input', applyFilters);
-        filter.addEventListener('keyup', applyFilters);
-    });
-
+    
     document.getElementById('reset-filters').addEventListener('click', () => {
-        Object.values(filters).forEach(filter => filter.value = '');
-        applyFilters();
+      document.querySelectorAll('input').forEach(input => {
+        if(input.id !== 'start-date-filter' && input.id !== 'end-date-filter') {
+          input.value = '';
+        }
+      });
+      applyFilters();
     });
 
     document.querySelectorAll('th[data-sort]').forEach(header => {
-        header.addEventListener('click', function() {
-            const column = this.dataset.sort;
-            if (currentSort.column === column) {
-                currentSort.direction = currentSort.direction === 'asc' ? 'desc' : 'asc';
-            } else {
-                currentSort.column = column;
-                currentSort.direction = 'desc';
-            }
-            updateSortIndicators();
-            applyFilters();
-        });
-    });
-
-    function loadInitialLogs() {
-        allLogs = JSON.parse(document.getElementById('initial-logs-data').textContent);
-        applyFilters();
-        updateCounts();
-        formatTimestamps();
-    }
-
-    function loadMoreLogs() {
-        if (filteredLogs.length >= totalCount) return;
-
-        isLoading = true;
-        document.getElementById('loading-more').classList.remove('hidden');
-        currentPage++;
-
-        const url = `/radmapping/audit/load_more?page=${currentPage}`;
-        fetch(url)
-            .then(response => response.json())
-            .then(newLogs => {
-                allLogs = allLogs.concat(newLogs);
-                document.getElementById('loading-more').classList.add('hidden');
-                applyFilters();
-            })
-            .catch(error => {
-                console.error("Failed to load more logs:", error);
-                document.getElementById('loading-more').classList.add('hidden');
-            })
-            .finally(() => {
-                isLoading = false;
-            });
-    }
-
-    function formatTimestamps() {
-        document.querySelectorAll('.formatted-timestamp').forEach(function(el) {
-            const raw = el.dataset.raw || el.textContent.trim();
-            const relativeEl = el.nextElementSibling;
-            const date = new Date(raw);
-            if (!isNaN(date)) {
-                el.textContent = formatDate(date);
-                if (relativeEl) relativeEl.textContent = getRelativeTime(date);
-            }
-        });
-    }
-
-    function formatDate(date) {
-        return new Intl.DateTimeFormat('en-US', {
-            year: 'numeric',
-            month: '2-digit',
-            day: '2-digit',
-            hour: '2-digit',
-            minute: '2-digit',
-            hour12: true
-        }).format(date);
-    }
-
-    function getRelativeTime(date) {
-        const now = new Date();
-        const diffMs = now - date;
-        const diffMins = Math.floor(diffMs / 60000);
-        const diffHours = Math.floor(diffMins / 60);
-        const diffDays = Math.floor(diffHours / 24);
-        if (diffMins < 1) return 'Just now';
-        if (diffMins < 60) return `${diffMins}m ago`;
-        if (diffHours < 24) return `${diffHours}h ago`;
-        if (diffDays < 7) return `${diffDays}d ago`;
-        return date.toLocaleDateString();
-    }
-    
-    function applyFilters() {
-        const filters = {
-            timestamp: document.getElementById('timestamp-filter').value.toLowerCase().trim(),
-            user: document.getElementById('user-filter').value.toLowerCase().trim(),
-            action: document.getElementById('action-filter').value.toLowerCase().trim(),
-            table: document.getElementById('table-filter').value.toLowerCase().trim(),
-            record: document.getElementById('record-filter').value.toLowerCase().trim(),
-            data: document.getElementById('data-filter').value.toLowerCase().trim()
-        };
-
-        filteredLogs = allLogs.filter(log => {
-            const timestampText = new Date(log.timestamp).toLocaleString().toLowerCase();
-            const userText = (log.user_email || '').toLowerCase();
-            const actionText = (log.action || '').toLowerCase();
-            const tableText = (log.table_name || '').toLowerCase();
-            const recordText = (log.record_id || '').toLowerCase();
-            const dataText = (JSON.stringify(log.old_data) || '') + ' ' + (JSON.stringify(log.new_data) || '');
-
-            return (!filters.timestamp || timestampText.includes(filters.timestamp)) &&
-                   (!filters.user || userText.includes(filters.user)) &&
-                   (!filters.action || actionText.includes(filters.action)) &&
-                   (!filters.table || tableText.includes(filters.table)) &&
-                   (!filters.record || recordText.includes(filters.record)) &&
-                   (!filters.data || dataText.toLowerCase().includes(filters.data));
-        });
-
+      header.addEventListener('click', function() {
+        const column = this.dataset.sort;
+        if (currentSort.column === column) {
+          currentSort.direction = currentSort.direction === 'asc' ? 'desc' : 'asc';
+        } else {
+          currentSort.column = column;
+          currentSort.direction = 'desc';
+        }
+        updateSortIndicators();
         sortAndRenderLogs();
-        updateCounts();
-    }
+      });
+    });
     
-    function sortAndRenderLogs() {
-        filteredLogs.sort((a, b) => {
-            let valueA, valueB;
-            switch(currentSort.column) {
-                case 'timestamp':
-                    valueA = new Date(a.timestamp);
-                    valueB = new Date(b.timestamp);
-                    break;
-                case 'user':
-                    valueA = (a.user_email || '').toLowerCase();
-                    valueB = (b.user_email || '').toLowerCase();
-                    break;
-                case 'action':
-                    valueA = (a.action || '').toLowerCase();
-                    valueB = (b.action || '').toLowerCase();
-                    break;
-                case 'table':
-                    valueA = (a.table_name || '').toLowerCase();
-                    valueB = (b.table_name || '').toLowerCase();
-                    break;
-                case 'record':
-                    valueA = (a.record_id || '').toLowerCase();
-                    valueB = (b.record_id || '').toLowerCase();
-                    break;
-                default:
-                    return 0;
-            }
-            if (valueA < valueB) return currentSort.direction === 'asc' ? -1 : 1;
-            if (valueA > valueB) return currentSort.direction === 'asc' ? 1 : -1;
-            return 0;
-        });
-
+    window.addEventListener('scroll', function() {
+      if (window.innerHeight + window.scrollY >= document.body.offsetHeight - 200) {
+        loadMoreVisibleEntries();
+      }
+    });
+    
+    function loadMoreVisibleEntries() {
+      if (visibleEntries < filteredLogs.length) {
+        visibleEntries += entriesPerPage;
         renderLogs(filteredLogs);
+      }
+    }
+
+    function setupInitialDates() {
+      const today = new Date();
+      const lastWeek = new Date(today);
+      lastWeek.setDate(today.getDate() - 7); 
+      document.getElementById('start-date-filter').valueAsDate = lastWeek;
+      document.getElementById('end-date-filter').valueAsDate = today;
+      loadLogsByDate(true);
+    }
+ function showSuccessMessage(message) {
+  if (!hasLoaded) return; 
+
+  const messageEl = document.createElement("div");
+  messageEl.className =
+    "fixed top-4 left-1/2 -translate-x-1/2 px-6 py-3 bg-green-500 text-white rounded-full shadow-lg z-50";
+  messageEl.textContent = message;
+  document.body.appendChild(messageEl);
+
+  setTimeout(() => {
+    messageEl.remove();
+  }, 3000);
+}
+
+
+  function loadLogsByDate(suppressToast = false) {
+  const startDate = document.getElementById('start-date-filter').value;
+  const endDate = document.getElementById('end-date-filter').value;
+
+  if (!startDate || !endDate) {
+    alert("Please select a start and end date.");
+    return;
+  }
+
+  const loadingEl = document.getElementById('loading-more');
+  loadingEl.classList.remove('hidden');
+
+  fetch(`/radmapping/audit/search?start_date=${startDate}&end_date=${endDate}`)
+    .then(response => response.json())
+    .then(data => {
+      allLogs = data;
+      totalCount = data.length;
+      visibleEntries = entriesPerPage;
+      loadingEl.classList.add('hidden');
+      applyFilters();
+
+      if (suppressToast) {
+        hasLoaded = true;
+      } else {
+        showSuccessMessage(`Loaded ${data.length} logs successfully.`);
+      }
+    })
+    .catch(error => {
+      console.error("Failed to load logs by date range:", error);
+      loadingEl.classList.add('hidden');
+    });
+}
+
+
+    function applyFilters() {
+      const filters = {
+        user: document.getElementById('user-filter').value.toLowerCase().trim(),
+        action: document.getElementById('action-filter').value.toLowerCase().trim(),
+        table: document.getElementById('table-filter').value.toLowerCase().trim(),
+        record: document.getElementById('record-filter').value.toLowerCase().trim(),
+        data: document.getElementById('data-filter').value.toLowerCase().trim(),
+        timestamp: document.getElementById('timestamp-filter').value.toLowerCase().trim()
+      };
+
+      filteredLogs = allLogs.filter(log => {
+        const userText = (log.user_email || '').toLowerCase();
+        const actionText = (log.action || '').toLowerCase();
+        const tableText = (log.table_name || '').toLowerCase();
+        const recordText = (log.record_id || '').toLowerCase();
+        const dataText = (JSON.stringify(log.old_data) || '') + ' ' + (JSON.stringify(log.new_data) || '');
+        const timestampText = new Date(log.timestamp).toLocaleString('en-US').toLowerCase();
+
+
+        return (!filters.user || userText.includes(filters.user)) &&
+               (!filters.action || actionText.includes(filters.action)) &&
+               (!filters.table || tableText.includes(filters.table)) &&
+               (!filters.record || recordText.includes(filters.record)) &&
+               (!filters.data || dataText.toLowerCase().includes(filters.data)) &&
+               (!filters.timestamp || timestampText.includes(filters.timestamp));
+      });
+
+      visibleEntries = entriesPerPage; 
+      sortAndRenderLogs();
+    }
+
+    function sortAndRenderLogs() {
+      filteredLogs.sort((a, b) => {
+        let valueA, valueB;
+        switch(currentSort.column) {
+          case 'timestamp':
+            valueA = new Date(a.timestamp);
+            valueB = new Date(b.timestamp);
+            break;
+          case 'user':
+            valueA = (a.user_email || '').toLowerCase();
+            valueB = (b.user_email || '').toLowerCase();
+            break;
+          case 'action':
+            valueA = (a.action || '').toLowerCase();
+            valueB = (b.action || '').toLowerCase();
+            break;
+          case 'table':
+            valueA = (a.table_name || '').toLowerCase();
+            valueB = (b.table_name || '').toLowerCase();
+            break;
+          case 'record':
+            valueA = (a.record_id || '').toLowerCase();
+            valueB = (b.record_id || '').toLowerCase();
+            break;
+          default:
+            return 0;
+        }
+        if (valueA < valueB) return currentSort.direction === 'asc' ? -1 : 1;
+        if (valueA > valueB) return currentSort.direction === 'asc' ? 1 : -1;
+        return 0;
+      });
+
+      renderLogs(filteredLogs);
     }
     
     function renderLogs(logs) {
-        const tbody = document.getElementById('audit-log-body');
-        tbody.innerHTML = '';
-        if (logs.length === 0) {
-            document.getElementById('no-results').classList.remove('hidden');
-        } else {
-            document.getElementById('no-results').classList.add('hidden');
-            logs.forEach(entry => {
-                const row = createLogEntryRow(entry);
-                tbody.appendChild(row);
-            });
-        }
-        formatTimestamps();
+      const tbody = document.getElementById('audit-log-body');
+      tbody.innerHTML = '';
+      if (logs.length === 0) {
+        document.getElementById('no-results').classList.remove('hidden');
+      } else {
+        document.getElementById('no-results').classList.add('hidden');
+        
+        const logsToRender = logs.slice(0, visibleEntries);
+        logsToRender.forEach(entry => {
+          const row = createLogEntryRow(entry);
+          tbody.appendChild(row);
+        });
+      }
+      updateCounts(logs.length);
+      formatTimestamps();
+    }
+    
+    function createLogEntryRow(entry) {
+      const row = document.createElement('tr');
+      row.className = `bg-white border-b hover:bg-gray-50 transition-colors audit-row`;
+      row.innerHTML = `
+          <td class="px-4 py-4 whitespace-nowrap timestamp-cell sticky left-0 bg-white z-10">
+            <div class="formatted-timestamp text-sm font-medium text-gray-900" data-raw="${entry.timestamp}">${entry.timestamp}</div>
+            <div class="relative-time text-xs text-gray-500"></div>
+          </td>
+          <td class="px-4 py-4 user-cell">
+            <div class="text-sm text-gray-900">${entry.user_email || '—'}</div>
+          </td>
+          <td class="px-4 py-4 action-cell">
+            <span class="inline-flex px-2 py-1 text-xs font-semibold rounded-full
+              ${entry.action === 'insert' ? 'bg-green-100 text-green-800' :
+                entry.action === 'update' ? 'bg-blue-100 text-blue-800' :
+                entry.action === 'delete' ? 'bg-red-100 text-red-800' :
+                'bg-gray-100 text-gray-800'}">
+              ${entry.action.toUpperCase()}
+            </span>
+          </td>
+          <td class="px-4 py-4 table-cell">
+            <div class="text-sm font-medium text-gray-900">${entry.table_name}</div>
+          </td>
+          <td class="px-4 py-4 record-cell">
+            <div class="text-xs font-mono text-gray-600 bg-gray-50 px-2 py-1 rounded">${entry.record_id}</div>
+          </td>
+          <td class="px-4 py-4 old-data-cell">
+            <div
+              class="relative max-w-xs cursor-pointer hover:bg-gray-100 rounded p-1 transition-colors"
+              onclick="openFromElement(this)"
+              data-old='${JSON.stringify(entry.old_data)}'
+              data-new='${JSON.stringify(entry.new_data)}'>
+              <div class="old-data-container">
+                <pre class="text-xs text-gray-600 max-h-24 overflow-y-auto bg-gray-50 p-2 rounded border">
+${JSON.stringify(entry.old_data, null, 2) || 'null'}
+                </pre>
+              </div>
+            </div>
+          </td>
+          <td class="px-4 py-4 new-data-cell">
+            <div
+              class="relative max-w-xs cursor-pointer hover:bg-gray-100 rounded p-1 transition-colors"
+              onclick="openFromElement(this)"
+              data-old='${JSON.stringify(entry.old_data)}'
+              data-new='${JSON.stringify(entry.new_data)}'>
+              <div class="new-data-container">
+                <pre class="text-xs text-gray-800 max-h-24 overflow-y-auto bg-gray-50 p-2 rounded border">
+${JSON.stringify(entry.new_data, null, 2) || 'null'}
+                </pre>
+              </div>
+            </div>
+          </td>
+      `;
+      return row;
     }
 
-    function createLogEntryRow(entry) {
-        const row = document.createElement('tr');
-        row.className = `bg-white border-b hover:bg-gray-50 transition-colors audit-row`;
-        row.innerHTML = `
-            <td class="px-4 py-4 whitespace-nowrap timestamp-cell sticky left-0 bg-white z-10">
-              <div class="formatted-timestamp text-sm font-medium text-gray-900" data-raw="${entry.timestamp}">${entry.timestamp}</div>
-              <div class="relative-time text-xs text-gray-500"></div>
-            </td>
-            <td class="px-4 py-4 user-cell">
-              <div class="text-sm text-gray-900">${entry.user_email || '—'}</div>
-            </td>
-            <td class="px-4 py-4 action-cell">
-              <span class="inline-flex px-2 py-1 text-xs font-semibold rounded-full
-                ${entry.action === 'insert' ? 'bg-green-100 text-green-800' :
-                  entry.action === 'update' ? 'bg-blue-100 text-blue-800' :
-                  entry.action === 'delete' ? 'bg-red-100 text-red-800' :
-                  'bg-gray-100 text-gray-800'}">
-                ${entry.action.toUpperCase()}
-              </span>
-            </td>
-            <td class="px-4 py-4 table-cell">
-              <div class="text-sm font-medium text-gray-900">${entry.table_name}</div>
-            </td>
-            <td class="px-4 py-4 record-cell">
-              <div class="text-xs font-mono text-gray-600 bg-gray-50 px-2 py-1 rounded">${entry.record_id}</div>
-            </td>
-            <td class="px-4 py-4 old-data-cell">
-              <div
-                class="relative max-w-xs cursor-pointer hover:bg-gray-100 rounded p-1 transition-colors"
-                onclick="openFromElement(this)"
-                data-old='${JSON.stringify(entry.old_data)}'
-                data-new='${JSON.stringify(entry.new_data)}'>
-                <div class="old-data-container">
-                  <pre class="text-xs text-gray-600 max-h-24 overflow-y-auto bg-gray-50 p-2 rounded border">
-${JSON.stringify(entry.old_data, null, 2) || 'null'}
-                  </pre>
-                </div>
-              </div>
-            </td>
-            <td class="px-4 py-4 new-data-cell">
-              <div
-                class="relative max-w-xs cursor-pointer hover:bg-gray-100 rounded p-1 transition-colors"
-                onclick="openFromElement(this)"
-                data-old='${JSON.stringify(entry.old_data)}'
-                data-new='${JSON.stringify(entry.new_data)}'>
-                <div class="new-data-container">
-                  <pre class="text-xs text-gray-800 max-h-24 overflow-y-auto bg-gray-50 p-2 rounded border">
-${JSON.stringify(entry.new_data, null, 2) || 'null'}
-                  </pre>
-                </div>
-              </div>
-            </td>
-        `;
-        return row;
-    }
-    
     function updateSortIndicators() {
-        document.querySelectorAll('.sort-indicator').forEach(i => {
-            i.textContent = '↕';
-            i.classList.remove('active');
-        });
-        const indicator = document.querySelector(`th[data-sort="${currentSort.column}"] .sort-indicator`);
-        if (indicator) {
-            indicator.textContent = currentSort.direction === 'asc' ? '↑' : '↓';
-            indicator.classList.add('active');
-        }
+      document.querySelectorAll('.sort-indicator').forEach(i => {
+        i.textContent = '↕';
+        i.classList.remove('active');
+      });
+      const indicator = document.querySelector(`th[data-sort="${currentSort.column}"] .sort-indicator`);
+      if (indicator) {
+        indicator.textContent = currentSort.direction === 'asc' ? '↑' : '↓';
+        indicator.classList.add('active');
+      }
     }
-    
-    function updateCounts() {
-        document.getElementById('showing-count').textContent = `Showing ${filteredLogs.length} entries`;
-        document.getElementById('total-count').textContent = `Total: ${totalCount} entries`;
+
+    function updateCounts(totalFiltered) {
+      document.getElementById('showing-count').textContent = `Showing ${Math.min(visibleEntries, totalFiltered)} of ${totalFiltered} entries`;
+      document.getElementById('total-count').textContent = `Total: ${totalCount} entries`;
     }
-});
-</script>
-<script id="initial-logs-data" type="application/json">
-  {{ logs | tojson }}
+  });
 </script>
 {% endblock %}
 {% endblock %}
