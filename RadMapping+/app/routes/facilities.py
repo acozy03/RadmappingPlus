@@ -106,11 +106,11 @@ def search_facilities():
         query = query.eq("location", state_filter)
         print(f"  - Time for .eq('location') method call: {time.time() - step_start:.4f}s")
 
-    if status == "active":
+    if status == "true":
         step_start = time.time()
         query = query.eq("active_status", "true")
         print(f"  - Time for .eq('active_status') method call: {time.time() - step_start:.4f}s")
-    elif status == "inactive":
+    elif status == "false":
         step_start = time.time()
         query = query.eq("active_status", "false")
         print(f"  - Time for .eq('active_status') method call: {time.time() - step_start:.4f}s")
