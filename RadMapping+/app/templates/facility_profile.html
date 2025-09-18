@@ -52,6 +52,7 @@
           <div class="text-base font-medium text-gray-900">{{ facility.tat_definition }}</div>
         </div>
       </div>
+      
       <div class="flex items-center space-x-3">
         <span class="inline-flex items-center justify-center w-8 h-8 bg-pink-100 text-pink-600 rounded-full text-lg">🧬</span>
         <div>
@@ -110,8 +111,33 @@
         {{ full_text }}
       {% endif %}
     </div>
+  </div> 
   </div>
+ 
+   <div class="flex items-center space-x-3">
+        <span class="inline-flex items-center justify-center w-8 h-8 bg-gray-100 text-pink-600 rounded-full text-lg">ⓘ</span>
+             <div x-data="{ expanded: false }">
+    <div class="text-xs text-gray-500 font-semibold uppercase">Additional Info / Comments</div>
+    <div class="text-base font-medium text-gray-900">
+      {% set full_text = facility.additional_info or '—' %}
+      {% if full_text|length > 50 %}
+        <template x-if="!expanded">
+          <span>
+            {{ full_text[:50] }}... <a href="#" @click.prevent="expanded = true" class="text-blue-600 hover:underline">Show More</a>
+          </span>
+        </template>
+        <template x-if="expanded">
+          <span>
+            {{ full_text }} <a href="#" @click.prevent="expanded = false" class="text-blue-600 hover:underline">Show less</a>
+          </span>
+        </template>
+      {% else %}
+        {{ full_text }}
+      {% endif %}
+    </div>
+  </div> 
   </div>
+
   <div class="flex items-center space-x-3">
         <span class="inline-flex items-center justify-center w-8 h-8 rounded-full text-lg
           {% if facility.active_status == 'true' %}bg-green-100 text-green-600{% elif facility.active_status == 'false' %}bg-red-100 text-red-600{% elif facility.active_status == 'hold' %}bg-blue-100 text-blue-600{% elif facility.active_status == 'pending' %}bg-yellow-100 text-black-600{% endif %}">
@@ -166,6 +192,10 @@
        <label class="block">
         <span class="font-semibold">Monitoring</span>
         <input type="text" name="monitoring" value="{{ facility.monitoring or '' }}" class="input w-full border rounded px-3 py-2 text-sm" />
+      </label>
+      <label class="block">
+        <span class="font-semibold">Additional Info / Comments</span>
+        <input type="text" name="additional_info" value="{{ facility.additional_info or '' }}" class="input w-full border rounded px-3 py-2 text-sm" />
       </label>
 
      <label class="flex items-center space-x-2 mt-4">

@@ -119,7 +119,7 @@ def search_licenses():
         if match_search and match_state and match_doctor_status:
             filtered_certifications.append(cert)
             
-    filtered_certifications.sort(key=lambda x: x.get('expiration_date', ''), reverse=True)
+    filtered_certifications.sort(key=lambda x: x.get('state', ''), reverse=False)
 
 
     total_count = len(filtered_certifications)

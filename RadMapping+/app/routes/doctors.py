@@ -146,7 +146,7 @@ def doctor_profile(rad_id):
     certs_res = supabase.table("certifications") \
         .select("*") \
         .eq("radiologist_id", rad_id) \
-        .order("expiration_date", desc=True) \
+        .order("state", desc=False) \
         .execute()
 
     certifications = certs_res.data

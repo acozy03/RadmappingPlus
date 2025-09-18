@@ -1,12 +1,11 @@
-# app/routes/facilities.py
 from flask import Blueprint, render_template, session, redirect, url_for, request, jsonify
 from app.admin_required import admin_required
-from app.supabase_client import supabase 
+from app.supabase_client import supabase
 import uuid
 from app.middleware import with_supabase_auth
 from app.supabase_client import get_supabase_client
 from app.audit_log import log_audit_action
-import time 
+import time
 from flask import g
 facilities_bp = Blueprint('facilities', __name__)
 
@@ -33,29 +32,45 @@ def facilities():
     per_page = 25
     offset = (page - 1) * per_page
     status = request.args.get('status', 'active')
+
     prioritized_facility_ids = _get_prioritized_facility_ids_cached(supabase)
 
-    base_query = supabase.table("facilities").select("*")
+    user_email = session["user"]["email"]
+    pinned_res = supabase.table("pinned_facilities") \
+        .select("facility_id") \
+        .eq("user_id", user_email) \
+        .execute()
+    pinned_facility_ids = {p["facility_id"] for p in pinned_res.data}
 
+    base_query = supabase.table("facilities").select("*")
     if status == "active":
         base_query = base_query.eq("active_status", "true")
     elif status == "inactive":
         base_query = base_query.eq("active_status", "false")
+    elif status == "hold":
+        base_query = base_query.eq("active_status", "hold")
+    elif status == "pending":
+        base_query = base_query.eq("active_status", "pending")
 
     all_facilities_from_db_raw = base_query.execute().data or []
 
+    pinned_facilities_list = []
     prioritized_facilities_list = []
     unprioritized_facilities_list = []
+
     for fac in all_facilities_from_db_raw:
-        if fac["id"] in prioritized_facility_ids:
+        if fac["id"] in pinned_facility_ids:
+            pinned_facilities_list.append(fac)
+        elif fac["id"] in prioritized_facility_ids:
             prioritized_facilities_list.append(fac)
         else:
             unprioritized_facilities_list.append(fac)
 
+    pinned_facilities_list.sort(key=lambda f: f["name"].lower())
     prioritized_facilities_list.sort(key=lambda f: f["name"].lower())
     unprioritized_facilities_list.sort(key=lambda f: f["name"].lower())
 
-    sorted_facilities = prioritized_facilities_list + unprioritized_facilities_list
+    sorted_facilities = pinned_facilities_list + prioritized_facilities_list + unprioritized_facilities_list
     total_count = len(sorted_facilities)
 
     visible_facilities = sorted_facilities[offset:offset + per_page]
@@ -65,8 +80,8 @@ def facilities():
                          total_count=total_count,
                          current_page=page,
                          per_page=per_page,
-                         prioritized_facility_ids=list(prioritized_facility_ids))
-
+                         prioritized_facility_ids=list(prioritized_facility_ids),
+                         pinned_facility_ids=list(pinned_facility_ids))
 
 @facilities_bp.route('/facilities/search', methods=["GET"])
 @with_supabase_auth
@@ -75,7 +90,7 @@ def search_facilities():
     function_start_time = time.time()
 
     start_supabase_client_access = time.time()
-    supabase = get_supabase_client() # This call might include set_session
+    supabase = get_supabase_client()
     time_to_get_supabase_client = time.time() - start_supabase_client_access
     print(f"Time to get/initialize Supabase client (includes set_session if first access): {time_to_get_supabase_client:.4f}s")
 
@@ -87,10 +102,17 @@ def search_facilities():
     fetch_all = request.args.get('fetch_all', 'false').lower() == 'true'
 
     start_time_cache = time.time()
-    prioritized_facility_ids = _get_prioritized_facility_ids_cached(supabase) 
+    prioritized_facility_ids = _get_prioritized_facility_ids_cached(supabase)
     print(f"Time to fetch prioritized IDs (cached): {time.time() - start_time_cache:.4f}s")
-
-    query_object_build_start_time = time.time() 
+    
+    user_email = session["user"]["email"]
+    pinned_res = supabase.table("pinned_facilities") \
+        .select("facility_id") \
+        .eq("user_id", user_email) \
+        .execute()
+    pinned_facility_ids = {p["facility_id"] for p in pinned_res.data}
+    
+    query_object_build_start_time = time.time()
 
     step_start = time.time()
     query = supabase.table("facilities").select("id, name, location, active_status")
@@ -131,27 +153,34 @@ def search_facilities():
     print(f"Number of matching metadata records: {len(all_matching_meta)}")
 
     start_time_sort = time.time()
+    
+    pinned_matching_facilities_meta = []
     prioritized_matching_facilities_meta = []
     unprioritized_matching_facilities_meta = []
+    
     for fac_meta in all_matching_meta:
-        if fac_meta["id"] in prioritized_facility_ids:
+        if fac_meta["id"] in pinned_facility_ids:
+            pinned_matching_facilities_meta.append(fac_meta)
+        elif fac_meta["id"] in prioritized_facility_ids:
             prioritized_matching_facilities_meta.append(fac_meta)
         else:
             unprioritized_matching_facilities_meta.append(fac_meta)
 
+    pinned_matching_facilities_meta.sort(key=lambda f: f["name"].lower())
     prioritized_matching_facilities_meta.sort(key=lambda f: f["name"].lower())
     unprioritized_matching_facilities_meta.sort(key=lambda f: f["name"].lower())
 
-    sorted_matching_facilities_meta = prioritized_matching_facilities_meta + unprioritized_matching_facilities_meta
+    sorted_matching_facilities_meta = pinned_matching_facilities_meta + prioritized_matching_facilities_meta + unprioritized_matching_facilities_meta
+    
     total_count = len(sorted_matching_facilities_meta)
     print(f"Time for Python-side prioritization and sorting: {time.time() - start_time_sort:.4f}s")
 
     start_time_ids = time.time()
     visible_facilities_ids = []
     
-    if fetch_all: 
+    if fetch_all:
         visible_facilities = sorted_matching_facilities_meta
-        total_count = len(visible_facilities) 
+        total_count = len(visible_facilities)
         print(f"Time for determining visible facility IDs (fetch_all): {time.time() - start_time_ids:.4f}s")
         print(f"Skipping full details fetch as fetch_all is true.")
     else:
@@ -161,7 +190,7 @@ def search_facilities():
 
         start_time_full_details = time.time()
         visible_facilities = []
-        if visible_facilities_ids: 
+        if visible_facilities_ids:
             print(f"DEBUG: Number of IDs for full details fetch: {len(visible_facilities_ids)}")
             print(f"DEBUG: Sample IDs: {visible_facilities_ids[:5]}")
             full_details_res = supabase.table("facilities").select("*").in_("id", visible_facilities_ids).execute()
@@ -171,10 +200,39 @@ def search_facilities():
 
     return jsonify({
         "facilities": visible_facilities,
-        "total_count": total_count, 
+        "total_count": total_count,
         "current_page": page,
         "per_page": per_page
     })
+
+
+@facilities_bp.route('/facilities/pin', methods=['POST'])
+@with_supabase_auth
+def pin_facilities():
+    supabase = get_supabase_client()
+    data = request.get_json()
+    facility_ids = data.get('facility_ids', [])
+    user_email = session["user"]["email"]
+
+    if len(facility_ids) > 15:
+        return jsonify({'success': False, 'error': 'Cannot pin more than 15 facilities'}), 400
+
+    supabase.table("pinned_facilities") \
+        .delete() \
+        .eq("user_id", user_email) \
+        .execute()
+
+    if facility_ids:
+        pins = [{
+            "id": str(uuid.uuid4()),
+            "user_id": user_email,
+            "facility_id": fac_id
+        } for fac_id in facility_ids]
+
+        supabase.table("pinned_facilities").insert(pins).execute()
+
+    return jsonify({'success': True}), 200
+
 
 @facilities_bp.route('/facilities/prioritize', methods=['POST'])
 @with_supabase_auth
@@ -525,6 +583,7 @@ def update_facility(facility_id):
         'qa_criteria': form.get('qa_criteria'),
         'monitoring': form.get('monitoring'),
         'active_status': form.get('active_status'),
+        'additional_info': form.get('additional_info'),
         'account_poc': form.get('account_poc')  
     }
 
@@ -581,6 +640,7 @@ def add_facility():
         "modalities": data.get("modalities"),
         "qa_criteria": data.get("qa_criteria"),
         "monitoring": data.get("monitoring"),
+        "additional_info": data.get("additional_info"),
         "active_status": data.get("active_status"),
         "account_poc": data.get("account_poc")
     }
@@ -599,3 +659,4 @@ def add_facility():
         )
 
     return redirect(url_for("facilities.facilities", rad_id=new_id))
+

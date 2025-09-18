@@ -7,10 +7,15 @@
   <h2 class="text-2xl font-semibold">Facilities</h2>
   <div class="flex gap-2">
   {% if session.user.role == 'admin' %}
-      <button onclick="openPrioritizeModal()" class="bg-purple-600 text-white px-4 py-2 rounded hover:bg-purple-700">
+    <button onclick="openPrioritizeModal()" class="bg-purple-600 text-white px-4 py-2 rounded hover:bg-purple-700">
       Prioritize Facilities
     </button>
-      <button onclick="openAddFacilityModal()" class="bg-blue-600 text-white px-4 py-2 rounded hover:bg-blue-700">
+  {% endif %}
+  <button onclick="openPinModal()" class="bg-yellow-500 text-white px-4 py-2 rounded hover:bg-yellow-600">
+    Pin Facilities
+  </button>
+  {% if session.user.role == 'admin' %}
+    <button onclick="openAddFacilityModal()" class="bg-blue-600 text-white px-4 py-2 rounded hover:bg-blue-700">
       Add Facility
     </button>
   {% endif %}
@@ -123,6 +128,9 @@
       <div class="w-2 h-2 rounded-full {% if facility.active_status == 'true' %}bg-green-500{% elif facility.active_status == 'false' %}bg-red-500{% elif facility.active_status == 'hold' %}bg-blue-500{% elif facility.active_status == 'pending' %}bg-yellow-500{% endif %}"></div>
       <div>
         <div class="flex items-center gap-1">
+            {% if facility.id in pinned_facility_ids %}
+              <span title="Pinned Facility" class="text-yellow-500 text-base">⭐</span>
+            {% endif %}
             {% if facility.id in prioritized_facility_ids %}
               <span title="Prioritized Facility" class="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium bg-purple-100 text-purple-800 mr-2">PRIO</span>
             {% endif %}
@@ -275,6 +283,50 @@
   </div>
 </div>
 
+<div id="pinFacilitiesModal" class="fixed inset-0 z-50 hidden bg-black bg-opacity-50 flex items-center justify-center">
+  <div class="bg-white rounded-lg shadow-lg w-[90%] max-w-4xl p-6 relative max-h-[90vh] overflow-y-auto" id="pinFacilitiesModalContent">
+    <div class="flex justify-between items-center mb-4">
+      <h3 class="text-lg font-semibold">Pin Facilities</h3>
+      <button onclick="closePinModal()" class="text-gray-500 hover:text-gray-700">
+        <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12" />
+        </svg>
+      </button>
+    </div>
+
+    <div class="mb-4">
+      <p class="text-gray-600">Select up to 15 facilities to pin to the top of the directory.</p>
+      <p class="text-sm text-gray-500">Pinned facilities will always appear first for you (above prioritized/global).</p>
+    </div>
+
+    <div class="flex justify-between items-center mb-4">
+      <div class="flex-1 mr-4">
+        <input type="text" 
+               id="pinFacilitiesSearch" 
+               class="w-full border rounded px-3 py-2" 
+               placeholder="Search facilities..."
+               oninput="filterPinModalFacilities()">
+      </div>
+      <div class="flex items-center gap-4">
+        <span id="pinFacilitiesCounter" class="text-sm font-medium">0/15 selected</span>
+        <button onclick="resetPinnedFacilities()" class="px-3 py-1 text-sm border border-red-500 text-red-500 rounded hover:bg-red-50">
+          Reset All
+        </button>
+      </div>
+    </div>
+
+    <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 max-h-[60vh] overflow-y-auto" id="pinFacilitiesList"></div>
+
+    <div class="mt-4 flex justify-end gap-2">
+      <button onclick="closePinModal()" class="px-4 py-2 border rounded hover:bg-gray-100">
+        Cancel
+      </button>
+      <button onclick="savePinnedFacilities()" class="px-4 py-2 bg-purple-600 text-white rounded hover:bg-purple-700">
+        Save Pins
+      </button>
+    </div>
+  </div>
+</div>
 
 <script>
 let currentPage = parseInt("{{ current_page }}", 10);
@@ -283,7 +335,129 @@ let totalCount = parseInt("{{ total_count }}", 10);
 let searchTimeout;
 let currentStatusFilter = 'active';
 const PRIORITIZED_FACILITIES = {{ prioritized_facility_ids|tojson }};
+const PINNED_FACILITIES = {{ pinned_facility_ids|tojson }};
 let allFacilitiesData = [];
+
+function savePinnedFacilities() {
+  const selected = document.querySelectorAll('.pin-fac-checkbox:checked');
+  const facilityIds = Array.from(selected).map(cb => cb.dataset.facilityId);
+
+  if (facilityIds.length > 15) {
+    alert('You can only pin up to 15 facilities.');
+    return;
+  }
+
+  fetch('/radmapping/facilities/pin', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ facility_ids: facilityIds })
+  })
+  .then(r => r.json())
+  .then(data => {
+    if (data.success) {
+      // Refresh the page so top-of-list + ⭐ reflect new pins
+      window.location.reload();
+    } else {
+      alert('Error saving pinned facilities: ' + (data.error || 'Unknown error'));
+    }
+  })
+  .catch(err => {
+    console.error('Error saving pinned facilities:', err);
+    alert('Error saving pinned facilities');
+  });
+}
+
+function openPinModal() {
+  document.getElementById('pinFacilitiesModal').classList.remove('hidden');
+  fetchAllFacilitiesForPinning();
+}
+
+function closePinModal() {
+  document.getElementById('pinFacilitiesModal').classList.add('hidden');
+}
+
+// click-away to close
+document.addEventListener('DOMContentLoaded', () => {
+  const pinModal = document.getElementById('pinFacilitiesModal');
+  const pinModalContent = document.getElementById('pinFacilitiesModalContent');
+  if (pinModal) {
+    pinModal.addEventListener('click', function (event) {
+      if (event.target === pinModal && pinModalContent && !pinModalContent.contains(event.target)) {
+        closePinModal();
+      }
+    });
+  }
+});
+
+
+function fetchAllFacilitiesForPinning() {
+  // Pull all (unfiltered) facilities metadata for the checklist
+  fetch(`/radmapping/facilities/search?search_name=&state=&status=all&fetch_all=true`)
+    .then(r => r.json())
+    .then(({ facilities }) => {
+      renderPinFacilitiesList(facilities || []);
+      updatePinnedFacilitiesCounter(); // initialize
+    })
+    .catch(err => console.error('Error fetching facilities for pin modal:', err));
+}
+
+function renderPinFacilitiesList(facilities) {
+  const wrap = document.getElementById('pinFacilitiesList');
+  wrap.innerHTML = '';
+
+  facilities.forEach(fac => {
+    const isAlreadyPinned = PINNED_FACILITIES.includes(fac.id); // from server context
+    const div = document.createElement('div');
+    div.className = 'flex items-center gap-2 p-2 border rounded hover:bg-gray-50 facility-item';
+    div.innerHTML = `
+      <input type="checkbox"
+             id="pin-fac-${fac.id}"
+             class="pin-fac-checkbox form-checkbox h-5 w-5 text-purple-600"
+             data-facility-id="${fac.id}"
+             data-facility-name="${(fac.name || '').toLowerCase()}"
+             onchange="updatePinnedFacilitiesCounter()"
+             ${isAlreadyPinned ? 'checked' : ''}>
+      <label for="pin-fac-${fac.id}" class="flex-1 cursor-pointer">
+        ${fac.name}
+        ${isAlreadyPinned ? '<span title="Currently Pinned" class="text-yellow-500 text-sm ml-1">⭐</span>' : ''}
+      </label>
+    `;
+    wrap.appendChild(div);
+  });
+}
+
+function filterPinModalFacilities() {
+  const q = (document.getElementById('pinFacilitiesSearch').value || '').toLowerCase();
+  const items = document.querySelectorAll('#pinFacilitiesList .facility-item');
+  items.forEach(item => {
+    const label = item.querySelector('label');
+    const name = label ? label.textContent.toLowerCase() : '';
+    item.style.display = name.includes(q) ? '' : 'none';
+  });
+}
+
+function updatePinnedFacilitiesCounter() {
+  const checked = document.querySelectorAll('.pin-fac-checkbox:checked');
+  const counter = document.getElementById('pinFacilitiesCounter');
+  counter.textContent = `${checked.length}/15 selected`;
+
+  const unchecked = document.querySelectorAll('.pin-fac-checkbox:not(:checked)');
+  if (checked.length >= 15) {
+    unchecked.forEach(box => (box.disabled = true));
+  } else {
+    unchecked.forEach(box => (box.disabled = false));
+  }
+}
+
+function resetPinnedFacilities() {
+  if (confirm('Are you sure you want to unpin all facilities?')) {
+    document.querySelectorAll('.pin-fac-checkbox').forEach(box => {
+      box.checked = false;
+      box.disabled = false;
+    });
+    updatePinnedFacilitiesCounter();
+  }
+}
 
 function openAddFacilityModal() {
   document.getElementById('addFacilityModal').classList.remove('hidden');
@@ -429,46 +603,44 @@ function filterByStatus(status) {
 }
 
 function updateTable(facilities) {
-  const tbody = document.getElementById('facilityList');
-  tbody.innerHTML = '';
+  const list = document.getElementById('facilityList');
+  list.innerHTML = '';
 
-  facilities.forEach(facility => {
+  facilities.forEach(fac => {
+    const isPinned = PINNED_FACILITIES.includes(fac.id);
+    const isPrioritized = PRIORITIZED_FACILITIES.includes(fac.id);
+    const statusDot = getStatusDotClass(fac.active_status);
+
     const li = document.createElement('li');
     li.className = 'relative flex items-center justify-between p-4 bg-gray-50 rounded hover:bg-gray-100 cursor-pointer facility-item';
-    li.onclick = () => window.location.href = `/radmapping/facilities/${facility.id}`;
+    li.onclick = () => (window.location.href = `/radmapping/facilities/${fac.id}`);
     li.onmouseenter = () => showPopup(li);
     li.onmouseleave = () => hidePopup(li);
 
-    const isPrioritized = PRIORITIZED_FACILITIES.includes(facility.id);
-
     li.innerHTML = `
       <div class="flex items-center gap-3">
-       <div class="w-2 h-2 rounded-full ${
-  { 'true': 'bg-green-500', 'false': 'bg-red-500', 'hold': 'bg-blue-500', 'pending': 'bg-yellow-500' }[facility.active_status] || ''
-}"></div>
-
+        <div class="w-2 h-2 rounded-full ${statusDot}"></div>
         <div>
           <div class="flex items-center gap-1">
+            ${isPinned ? '<span title="Pinned Facility" class="text-yellow-500 text-base">⭐</span>' : ''}
             ${isPrioritized ? '<span title="Prioritized Facility" class="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium bg-purple-100 text-purple-800 mr-2">PRIO</span>' : ''}
-            <p class="text-lg font-medium name">${facility.name}</p>
+            <p class="text-lg font-medium name">${fac.name}</p>
           </div>
-          <p class="text-sm text-gray-500 location">${facility.location || 'No location specified'}</p>
+          <p class="text-sm text-gray-500 location">${fac.location || 'No location specified'}</p>
         </div>
       </div>
       <span class="text-blue-600 font-semibold">Details →</span>
 
       <div class="facility-popup absolute left-0 top-full mt-2 w-[20rem] bg-white border p-3 rounded shadow-md text-left pointer-events-none opacity-0 transition-opacity duration-150 z-50">
-        <p class="text-sm font-medium">Location: <span class="text-gray-700">${facility.location || 'N/A'}</span></p>
-        <p class="text-sm font-medium">PACS: <span class="text-gray-700">${facility.pacs || 'N/A'}</span></p>
-        <p class="text-sm font-medium">
-  Status: <span class="text-gray-700">${getStatusLabel(facility.active_status)}</span>
-</p>
-        <p class="text-sm font-medium">TAT Definition: <span class="text-gray-700">${facility.tat_definition || 'N/A'}</span></p>
-        <p class="text-sm font-medium">Modalities Period: <span class="text-gray-700">${facility.modalities_assignment_period || 'N/A'}</span></p>
+        <p class="text-sm font-medium">Location: <span class="text-gray-700">${fac.location || 'N/A'}</span></p>
+        <p class="text-sm font-medium">PACS: <span class="text-gray-700">${fac.pacs || 'N/A'}</span></p>
+        <p class="text-sm font-medium">Status: <span class="text-gray-700">${getStatusLabel(fac.active_status)}</span></p>
+        <p class="text-sm font-medium">TAT Definition: <span class="text-gray-700">${fac.tat_definition || 'N/A'}</span></p>
+        <p class="text-sm font-medium">Modalities Period: <span class="text-gray-700">${fac.modalities_assignment_period || 'N/A'}</span></p>
       </div>
     `;
 
-    tbody.appendChild(li);
+    list.appendChild(li);
   });
 }
 
