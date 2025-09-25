@@ -376,18 +376,6 @@ function closePinModal() {
   document.getElementById('pinFacilitiesModal').classList.add('hidden');
 }
 
-// click-away to close
-document.addEventListener('DOMContentLoaded', () => {
-  const pinModal = document.getElementById('pinFacilitiesModal');
-  const pinModalContent = document.getElementById('pinFacilitiesModalContent');
-  if (pinModal) {
-    pinModal.addEventListener('click', function (event) {
-      if (event.target === pinModal && pinModalContent && !pinModalContent.contains(event.target)) {
-        closePinModal();
-      }
-    });
-  }
-});
 
 
 function fetchAllFacilitiesForPinning() {
