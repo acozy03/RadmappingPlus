@@ -121,6 +121,7 @@ def run_google_sheet_sync(sheet_name: str = "March 2025"):
                 schedule_rows.append({
                     "id": str(uuid.uuid4()),
                     "radiologist_id": rad_id,
+                    "radiologist_name": result[0],
                     "start_date": date.isoformat(),
                     "start_time": start_time.strftime("%H:%M:%S"),
                     "end_date": end_date.isoformat(),
@@ -134,6 +135,7 @@ def run_google_sheet_sync(sheet_name: str = "March 2025"):
                 schedule_rows.append({
                     "id": str(uuid.uuid4()),
                     "radiologist_id": rad_id,
+                    "radiologist_name": result[0],
                     "start_date": date.isoformat(),
                     "start_time": None,
                     "end_date": date.isoformat(),
@@ -147,6 +149,7 @@ def run_google_sheet_sync(sheet_name: str = "March 2025"):
                 schedule_rows.append({
                     "id": str(uuid.uuid4()),
                     "radiologist_id": rad_id,
+                    "radiologist_name": result[0],
                     "start_date": date.isoformat(),
                     "start_time": None,
                     "end_date": date.isoformat(),

@@ -438,6 +438,21 @@
     }).format(date);
   }
 
+   function showSuccessMessage(message) {
+  if (!hasLoaded) return; 
+
+  const messageEl = document.createElement("div");
+  messageEl.className =
+    "fixed top-4 left-1/2 -translate-x-1/2 px-6 py-3 bg-green-500 text-white rounded-full shadow-lg z-50";
+  messageEl.textContent = message;
+  document.body.appendChild(messageEl);
+
+  setTimeout(() => {
+    messageEl.remove();
+  }, 3000);
+}
+  window.showSuccessMessage = showSuccessMessage;
+
   function getRelativeTime(date) {
     const now = new Date();
     const diffMs = now - date;
@@ -508,19 +523,7 @@
       document.getElementById('end-date-filter').valueAsDate = today;
       loadLogsByDate(true);
     }
- function showSuccessMessage(message) {
-  if (!hasLoaded) return; 
 
-  const messageEl = document.createElement("div");
-  messageEl.className =
-    "fixed top-4 left-1/2 -translate-x-1/2 px-6 py-3 bg-green-500 text-white rounded-full shadow-lg z-50";
-  messageEl.textContent = message;
-  document.body.appendChild(messageEl);
-
-  setTimeout(() => {
-    messageEl.remove();
-  }, 3000);
-}
 
 
   function loadLogsByDate(suppressToast = false) {
@@ -641,61 +644,110 @@
       formatTimestamps();
     }
     
-    function createLogEntryRow(entry) {
-      const row = document.createElement('tr');
-      row.className = `bg-white border-b hover:bg-gray-50 transition-colors audit-row`;
-      row.innerHTML = `
-          <td class="px-4 py-4 whitespace-nowrap timestamp-cell sticky left-0 bg-white z-10">
-            <div class="formatted-timestamp text-sm font-medium text-gray-900" data-raw="${entry.timestamp}">${entry.timestamp}</div>
-            <div class="relative-time text-xs text-gray-500"></div>
-          </td>
-          <td class="px-4 py-4 user-cell">
-            <div class="text-sm text-gray-900">${entry.user_email || '—'}</div>
-          </td>
-          <td class="px-4 py-4 action-cell">
-            <span class="inline-flex px-2 py-1 text-xs font-semibold rounded-full
-              ${entry.action === 'insert' ? 'bg-green-100 text-green-800' :
-                entry.action === 'update' ? 'bg-blue-100 text-blue-800' :
-                entry.action === 'delete' ? 'bg-red-100 text-red-800' :
-                'bg-gray-100 text-gray-800'}">
-              ${entry.action.toUpperCase()}
-            </span>
-          </td>
-          <td class="px-4 py-4 table-cell">
-            <div class="text-sm font-medium text-gray-900">${entry.table_name}</div>
-          </td>
-          <td class="px-4 py-4 record-cell">
-            <div class="text-xs font-mono text-gray-600 bg-gray-50 px-2 py-1 rounded">${entry.record_id}</div>
-          </td>
-          <td class="px-4 py-4 old-data-cell">
-            <div
-              class="relative max-w-xs cursor-pointer hover:bg-gray-100 rounded p-1 transition-colors"
-              onclick="openFromElement(this)"
-              data-old='${JSON.stringify(entry.old_data)}'
-              data-new='${JSON.stringify(entry.new_data)}'>
-              <div class="old-data-container">
-                <pre class="text-xs text-gray-600 max-h-24 overflow-y-auto bg-gray-50 p-2 rounded border">
-${JSON.stringify(entry.old_data, null, 2) || 'null'}
-                </pre>
-              </div>
-            </div>
-          </td>
-          <td class="px-4 py-4 new-data-cell">
-            <div
-              class="relative max-w-xs cursor-pointer hover:bg-gray-100 rounded p-1 transition-colors"
-              onclick="openFromElement(this)"
-              data-old='${JSON.stringify(entry.old_data)}'
-              data-new='${JSON.stringify(entry.new_data)}'>
-              <div class="new-data-container">
-                <pre class="text-xs text-gray-800 max-h-24 overflow-y-auto bg-gray-50 p-2 rounded border">
-${JSON.stringify(entry.new_data, null, 2) || 'null'}
-                </pre>
-              </div>
-            </div>
-          </td>
-      `;
-      return row;
+ function createLogEntryRow(entry) {
+  // Safe JSON for attribute embedding (single quotes used in HTML attribute)
+  const toAttrJSON = (obj) => {
+    try {
+      const s = JSON.stringify(obj);
+      return s
+        .replace(/&/g, '&amp;')
+        .replace(/</g, '&lt;')
+        .replace(/>/g, '&gt;')
+        .replace(/'/g, '&#39;')
+        .replace(/"/g, '&quot;');
+    } catch {
+      return 'null';
     }
+  };
+
+  // Pretty JSON for <pre> (innerHTML)
+  const toPreJSON = (obj) => {
+    try {
+      const s = JSON.stringify(obj, null, 2);
+      return s
+        .replace(/&/g, '&amp;')
+        .replace(/</g, '&lt;')
+        .replace(/>/g, '&gt;');
+    } catch {
+      return 'null';
+    }
+  };
+
+  const oldDataAttr = toAttrJSON(entry.old_data ?? null);
+  const newDataAttr = toAttrJSON(entry.new_data ?? null);
+  const oldDataPre  = toPreJSON(entry.old_data ?? null);
+  const newDataPre  = toPreJSON(entry.new_data ?? null);
+  const isDelete = entry.action === 'delete';
+
+  const row = document.createElement('tr');
+  row.className = 'bg-white border-b hover:bg-gray-50 transition-colors audit-row';
+
+  row.innerHTML = `
+    <td class="px-4 py-4 whitespace-nowrap timestamp-cell sticky left-0 bg-white z-10">
+      <div class="formatted-timestamp text-sm font-medium text-gray-900" data-raw="${entry.timestamp}">${entry.timestamp}</div>
+      <div class="relative-time text-xs text-gray-500"></div>
+    </td>
+
+    <td class="px-4 py-4 user-cell">
+      <div class="text-sm text-gray-900">${entry.user_email || '—'}</div>
+    </td>
+
+    <td class="px-4 py-4 action-cell">
+      <div class="flex items-center gap-2">
+        <span class="inline-flex px-2 py-1 text-xs font-semibold rounded-full
+          ${entry.action === 'insert' ? 'bg-green-100 text-green-800' :
+            entry.action === 'update' ? 'bg-blue-100 text-blue-800' :
+            entry.action === 'delete' ? 'bg-red-100 text-red-800' :
+            'bg-gray-100 text-gray-800'}">
+          ${(entry.action || '').toUpperCase()}
+        </span>
+        ${isDelete ? `
+          <button class="px-2 py-0.5 text-xs rounded bg-yellow-500 text-white hover:bg-yellow-600 disabled:opacity-50"
+                  data-audit-id="${String(entry.id ?? '')}"
+                  onclick="undoDelete(this)">
+            Undo
+          </button>
+        ` : ``}
+      </div>
+    </td>
+
+    <td class="px-4 py-4 table-cell">
+      <div class="text-sm font-medium text-gray-900">${entry.table_name}</div>
+    </td>
+
+    <td class="px-4 py-4 record-cell">
+      <div class="text-xs font-mono text-gray-600 bg-gray-50 px-2 py-1 rounded">${entry.record_id}</div>
+    </td>
+
+    <td class="px-4 py-4 old-data-cell">
+      <div
+        class="relative max-w-xs cursor-pointer hover:bg-gray-100 rounded p-1 transition-colors"
+        onclick="openFromElement(this)"
+        data-old='${oldDataAttr}'
+        data-new='${newDataAttr}'>
+        <div class="old-data-container">
+          <pre class="text-xs text-gray-600 max-h-24 overflow-y-auto bg-gray-50 p-2 rounded border">${oldDataPre}</pre>
+        </div>
+      </div>
+    </td>
+
+    <td class="px-4 py-4 new-data-cell">
+      <div
+        class="relative max-w-xs cursor-pointer hover:bg-gray-100 rounded p-1 transition-colors"
+        onclick="openFromElement(this)"
+        data-old='${oldDataAttr}'
+        data-new='${newDataAttr}'>
+        <div class="new-data-container">
+          <pre class="text-xs text-gray-800 max-h-24 overflow-y-auto bg-gray-50 p-2 rounded border">${newDataPre}</pre>
+        </div>
+      </div>
+    </td>
+  `;
+
+  return row;
+}
+
+
 
     function updateSortIndicators() {
       document.querySelectorAll('.sort-indicator').forEach(i => {
@@ -714,6 +766,28 @@ ${JSON.stringify(entry.new_data, null, 2) || 'null'}
       document.getElementById('total-count').textContent = `Total: ${totalCount} entries`;
     }
   });
+
+  window.undoDelete = async function(btn) {
+  const id = btn.getAttribute('data-audit-id');
+  btn.disabled = true;
+
+  try {
+    const res = await fetch(`/radmapping/audit/undo_delete/${id}`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+   
+    });
+    const data = await res.json();
+    if (!res.ok) throw new Error(data.error || 'Restore failed');
+
+    showSuccessMessage('Record restored successfully.');
+  } catch (err) {
+    alert(`Undo failed: ${err.message}`);
+  } finally {
+    btn.disabled = false;
+  }
+}
+
 </script>
 {% endblock %}
 {% endblock %}

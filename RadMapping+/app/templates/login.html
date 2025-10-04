@@ -17,58 +17,46 @@
         <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8v4a4 4 0 00-4 4H4z"></path>
       </svg>
     </div>
-    <p class="mt-2 text-sm text-gray-600">
-
   </div>
 </div>
 
 <script type="module">
-  import { createClient } from 'https://cdn.jsdelivr.net/npm/@supabase/supabase-js/+esm'   
+  import { createClient } from "https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/+esm";
 
-  const supabase = createClient(
-    '{{ SUPABASE_URL }}',
-    '{{ SUPABASE_KEY }}'
-  )
+  const SUPABASE_URL = "{{ SUPABASE_URL }}";
+  const SUPABASE_KEY = "{{ SUPABASE_KEY }}"; // anon only
+  const NEXT_URL = {{ next_url|tojson }};    // safer than |e for JS strings
 
-  const { data: { session } } = await supabase.auth.getSession()
+  const supabase = createClient(SUPABASE_URL, SUPABASE_KEY);
 
-  const nextUrl = "{{ next_url | e }}" 
-  console.log("nextUrl from Flask template:", nextUrl)
+  // 1) If we already have a session (returning from Google), finalize on server.
+  const { data: { session } } = await supabase.auth.getSession();
 
-  if (!session) {
+  if (!session?.access_token) {
+    // 2) No session yet → kick off Google OAuth (auto-redirect)
     await supabase.auth.signInWithOAuth({
-      provider: 'google',
+      provider: "google",
       options: {
-        redirectTo: `${window.location.origin}/auth/callback?next=${encodeURIComponent(nextUrl)}`
-      }
-    })
+  redirectTo: `${window.location.origin}/auth/login?next=${encodeURIComponent(NEXT_URL || "/")}`,
+},
+
+    });
   } else {
-    const user = session.user
-    const email = user?.email || ''
+    // 3) Have session → sync with backend using only the access token
+    const res = await fetch("/auth/session", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      credentials: "include",
+      body: JSON.stringify({ access_token: session.access_token }),
+    });
 
-    const allowedDomains = ['@vestatelemed.com', '@vestasolutions.com']
-    if (!allowedDomains.some(domain => email.endsWith(domain))) {
-      alert("Access restricted to approved domains only.")
-      await supabase.auth.signOut()
-      window.location.href = 'https://www.google.com'   
+    if (res.ok) {
+      window.location.href = NEXT_URL || "/";
     } else {
-      const res = await fetch("/auth/session", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          access_token: session.access_token,
-          refresh_token: session.refresh_token,
-          email: user.email
-        })
-      })
-
-      if (res.ok) {
-        console.log("Redirecting to:", nextUrl)
-        window.location.href = nextUrl 
-      } else {
-        alert("Failed to sync session with backend.")
-        supabase.auth.signOut()
-      }
+      // If backend sync fails, sign out and bounce to start fresh
+      await supabase.auth.signOut();
+      alert("Failed to sync session with the server. Please try again.");
+      window.location.href = "/auth/login";
     }
   }
 </script>

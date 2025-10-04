@@ -1,6 +1,5 @@
 from flask import Blueprint, render_template, session, redirect, url_for, request, jsonify
 from app.admin_required import admin_required
-from app.supabase_client import supabase
 from datetime import datetime, timedelta
 from calendar import monthrange
 from collections import defaultdict
@@ -12,6 +11,7 @@ from app.supabase_client import get_supabase_client
 
 monthly_bp = Blueprint('monthly', __name__)
 
+supabase = get_supabase_client()
 @monthly_bp.route('/monthly')
 @with_supabase_auth
 def monthly():

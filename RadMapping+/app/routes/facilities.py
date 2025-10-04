@@ -1,6 +1,5 @@
 from flask import Blueprint, render_template, session, redirect, url_for, request, jsonify
 from app.admin_required import admin_required
-from app.supabase_client import supabase
 import uuid
 from app.middleware import with_supabase_auth
 from app.supabase_client import get_supabase_client
@@ -8,7 +7,7 @@ from app.audit_log import log_audit_action
 import time
 from flask import g
 facilities_bp = Blueprint('facilities', __name__)
-
+supabase = get_supabase_client()
 _cached_prioritized_facility_ids = None
 _last_prioritized_fetch_time = 0
 CACHE_EXPIRATION_SECONDS = 300

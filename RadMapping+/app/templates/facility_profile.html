@@ -92,7 +92,7 @@
       </div>
       <div class="flex items-center space-x-3">
         <span class="inline-flex items-center justify-center w-8 h-8 bg-blue-100 text-pink-600 rounded-full text-lg">⚕️</span>
-             <div x-data="{ expanded: false }">
+              <div x-data="{ expanded: false }">
     <div class="text-xs text-gray-500 font-semibold uppercase">Monitoring</div>
     <div class="text-base font-medium text-gray-900">
       {% set full_text = facility.monitoring or '—' %}
@@ -113,10 +113,10 @@
     </div>
   </div> 
   </div>
- 
+
    <div class="flex items-center space-x-3">
         <span class="inline-flex items-center justify-center w-8 h-8 bg-gray-100 text-pink-600 rounded-full text-lg">ⓘ</span>
-             <div x-data="{ expanded: false }">
+              <div x-data="{ expanded: false }">
     <div class="text-xs text-gray-500 font-semibold uppercase">Additional Info / Comments</div>
     <div class="text-base font-medium text-gray-900">
       {% set full_text = facility.additional_info or '—' %}
@@ -205,7 +205,7 @@
     <option value="false" {% if facility.active_status == 'false' %}selected{% endif %}>Inactive</option>
     <option value="hold" {% if facility.active_status == 'hold' %}selected{% endif %}>On Hold</option>
     <option value="pending" {% if facility.active_status == 'pending' %}selected{% endif %}>Pending</option>
-  
+ 
   </select>
 </label>
 
@@ -255,7 +255,7 @@
                       data-contact-text="{{ contact.text }}"
                       data-contact-role="{{ contact.role }}"
                     >Edit</button>
-                    <button onclick="deleteContact('{{ contact.id }}', '{{ facility.id }}')" class="bg-red-100 text-red-700 px-3 py-1 rounded hover:bg-red-200">Delete</button>
+                    <button onclick="deleteContact('{{ contact.id }}', '{{ facility.id }}', '{{ contact.role }}')" class="bg-red-100 text-red-700 px-3 py-1 rounded hover:bg-red-200">Delete</button>
                   </div>
                 {% endif %}
               </div>
@@ -325,10 +325,10 @@
               <tr class="hover:bg-blue-50 radiologist-item">
                 <td class="px-4 py-2 border-b">
                 <a href="{{ url_for('doctors.doctor_profile', rad_id=assignment.radiologists.id) }}"
-                  target="_blank"
-                  class="text-blue-700 hover:underline relative"
-                  onmouseenter="showDoctorPopup(event, '{{ assignment.radiologists.id }}')"
-                  onmouseleave="hideDoctorPopup()">
+                   target="_blank"
+                   class="text-blue-700 hover:underline relative"
+                   onmouseenter="showDoctorPopup(event, '{{ assignment.radiologists.id }}')"
+                   onmouseleave="hideDoctorPopup()">
                   {{ assignment.radiologists.name }}
                 </a>
                 </td>
@@ -344,7 +344,7 @@
 
                 <td class="px-4 py-2 border-b">{{ "✅" if assignment.radiologists.reads_stats == 'YES' else "❌" }}</td>
                 <td class="px-4 py-2 border-b">{{ "✅" if assignment.radiologists.reads_routines == 'YES' else "❌" }}</td>
-                 
+                
                 <td class="px-4 py-2 border-b">
   {% set full = assignment.radiologists.stipulations or "—" %}
   {% if full|length > 100 %}
@@ -362,11 +362,16 @@
     <td class="px-4 py-2 border-b">{{ assignment.notes or "—" }}</td>
                 {% if session.user.role == 'admin' %}
                 <td class="px-4 py-2 border-b">
-                  <form action="{{ url_for('facilities.remove_assignment', facility_id=facility.id, assignment_id=assignment.id) }}" method="POST" style="display: inline;" onsubmit="return confirm('Are you sure you want to remove this assignment?');">
-  <button type="submit" class="bg-red-100 text-red-700 px-3 py-1 rounded hover:bg-red-200 text-sm">
-    Remove
-  </button>
-</form>
+                  <form action="{{ url_for('facilities.remove_assignment', facility_id=facility.id, assignment_id=assignment.id) }}" 
+                        method="POST" 
+                        style="display: inline;" 
+                        onsubmit="handleFormDelete(event, this)"
+                        data-title="Remove Assignment"
+                        data-item-name="Assignment for {{ assignment.radiologists.name }}">
+                    <button type="submit" class="bg-red-100 text-red-700 px-3 py-1 rounded hover:bg-red-200 text-sm">
+                      Remove
+                    </button>
+                  </form>
                 </td>
                 {% endif %}
               </tr>
@@ -542,6 +547,31 @@
   </div>
 </div>
 
+<div id="delete-confirm-modal" class="fixed inset-0 z-50 hidden bg-black bg-opacity-50 flex items-center justify-center p-4">
+  <div class="bg-white rounded-xl shadow-2xl w-full max-w-md transform transition-all" onclick="event.stopPropagation();">
+    <div class="flex items-center gap-4 p-6 border-b border-gray-200">
+      <div class="flex-shrink-0 w-12 h-12 flex items-center justify-center bg-red-100 text-red-600 rounded-lg text-xl">
+        <i class="fas fa-exclamation-triangle"></i>
+      </div>
+      <h3 id="modal-title" class="text-lg font-semibold text-gray-900">Confirmation</h3>
+      <button onclick="closeDeleteModal()" class="ml-auto p-2 text-gray-400 hover:text-gray-600 hover:bg-gray-100 rounded-lg transition-colors">
+          <i class="fas fa-times"></i>
+      </button>
+    </div>
+    <div class="p-6">
+        <p id="modal-text" class="text-gray-600 mb-4">Are you sure you want to remove this? This action cannot be undone.</p>
+        <div id="modal-info-box" class="bg-red-50 border-l-4 border-red-400 text-red-800 p-3 rounded-r-lg font-medium">
+          </div>
+    </div>
+    <div class="flex justify-end gap-3 p-6 bg-gray-50 rounded-b-xl">
+      <button onclick="closeDeleteModal()" class="px-4 py-2 text-gray-700 bg-gray-200 hover:bg-gray-300 rounded-lg font-medium">Cancel</button>
+      <button id="modal-confirm-btn" class="px-4 py-2 bg-red-600 hover:bg-red-700 text-white rounded-lg font-medium inline-flex items-center">
+        <i class="fas fa-trash-alt mr-2"></i><span id="modal-confirm-btn-text">Confirm</span>
+      </button>
+    </div>
+  </div>
+</div>
+
 
 
 
@@ -609,42 +639,38 @@
     document.getElementById('editContactModal').classList.add('hidden');
   }
 
-  function deleteContact(contactId, facilityId) {
-    if (confirm('Are you sure you want to delete this contact?')) {
-        fetch(`/radmapping/facility/${facilityId}/contact/${contactId}`, {
-            method: 'DELETE',
-            headers: {
-                'Content-Type': 'application/json',
-                'Accept': 'application/json'
-            }
-        })
-        .then(async (response) => {
-            const text = await response.text();
-            
-            let data;
-            try {
-                data = JSON.parse(text);
-            } catch (e) {
-                throw new Error(`Invalid JSON response: ${text}`);
-            }
-            
-            if (!response.ok) {
-                throw new Error(data.error || `Server error ${response.status}`);
-            }
-            
-            return data;
-        })
-        .then(data => {
-            if (data.success) {
-                window.location.reload();
-            } else {
-                alert('Error deleting contact: ' + (data.error || 'Unknown error'));
-            }
-        })
-        .catch(err => {
-            alert('Error deleting contact: ' + err.message);
-        });
-    }
+  function deleteContact(contactId, facilityId, contactRole) {
+    showDeleteModal({
+        title: 'Delete',
+        text: 'Are you sure you want to delete this? This action cannot be undone.',
+        itemName: `Role: "${contactRole}"`,
+        onConfirm: () => {
+            fetch(`/radmapping/facility/${facilityId}/contact/${contactId}`, {
+                method: 'DELETE',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'Accept': 'application/json'
+                }
+            })
+            .then(async (response) => {
+                if (!response.ok) {
+                    const data = await response.json().catch(() => ({}));
+                    throw new Error(data.error || `Server error ${response.status}`);
+                }
+                return response.json();
+            })
+            .then(data => {
+                if (data.success) {
+                    window.location.reload();
+                } else {
+                    alert('Error deleting contact: ' + (data.error || 'Unknown error'));
+                }
+            })
+            .catch(err => {
+                alert('Error deleting contact: ' + err.message);
+            });
+        }
+    });
   }
 
   function toggleContactDetails(contactId) {
@@ -663,7 +689,7 @@
   function filterRadiologists(query) {
     const items = document.querySelectorAll('.radiologist-item');
     const q = query.toLowerCase();
-  
+ 
     items.forEach(item => {
       const text = item.innerText.toLowerCase();
       item.style.display = text.includes(q) ? '' : 'none';
@@ -715,10 +741,63 @@ function hideDoctorPopup() {
     if (container) container.classList.add("hidden");
   }, 150);
 }
+  const deleteModal = document.getElementById('delete-confirm-modal');
+  const modalTitle = document.getElementById('modal-title');
+  const modalText = document.getElementById('modal-text');
+  const modalInfoBox = document.getElementById('modal-info-box');
+  const modalConfirmBtn = document.getElementById('modal-confirm-btn');
+  const modalConfirmBtnText = document.getElementById('modal-confirm-btn-text');
+  let confirmAction = null;
+
+  function showDeleteModal({ title, text, itemName, onConfirm }) {
+    modalTitle.textContent = title;
+    modalConfirmBtnText.textContent = title;
+    modalText.textContent = text || 'Are you sure you want to remove this? This action cannot be undone.';
+    modalInfoBox.textContent = itemName;
+    
+    confirmAction = onConfirm;
+    deleteModal.classList.remove('hidden');
+  }
+
+  function closeDeleteModal() {
+    deleteModal.classList.add('hidden');
+    confirmAction = null;
+  }
+
+  modalConfirmBtn.addEventListener('click', () => {
+    if (typeof confirmAction === 'function') {
+        confirmAction();
+    }
+    // We don't close the modal here to allow the action (like page reload) to complete
+  });
+
+  // This function handles the two forms
+  function handleFormDelete(event, form) {
+    event.preventDefault();
+    showDeleteModal({
+        title: form.dataset.title,
+        itemName: form.dataset.itemName,
+        onConfirm: () => {
+            form.submit();
+        }
+    });
+  }
+
+  
+   deleteModal.addEventListener('mousedown', (e) => {
+    if (e.target === deleteModal) {
+      closeDeleteModal();
+    }
+  });
 </script>
 
 {% if session.user.role == 'admin' %}
-<form method="POST" action="{{ url_for('facilities.remove_facility', facility_id=facility.id) }}" onsubmit="return confirm('Are you sure you want to remove this facility? This action cannot be undone.');" class="mt-4">
+<form method="POST" 
+      action="{{ url_for('facilities.remove_facility', facility_id=facility.id) }}" 
+      onsubmit="handleFormDelete(event, this)" 
+      class="mt-4"
+      data-title="Remove Facility"
+      data-item-name="{{ facility.name }}">
   <button type="submit" class="inline-flex items-center gap-2 px-5 py-2 bg-red-600 text-white rounded-lg shadow hover:bg-red-700 transition text-base font-semibold focus:outline-none focus:ring-2 focus:ring-red-400">
     <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/></svg>
     Remove Facility

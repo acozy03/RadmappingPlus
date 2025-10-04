@@ -78,6 +78,7 @@ def create_app():
     app.register_blueprint(licenses_bp, url_prefix='/radmapping')
     app.register_blueprint(shifts_bp, url_prefix='/radmapping')
     app.register_blueprint(audit_bp, url_prefix='/radmapping')
+    
     @app.route('/')
     def index():
         print("--- Entering root URL ('/') ---")

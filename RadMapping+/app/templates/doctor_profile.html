@@ -319,122 +319,7 @@
   </div>
   <hr class="my-10 border-t-2 border-gray-200">
 
-  <!-- {% if session.user.role == 'admin' %}
-  <div class="mt-10">
-    <div class="flex justify-between items-center mb-4">
-      <h3 class="text-xl font-semibold">Edit Schedule: {{ now.strftime('%B %Y') }}</h3>
-      <div>
-        <button onclick="toggleMultiSelect()" class="text-sm text-blue-600 hover:underline mr-4" id="multiToggle">Enable Multi-Select</button>
-        <a href="{{ url_for('doctors.doctor_profile', rad_id=doctor.id, year=prev_year, month=prev_month) }}" class="text-blue-600 hover:underline mr-4">← Prev</a>
-        <a href="{{ url_for('doctors.doctor_profile', rad_id=doctor.id, year=next_year, month=next_month) }}" class="text-blue-600 hover:underline">Next →</a>
-      </div>
-    </div>
-
-    <form method="POST" action="{{ url_for('doctors.bulk_update_schedule', rad_id=doctor.id) }}" class="bg-gray-100 p-4 rounded border mb-6 hidden" id="bulkForm">
-      <h4 class="text-md font-medium mb-2">Bulk Edit Shift</h4>
-      <input type="hidden" name="dates" id="bulkDates">
-      <label class="block mb-2">Start Time
-        <select name="start_time" class="input w-full text-base px-3 py-2 border">
-          {% for hour in range(0, 24) %}
-            {% set formatted = "%02d:00"|format(hour) %}
-            {% set hour_val = formatted.split(':')[0]|int %}
-            <option value="{{ formatted }}">{{ '%02d:00 %s' % ((hour_val - 1) % 12 + 1, 'AM' if hour_val < 12 else 'PM') }}</option>
-          {% endfor %}
-        </select>
-      </label>
-      <label class="block mb-2">End Time
-        <select name="end_time" class="input w-full text-base px-3 py-2 border">
-          {% for hour in range(0, 24) %}
-            {% set formatted = "%02d:00"|format(hour) %}
-            {% set hour_val = formatted.split(':')[0]|int %}
-            <option value="{{ formatted }}">{{ '%02d:00 %s' % ((hour_val - 1) % 12 + 1, 'AM' if hour_val < 12 else 'PM') }}</option>
-          {% endfor %}
-        </select>
-      </label>
-      <label class="block mb-2">Notes
-          <textarea name="schedule_details" rows="3" class="input w-full text-base px-3 py-2 border"></textarea>
-      </label>
-      <button type="submit" class="bg-blue-600 text-white px-4 py-2 rounded text-base font-semibold">Apply to Selected Days</button>
-    </form>
-  </div>
-
-  <script>
-  let multiSelectMode = false;
-  let selectedDates = new Set();
-  let isMouseDown = false;
-  let draggedThisCycle = new Set();
-
-  function toggleMultiSelect() {
-    multiSelectMode = !multiSelectMode;
-    document.getElementById("multiToggle").textContent = multiSelectMode ? "Disable Multi-Select" : "Enable Multi-Select";
-    document.getElementById("bulkForm").classList.toggle("hidden", !multiSelectMode);
-    selectedDates.clear();
-    draggedThisCycle.clear();
-    document.querySelectorAll(".day-tile").forEach(tile => {
-    // Only remove highlight if it's not today's tile
-    if (!tile.classList.contains("today-highlight")) {
-      tile.classList.remove("bg-blue-100", "border-blue-500");
-    } else {
-      tile.classList.remove("border-blue-500"); // clean up just in case
-    }
-
-    const form = document.getElementById("form-" + tile.dataset.date);
-    if (form) form.classList.add("hidden");
-  });
-
-    attachDayListeners();
-  }
-
-  function attachDayListeners() {
-    document.querySelectorAll(".day-tile").forEach(tile => {
-      const date = tile.dataset.date;
-      tile.onmousedown = (e) => {
-        if (multiSelectMode) {
-          isMouseDown = true;
-          draggedThisCycle.clear();
-          toggleDay(tile, date);
-          e.preventDefault();
-        }
-      };
-      tile.onmouseover = (e) => {
-        if (multiSelectMode && isMouseDown && !draggedThisCycle.has(date)) {
-          toggleDay(tile, date);
-          draggedThisCycle.add(date);
-        }
-      };
-      tile.onmouseup = () => {
-        if (multiSelectMode) isMouseDown = false;
-      };
-      tile.onclick = () => {
-        if (!multiSelectMode) {
-          document.querySelectorAll('.edit-form').forEach(f => f.classList.add('hidden'));
-          const form = document.getElementById('form-' + date);
-          if (form) form.classList.remove('hidden');
-        }
-      }
-    });
-    document.onmouseup = () => isMouseDown = false;
-  }
-
-  function toggleDay(tile, date) {
-    if (selectedDates.has(date)) {
-      selectedDates.delete(date);
-      tile.classList.remove("bg-blue-100", "border-blue-500");
-    } else {
-      selectedDates.add(date);
-      tile.classList.add("bg-blue-100", "border-blue-500");
-    }
-    document.getElementById("bulkDates").value = Array.from(selectedDates).join(",");
-  }
-
-  function closeForm(date) {
-    const form = document.getElementById("form-" + date);
-    if (form) form.classList.add("hidden");
-  }
-
-  document.addEventListener("DOMContentLoaded", attachDayListeners);
-  </script>
-  {% endif %} -->
+  <!-- {% if session.user.role == 'admin' %} ... schedule content ... {% endif %} -->
 
   <div class="mt-10">
       <div class="grid grid-cols-7 gap-4 mb-2 text-sm font-semibold text-gray-600">
@@ -464,58 +349,17 @@
             <div class="text-sm text-gray-400 italic">No shift</div>
           {% endif %}
 
-          <!-- {% if session.user.role == 'admin' %}
-          <form method="POST"
-          action="{{ url_for('doctors.update_schedule', rad_id=doctor.id) }}"
-          class="absolute left-1/2 transform -translate-x-1/2 bg-white z-10 shadow p-3 rounded text-base mt-2 border border-gray-300 w-[30rem] hidden edit-form"
-          id="form-{{ day_str }}">
-
-            <div class="flex justify-between mb-2">
-              <span class="text-base font-medium">Edit {{ day_str }}</span>
-              <button type="button" onclick="closeForm('{{ day_str }}'); event.stopPropagation();"
-                  class="text-gray-500 hover:text-black text-3xl leading-none font-bold">×</button>
-            </div>
-
-            <input type="hidden" name="date" value="{{ day_str }}">
-
-            <label class="block mb-1 text-base font-medium">Start Time
-              <select name="start_time" class="input w-full text-base px-3 py-2 border">
-                {% for hour in range(0, 24) %}
-                  {% set formatted = "%02d:00"|format(hour) %}
-                  <option value="{{ formatted }}" {% if entry.start_time and entry.start_time[:5] == formatted %}selected{% endif %}>{{ '%02d:00 %s' % ((hour - 1) % 12 + 1, 'AM' if hour < 12 else 'PM') }}</option>
-                {% endfor %}
-              </select>
-            </label>
-
-            <label class="block mb-1 text-base font-medium">End Time
-              <select name="end_time" class="input w-full text-base px-3 py-2 border">
-                {% for hour in range(0, 24) %}
-                  {% set formatted = "%02d:00"|format(hour) %}
-                  <option value="{{ formatted }}" {% if entry.end_time and entry.end_time[:5] == formatted %}selected{% endif %}>{{ '%02d:00 %s' % ((hour - 1) % 12 + 1, 'AM' if hour < 12 else 'PM') }}</option>
-                {% endfor %}
-              </select>
-            </label>
-
-            <label class="block mb-2 text-base font-medium">Notes
-              <textarea name="schedule_details" rows="3" class="input w-full text-base px-3 py-2 border">{{ entry.schedule_details or '' }}</textarea>
-            </label>
-
-            <div class="flex justify-between items-center mt-2">
-              <button type="submit" class="bg-blue-600 text-white px-4 py-2 rounded text-base font-semibold">Save</button>
-              <a href="{{ url_for('doctors.delete_schedule', rad_id=doctor.id, date=day_str) }}" class="text-red-500 text-xs">Delete</a>
-            </div>
-          </form>
-          {% endif %} -->
+          <!-- {% if session.user.role == 'admin' %} ... schedule form ... {% endif %} -->
         </div>
       {% endfor %}
     </div>
   </div>
 
   <div id="certModal"
-     class="fixed inset-0 z-50 hidden bg-black bg-opacity-50 flex items-center justify-center"
-     onclick="if(event.target === this) closeCertModal();">
-  <div class="bg-white rounded-lg shadow-lg w-[90%] max-w-3xl max-h-[80vh] overflow-y-auto p-6 relative"
-       onclick="event.stopPropagation();">
+       class="fixed inset-0 z-50 hidden bg-black bg-opacity-50 flex items-center justify-center"
+       onclick="if(event.target === this) closeCertModal();">
+    <div class="bg-white rounded-lg shadow-lg w-[90%] max-w-3xl max-h-[80vh] overflow-y-auto p-6 relative"
+         onclick="event.stopPropagation();">
     
     <button onclick="closeCertModal()" class="absolute top-2 right-2 text-2xl font-bold text-gray-500 hover:text-black">×</button>
 
@@ -861,8 +705,73 @@ input[type=number]::-webkit-inner-spin-button {
 }
   </style>
 
+  <div id="delete-confirm-modal" class="fixed inset-0 z-50 hidden bg-black bg-opacity-50 flex items-center justify-center p-4">
+    <div class="bg-white rounded-xl shadow-2xl w-full max-w-md transform transition-all" onclick="event.stopPropagation();">
+      <div class="flex items-center gap-4 p-6 border-b border-gray-200">
+        <div class="flex-shrink-0 w-12 h-12 flex items-center justify-center bg-red-100 text-red-600 rounded-lg text-xl">
+          <i class="fas fa-exclamation-triangle"></i>
+        </div>
+        <h3 id="modal-title" class="text-lg font-semibold text-gray-900">Remove Doctor</h3>
+        <button onclick="closeDeleteModal()" class="ml-auto p-2 text-gray-400 hover:text-gray-600 hover:bg-gray-100 rounded-lg transition-colors">
+            <i class="fas fa-times"></i>
+        </button>
+      </div>
+      <div class="p-6">
+          <p id="modal-text" class="text-gray-600 mb-4">Are you sure you want to remove this doctor? This action cannot be undone.</p>
+          <div id="modal-info-box" class="bg-red-50 border-l-4 border-red-400 text-red-800 p-3 rounded-r-lg font-medium">
+          </div>
+      </div>
+      <div class="flex justify-end gap-3 p-6 bg-gray-50 rounded-b-xl">
+        <button onclick="closeDeleteModal()" class="px-4 py-2 text-gray-700 bg-gray-200 hover:bg-gray-300 rounded-lg font-medium">Cancel</button>
+        <button id="modal-confirm-btn" class="px-4 py-2 bg-red-600 hover:bg-red-700 text-white rounded-lg font-medium inline-flex items-center">
+          <i class="fas fa-trash-alt mr-2"></i><span id="modal-confirm-btn-text">Remove Doctor</span>
+        </button>
+      </div>
+    </div>
+  </div>
+  <script>
+    const deleteModal = document.getElementById('delete-confirm-modal');
+    const modalInfoBox = document.getElementById('modal-info-box');
+    const modalConfirmBtn = document.getElementById('modal-confirm-btn');
+    let formToSubmit = null;
+
+    function showDeleteModal(itemName, form) {
+      modalInfoBox.textContent = `Doctor: ${itemName}`;
+      formToSubmit = form;
+      deleteModal.classList.remove('hidden');
+    }
+
+    function closeDeleteModal() {
+      deleteModal.classList.add('hidden');
+      formToSubmit = null;
+    }
+
+    modalConfirmBtn.addEventListener('click', () => {
+      if (formToSubmit) {
+          formToSubmit.submit();
+      }
+      closeDeleteModal();
+    });
+    deleteModal.addEventListener('mousedown', (e) => {
+    if (e.target === deleteModal) {
+      closeDeleteModal();
+    }
+  });
+    function handleRemoveDoctor(event, form) {
+      event.preventDefault();
+      const doctorName = form.dataset.itemName;
+      showDeleteModal(doctorName, form);
+    }
+  </script>
+  
+
   {% if session.user.role == 'admin' %}
-  <form method="POST" action="{{ url_for('doctors.remove_doctor', rad_id=doctor.id) }}" onsubmit="return confirm('Are you sure you want to remove this doctor? This action cannot be undone.');" class="mt-4">
+
+  <form method="POST" 
+        action="{{ url_for('doctors.remove_doctor', rad_id=doctor.id) }}" 
+        onsubmit="handleRemoveDoctor(event, this)" 
+        class="mt-4"
+        data-item-name="{{ doctor.name }}">
     <button type="submit" class="inline-flex items-center gap-2 px-5 py-2 bg-red-600 text-white rounded-lg shadow hover:bg-red-700 transition text-base font-semibold focus:outline-none focus:ring-2 focus:ring-red-400">
       <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/></svg>
       Remove Doctor
@@ -873,3 +782,4 @@ input[type=number]::-webkit-inner-spin-button {
 </div>
 
 {% endblock %}
+

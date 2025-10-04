@@ -376,8 +376,6 @@ function closePinModal() {
   document.getElementById('pinFacilitiesModal').classList.add('hidden');
 }
 
-
-
 function fetchAllFacilitiesForPinning() {
   // Pull all (unfiltered) facilities metadata for the checklist
   fetch(`/radmapping/facilities/search?search_name=&state=&status=all&fetch_all=true`)
@@ -514,21 +512,7 @@ document.addEventListener('DOMContentLoaded', () => {
     const prioritizeModal = document.getElementById('prioritizeModal');
     const prioritizeModalContent = document.getElementById('prioritizeModalContent');
 
-    if (addFacilityModal) {
-        addFacilityModal.addEventListener('click', function(event) {
-            if (event.target === addFacilityModal && addFacilityModalContent && !addFacilityModalContent.contains(event.target)) {
-                closeAddFacilityModal();
-            }
-        });
-    }
-
-    if (prioritizeModal) {
-        prioritizeModal.addEventListener('click', function(event) {
-            if (event.target === prioritizeModal && prioritizeModalContent && !prioritizeModalContent.contains(event.target)) {
-                closePrioritizeModal();
-            }
-        });
-    }
+  
 });
 
 
@@ -786,6 +770,11 @@ function savePrioritizedFacilities() {
 
 #addFacilityModal, #prioritizeModal {
   backdrop-filter: blur(4px);
+}
+#prioritizeFacilitiesList .facility-item label,
+#pinFacilitiesList .facility-item label {
+    overflow-wrap: break-word;
+    min-width: 0;
 }
 </style>
 {% endblock %}
