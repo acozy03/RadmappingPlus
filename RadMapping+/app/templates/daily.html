@@ -368,8 +368,26 @@
   <script>
     let currentCalendarDate = new Date('{{ today }}');
     currentCalendarDate.setDate(currentCalendarDate.getDate() + 1);
-    let selectedDate = new Date('{{ today }}'); 
+    let selectedDate = new Date('{{ today }}');
     selectedDate.setDate(selectedDate.getDate() + 1);
+
+    const existingPopupLayer = document.getElementById('doctor-popup-layer');
+    const doctorPopupLayer = existingPopupLayer || (() => {
+      const layer = document.createElement('div');
+      layer.id = 'doctor-popup-layer';
+      layer.style.position = 'fixed';
+      layer.style.top = '0';
+      layer.style.left = '0';
+      layer.style.width = '100%';
+      layer.style.height = '0';
+      layer.style.pointerEvents = 'none';
+      layer.style.zIndex = '9999';
+      document.body.appendChild(layer);
+      return layer;
+    })();
+
+    let activeDoctorPopup = null;
+    let activeDoctorParent = null;
 
     function toggleCalendar() {
       const popup = document.getElementById('calendarPopup');
@@ -480,55 +498,68 @@
     }
 
     function showDoctorPopup(parent) {
-    const placeholder = parent.querySelector('.doctor-popup-placeholder');
-    if (!placeholder) return;
+      const placeholder = parent.querySelector('.doctor-popup-placeholder');
+      if (!placeholder) return;
 
-    const docId = placeholder.dataset.popupId;
-    const template = document.querySelector(`#popup-${docId}`);
-    if (!template) return;
+      const docId = placeholder.dataset.popupId;
+      if (!docId) return;
 
-    const clone = template.cloneNode(true);
-    clone.classList.add("absolute", "top-0", "z-50", "opacity-100", "scale-100", "active-popup");
-    clone.style.zIndex = "999";
-    clone.style.pointerEvents = "auto";
+      const template = document.querySelector(`#popup-${docId}`);
+      if (!template) return;
 
-    const existing = parent.querySelector('.active-popup');
-    if (existing) existing.remove();
-
-    if (!parent.dataset.originalZIndex) {
-      const originalZIndex = parent.style.zIndex;
-      parent.dataset.originalZIndex = originalZIndex ? originalZIndex : "__unset";
-    }
-    parent.style.zIndex = "1000";
-
-    const parentRect = parent.getBoundingClientRect();
-    const willOverflowRight = (parentRect.right + 350) > window.innerWidth;
-
-    if (willOverflowRight) {
-      clone.classList.add("right-full", "mr-2");
-    } else {
-      clone.classList.add("left-full", "ml-2");
-    }
-
-    parent.appendChild(clone);
-  }
-
-
-  function hideDoctorPopup(parent) {
-    const popup = parent.querySelector('.active-popup');
-    if (popup) popup.remove();
-    const originalZIndex = parent.dataset.originalZIndex;
-    if (originalZIndex) {
-      if (originalZIndex === "__unset") {
-        parent.style.zIndex = "";
-      } else {
-        parent.style.zIndex = originalZIndex;
+      if (activeDoctorParent && activeDoctorParent !== parent && activeDoctorPopup) {
+        activeDoctorPopup.remove();
+        activeDoctorPopup = null;
+        activeDoctorParent = null;
       }
-      delete parent.dataset.originalZIndex;
-    } else {
-      parent.style.zIndex = "";
+
+      const clone = template.cloneNode(true);
+      clone.removeAttribute('id');
+      clone.classList.add('floating-doctor-popup');
+      clone.style.position = 'absolute';
+      clone.style.pointerEvents = 'auto';
+      clone.style.zIndex = '10000';
+
+      doctorPopupLayer.innerHTML = '';
+      doctorPopupLayer.appendChild(clone);
+
+      const parentRect = parent.getBoundingClientRect();
+      const popupWidth = clone.offsetWidth;
+      const popupHeight = clone.offsetHeight;
+
+      let left = parentRect.right + 12;
+      if (left + popupWidth > window.innerWidth - 8) {
+        left = parentRect.left - popupWidth - 12;
+      }
+      left = Math.max(8, left);
+
+      let top = parentRect.top;
+      if (top + popupHeight > window.innerHeight - 8) {
+        top = window.innerHeight - popupHeight - 8;
+      }
+      top = Math.max(8, top);
+
+      clone.style.left = `${left}px`;
+      clone.style.top = `${top}px`;
+
+      activeDoctorPopup = clone;
+      activeDoctorParent = parent;
     }
-  }
+
+
+    function hideDoctorPopup(parent) {
+      if (activeDoctorParent !== parent) {
+        return;
+      }
+
+      if (activeDoctorPopup) {
+        activeDoctorPopup.remove();
+        doctorPopupLayer.innerHTML = '';
+        activeDoctorPopup = null;
+      }
+
+      activeDoctorParent = null;
+    }
 
 
     function updateTimezoneClocks() {
