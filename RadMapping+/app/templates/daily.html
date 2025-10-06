@@ -16,7 +16,7 @@
 
   <div class="daily-page space-y-6">
 
-  <div class="bg-gradient-to-r from-blue-50 to-indigo-50 rounded-xl shadow-sm p-4 sm:p-6 mb-6 w-full border border-blue-100 daily-filter-bar">
+  <div class="rounded-xl shadow-sm p-4 sm:p-6 mb-6 w-full border border-blue-100 daily-filter-bar">
     <div class="flex flex-col md:flex-row items-center justify-between gap-4">
       <div class="flex justify-between items-center flex-wrap gap-4 w-full">
         <div class="flex items-center gap-2 flex-wrap flex-grow">
@@ -88,7 +88,7 @@
                    class="hidden" />
 
             <select name="timezone" onchange="this.form.submit()"
-                    class="bg-white border border-blue-200 text-blue-700 rounded-lg px-3 py-1 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 shadow-sm daily-filter-control">
+                    class="bg-white border border-blue-200 text-blue-700 rounded-lg px-3 py-1 text-sm focus:outline-none focus:ring-1 focus:ring-blue-500 shadow-sm daily-filter-control">
               <option value="EST" {% if selected_timezone == 'EST' %}selected{% endif %}>EST</option>
               <option value="CST" {% if selected_timezone == 'CST' %}selected{% endif %}>CST</option>
               <option value="PST" {% if selected_timezone == 'PST' %}selected{% endif %}>PST</option>
@@ -103,14 +103,14 @@
             </a>
 
             <select id="startHour" name="startHour" onchange="filterByCustomRange()"
-                    class="border border-blue-200 rounded-lg px-2 py-1 text-sm bg-white text-blue-700 focus:ring-2 focus:ring-blue-500 focus:outline-none shadow-sm daily-filter-control">
+                    class="border border-blue-200 rounded-lg px-2 py-1 text-sm bg-white text-blue-700 focus:ring-1 focus:ring-blue-500 focus:outline-none shadow-sm daily-filter-control">
               {% for slot in hour_slots %}
                 <option value="{{ loop.index0 }}">{{ slot.label }} {{ slot.day_label }}</option>
               {% endfor %}
             </select>
             <span class="text-sm text-blue-700">to</span>
             <select id="endHour" name="endHour" onchange="filterByCustomRange()"
-                    class="border border-blue-200 rounded-lg px-2 py-1 text-sm bg-white text-blue-700 focus:ring-2 focus:ring-blue-500 focus:outline-none shadow-sm daily-filter-control">
+                    class="border border-blue-200 rounded-lg px-2 py-1 text-sm bg-white text-blue-700 focus:ring-1 focus:ring-blue-500 focus:outline-none shadow-sm daily-filter-control">
               {% for slot in hour_slots %}
                 <option value="{{ loop.index0 }}">{{ slot.label }} {{ slot.day_label }}</option>
               {% endfor %}
@@ -133,14 +133,14 @@
             <input type="text"
                    id="doctorSearch"
                    placeholder="Search doctors..."
-                   class="w-full pl-10 pr-2 py-2 border border-blue-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 shadow-sm daily-filter-control"
+                   class="w-full pl-10 pr-2 py-2 border border-blue-200 rounded-lg focus:outline-none focus:ring-1 focus:ring-blue-500 shadow-sm daily-filter-control"
                    onkeyup="filterDoctors()" />
           </div>
         </div>
 
         <div class="flex gap-2 flex-nowrap">
           {% for zone in ["EST", "CST", "PST"] %}
-            <div class="bg-white hover:bg-blue-50 px-3 py-2 rounded-lg shadow-sm timezone-tile transition-colors cursor-pointer whitespace-nowrap border border-blue-100 daily-timezone-chip"
+            <div class="bg-white hover:bg-blue-50 px-3 py-2 rounded-lg shadow-sm timezone-tile transition-colors cursor-pointer whitespace-nowrap border border-blue-100 "
                  onclick="openTimezonePopup('{{ zone }}')">
               <div class="flex items-center gap-2">
                 <span class="text-sm font-medium text-blue-700">{{ zone }}</span>
@@ -350,7 +350,7 @@
   </div>
   <div id="all-doctor-popups" class="hidden">
     {% for doc in unique_doctors.values() %}
-      <div id="popup-{{ doc.id }}" class="doctor-popup bg-white border p-4 rounded-lg shadow-lg w-[20rem] daily-popup">
+      <div id="popup-{{ doc.id }}" class="doctor-popup border p-4 rounded-lg shadow-lg w-[20rem] bg-white daily-popup-card">
         <h4 class="font-medium text-lg text-gray-900 mb-2">{{ doc.name }}</h4>
         <div class="space-y-2 text-sm text-left">
           <p><strong>Phone:</strong> {{ doc.phone or 'N/A' }}</p>
@@ -366,6 +366,12 @@
 
   </div>
   <script>
+    function ensureModalIsRootChild() {
+    const modal = document.getElementById('timezoneModal');
+    if (modal && modal.parentElement !== document.body) {
+        document.body.appendChild(modal);
+    }
+}
     let currentCalendarDate = new Date('{{ today }}');
     currentCalendarDate.setDate(currentCalendarDate.getDate() + 1);
     let selectedDate = new Date('{{ today }}');
@@ -450,7 +456,7 @@
 
         const dayElement = document.createElement('button');
         dayElement.type = 'button';
-        dayElement.className = 'w-8 h-8 text-sm rounded-lg transition-colors hover:bg-blue-100 focus:outline-none focus:ring-2 focus:ring-blue-500';
+        dayElement.className = 'w-8 h-8 text-sm rounded-lg transition-colors hover:bg-blue-100 focus:outline-none focus:ring-1 focus:ring-blue-500';
         dayElement.textContent = date.getDate();
 
         // Style different types of days
@@ -620,7 +626,7 @@
     const target = document.getElementById(`hour-${currentHour}`);
 
     if (target && "{{ today }}" === new Date().toISOString().split('T')[0]) {
-      target.classList.add("ring-2", "ring-blue-200", "ring-offset-2");
+      target.classList.add("ring-1", "ring-blue-200", "ring-offset-2");
     }
   }
 
@@ -777,7 +783,7 @@ function filterDoctors() {
       hourBlock.style.display = 'none';
     } else if (isToday && hourIndex === currentHour) {
       hourBlock.style.display = 'block';
-      hourBlock.classList.add("ring-2", "ring-blue-200", "ring-offset-2");
+      hourBlock.classList.add("ring-1", "ring-blue-200", "ring-offset-2");
 
       const existingMsg = hourBlock.querySelector('.no-results-message');
       if (searchTerm && !anyVisible && !existingMsg) {
@@ -789,13 +795,14 @@ function filterDoctors() {
         existingMsg.remove();
       }
     } else {
-      hourBlock.classList.remove("ring-2", "ring-blue-200", "ring-offset-2");
+      hourBlock.classList.remove("ring-1", "ring-blue-200", "ring-offset-2");
       hourBlock.style.display = anyVisible ? 'block' : 'none';
     }
   });
 }
 
   function openTimezonePopup(zone) {
+    ensureModalIsRootChild();
     const modal = document.getElementById("timezoneModal");
     const title = document.getElementById("modalTimezoneTitle");
     const content = document.getElementById("modalTimezoneContent");

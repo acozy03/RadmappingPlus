@@ -2,27 +2,28 @@
 {% block title %}Capacity Gaps{% endblock %}
 
 {% block content %}
-<div x-data="{ 
-    show: false, 
-    doctors: [], 
-    time: '', 
+<div x-data="{
+    show: false,
+    doctors: [],
+    time: '',
     date: '',
-    uncoveredStates: [], 
-    coveredStates: [], 
-    stateDoctorMap: {}, 
-    stateQuery: '', 
-    matchedStates: [], 
-    hoveredState: '', 
-    facilityDoctorMap: {}, 
-    facilityQuery: '', 
-    matchedFacilities: [], 
-    hoveredFacility: '' 
-}">
+    uncoveredStates: [],
+    coveredStates: [],
+    stateDoctorMap: {},
+    stateQuery: '',
+    matchedStates: [],
+    hoveredState: '',
+    facilityDoctorMap: {},
+    facilityQuery: '',
+    matchedFacilities: [],
+    hoveredFacility: ''
+}"
+     class="shifts-page">
 
-<div class="bg-gradient-to-r from-blue-50 to-indigo-50 rounded-xl shadow-sm p-4 sm:p-6 mb-6 w-full border border-blue-100">
+<div class="bg-gradient-to-r from-blue-50 to-indigo-50 rounded-xl shadow-sm p-4 sm:p-6 mb-6 w-full border border-blue-100 shifts-filter-bar">
     <div class="flex items-center justify-between flex-wrap gap-4">
         <a href="{{ url_for('shifts.shifts', date=prev_week_start) }}"
-           class="p-2 hover:bg-blue-100 rounded-full transition-colors">
+           class="p-2 hover:bg-blue-100 rounded-full transition-colors shifts-nav-button">
             <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6 text-blue-600" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 19l-7-7 7-7" />
             </svg>
@@ -31,16 +32,16 @@
         <div class="relative">
             <button type="button"
                     onclick="toggleCalendar()"
-                    class="flex items-center gap-2 bg-blue-100 hover:bg-blue-200 text-blue-700 px-4 py-2 rounded-lg transition-colors shadow-sm">
+                    class="flex items-center gap-2 bg-blue-100 hover:bg-blue-200 text-blue-700 px-4 py-2 rounded-lg transition-colors shadow-sm shifts-filter-button">
                 <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" />
                 </svg>
                 <span class="font-medium">{{ start_date }} - {{ end_date }}</span>
             </button>
 
-            <div id="calendarPopup" class="hidden absolute top-full left-0 mt-2 bg-white rounded-xl shadow-2xl border border-gray-200 z-50 p-4 min-w-[320px]">
+            <div id="calendarPopup" class="hidden absolute top-full left-0 mt-2 bg-white rounded-xl shadow-2xl border border-gray-200 z-50 p-4 min-w-[320px] shifts-calendar">
                 <div class="flex items-center justify-between mb-4">
-                    <button type="button" onclick="changeMonth(-1)" class="p-2 hover:bg-gray-100 rounded-lg transition-colors">
+                    <button type="button" onclick="changeMonth(-1)" class="p-2 hover:bg-gray-100 rounded-lg transition-colors shifts-calendar__nav">
                         <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 text-gray-600" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 19l-7-7 7-7" />
                         </svg>
@@ -67,10 +68,10 @@
                 <div id="calendarDays" class="grid grid-cols-7 gap-1">
                     </div>
                 <div class="flex gap-2 mt-4 pt-4 border-t border-gray-200">
-                    <button type="button" onclick="selectToday()" class="flex-1 px-3 py-2 text-sm bg-blue-100 text-blue-700 rounded-lg hover:bg-blue-200 transition-colors">
+                    <button type="button" onclick="selectToday()" class="flex-1 px-3 py-2 text-sm bg-blue-100 text-blue-700 rounded-lg hover:bg-blue-200 transition-colors shifts-filter-button">
                         This Week
                     </button>
-                    <button type="button" onclick="closeCalendar()" class="flex-1 px-3 py-2 text-sm bg-gray-100 text-gray-700 rounded-lg hover:bg-gray-200 transition-colors">
+                    <button type="button" onclick="closeCalendar()" class="flex-1 px-3 py-2 text-sm bg-gray-100 text-gray-700 rounded-lg hover:bg-gray-200 transition-colors shifts-filter-button">
                         Cancel
                     </button>
                 </div>
@@ -78,7 +79,7 @@
         </div>
 
         <a href="{{ url_for('shifts.shifts', date=next_week_start) }}"
-           class="p-2 hover:bg-blue-100 rounded-full transition-colors">
+           class="p-2 hover:bg-blue-100 rounded-full transition-colors shifts-nav-button">
             <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6 text-blue-600" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7" />
             </svg>
@@ -169,7 +170,7 @@
   }
 }"
 
- class="mb-6 p-4 bg-white rounded-lg shadow-sm border border-gray-200">
+ class="mb-6 p-4 bg-white rounded-lg shadow-sm border border-gray-200 shifts-filter-panel">
     <div class="flex flex-col md:flex-row md:items-center space-y-4 md:space-y-0 md:space-x-6">
         <span class="text-sm font-medium text-gray-700">Show Sections:</span>
         <div class="flex items-center space-x-4">
@@ -204,11 +205,11 @@
 
     <ul 
       x-show="matchedStates.length > 0" 
-      class="absolute z-50 bg-white border border-gray-300 mt-1 w-full rounded shadow text-sm"
+      class="absolute z-50 bg-white border border-gray-300 mt-1 w-full rounded shadow text-sm shifts-suggestion"
     >
       <template x-for="state in matchedStates" :key="state">
-        <li 
-          class="px-3 py-1 hover:bg-gray-100 cursor-pointer"
+        <li
+          class="px-3 py-1 hover:bg-gray-100 cursor-pointer shifts-suggestion__item"
           @click="stateQuery = state; matchedStates = []; updateFilters();"
           x-text="state"
         ></li>
@@ -233,11 +234,11 @@
 
   <ul 
     x-show="facilityMatches.length > 0" 
-    class="absolute z-50 bg-white border border-gray-300 mt-1 w-full rounded shadow text-sm"
+    class="absolute z-50 bg-white border border-gray-300 mt-1 w-full rounded shadow text-sm shifts-suggestion"
   >
     <template x-for="fac in facilityMatches" :key="fac">
-      <li 
-        class="px-3 py-1 hover:bg-gray-100 cursor-pointer"
+      <li
+        class="px-3 py-1 hover:bg-gray-100 cursor-pointer shifts-suggestion__item"
         @click="facilityQuery = fac; facilityMatches = []; updateFilters();"
         x-text="fac"
       ></li>
@@ -255,19 +256,19 @@
 
         {% for day, color_grouped_slots in weekly_data_by_day_and_color.items() %}
         {% set is_today = (day == today_date.value) %}
-        <div class="{{ 'ring-2 ring-blue-300 ring-offset-1' if is_today else '' }} flex flex-col min-w-0 rounded-md bg-white">
+        <div class="{{ 'ring-2 ring-blue-300 ring-offset-1' if is_today else '' }} flex flex-col min-w-0 rounded-md bg-white shifts-day-card">
             {% set first_color_group = color_grouped_slots.values() | first %}
             {% set first_slot_of_day = first_color_group | first if first_color_group %}
             {% if first_slot_of_day %}
-            <div class="bg-gray-200 p-4 rounded-t-lg text-center mt-1">
+            <div class="bg-gray-200 p-4 rounded-t-lg text-center mt-1 shifts-day-header">
                 <h2 class="text-base md:text-xl font-semibold text-gray-700">{{ first_slot_of_day.day_label }}</h2>
                 <p class="text-xs md:text-sm text-gray-600">{{ day.strftime("%Y-%m-%d") }}</p>
             </div>
             {% endif %}
 
-            <div class="flex-1 bg-white rounded-b-lg border border-gray-200 p-2 md:p-4">
+            <div class="flex-1 bg-white rounded-b-lg border border-gray-200 p-2 md:p-4 shifts-day-body">
                 {% for color_class, slots_in_color_group in color_grouped_slots.items() %}
-                <div class="mb-4 capacity-section {{ color_class }} rounded-lg p-2">
+                <div class="mb-4 capacity-section {{ color_class }} rounded-lg p-2 shifts-capacity-section">
                     <div class="space-y-2">
                         {% for slot in slots_in_color_group %}
   {% set stats = hourly_rvu_stats[slot.datetime] %}
@@ -319,7 +320,7 @@
         "expected": expected,
         "ratio": ratio
       } | tojson | escape }}'
-      class="group rounded-md p-2 md:p-3 shadow-sm border border-gray-300 {{ color_class }} relative cursor-pointer hour-slot-div"
+      class="group rounded-md p-2 md:p-3 shadow-sm border border-gray-300 {{ color_class }} relative cursor-pointer hour-slot-div shifts-slot-card"
       style="background-color: inherit; min-width: 0;"
     >
       <div class="flex flex-col md:flex-row md:items-center md:justify-between gap-1 md:gap-0">
@@ -340,7 +341,7 @@
 
     {% if ratio_percent is not none %}
     <div
-      class="absolute left-1/2 -translate-x-1/2 bottom-full mb-1 w-max bg-white border border-gray-300 rounded shadow-lg px-3 py-1 text-xs text-gray-900 opacity-0 group-hover:opacity-100 pointer-events-none transition-opacity z-50 whitespace-nowrap"
+      class="absolute left-1/2 -translate-x-1/2 bottom-full mb-1 w-max bg-white border border-gray-300 rounded shadow-lg px-3 py-1 text-xs text-gray-900 opacity-0 group-hover:opacity-100 pointer-events-none transition-opacity z-50 whitespace-nowrap shifts-tooltip"
     >
       Capacity Ratio: {{ ratio_percent }}%
     </div>
@@ -361,13 +362,13 @@
 <div 
      x-show="show"
      @close-modal.window="show = false"
-     class="fixed inset-0 bg-black bg-opacity-50 z-50 flex items-center justify-center"
+     class="fixed inset-0 bg-black bg-opacity-50 z-50 flex items-center justify-center shifts-modal-overlay"
      x-transition
      style="display: none;"
 >
-  <div @click.away="show = false" class="relative bg-white rounded-lg p-6 w-[48rem] min-h-[32rem] shadow-xl">
-    
-    <button @click="show = false" 
+  <div @click.away="show = false" class="relative bg-white rounded-lg p-6 w-[48rem] min-h-[32rem] shadow-xl shifts-modal">
+
+    <button @click="show = false"
             class="absolute top-3 right-4 text-gray-500 hover:text-gray-800 text-2xl font-bold focus:outline-none"
             aria-label="Close">
       &times;
@@ -525,10 +526,272 @@
         </div>
         
           
-    </div>
 </div>
-</div> 
 </div>
+</div>
+</div>
+
+<style>
+.shifts-page {
+  --shifts-text: #0f172a;
+  --shifts-muted: #475569;
+  --shifts-accent: #1d4ed8;
+  --shifts-border: rgba(148, 163, 184, 0.35);
+  --shifts-surface: rgba(255, 255, 255, 0.96);
+  --shifts-surface-alt: rgba(248, 250, 252, 0.92);
+  --shifts-filter-bg: linear-gradient(135deg, rgba(219, 234, 254, 0.95), rgba(224, 231, 255, 0.95));
+  --shifts-filter-border: rgba(191, 219, 254, 0.75);
+  --shifts-card-shadow: 0 18px 40px rgba(15, 23, 42, 0.08);
+  --shifts-header-bg: rgba(226, 232, 240, 0.85);
+  --shifts-tooltip-bg: rgba(255, 255, 255, 0.98);
+  --shifts-tooltip-text: #0f172a;
+  --shifts-modal-bg: rgba(255, 255, 255, 0.98);
+  --shifts-modal-border: rgba(148, 163, 184, 0.35);
+  --shifts-chip-bg: rgba(255, 255, 255, 0.94);
+}
+
+[data-theme="dark"] .shifts-page {
+  --shifts-text: #e2e8f0;
+  --shifts-muted: #94a3b8;
+  --shifts-accent: #93c5fd;
+  --shifts-border: rgba(96, 165, 250, 0.35);
+  --shifts-surface: rgba(15, 23, 42, 0.95);
+  --shifts-surface-alt: rgba(30, 41, 59, 0.85);
+  --shifts-filter-bg: linear-gradient(135deg, rgba(30, 41, 59, 0.95), rgba(15, 23, 42, 0.98));
+  --shifts-filter-border: rgba(96, 165, 250, 0.45);
+  --shifts-card-shadow: 0 32px 65px rgba(2, 6, 23, 0.85);
+  --shifts-header-bg: rgba(30, 41, 59, 0.85);
+  --shifts-tooltip-bg: rgba(15, 23, 42, 0.95);
+  --shifts-tooltip-text: #e2e8f0;
+  --shifts-modal-bg: rgba(15, 23, 42, 0.97);
+  --shifts-modal-border: rgba(96, 165, 250, 0.35);
+  --shifts-chip-bg: rgba(30, 41, 59, 0.9);
+}
+
+.shifts-page {
+  color: var(--shifts-text);
+}
+
+.shifts-filter-bar {
+  background: var(--shifts-filter-bg) !important;
+  border-color: var(--shifts-filter-border) !important;
+  box-shadow: var(--shifts-card-shadow);
+  backdrop-filter: blur(16px);
+}
+
+.shifts-filter-button {
+  background: var(--shifts-chip-bg) !important;
+  border: 1px solid var(--shifts-border) !important;
+  transition: transform 0.2s ease, box-shadow 0.2s ease;
+}
+
+.shifts-filter-button:hover {
+  transform: translateY(-1px);
+  box-shadow: 0 16px 30px rgba(59, 130, 246, 0.15);
+}
+
+.shifts-nav-button {
+  border: 1px solid transparent;
+  transition: background-color 0.2s ease, transform 0.2s ease;
+}
+
+.shifts-nav-button:hover {
+  transform: translateY(-1px);
+}
+
+.shifts-filter-panel {
+  background: var(--shifts-surface) !important;
+  border-color: var(--shifts-border) !important;
+  box-shadow: var(--shifts-card-shadow);
+}
+
+.shifts-calendar {
+  background: var(--shifts-surface) !important;
+  border-color: var(--shifts-border) !important;
+  box-shadow: 0 26px 48px rgba(15, 23, 42, 0.12);
+}
+
+.shifts-suggestion {
+  background: var(--shifts-surface) !important;
+  border-color: var(--shifts-border) !important;
+  box-shadow: 0 16px 34px rgba(15, 23, 42, 0.08);
+}
+
+.shifts-suggestion__item {
+  transition: background-color 0.2s ease;
+}
+
+.shifts-suggestion__item:hover {
+  background-color: rgba(59, 130, 246, 0.12) !important;
+}
+
+.shifts-day-card {
+  background: var(--shifts-surface) !important;
+  box-shadow: var(--shifts-card-shadow);
+}
+
+.shifts-day-header {
+  background: var(--shifts-header-bg) !important;
+  border-bottom: 1px solid var(--shifts-border);
+}
+
+.shifts-day-body {
+  background: var(--shifts-surface) !important;
+  border-color: var(--shifts-border) !important;
+}
+
+.shifts-slot-card {
+  background: var(--shifts-surface-alt) !important;
+  border-color: var(--shifts-border) !important;
+  box-shadow: 0 16px 28px rgba(15, 23, 42, 0.08);
+  transition: transform 0.2s ease, box-shadow 0.2s ease;
+}
+
+.shifts-slot-card:hover {
+  transform: translateY(-1px);
+  box-shadow: 0 22px 45px rgba(15, 23, 42, 0.12);
+}
+
+[data-theme="dark"] .shifts-slot-card {
+  box-shadow: 0 28px 60px rgba(2, 6, 23, 0.75);
+}
+
+.shifts-capacity-section {
+  border: 1px solid transparent;
+  backdrop-filter: blur(6px);
+}
+
+.shifts-tooltip {
+  background: var(--shifts-tooltip-bg) !important;
+  border-color: var(--shifts-border) !important;
+  color: var(--shifts-tooltip-text) !important;
+}
+
+.shifts-modal {
+  background: var(--shifts-modal-bg) !important;
+  border: 1px solid var(--shifts-modal-border) !important;
+  box-shadow: 0 28px 60px rgba(15, 23, 42, 0.12);
+}
+
+[data-theme="dark"] .shifts-page .text-gray-700,
+[data-theme="dark"] .shifts-page .text-gray-600,
+[data-theme="dark"] .shifts-page .text-gray-500,
+[data-theme="dark"] .shifts-page .text-gray-400 {
+  color: var(--shifts-muted) !important;
+}
+
+[data-theme="dark"] .shifts-page .text-gray-900,
+[data-theme="dark"] .shifts-page .text-gray-800 {
+  color: var(--shifts-text) !important;
+}
+
+[data-theme="dark"] .shifts-page .text-blue-700,
+[data-theme="dark"] .shifts-page .text-blue-600,
+[data-theme="dark"] .shifts-page a.text-blue-600,
+[data-theme="dark"] .shifts-page a.text-blue-700 {
+  color: var(--shifts-accent) !important;
+}
+
+[data-theme="dark"] .shifts-page .text-green-700 {
+  color: #86efac !important;
+}
+
+[data-theme="dark"] .shifts-page .text-red-700 {
+  color: #fca5a5 !important;
+}
+
+[data-theme="dark"] .shifts-page .text-yellow-600,
+[data-theme="dark"] .shifts-page .text-yellow-500 {
+  color: #fde68a !important;
+}
+
+[data-theme="dark"] .shifts-page .bg-white {
+  background-color: var(--shifts-surface) !important;
+}
+
+[data-theme="dark"] .shifts-page .bg-gray-200 {
+  background-color: rgba(51, 65, 85, 0.65) !important;
+}
+
+[data-theme="dark"] .shifts-page .bg-blue-100,
+[data-theme="dark"] .shifts-page .hover\:bg-blue-100:hover,
+[data-theme="dark"] .shifts-page .bg-blue-200,
+[data-theme="dark"] .shifts-page .hover\:bg-blue-200:hover {
+  background-color: rgba(96, 165, 250, 0.18) !important;
+  color: var(--shifts-accent) !important;
+}
+
+[data-theme="dark"] .shifts-page .bg-gray-100,
+[data-theme="dark"] .shifts-page .hover\:bg-gray-100:hover,
+[data-theme="dark"] .shifts-page .hover\:bg-gray-200:hover {
+  background-color: rgba(71, 85, 105, 0.35) !important;
+}
+
+[data-theme="dark"] .shifts-page .bg-red-100 {
+  background-color: rgba(248, 113, 113, 0.2) !important;
+}
+
+[data-theme="dark"] .shifts-page .bg-yellow-100 {
+  background-color: rgba(251, 191, 36, 0.2) !important;
+}
+
+[data-theme="dark"] .shifts-page .bg-green-100 {
+  background-color: rgba(74, 222, 128, 0.2) !important;
+}
+
+[data-theme="dark"] .shifts-capacity-section {
+  border-color: var(--shifts-border) !important;
+}
+
+[data-theme="dark"] .shifts-page .border-gray-200,
+[data-theme="dark"] .shifts-page .border-gray-300,
+[data-theme="dark"] .shifts-page .border-gray-100,
+[data-theme="dark"] .shifts-page .border-blue-100 {
+  border-color: var(--shifts-border) !important;
+}
+
+[data-theme="dark"] .shifts-page .shadow-sm {
+  box-shadow: var(--shifts-card-shadow) !important;
+}
+
+[data-theme="dark"] .shifts-page .ring-blue-300 {
+  --tw-ring-color: rgba(96, 165, 250, 0.55) !important;
+}
+
+[data-theme="dark"] .shifts-page .ring-offset-1 {
+  --tw-ring-offset-color: rgba(15, 23, 42, 0.95) !important;
+}
+
+[data-theme="dark"] .shifts-modal-overlay {
+  background-color: rgba(15, 23, 42, 0.75) !important;
+}
+
+[data-theme="dark"] .shifts-page input:not([type="checkbox"]):not([type="radio"]):not([type="range"]),
+[data-theme="dark"] .shifts-page select,
+[data-theme="dark"] .shifts-page textarea {
+  background-color: var(--shifts-surface-alt) !important;
+  border-color: var(--shifts-border) !important;
+  color: var(--shifts-text) !important;
+}
+
+[data-theme="dark"] .shifts-page input::placeholder,
+[data-theme="dark"] .shifts-page textarea::placeholder {
+  color: var(--shifts-muted) !important;
+}
+
+[data-theme="dark"] .shifts-page .hover\:bg-red-50:hover {
+  background-color: rgba(248, 113, 113, 0.25) !important;
+}
+
+[data-theme="dark"] .shifts-page .hover\:bg-gray-50:hover {
+  background-color: rgba(71, 85, 105, 0.3) !important;
+}
+
+[data-theme="dark"] .shifts-page .hover\:bg-green-50:hover {
+  background-color: rgba(74, 222, 128, 0.25) !important;
+}
+
+</style>
 
 <script>
     let currentCalendarDate = new Date('{{ now.strftime("%Y-%m-%d") }}');

@@ -124,8 +124,7 @@
                     {% endif %}
                   </div>
                   <button type="button" id="theme-toggle" class="user-dropdown-item" role="menuitem">
-                    <i class="fas fa-moon"></i>
-                    <span>Toggle theme</span>
+                    Switch to <i class="fas fa-moon"></i>
                   </button>
                   <a href="{{ url_for('auth.logout') }}" class="user-dropdown-item" role="menuitem">
                     <i class="fas fa-sign-out-alt"></i>
@@ -212,8 +211,8 @@ document.addEventListener('DOMContentLoaded', function() {
       themeToggle.setAttribute('title', 'Switch to ' + nextLabel + ' mode');
       themeToggle.setAttribute('aria-label', 'Switch to ' + nextLabel + ' mode');
       themeToggle.innerHTML = theme === 'dark'
-        ? '<i class="fas fa-sun"></i>'
-        : '<i class="fas fa-moon"></i>';
+        ? 'Switch to <i class="fas fa-sun"></i>'
+        : 'Switch to <i class="fas fa-moon"></i>';
     }
 
     document.dispatchEvent(new CustomEvent('themechange', { detail: { theme } }));

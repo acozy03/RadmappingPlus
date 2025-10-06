@@ -1105,9 +1105,9 @@ thead.sticky th {
 
 /* Daily schedule theme tokens */
 .daily-page {
-    --daily-filter-bg: linear-gradient(135deg, rgba(219, 234, 254, 0.95), rgba(224, 231, 255, 0.95));
+    --daily-filter-bg: rgba(139, 211, 240, 0.1);
     --daily-filter-border: rgba(191, 219, 254, 0.9);
-    --daily-filter-shadow: 0 18px 40px rgba(59, 130, 246, 0.12);
+    
     --daily-control-bg: rgba(255, 255, 255, 0.95);
     --daily-control-border: rgba(148, 163, 184, 0.35);
     --daily-control-text: #1d4ed8;
@@ -1116,7 +1116,7 @@ thead.sticky th {
     --daily-chip-text: #1e3a8a;
     --daily-card-bg: rgba(255, 255, 255, 0.96);
     --daily-card-border: rgba(59, 130, 246, 0.18);
-    --daily-card-shadow: 0 18px 35px rgba(15, 23, 42, 0.08);
+ 
     --daily-prn-bg: rgba(250, 245, 255, 0.95);
     --daily-prn-border: rgba(192, 132, 252, 0.4);
     --daily-popup-bg: rgba(255, 255, 255, 0.95);
@@ -1127,17 +1127,16 @@ thead.sticky th {
 .daily-filter-bar {
     background: var(--daily-filter-bg) !important;
     border-color: var(--daily-filter-border) !important;
-    box-shadow: var(--daily-filter-shadow);
-    backdrop-filter: blur(16px);
-    transition: background 0.3s ease, border-color 0.3s ease, box-shadow 0.3s ease;
+   
+    
 }
 
 .daily-filter-bar .daily-filter-control {
     background-color: var(--daily-control-bg) !important;
     border-color: var(--daily-control-border) !important;
     color: var(--daily-control-text) !important;
-    box-shadow: 0 10px 24px rgba(59, 130, 246, 0.12);
-    transition: border-color 0.2s ease, box-shadow 0.2s ease, background-color 0.2s ease;
+    
+    
 }
 
 .daily-filter-bar .daily-filter-control:focus {
@@ -1150,44 +1149,29 @@ thead.sticky th {
 }
 
 .daily-filter-bar .daily-filter-button {
-    transition: transform 0.2s ease, box-shadow 0.2s ease;
+    
 }
 
 .daily-filter-bar .daily-filter-button:hover {
-    transform: translateY(-1px);
-    box-shadow: 0 12px 28px rgba(59, 130, 246, 0.18);
+  
 }
 
-.daily-timezone-chip {
-    background: var(--daily-chip-bg) !important;
-    border-color: var(--daily-chip-border) !important;
-    color: var(--daily-chip-text) !important;
-    box-shadow: 0 14px 28px rgba(59, 130, 246, 0.12);
-    backdrop-filter: blur(14px);
-    transition: transform 0.2s ease, box-shadow 0.2s ease, background 0.3s ease;
-}
 
-.daily-timezone-chip:hover {
-    transform: translateY(-2px);
-    box-shadow: 0 18px 34px rgba(59, 130, 246, 0.18);
-}
 
-.daily-timezone-chip span {
-    color: inherit !important;
-}
+
+
 
 .daily-slot-card {
     background: var(--daily-card-bg) !important;
     border-color: var(--daily-card-border) !important;
-    box-shadow: var(--daily-card-shadow);
-    backdrop-filter: blur(18px);
+ 
+    
     overflow: visible;
-    transition: transform 0.25s ease, box-shadow 0.25s ease, border-color 0.25s ease;
 }
 
 .daily-slot-card:hover {
     transform: none;
-    box-shadow: var(--daily-card-shadow);
+    
 }
 
 .daily-slot-card h4 {
@@ -1201,8 +1185,7 @@ thead.sticky th {
 .daily-doctor-card {
     background: rgba(248, 250, 252, 0.92);
     border-color: rgba(59, 130, 246, 0.18);
-    box-shadow: 0 12px 30px rgba(15, 23, 42, 0.08);
-    transition: background 0.2s ease, box-shadow 0.2s ease;
+  
 }
 
 .daily-doctor-name,
@@ -1242,14 +1225,14 @@ thead.sticky th {
 .daily-prn-card {
     background: var(--daily-prn-bg) !important;
     border-color: var(--daily-prn-border) !important;
-    box-shadow: 0 16px 32px rgba(91, 33, 182, 0.18);
+
     transition: background 0.2s ease, box-shadow 0.2s ease;
     color: #5b21b6;
 }
 
 .daily-prn-card:hover {
     transform: none;
-    box-shadow: 0 16px 32px rgba(91, 33, 182, 0.18);
+ 
 }
 
 .daily-prn-badge {
@@ -1271,18 +1254,56 @@ thead.sticky th {
     box-shadow: 0 18px 44px rgba(15, 23, 42, 0.12);
 }
 
-.daily-timezone-modal__card {
-    background: var(--daily-popup-bg) !important;
-    border-color: var(--daily-popup-border) !important;
-    box-shadow: 0 26px 56px rgba(15, 23, 42, 0.15);
-    backdrop-filter: blur(18px);
-    transition: transform 0.3s ease, box-shadow 0.3s ease;
+
+
+
+[data-theme="dark"] .landing-hero .hero-subtitle {
+    color: #cbd5f5;
 }
 
-.daily-timezone-modal__card:hover {
-    transform: translateY(-2px);
-    box-shadow: 0 32px 64px rgba(59, 130, 246, 0.18);
+[data-theme="dark"] .landing-status .status-text {
+    color: #f8fafc;
 }
+
+[data-theme="dark"] .landing-page .dashboard-card {
+    background: rgba(15, 23, 42, 0.82);
+    border: 1px solid rgba(99, 102, 241, 0.35);
+    box-shadow: 0 24px 60px rgba(2, 6, 23, 0.65);
+}
+
+[data-theme="dark"] .landing-page .dashboard-card:hover {
+    box-shadow: 0 32px 75px rgba(8, 47, 73, 0.7);
+}
+
+[data-theme="dark"] .landing-page .card-border {
+    background: linear-gradient(135deg, rgba(96, 165, 250, 0.45), rgba(129, 140, 248, 0.45), rgba(236, 72, 153, 0.45));
+}
+
+[data-theme="dark"] .landing-page .card-border::before {
+    background: rgba(15, 23, 42, 0.95);
+}
+
+[data-theme="dark"] .landing-page .icon-container::before {
+    box-shadow: 0 12px 35px rgba(2, 6, 23, 0.7);
+}
+
+[data-theme="dark"] .landing-page .card-gradient-overlay {
+    opacity: 0.12;
+}
+
+[data-theme="dark"] .landing-page .dashboard-card.hovered .card-gradient-overlay {
+    opacity: 0.25;
+}
+
+[data-theme="dark"] .landing-page .card-title {
+    color: #f8fafc;
+}
+
+[data-theme="dark"] .landing-page .card-description {
+    color: #94a3b8;
+}
+
+
 
 [data-theme="dark"] .daily-page {
     --daily-filter-bg: linear-gradient(135deg, rgba(30, 41, 59, 0.92), rgba(15, 23, 42, 0.98));
@@ -1339,12 +1360,10 @@ thead.sticky th {
     color: var(--daily-control-text) !important;
 }
 
-[data-theme="dark"] .daily-timezone-chip {
-    box-shadow: 0 24px 50px rgba(2, 6, 23, 0.75);
-}
+
 
 [data-theme="dark"] .daily-slot-card:hover {
-    box-shadow: var(--daily-card-shadow);
+    box-shadow: #042f1a;
 }
 
 [data-theme="dark"] .daily-slot-card h4 {
@@ -1420,7 +1439,7 @@ thead.sticky th {
 }
 
 [data-theme="dark"] .daily-timezone-modal__card {
-    box-shadow: 0 40px 80px rgba(2, 6, 23, 0.9);
+   
     color: #e2e8f0;
 }
 
@@ -1430,9 +1449,7 @@ thead.sticky th {
     color: #dbeafe !important;
 }
 
-[data-theme="dark"] .daily-timezone-modal__card .text-gray-500 {
-    color: var(--daily-muted-text) !important;
-}
+
 
 [data-theme="dark"] .daily-page .bg-red-50 {
     background-color: rgba(248, 113, 113, 0.28) !important;
