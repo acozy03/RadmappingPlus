@@ -937,6 +937,338 @@ thead.sticky th {
 }
 
 
+/* Daily schedule theme tokens */
+.daily-page {
+    --daily-filter-bg: linear-gradient(135deg, rgba(219, 234, 254, 0.95), rgba(224, 231, 255, 0.95));
+    --daily-filter-border: rgba(191, 219, 254, 0.9);
+    --daily-filter-shadow: 0 18px 40px rgba(59, 130, 246, 0.12);
+    --daily-control-bg: rgba(255, 255, 255, 0.95);
+    --daily-control-border: rgba(148, 163, 184, 0.35);
+    --daily-control-text: #1d4ed8;
+    --daily-chip-bg: rgba(255, 255, 255, 0.92);
+    --daily-chip-border: rgba(59, 130, 246, 0.2);
+    --daily-chip-text: #1e3a8a;
+    --daily-card-bg: rgba(255, 255, 255, 0.96);
+    --daily-card-border: rgba(59, 130, 246, 0.18);
+    --daily-card-shadow: 0 18px 35px rgba(15, 23, 42, 0.08);
+    --daily-prn-bg: rgba(250, 245, 255, 0.95);
+    --daily-prn-border: rgba(192, 132, 252, 0.4);
+    --daily-popup-bg: rgba(255, 255, 255, 0.95);
+    --daily-popup-border: rgba(148, 163, 184, 0.3);
+    --daily-muted-text: #475569;
+}
+
+.daily-filter-bar {
+    background: var(--daily-filter-bg) !important;
+    border-color: var(--daily-filter-border) !important;
+    box-shadow: var(--daily-filter-shadow);
+    backdrop-filter: blur(16px);
+    transition: background 0.3s ease, border-color 0.3s ease, box-shadow 0.3s ease;
+}
+
+.daily-filter-bar .daily-filter-control {
+    background-color: var(--daily-control-bg) !important;
+    border-color: var(--daily-control-border) !important;
+    color: var(--daily-control-text) !important;
+    box-shadow: 0 10px 24px rgba(59, 130, 246, 0.12);
+    transition: border-color 0.2s ease, box-shadow 0.2s ease, background-color 0.2s ease;
+}
+
+.daily-filter-bar .daily-filter-control:focus {
+    box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.25);
+    border-color: rgba(59, 130, 246, 0.55) !important;
+}
+
+.daily-filter-bar .daily-filter-control::placeholder {
+    color: var(--daily-muted-text);
+}
+
+.daily-filter-bar .daily-filter-button {
+    transition: transform 0.2s ease, box-shadow 0.2s ease;
+}
+
+.daily-filter-bar .daily-filter-button:hover {
+    transform: translateY(-1px);
+    box-shadow: 0 12px 28px rgba(59, 130, 246, 0.18);
+}
+
+.daily-timezone-chip {
+    background: var(--daily-chip-bg) !important;
+    border-color: var(--daily-chip-border) !important;
+    color: var(--daily-chip-text) !important;
+    box-shadow: 0 14px 28px rgba(59, 130, 246, 0.12);
+    backdrop-filter: blur(14px);
+    transition: transform 0.2s ease, box-shadow 0.2s ease, background 0.3s ease;
+}
+
+.daily-timezone-chip:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 18px 34px rgba(59, 130, 246, 0.18);
+}
+
+.daily-timezone-chip span {
+    color: inherit !important;
+}
+
+.daily-slot-card {
+    background: var(--daily-card-bg) !important;
+    border-color: var(--daily-card-border) !important;
+    box-shadow: var(--daily-card-shadow);
+    backdrop-filter: blur(18px);
+    transition: transform 0.25s ease, box-shadow 0.25s ease, border-color 0.25s ease;
+}
+
+.daily-slot-card:hover {
+    transform: translateY(-4px);
+    box-shadow: 0 26px 52px rgba(59, 130, 246, 0.18);
+}
+
+.daily-slot-card h4 {
+    border-color: rgba(191, 219, 254, 0.6) !important;
+}
+
+.daily-slot-list {
+    transition: color 0.3s ease;
+}
+
+.daily-doctor-card {
+    background: rgba(248, 250, 252, 0.92);
+    border-color: rgba(59, 130, 246, 0.18);
+    box-shadow: 0 12px 30px rgba(15, 23, 42, 0.08);
+    transition: transform 0.2s ease, box-shadow 0.2s ease, background 0.2s ease;
+}
+
+.daily-doctor-card:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 16px 36px rgba(59, 130, 246, 0.18);
+    background: rgba(219, 234, 254, 0.95);
+}
+
+.daily-doctor-card.bg-green-50,
+.daily-doctor-card.bg-yellow-50,
+.daily-doctor-card.bg-red-50 {
+    transform: none;
+}
+
+.daily-prn-card {
+    background: var(--daily-prn-bg) !important;
+    border-color: var(--daily-prn-border) !important;
+    box-shadow: 0 16px 32px rgba(91, 33, 182, 0.18);
+    transition: transform 0.2s ease, box-shadow 0.2s ease;
+    color: #5b21b6;
+}
+
+.daily-prn-card:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 20px 42px rgba(91, 33, 182, 0.28);
+}
+
+.daily-prn-badge {
+    background: rgba(243, 232, 255, 0.85);
+    border: 1px solid rgba(192, 132, 252, 0.35);
+    color: #6b21a8;
+}
+
+.daily-shift-badge {
+    background: rgba(59, 130, 246, 0.12);
+    color: #1e3a8a;
+    border: 1px solid rgba(59, 130, 246, 0.28);
+    backdrop-filter: blur(12px);
+}
+
+.daily-popup {
+    background: var(--daily-popup-bg) !important;
+    border-color: var(--daily-popup-border) !important;
+    box-shadow: 0 18px 44px rgba(15, 23, 42, 0.12);
+}
+
+.daily-timezone-modal__card {
+    background: var(--daily-popup-bg) !important;
+    border-color: var(--daily-popup-border) !important;
+    box-shadow: 0 26px 56px rgba(15, 23, 42, 0.15);
+    backdrop-filter: blur(18px);
+    transition: transform 0.3s ease, box-shadow 0.3s ease;
+}
+
+.daily-timezone-modal__card:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 32px 64px rgba(59, 130, 246, 0.18);
+}
+
+[data-theme="dark"] .daily-page {
+    --daily-filter-bg: linear-gradient(135deg, rgba(30, 41, 59, 0.92), rgba(15, 23, 42, 0.98));
+    --daily-filter-border: rgba(59, 130, 246, 0.45);
+    --daily-filter-shadow: 0 26px 60px rgba(2, 6, 23, 0.82);
+    --daily-control-bg: rgba(15, 23, 42, 0.9);
+    --daily-control-border: rgba(59, 130, 246, 0.45);
+    --daily-control-text: #dbeafe;
+    --daily-chip-bg: rgba(30, 41, 59, 0.92);
+    --daily-chip-border: rgba(59, 130, 246, 0.45);
+    --daily-chip-text: #dbeafe;
+    --daily-card-bg: linear-gradient(165deg, rgba(15, 23, 42, 0.96), rgba(30, 41, 59, 0.88));
+    --daily-card-border: rgba(96, 165, 250, 0.32);
+    --daily-card-shadow: 0 34px 70px rgba(2, 6, 23, 0.88);
+    --daily-prn-bg: linear-gradient(155deg, rgba(91, 33, 182, 0.35), rgba(168, 85, 247, 0.2));
+    --daily-prn-border: rgba(216, 180, 254, 0.45);
+    --daily-popup-bg: rgba(15, 23, 42, 0.95);
+    --daily-popup-border: rgba(59, 130, 246, 0.35);
+    --daily-muted-text: #94a3b8;
+}
+
+[data-theme="dark"] .daily-filter-bar .daily-filter-control {
+    color: var(--daily-control-text) !important;
+    box-shadow: 0 12px 30px rgba(15, 23, 42, 0.65);
+}
+
+[data-theme="dark"] .daily-filter-bar .daily-filter-control option {
+    background-color: #0f172a;
+    color: #e2e8f0;
+}
+
+[data-theme="dark"] .daily-filter-bar .daily-filter-control::placeholder {
+    color: var(--daily-muted-text);
+}
+
+[data-theme="dark"] .daily-filter-bar .daily-filter-button:not(.bg-blue-600) {
+    background: rgba(37, 99, 235, 0.32) !important;
+    color: #dbeafe !important;
+    border: 1px solid rgba(59, 130, 246, 0.45);
+    box-shadow: 0 18px 38px rgba(2, 6, 23, 0.65);
+}
+
+[data-theme="dark"] .daily-filter-bar .daily-filter-button:not(.bg-blue-600):hover {
+    background: rgba(59, 130, 246, 0.4) !important;
+}
+
+[data-theme="dark"] .daily-filter-bar .daily-filter-button.bg-blue-600 {
+    box-shadow: 0 20px 45px rgba(37, 99, 235, 0.6);
+}
+
+[data-theme="dark"] .daily-filter-bar .text-blue-700,
+[data-theme="dark"] .daily-filter-bar .text-blue-600,
+[data-theme="dark"] .daily-filter-bar .text-gray-500 {
+    color: var(--daily-control-text) !important;
+}
+
+[data-theme="dark"] .daily-timezone-chip {
+    box-shadow: 0 24px 50px rgba(2, 6, 23, 0.75);
+}
+
+[data-theme="dark"] .daily-slot-card:hover {
+    box-shadow: 0 32px 68px rgba(2, 6, 23, 0.92);
+}
+
+[data-theme="dark"] .daily-slot-card h4 {
+    color: #dbeafe !important;
+    border-color: rgba(96, 165, 250, 0.45) !important;
+}
+
+[data-theme="dark"] .daily-slot-card .text-gray-500 {
+    color: var(--daily-muted-text) !important;
+}
+
+[data-theme="dark"] .daily-doctor-card {
+    background: linear-gradient(155deg, rgba(30, 64, 175, 0.35), rgba(15, 23, 42, 0.88));
+    border-color: rgba(59, 130, 246, 0.45);
+    box-shadow: 0 26px 54px rgba(2, 6, 23, 0.75);
+    color: #e2e8f0;
+}
+
+[data-theme="dark"] .daily-doctor-card:hover {
+    background: linear-gradient(155deg, rgba(37, 99, 235, 0.38), rgba(17, 24, 39, 0.92));
+    box-shadow: 0 32px 64px rgba(2, 6, 23, 0.85);
+}
+
+[data-theme="dark"] .daily-prn-card {
+    color: #f3e8ff;
+    box-shadow: 0 26px 54px rgba(76, 29, 149, 0.55);
+}
+
+[data-theme="dark"] .daily-prn-badge {
+    background: rgba(168, 85, 247, 0.35) !important;
+    color: #f5f3ff !important;
+    border-color: rgba(216, 180, 254, 0.45) !important;
+}
+
+[data-theme="dark"] .daily-shift-badge {
+    background: rgba(96, 165, 250, 0.28) !important;
+    color: #e0f2fe !important;
+    border-color: rgba(37, 99, 235, 0.45);
+    box-shadow: 0 20px 48px rgba(2, 6, 23, 0.8);
+}
+
+[data-theme="dark"] .daily-popup {
+    box-shadow: 0 36px 70px rgba(2, 6, 23, 0.9);
+    color: #e2e8f0;
+}
+
+[data-theme="dark"] .daily-timezone-modal__card {
+    box-shadow: 0 40px 80px rgba(2, 6, 23, 0.9);
+    color: #e2e8f0;
+}
+
+[data-theme="dark"] .daily-timezone-modal__card .text-blue-800,
+[data-theme="dark"] .daily-timezone-modal__card .text-blue-700,
+[data-theme="dark"] .daily-timezone-modal__card .text-blue-600 {
+    color: #dbeafe !important;
+}
+
+[data-theme="dark"] .daily-timezone-modal__card .text-gray-500 {
+    color: var(--daily-muted-text) !important;
+}
+
+[data-theme="dark"] .daily-page .bg-red-50 {
+    background-color: rgba(248, 113, 113, 0.28) !important;
+    color: #fee2e2 !important;
+}
+
+[data-theme="dark"] .daily-page .bg-red-100 {
+    background-color: rgba(248, 113, 113, 0.35) !important;
+    color: #fee2e2 !important;
+}
+
+[data-theme="dark"] .daily-page .bg-yellow-50 {
+    background-color: rgba(250, 204, 21, 0.2) !important;
+    color: #facc15 !important;
+}
+
+[data-theme="dark"] .daily-page .bg-yellow-100 {
+    background-color: rgba(250, 204, 21, 0.28) !important;
+    color: #fef9c3 !important;
+}
+
+[data-theme="dark"] .daily-page .bg-green-50 {
+    background-color: rgba(34, 197, 94, 0.2) !important;
+    color: #bbf7d0 !important;
+}
+
+[data-theme="dark"] .daily-page .bg-green-100 {
+    background-color: rgba(34, 197, 94, 0.3) !important;
+    color: #bbf7d0 !important;
+}
+
+[data-theme="dark"] .daily-page .bg-purple-100 {
+    background-color: rgba(168, 85, 247, 0.28) !important;
+    color: #f5f3ff !important;
+}
+
+[data-theme="dark"] .daily-page .text-red-800 {
+    color: #fecaca !important;
+}
+
+[data-theme="dark"] .daily-page .text-yellow-800 {
+    color: #fef9c3 !important;
+}
+
+[data-theme="dark"] .daily-page .text-green-800 {
+    color: #bbf7d0 !important;
+}
+
+[data-theme="dark"] .daily-page .text-purple-700 {
+    color: #e9d5ff !important;
+}
+
+
 :root {
   color-scheme: light;
 }

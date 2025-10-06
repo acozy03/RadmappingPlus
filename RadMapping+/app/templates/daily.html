@@ -14,7 +14,9 @@
     {{ doctors_on_shift_ids | tojson | safe }}
   </script>
 
-  <div class="bg-gradient-to-r from-blue-50 to-indigo-50 rounded-xl shadow-sm p-4 sm:p-6 mb-6 w-full border border-blue-100">
+  <div class="daily-page space-y-6">
+
+  <div class="bg-gradient-to-r from-blue-50 to-indigo-50 rounded-xl shadow-sm p-4 sm:p-6 mb-6 w-full border border-blue-100 daily-filter-bar">
     <div class="flex flex-col md:flex-row items-center justify-between gap-4">
       <div class="flex justify-between items-center flex-wrap gap-4 w-full">
         <div class="flex items-center gap-2 flex-wrap flex-grow">
@@ -29,7 +31,7 @@
             <div class="relative">
               <button type="button"
                       onclick="toggleCalendar()"
-                      class="flex items-center gap-2 bg-blue-100 hover:bg-blue-200 text-blue-700 px-4 py-2 rounded-lg transition-colors shadow-sm">
+                      class="flex items-center gap-2 bg-blue-100 hover:bg-blue-200 text-blue-700 px-4 py-2 rounded-lg transition-colors shadow-sm daily-filter-button">
                 <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                   <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" />
                 </svg>
@@ -86,7 +88,7 @@
                    class="hidden" />
 
             <select name="timezone" onchange="this.form.submit()"
-                    class="bg-white border border-blue-200 text-blue-700 rounded-lg px-3 py-1 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 shadow-sm">
+                    class="bg-white border border-blue-200 text-blue-700 rounded-lg px-3 py-1 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 shadow-sm daily-filter-control">
               <option value="EST" {% if selected_timezone == 'EST' %}selected{% endif %}>EST</option>
               <option value="CST" {% if selected_timezone == 'CST' %}selected{% endif %}>CST</option>
               <option value="PST" {% if selected_timezone == 'PST' %}selected{% endif %}>PST</option>
@@ -100,26 +102,24 @@
               </svg>
             </a>
 
-            <select id="startHour" name="startHour" onchange="filterByCustomRange()" 
-                    class="border border-blue-200 rounded-lg px-2 py-1 text-sm bg-white text-blue-700 focus:ring-2 focus:ring-blue-500 focus:outline-none shadow-sm">
+            <select id="startHour" name="startHour" onchange="filterByCustomRange()"
+                    class="border border-blue-200 rounded-lg px-2 py-1 text-sm bg-white text-blue-700 focus:ring-2 focus:ring-blue-500 focus:outline-none shadow-sm daily-filter-control">
               {% for slot in hour_slots %}
                 <option value="{{ loop.index0 }}">{{ slot.label }} {{ slot.day_label }}</option>
               {% endfor %}
             </select>
             <span class="text-sm text-blue-700">to</span>
-            <select id="endHour" name="endHour" onchange="filterByCustomRange()" 
-                    class="border border-blue-200 rounded-lg px-2 py-1 text-sm bg-white text-blue-700 focus:ring-2 focus:ring-blue-500 focus:outline-none shadow-sm">
+            <select id="endHour" name="endHour" onchange="filterByCustomRange()"
+                    class="border border-blue-200 rounded-lg px-2 py-1 text-sm bg-white text-blue-700 focus:ring-2 focus:ring-blue-500 focus:outline-none shadow-sm daily-filter-control">
               {% for slot in hour_slots %}
                 <option value="{{ loop.index0 }}">{{ slot.label }} {{ slot.day_label }}</option>
               {% endfor %}
             </select>
-<button type="button"
-        onclick="resetHourFilter()"
-        class="bg-blue-600 text-white px-2 py-1 rounded text-sm font-medium hover:bg-blue-700 transition">
-  Reset
-</button>
-
-</button>
+            <button type="button"
+                    onclick="resetHourFilter()"
+                    class="bg-blue-600 text-white px-2 py-1 rounded text-sm font-medium hover:bg-blue-700 transition daily-filter-button">
+              Reset
+            </button>
 
           </form>
 
@@ -133,14 +133,14 @@
             <input type="text"
                    id="doctorSearch"
                    placeholder="Search doctors..."
-                   class="w-full pl-10 pr-2 py-2 border border-blue-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 shadow-sm"
+                   class="w-full pl-10 pr-2 py-2 border border-blue-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 shadow-sm daily-filter-control"
                    onkeyup="filterDoctors()" />
           </div>
         </div>
 
         <div class="flex gap-2 flex-nowrap">
           {% for zone in ["EST", "CST", "PST"] %}
-            <div class="bg-white hover:bg-blue-50 px-3 py-2 rounded-lg shadow-sm timezone-tile transition-colors cursor-pointer whitespace-nowrap border border-blue-100"
+            <div class="bg-white hover:bg-blue-50 px-3 py-2 rounded-lg shadow-sm timezone-tile transition-colors cursor-pointer whitespace-nowrap border border-blue-100 daily-timezone-chip"
                  onclick="openTimezonePopup('{{ zone }}')">
               <div class="flex items-center gap-2">
                 <span class="text-sm font-medium text-blue-700">{{ zone }}</span>
@@ -153,8 +153,8 @@
     </div>
   </div>
 
-  <div id="timezoneModal" class="fixed inset-0 bg-black bg-opacity-30 flex items-center justify-center z-50 hidden backdrop-blur-sm">
-    <div class="bg-white w-full max-w-md p-6 rounded-xl shadow-xl relative border border-blue-100">
+  <div id="timezoneModal" class="fixed inset-0 bg-black bg-opacity-30 flex items-center justify-center z-50 hidden backdrop-blur-sm daily-timezone-modal">
+    <div class="bg-white w-full max-w-md p-6 rounded-xl shadow-xl relative border border-blue-100 daily-timezone-modal__card">
       <button onclick="closeTimezonePopup()" class="absolute top-3 right-3 text-gray-500 hover:text-gray-700 hover:bg-gray-100 rounded-full w-8 h-8 flex items-center justify-center transition-colors">
         <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
           <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12" />
@@ -167,9 +167,9 @@
   </div>
 
 
-  <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
+  <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4 daily-slot-grid">
     {% for slot in hour_slots %}
-      <div id="hour-{{ loop.index0 }}" class="bg-white border rounded shadow p-4" data-slot-datetime="{{ slot.datetime.isoformat() }}">
+      <div id="hour-{{ loop.index0 }}" class="bg-white border rounded shadow p-4 daily-slot-card" data-slot-datetime="{{ slot.datetime.isoformat() }}">
         <h4 class="text-md font-semibold text-blue-800 border-b pb-1 mb-2 flex items-center justify-between">
           <span>
             {{ slot.label }}
@@ -239,14 +239,14 @@
 {% set slot_doctors = doctors_by_hour.get(slot.datetime, []) %}
 {% set prn_doctors = doctors_prn_by_hour.get(slot.datetime, []) %}
 {% if slot_doctors or prn_doctors %}
-  <ul class="space-y-2">
+  <ul class="space-y-2 daily-slot-list">
     {# PRN doctors first - no header, just list them #}
     {% for doc in prn_doctors %}
   {% set routine_ids = doctors_prn_with_routine_by_hour.get(slot.datetime, []) | map(attribute='id') | list %}
   {% set is_routine = doc.id in routine_ids %}
 
   <li class="relative border p-2 rounded transition-colors duration-200 border-purple-200
-             {{ 'bg-purple-100 hover:bg-purple-200' if is_routine else 'bg-purple-100 hover:bg-purple-200' }}"
+             {{ 'bg-purple-100 hover:bg-purple-200' if is_routine else 'bg-purple-100 hover:bg-purple-200' }} daily-prn-card"
       onmouseenter="showDoctorPopup(this)"
       onmouseleave="hideDoctorPopup(this)"
       data-schedule-details="{{ doc.schedule_details or '' }}">
@@ -285,7 +285,7 @@
     <div class="doctor-popup-placeholder" data-popup-id="{{ doc.id }}"></div>
 
     <div class="absolute bottom-2 right-2 text-xs font-medium px-2 py-0.5 rounded-full shadow-sm
-                {{ 'bg-yellow-200 text-yellow-800' if is_routine else 'bg-purple-100 text-purple-700' }}">
+                {{ 'bg-yellow-200 text-yellow-800' if is_routine else 'bg-purple-100 text-purple-700' }} daily-prn-badge">
       {{ 'PRN ROUTINES' if is_routine else 'PRN' }}
     </div>
   </li>
@@ -299,7 +299,7 @@
 
     {# Regular doctors after PRN doctors #}
     {% for doc in slot_doctors %}
-      <li class="relative border p-2 rounded bg-gray-50 hover:bg-gray-100 transition-colors duration-200"
+      <li class="relative border p-2 rounded bg-gray-50 hover:bg-gray-100 transition-colors duration-200 daily-doctor-card"
           onmouseenter="showDoctorPopup(this)"
           onmouseleave="hideDoctorPopup(this)"
           data-start-dt="{{ doc.start_dt.isoformat() }}"
@@ -338,7 +338,7 @@
             </span>
           </div>
           <div class="doctor-popup-placeholder" data-popup-id="{{ doc.id }}"></div>
-          <div class="shift-badge absolute bottom-2 right-2 text-xs font-medium px-2 py-0.5 rounded-full shadow-sm"></div>
+          <div class="shift-badge absolute bottom-2 right-2 text-xs font-medium px-2 py-0.5 rounded-full shadow-sm daily-shift-badge"></div>
       </li>
     {% endfor %}
   </ul>
@@ -350,7 +350,7 @@
   </div>
   <div id="all-doctor-popups" class="hidden">
     {% for doc in unique_doctors.values() %}
-      <div id="popup-{{ doc.id }}" class="doctor-popup bg-white border p-4 rounded-lg shadow-lg w-[20rem]">
+      <div id="popup-{{ doc.id }}" class="doctor-popup bg-white border p-4 rounded-lg shadow-lg w-[20rem] daily-popup">
         <h4 class="font-medium text-lg text-gray-900 mb-2">{{ doc.name }}</h4>
         <div class="space-y-2 text-sm text-left">
           <p><strong>Phone:</strong> {{ doc.phone or 'N/A' }}</p>
@@ -361,7 +361,9 @@
           {% endif %}
         </div>
       </div>
-    {% endfor %} 
+    {% endfor %}
+  </div>
+
   </div>
   <script>
     let currentCalendarDate = new Date('{{ today }}');
@@ -535,13 +537,18 @@
     }
 
     document.addEventListener("DOMContentLoaded", () => {
-    updateTimezoneClocks();
-    colorDoctorBlocks();
-    setInterval(updateTimezoneClocks, 60_000);
-    scrollToCurrentHour();
-    setInitialHourFilter();    
-    
-  });
+      updateTimezoneClocks();
+      colorDoctorBlocks();
+      setInterval(updateTimezoneClocks, 60_000);
+      scrollToCurrentHour();
+      setInitialHourFilter();
+    });
+
+    document.addEventListener("themechange", () => {
+      window.requestAnimationFrame(() => {
+        colorDoctorBlocks();
+      });
+    });
 
 
     function filterByCustomRange() {
@@ -598,7 +605,7 @@ function colorDoctorBlocks() {
     el.classList.remove("bg-green-50", "border-green-200", "bg-yellow-50", "border-yellow-200", "bg-red-50", "border-red-200");
     const badge = el.querySelector(".shift-badge");
     if (badge) {
-      badge.className = "shift-badge absolute bottom-2 right-2 text-xs font-medium px-2 py-0.5 rounded-full shadow-sm";
+      badge.className = "shift-badge absolute bottom-2 right-2 text-xs font-medium px-2 py-0.5 rounded-full shadow-sm daily-shift-badge";
       badge.textContent = "";
     }
 
@@ -628,7 +635,7 @@ function colorDoctorBlocks() {
       const percentageRemainingOfSegment = (msRemainingInSegmentFromSlot / totalSegmentMs) * 100;
 
       if (percentageRemainingOfSegment <= 25 || minutesLeft <= 60) { 
-        el.classList.add("bg-red-50 dark:bg-purple-100", "border-red-200");
+        el.classList.add("bg-red-50", "border-red-200");
         if (badge) {
           badge.textContent = timeLeftStr;
           badge.classList.add("bg-red-100", "text-red-800");
@@ -781,18 +788,21 @@ function filterDoctors() {
 
   document.addEventListener("click", function (e) {
     const modal = document.getElementById("timezoneModal");
-    const box = modal.querySelector("div.bg-white");
+    const box = modal.querySelector(".daily-timezone-modal__card");
+    if (!box) {
+      return;
+    }
     if (!box.contains(e.target) && !e.target.closest(".timezone-tile")) {
       modal.classList.add("hidden");
     }
   });
 
-function resetHourFilter() {
+  function resetHourFilter() {
   const startSelect = document.getElementById("startHour");
   const endSelect = document.getElementById("endHour");
 
   if (!startSelect || !endSelect) return;
-  
+
   const today = new Date().toISOString().split("T")[0];
   const isToday = "{{ today }}" === new Date().toISOString().split('T')[0];
   if (isToday) {
