@@ -628,7 +628,7 @@ function colorDoctorBlocks() {
       const percentageRemainingOfSegment = (msRemainingInSegmentFromSlot / totalSegmentMs) * 100;
 
       if (percentageRemainingOfSegment <= 25 || minutesLeft <= 60) { 
-        el.classList.add("bg-red-50", "border-red-200");
+        el.classList.add("bg-red-50 dark:bg-purple-100", "border-red-200");
         if (badge) {
           badge.textContent = timeLeftStr;
           badge.classList.add("bg-red-100", "text-red-800");
