@@ -51,6 +51,18 @@ def set_session():
             email = u.get("email") or (u.get("user_metadata") or {}).get("email")
         if not email:
             raise ValueError("Email not found on Supabase user")
+
+        # Extract optional profile information for UI enrichment
+        metadata = {}
+        if hasattr(u, "user_metadata") and getattr(u, "user_metadata"):
+            metadata = getattr(u, "user_metadata") or {}
+        elif isinstance(u, dict):
+            metadata = u.get("user_metadata") or {}
+
+        full_name = metadata.get("full_name") or metadata.get("name")
+        avatar_url = metadata.get("avatar_url") or metadata.get("picture")
+        if not full_name and email:
+            full_name = email.split("@")[0]
     except Exception as e:
         logging.error(f"Failed to fetch/parse user from access_token: {e}")
         session.clear()
@@ -65,7 +77,12 @@ def set_session():
     except Exception as e:
         logging.error(f"Role lookup failed for {email}: {e}")
 
-    session["user"] = {"email": email, "role": role}
+    session["user"] = {
+        "email": email,
+        "role": role,
+        "name": full_name,
+        "avatar_url": avatar_url,
+    }
     logging.info(f"Session established for {email} with role={role}")
     return jsonify({"status": "ok", "role": role}), 200
 

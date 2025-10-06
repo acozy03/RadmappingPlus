@@ -94,14 +94,44 @@
             </div>
 
             <div class="flex-shrink-0">
-              <div class="user-section">
-                <button type="button" id="theme-toggle" class="theme-toggle" aria-label="Toggle dark mode" title="Toggle dark mode">
-                  <i class="fas fa-moon"></i>
+              {% set user = session.user %}
+              {% if user %}
+              {% if user.name %}
+                {% set display_name = user.name %}
+              {% elif user.email %}
+                {% set display_name = user.email.split('@')[0] %}
+              {% else %}
+                {% set display_name = 'User' %}
+              {% endif %}
+              {% set avatar_url = user.avatar_url %}
+              {% else %}
+                {% set display_name = 'User' %}
+                {% set avatar_url = None %}
+              {% endif %}
+              <div class="user-section user-menu" id="userMenu">
+                <button type="button" id="userMenuButton" class="user-avatar-button" aria-haspopup="true" aria-expanded="false" aria-label="Open user menu" title="{{ display_name }}">
+                  {% if avatar_url %}
+                    <img src="{{ avatar_url }}" alt="{{ display_name }} avatar" class="user-avatar-image" referrerpolicy="no-referrer">
+                  {% else %}
+                    <span class="user-avatar-fallback">{{ display_name[0]|upper }}</span>
+                  {% endif %}
                 </button>
-                <a href="{{ url_for('auth.logout') }}" class="logout-btn">
-                  <i class="fas fa-sign-out-alt"></i>
-                  <span>Logout</span>
-                </a>
+                <div class="user-dropdown" id="userDropdown" role="menu" aria-labelledby="userMenuButton">
+                  <div class="user-dropdown-header">
+                    <span class="user-dropdown-name">{{ display_name }}</span>
+                    {% if user and user.email %}
+                    <span class="user-dropdown-email">{{ user.email }}</span>
+                    {% endif %}
+                  </div>
+                  <button type="button" id="theme-toggle" class="user-dropdown-item" role="menuitem">
+                    <i class="fas fa-moon"></i>
+                    <span>Toggle theme</span>
+                  </button>
+                  <a href="{{ url_for('auth.logout') }}" class="user-dropdown-item" role="menuitem">
+                    <i class="fas fa-sign-out-alt"></i>
+                    <span>Logout</span>
+                  </a>
+                </div>
               </div>
             </div>
           </div>
@@ -165,10 +195,8 @@ document.addEventListener('click', function(event) {
 document.addEventListener('DOMContentLoaded', function() {
   const root = document.documentElement;
   const themeToggle = document.getElementById('theme-toggle');
-
-  if (!themeToggle) {
-    return;
-  }
+  const userMenuButton = document.getElementById('userMenuButton');
+  const userDropdown = document.getElementById('userDropdown');
 
   const applyTheme = function(theme) {
     root.setAttribute('data-theme', theme);
@@ -177,13 +205,17 @@ document.addEventListener('DOMContentLoaded', function() {
     } catch (error) {
       /* localStorage might be unavailable */
     }
-    const nextLabel = theme === 'dark' ? 'light' : 'dark';
-    themeToggle.setAttribute('aria-pressed', theme === 'dark');
-    themeToggle.setAttribute('title', 'Switch to ' + nextLabel + ' mode');
-    themeToggle.setAttribute('aria-label', 'Switch to ' + nextLabel + ' mode');
-    themeToggle.innerHTML = theme === 'dark'
-      ? '<i class="fas fa-sun"></i>'
-      : '<i class="fas fa-moon"></i>';
+
+    if (themeToggle) {
+      const nextLabel = theme === 'dark' ? 'light' : 'dark';
+      themeToggle.setAttribute('aria-pressed', theme === 'dark');
+      themeToggle.setAttribute('title', 'Switch to ' + nextLabel + ' mode');
+      themeToggle.setAttribute('aria-label', 'Switch to ' + nextLabel + ' mode');
+      themeToggle.innerHTML = theme === 'dark'
+        ? '<i class="fas fa-sun"></i>'
+        : '<i class="fas fa-moon"></i>';
+    }
+
     document.dispatchEvent(new CustomEvent('themechange', { detail: { theme } }));
   };
 
@@ -200,10 +232,67 @@ document.addEventListener('DOMContentLoaded', function() {
 
   applyTheme(initialTheme);
 
-  themeToggle.addEventListener('click', function() {
-    const nextTheme = root.getAttribute('data-theme') === 'dark' ? 'light' : 'dark';
-    applyTheme(nextTheme);
-  });
+  if (themeToggle) {
+    themeToggle.addEventListener('click', function() {
+      const nextTheme = root.getAttribute('data-theme') === 'dark' ? 'light' : 'dark';
+      applyTheme(nextTheme);
+    });
+  }
+
+  if (userMenuButton && userDropdown) {
+    const focusableItems = userDropdown.querySelectorAll('.user-dropdown-item');
+
+    const setMenuState = function(open) {
+      userDropdown.classList.toggle('user-dropdown-open', open);
+      userMenuButton.setAttribute('aria-expanded', open ? 'true' : 'false');
+      if (open && focusableItems.length > 0) {
+        window.requestAnimationFrame(function() {
+          focusableItems[0].focus();
+        });
+      }
+    };
+
+    userMenuButton.addEventListener('click', function(event) {
+      event.stopPropagation();
+      const isOpen = userDropdown.classList.contains('user-dropdown-open');
+      setMenuState(!isOpen);
+    });
+
+    userMenuButton.addEventListener('keydown', function(event) {
+      if (event.key === 'ArrowDown' || event.key === 'Enter' || event.key === ' ') {
+        event.preventDefault();
+        setMenuState(true);
+      }
+      if (event.key === 'Escape') {
+        setMenuState(false);
+      }
+    });
+
+    const handleDocumentClick = function(event) {
+      if (!userDropdown.contains(event.target) && !userMenuButton.contains(event.target)) {
+        setMenuState(false);
+      }
+    };
+
+    document.addEventListener('click', handleDocumentClick);
+
+    userDropdown.addEventListener('keydown', function(event) {
+      if (event.key === 'Escape') {
+        setMenuState(false);
+        userMenuButton.focus();
+      }
+    });
+
+    userDropdown.addEventListener('click', function(event) {
+      const target = event.target.closest('.user-dropdown-item');
+      if (target) {
+        setMenuState(false);
+        if (target.id === 'theme-toggle') {
+          userMenuButton.focus();
+        }
+      }
+    });
+  }
 });
 </script>
 

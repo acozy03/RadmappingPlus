@@ -253,7 +253,7 @@
 
     <div class="flex items-center justify-between">
       <a href="{{ url_for('doctors.doctor_profile', rad_id=doc.id) }}" target="_blank"
-         class="text-purple-700 font-semibold hover:underline">
+         class="daily-prn-name hover:underline">
         {{ doc.name }}
       </a>
       <div class="flex items-center gap-2">
@@ -308,7 +308,7 @@
           data-display-end-time="{{ doc.display_end_time }}"   {# Added #}
           data-schedule-details="{{ doc.schedule_details or '' }}">
           <div class="flex items-center justify-between">
-            <a href="{{ url_for('doctors.doctor_profile', rad_id=doc.id) }}" target="_blank" class="text-blue-700 font-semibold hover:underline">
+            <a href="{{ url_for('doctors.doctor_profile', rad_id=doc.id) }}" target="_blank" class="daily-doctor-name hover:underline">
               {{ doc.name }}
             </a>
             <span class="text-sm text-gray-500">{{ doc.timezone or '—' }}</span>
