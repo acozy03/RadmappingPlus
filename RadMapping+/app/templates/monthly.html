@@ -2,25 +2,25 @@
 {% block title %}{{ month_name }} Schedule{% endblock %}
 
 {% block content %}
-<div class="flex flex-col h-[45rem] overflow-hidden">
+<div class="monthly-page flex flex-col h-[45rem] overflow-hidden">
 
-    <div class="flex justify-between items-center mb-6 px-4 py-2">
+    <div class="monthly-toolbar flex justify-between items-center mb-6 px-4 py-2">
         <h2 class="text-2xl font-semibold">{{ month_name }} Schedule</h2>
         <div class="flex items-center gap-4">
             <a href="{{ url_for('monthly.monthly', year=year if month > 1 else year-1, month=month-1 if month > 1 else 12, start_day=1) }}" class="text-blue-600 hover:underline">← Previous Month</a>
             <a href="{{ url_for('monthly.monthly', year=year if month < 12 else year+1, month=month+1 if month < 12 else 1, start_day=1) }}" class="text-blue-600 hover:underline">Next Month →</a>
 
             <div class="flex items-center gap-2">
-                <input type="text" 
-                       class="border rounded px-3 py-1 text-base" 
-                       id="searchInput" 
-                       placeholder="Search doctors..." 
+                <input type="text"
+                       class="monthly-input border rounded px-3 py-1 text-base"
+                       id="searchInput"
+                       placeholder="Search doctors..."
                        onkeyup="handleSearch()">
             </div>
-            <select id="scheduleFilter" class="border rounded px-2 py-1 text-base">
+            <select id="scheduleFilter" class="monthly-select border rounded px-2 py-1 text-base">
               <option value="desc" selected>Description Only</option>
                 <option value="time" >Time Only</option>
-                
+
             </select>
 
             <button onclick="openPinModal()" class="bg-purple-600 text-white px-4 py-2 rounded hover:bg-purple-700">
@@ -31,10 +31,10 @@
 
     <div id="schedule-container" class="flex-1 min-h-0 overflow-auto max-w-full">
         <div id="schedule-scroll-wrapper" class="w-full border-b border-gray-200 mb-2">
-            <table class="w-full min-w-[1200px] table-fixed text-base">
-                <thead class="bg-gray-50 top-0 z-30">
+            <table class="monthly-table w-full min-w-[1200px] table-fixed text-base">
+                <thead class="monthly-table-header top-0 z-30">
                     <tr class="h-16">
-                        <th class="sticky-left-header bg-gray-50 z-40 w-48 px-4 py-3 font-medium text-left">Doctor</th>
+                        <th class="sticky-left-header z-40 w-48 px-4 py-3 font-medium text-left">Doctor</th>
                         {% set today_str = datetime.utcnow().strftime('%Y-%m-%d') %}
                         {% for day in range(1, days_in_month + 1) %}
                             {% set date = datetime(year, month, day) %}
@@ -70,7 +70,7 @@
 </div>
 
 <div id="toolsModal" class="fixed inset-0 z-50 hidden bg-black bg-opacity-50 flex items-center justify-center">
-  <div class="bg-white rounded-lg shadow-lg w-[90%] max-w-4xl p-6">
+  <div class="monthly-modal bg-white rounded-lg shadow-lg w-[90%] max-w-4xl p-6">
     <div class="flex justify-between items-center mb-4">
       <h3 class="text-lg font-semibold">Scheduling Tools</h3>
       <button onclick="closeToolsModal()" class="text-gray-500 hover:text-gray-700">
@@ -81,7 +81,7 @@
     </div>
     
     <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
-      <div class="bg-gray-50 p-4 rounded-lg">
+      <div class="monthly-tool-card bg-gray-50 p-4 rounded-lg">
         <h4 class="font-medium mb-3">Bulk Schedule</h4>
         <form method="POST" action="{{ url_for('monthly.bulk_schedule') }}" class="space-y-3">
           <select name="doctor" required class="w-full p-2 border rounded">
@@ -109,7 +109,7 @@
         </form>
       </div>
 
-      <div class="bg-gray-50 p-4 rounded-lg">
+      <div class="monthly-tool-card bg-gray-50 p-4 rounded-lg">
         <h4 class="font-medium mb-3">Pattern Schedule</h4>
         <form method="POST" action="{{ url_for('monthly.pattern_schedule') }}" class="space-y-3">
           <select name="doctor" required class="w-full p-2 border rounded">
@@ -171,7 +171,7 @@
 </div>
 
 <div id="pinModal" class="fixed inset-0 z-50 hidden bg-black bg-opacity-50 flex items-center justify-center">
-  <div class="bg-white rounded-lg shadow-lg w-[90%] max-w-4xl p-6">
+  <div class="monthly-modal bg-white rounded-lg shadow-lg w-[90%] max-w-4xl p-6">
     <div class="flex justify-between items-center mb-4">
       <h3 class="text-lg font-semibold">Pin Doctors</h3>
       <button onclick="closePinModal()" class="text-gray-500 hover:text-gray-700">
@@ -204,7 +204,7 @@
 
     <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 max-h-[60vh] overflow-y-auto" id="pinDoctorsList">
       {% for doctor in all_doctors %}
-        <div class="flex items-center gap-2 p-2 border rounded hover:bg-gray-50 doctor-item">
+        <div class="monthly-doctor-item flex items-center gap-2 p-2 border rounded hover:bg-gray-50 doctor-item">
           <input type="checkbox" 
                  id="pin-{{ doctor.id }}" 
                  class="pin-checkbox form-checkbox h-5 w-5 text-purple-600"
@@ -234,7 +234,6 @@
 </div>
 
 <style>
-/* Reset table styles for consistency */
 table {
   border-collapse: collapse;
 }
@@ -243,29 +242,134 @@ table, th, td {
   border: none;
 }
 
-/* Base styles for the entire table */
 .table-fixed {
   table-layout: fixed;
 }
 
-/* Sticky Header styling */
-thead {
+.monthly-page {
+  --monthly-page-text: #111827;
+  --monthly-header-bg: #f9fafb;
+  --monthly-header-text: #1f2937;
+  --monthly-header-muted: #4b5563;
+  --monthly-sticky-bg: #ffffff;
+  --monthly-sticky-shadow: rgba(15, 23, 42, 0.12);
+  --monthly-row-hover: rgba(59, 130, 246, 0.12);
+  --monthly-cell-desc: #374151;
+  --monthly-cell-time: #111827;
+  --monthly-today-bg: #dbeafe;
+  --monthly-today-text: #1d4ed8;
+  --monthly-today-accent: #2563eb;
+  --monthly-border: rgba(209, 213, 219, 0.8);
+  --monthly-modal-bg: #ffffff;
+  --monthly-modal-border: rgba(209, 213, 219, 0.9);
+  --monthly-modal-section-bg: #f3f4f6;
+  --monthly-modal-section-border: rgba(209, 213, 219, 0.9);
+  --monthly-link: #2563eb;
+  --monthly-muted: #6b7280;
+  --monthly-badge-bg: #f3e8ff;
+  --monthly-badge-text: #6d28d9;
+}
+
+[data-theme="dark"] .monthly-page {
+  --monthly-page-text: #e2e8f0;
+  --monthly-header-bg: rgba(30, 41, 59, 0.85);
+  --monthly-header-text: #e2e8f0;
+  --monthly-header-muted: #94a3b8;
+  --monthly-sticky-bg: rgba(15, 23, 42, 0.95);
+  --monthly-sticky-shadow: rgba(2, 6, 23, 0.7);
+  --monthly-row-hover: rgba(59, 130, 246, 0.25);
+  --monthly-cell-desc: #cbd5f5;
+  --monthly-cell-time: #e2e8f0;
+  --monthly-today-bg: rgba(37, 99, 235, 0.25);
+  --monthly-today-text: #bfdbfe;
+  --monthly-today-accent: #60a5fa;
+  --monthly-border: rgba(59, 130, 246, 0.35);
+  --monthly-modal-bg: rgba(15, 23, 42, 0.95);
+  --monthly-modal-border: rgba(96, 165, 250, 0.35);
+  --monthly-modal-section-bg: rgba(30, 41, 59, 0.75);
+  --monthly-modal-section-border: rgba(59, 130, 246, 0.3);
+  --monthly-link: #93c5fd;
+  --monthly-muted: #a5b4fc;
+  --monthly-badge-bg: rgba(124, 58, 237, 0.25);
+  --monthly-badge-text: #e9d5ff;
+}
+
+.monthly-page {
+  color: var(--monthly-page-text);
+}
+
+.monthly-toolbar {
+  background: var(--monthly-header-bg);
+  border: 1px solid var(--monthly-border);
+  border-radius: 0.75rem;
+  box-shadow: 0 18px 40px rgba(15, 23, 42, 0.08);
+  backdrop-filter: blur(8px);
+}
+
+[data-theme="dark"] .monthly-toolbar {
+  box-shadow: 0 26px 55px rgba(2, 6, 23, 0.7);
+}
+
+#schedule-container {
+  scroll-behavior: auto !important;
+  overscroll-behavior: contain;
+}
+
+#schedule-scroll-wrapper {
+  border-color: var(--monthly-border) !important;
+  background: var(--monthly-sticky-bg);
+  border-radius: 0.75rem;
+}
+
+.monthly-table {
+  color: var(--monthly-page-text);
+}
+
+.monthly-table thead {
   position: sticky;
   top: 0;
   z-index: 10;
-  background-color: #f9fafb; /* Ensure background color is set */
+  background: var(--monthly-header-bg);
 }
 
-/* Sticky left column styling */
-.sticky-left-header, .sticky-left-cell {
+.monthly-table-header {
+  background: var(--monthly-header-bg);
+  color: var(--monthly-header-text);
+}
+
+.monthly-table-header th {
+  color: var(--monthly-header-text);
+  border-bottom: 1px solid var(--monthly-border);
+}
+
+.monthly-table-header .text-gray-600 {
+  color: var(--monthly-header-muted) !important;
+}
+
+.sticky-left-header,
+.sticky-left-cell {
   position: sticky;
   left: 0;
   z-index: 5;
-  background-color: #fff; /* Ensure background color */
-  box-shadow: 2px 0 5px -2px rgba(0,0,0,0.1); /* Optional: add shadow for depth */
+  background: var(--monthly-sticky-bg) !important;
+  box-shadow: 2px 0 6px -2px var(--monthly-sticky-shadow);
+  color: var(--monthly-page-text);
 }
 
-/* Other table cell styles */
+.monthly-sticky-cell {
+  display: flex;
+  align-items: center;
+}
+
+.monthly-table td,
+.monthly-table th {
+  border-bottom: 1px solid var(--monthly-border);
+}
+
+.monthly-row:hover {
+  background-color: var(--monthly-row-hover);
+}
+
 .cell-content {
   min-height: 64px;
   display: flex;
@@ -280,25 +384,160 @@ thead {
   cursor: pointer;
   padding: 4px;
 }
-.cell-time, .cell-desc {
+
+.cell-time,
+.cell-desc {
   padding: 2px 0;
   line-height: 1.4;
 }
 
+.cell-time {
+  color: var(--monthly-cell-time);
+  font-weight: 600;
+}
+
 .cell-desc {
   font-size: 0.9rem;
-  color: #374151;
+  color: var(--monthly-cell-desc);
 }
 
 .today-header {
-  color: #2563eb !important;
-  border-bottom: 3px solid #2563eb !important;
-  background: #e0f2fe !important;
+  color: var(--monthly-today-text) !important;
+  border-bottom: 3px solid var(--monthly-today-accent) !important;
+  background: var(--monthly-today-bg) !important;
 }
 
-#schedule-container {
-    scroll-behavior: auto !important;
-    overscroll-behavior: contain;
+.today-col {
+  background: var(--monthly-today-bg) !important;
+}
+
+.monthly-doctor-link {
+  color: var(--monthly-link);
+}
+
+.monthly-routine-badge {
+  background: var(--monthly-badge-bg) !important;
+  color: var(--monthly-badge-text) !important;
+  border: 1px solid var(--monthly-border);
+}
+
+.monthly-modal {
+  background: var(--monthly-modal-bg) !important;
+  border: 1px solid var(--monthly-modal-border);
+  color: var(--monthly-page-text);
+}
+
+.monthly-modal h3,
+.monthly-modal h4 {
+  color: var(--monthly-page-text);
+}
+
+.monthly-modal p,
+.monthly-modal span,
+.monthly-modal label,
+.monthly-modal .text-gray-600,
+.monthly-modal .text-gray-500 {
+  color: var(--monthly-muted) !important;
+}
+
+.monthly-tool-card {
+  background: var(--monthly-modal-section-bg) !important;
+  border: 1px solid var(--monthly-modal-section-border) !important;
+}
+
+.monthly-modal input,
+.monthly-modal select,
+.monthly-modal textarea {
+  background: var(--monthly-sticky-bg);
+  color: var(--monthly-page-text);
+  border: 1px solid var(--monthly-modal-border);
+}
+
+.monthly-modal input::placeholder,
+.monthly-modal textarea::placeholder {
+  color: var(--monthly-muted);
+}
+
+.monthly-doctor-item {
+  transition: background-color 0.2s ease;
+}
+
+.monthly-doctor-item:hover {
+  background-color: var(--monthly-row-hover) !important;
+}
+
+.monthly-modal .pin-checkbox {
+  accent-color: var(--monthly-link);
+}
+
+.monthly-page .monthly-input,
+.monthly-page .monthly-select {
+  background: var(--monthly-sticky-bg);
+  border: 1px solid var(--monthly-border);
+  color: var(--monthly-page-text);
+}
+
+.monthly-page .monthly-input::placeholder {
+  color: var(--monthly-muted);
+}
+
+[data-theme="dark"] .monthly-page a.text-blue-600,
+[data-theme="dark"] .monthly-page .monthly-doctor-link {
+  color: var(--monthly-link) !important;
+}
+
+[data-theme="dark"] .monthly-page .text-gray-600,
+[data-theme="dark"] .monthly-page .text-gray-500 {
+  color: var(--monthly-muted) !important;
+}
+
+[data-theme="dark"] .monthly-page .text-red-700 {
+  color: #fecaca !important;
+}
+
+[data-theme="dark"] .monthly-page .text-gray-900 {
+  color: var(--monthly-page-text) !important;
+}
+
+[data-theme="dark"] .monthly-page .text-purple-700 {
+  color: #d8b4fe !important;
+}
+
+[data-theme="dark"] .monthly-page .bg-red-100 {
+  background: rgba(248, 113, 113, 0.22) !important;
+}
+
+[data-theme="dark"] .monthly-page .bg-gray-100 {
+  background: rgba(148, 163, 184, 0.2) !important;
+}
+
+[data-theme="dark"] .monthly-page .bg-orange-50 {
+  background: rgba(251, 146, 60, 0.22) !important;
+}
+
+[data-theme="dark"] .monthly-page .bg-green-50 {
+  background: rgba(34, 197, 94, 0.22) !important;
+}
+
+[data-theme="dark"] .monthly-page .bg-blue-50 {
+  background: rgba(59, 130, 246, 0.22) !important;
+}
+
+[data-theme="dark"] .monthly-page .hover\:bg-gray-50:hover,
+[data-theme="dark"] .monthly-page .hover\:bg-gray-100:hover {
+  background-color: rgba(59, 130, 246, 0.18) !important;
+}
+
+[data-theme="dark"] .monthly-page .hover\:bg-red-50:hover {
+  background-color: rgba(248, 113, 113, 0.25) !important;
+}
+
+#pinCounter {
+  color: var(--monthly-muted);
+}
+
+.monthly-page .border-gray-200 {
+  border-color: var(--monthly-border) !important;
 }
 
 </style>
@@ -396,17 +635,17 @@ class VirtualScheduleTable {
 
     createDoctorRow(doctor) {
         const row = document.createElement('tr');
-        row.className = 'hover:bg-gray-50 h-16';
+        row.className = 'monthly-row h-16';
         const nameCell = document.createElement('td');
-        nameCell.className = 'sticky-left-cell bg-white z-20 w-48 px-4 py-2 font-medium text-left';
+        nameCell.className = 'sticky-left-cell monthly-sticky-cell z-20 w-48 px-4 py-2 font-medium text-left';
         const isPinned = pinnedDoctors.includes(doctor.id);
         nameCell.innerHTML = `
             <div class="flex items-center gap-2">
                 ${isPinned ? '<span title="Pinned Doctor" class="text-yellow-500 text-sm">⭐</span>' : ''}
-                <a href="/radmapping/doctors/${doctor.id}" target="_blank" class="text-blue-600 hover:underline">
+                <a href="/radmapping/doctors/${doctor.id}" target="_blank" class="monthly-doctor-link text-blue-600 hover:underline">
                     ${doctor.name}
                 </a>
-                ${doctor.reads_routines ? '<span class="inline-flex items-center justify-center text-xs font-bold text-purple-700 bg-purple-100 h-5 px-2 rounded" title="Routines">R</span>' : ''}
+                ${doctor.reads_routines ? '<span class="monthly-routine-badge inline-flex items-center justify-center text-xs font-bold text-purple-700 bg-purple-100 h-5 px-2 rounded" title="Routines">R</span>' : ''}
             </div>
         `;
         row.appendChild(nameCell);
