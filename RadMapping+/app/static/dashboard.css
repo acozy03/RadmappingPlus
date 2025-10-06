@@ -504,9 +504,10 @@ thead.sticky th {
     backdrop-filter: blur(10px);
     border-bottom: 1px solid rgba(59, 130, 246, 0.1);
     box-shadow: 0 2px 10px rgba(0, 0, 0, 0.05);
-    overflow: hidden;
+    overflow: visible;
     border-radius: 0.75rem;
     margin: 0 2.25rem;
+    z-index: 30;
 }
 
 .navbar-gradient,
@@ -1180,6 +1181,7 @@ thead.sticky th {
     border-color: var(--daily-card-border) !important;
     box-shadow: var(--daily-card-shadow);
     backdrop-filter: blur(18px);
+    overflow: visible;
     transition: transform 0.25s ease, box-shadow 0.25s ease, border-color 0.25s ease;
 }
 
@@ -1200,7 +1202,7 @@ thead.sticky th {
     background: rgba(248, 250, 252, 0.92);
     border-color: rgba(59, 130, 246, 0.18);
     box-shadow: 0 12px 30px rgba(15, 23, 42, 0.08);
-    transition: transform 0.2s ease, box-shadow 0.2s ease, background 0.2s ease;
+    transition: background 0.2s ease, box-shadow 0.2s ease;
 }
 
 .daily-doctor-name,
@@ -1226,8 +1228,8 @@ thead.sticky th {
 }
 
 .daily-doctor-card:hover {
-    transform: translateY(-2px);
-    box-shadow: 0 16px 36px rgba(59, 130, 246, 0.18);
+    transform: none;
+    box-shadow: 0 12px 30px rgba(15, 23, 42, 0.08);
     background: rgba(219, 234, 254, 0.95);
 }
 
@@ -1241,13 +1243,13 @@ thead.sticky th {
     background: var(--daily-prn-bg) !important;
     border-color: var(--daily-prn-border) !important;
     box-shadow: 0 16px 32px rgba(91, 33, 182, 0.18);
-    transition: transform 0.2s ease, box-shadow 0.2s ease;
+    transition: background 0.2s ease, box-shadow 0.2s ease;
     color: #5b21b6;
 }
 
 .daily-prn-card:hover {
-    transform: translateY(-2px);
-    box-shadow: 0 20px 42px rgba(91, 33, 182, 0.28);
+    transform: none;
+    box-shadow: 0 16px 32px rgba(91, 33, 182, 0.18);
 }
 
 .daily-prn-badge {
@@ -1354,6 +1356,14 @@ thead.sticky th {
     color: var(--daily-muted-text) !important;
 }
 
+[data-theme="dark"] .daily-slot-card .text-blue-700 {
+    color: #93c5fd !important;
+}
+
+[data-theme="dark"] .daily-slot-card .text-green-700 {
+    color: #86efac !important;
+}
+
 [data-theme="dark"] .daily-doctor-card {
     background: linear-gradient(155deg, rgba(30, 64, 175, 0.35), rgba(15, 23, 42, 0.88));
     border-color: rgba(59, 130, 246, 0.45);
@@ -1363,7 +1373,7 @@ thead.sticky th {
 
 [data-theme="dark"] .daily-doctor-card:hover {
     background: linear-gradient(155deg, rgba(37, 99, 235, 0.38), rgba(17, 24, 39, 0.92));
-    box-shadow: 0 32px 64px rgba(2, 6, 23, 0.85);
+    box-shadow: 0 26px 54px rgba(2, 6, 23, 0.75);
 }
 
 [data-theme="dark"] .daily-doctor-name {
@@ -1384,6 +1394,10 @@ thead.sticky th {
 
 [data-theme="dark"] .daily-prn-card {
     color: #f3e8ff;
+    box-shadow: 0 26px 54px rgba(76, 29, 149, 0.55);
+}
+
+[data-theme="dark"] .daily-prn-card:hover {
     box-shadow: 0 26px 54px rgba(76, 29, 149, 0.55);
 }
 

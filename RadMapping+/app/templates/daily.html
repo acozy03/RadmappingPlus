@@ -489,9 +489,17 @@
 
     const clone = template.cloneNode(true);
     clone.classList.add("absolute", "top-0", "z-50", "opacity-100", "scale-100", "active-popup");
+    clone.style.zIndex = "999";
+    clone.style.pointerEvents = "auto";
 
     const existing = parent.querySelector('.active-popup');
     if (existing) existing.remove();
+
+    if (!parent.dataset.originalZIndex) {
+      const originalZIndex = parent.style.zIndex;
+      parent.dataset.originalZIndex = originalZIndex ? originalZIndex : "__unset";
+    }
+    parent.style.zIndex = "1000";
 
     const parentRect = parent.getBoundingClientRect();
     const willOverflowRight = (parentRect.right + 350) > window.innerWidth;
@@ -509,6 +517,17 @@
   function hideDoctorPopup(parent) {
     const popup = parent.querySelector('.active-popup');
     if (popup) popup.remove();
+    const originalZIndex = parent.dataset.originalZIndex;
+    if (originalZIndex) {
+      if (originalZIndex === "__unset") {
+        parent.style.zIndex = "";
+      } else {
+        parent.style.zIndex = originalZIndex;
+      }
+      delete parent.dataset.originalZIndex;
+    } else {
+      parent.style.zIndex = "";
+    }
   }
 
 
