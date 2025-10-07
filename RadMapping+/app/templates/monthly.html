@@ -70,7 +70,7 @@
 </div>
 
 <div id="toolsModal" class="fixed inset-0 z-50 hidden bg-black bg-opacity-50 flex items-center justify-center">
-  <div class="monthly-modal bg-white rounded-lg shadow-lg w-[90%] max-w-4xl p-6">
+  <div class="monthly-modal bg-white rounded-lg  w-[90%] max-w-4xl p-6">
     <div class="flex justify-between items-center mb-4">
       <h3 class="text-lg font-semibold">Scheduling Tools</h3>
       <button onclick="closeToolsModal()" class="text-gray-500 hover:text-gray-700">
@@ -171,7 +171,7 @@
 </div>
 
 <div id="pinModal" class="fixed inset-0 z-50 hidden bg-black bg-opacity-50 flex items-center justify-center">
-  <div class="monthly-modal bg-white rounded-lg shadow-lg w-[90%] max-w-4xl p-6">
+  <div class="bg-white rounded-lg shadow-lg w-[90%] max-w-4xl p-6">
     <div class="flex justify-between items-center mb-4">
       <h3 class="text-lg font-semibold">Pin Doctors</h3>
       <button onclick="closePinModal()" class="text-gray-500 hover:text-gray-700">
@@ -252,7 +252,6 @@ table, th, td {
   --monthly-header-text: #1f2937;
   --monthly-header-muted: #4b5563;
   --monthly-sticky-bg: #ffffff;
-  --monthly-sticky-shadow: rgba(15, 23, 42, 0.12);
   --monthly-row-hover: rgba(59, 130, 246, 0.12);
   --monthly-cell-desc: #374151;
   --monthly-cell-time: #111827;
@@ -275,7 +274,7 @@ table, th, td {
   --monthly-header-bg: rgba(30, 41, 59, 0.85);
   --monthly-header-text: #e2e8f0;
   --monthly-header-muted: #94a3b8;
-  --monthly-sticky-bg: rgba(15, 23, 42, 0.95);
+  --monthly-sticky-bg: rgba(15, 23, 42, 1);
   --monthly-sticky-shadow: rgba(2, 6, 23, 0.7);
   --monthly-row-hover: rgba(59, 130, 246, 0.25);
   --monthly-cell-desc: #cbd5f5;
@@ -302,7 +301,6 @@ table, th, td {
   background: var(--monthly-header-bg);
   border: 1px solid var(--monthly-border);
   border-radius: 0.75rem;
-  box-shadow: 0 18px 40px rgba(15, 23, 42, 0.08);
   backdrop-filter: blur(8px);
 }
 
