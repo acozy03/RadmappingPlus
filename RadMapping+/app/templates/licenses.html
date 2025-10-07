@@ -321,6 +321,15 @@ html[data-theme="dark"] .licenses-page thead.bg-gray-50 {
   background-color: #243045 !important;
 }
 
+html[data-theme="dark"] .licenses-page thead th {
+  transition: background-color 0.2s ease, color 0.2s ease;
+}
+
+html[data-theme="dark"] .licenses-page thead th:hover {
+  background-color: #2d3a52 !important;
+  color: #e2e8f0 !important;
+}
+
 html[data-theme="dark"] .licenses-page tbody tr {
   border-bottom-color: #334155 !important;
 }
@@ -355,6 +364,26 @@ html[data-theme="dark"] .licenses-page .bg-gray-100.text-gray-700,
 html[data-theme="dark"] .licenses-page .bg-gray-100.text-gray-600,
 html[data-theme="dark"] .licenses-page .bg-gray-100.text-gray-500 {
   color: #e2e8f0 !important;
+}
+
+html[data-theme="dark"] .licenses-page .status-badge {
+  background-color: rgba(34, 197, 94, 0.18);
+  color: #bbf7d0;
+}
+
+html[data-theme="dark"] .licenses-page .status-badge.status-expired {
+  background-color: rgba(248, 113, 113, 0.2);
+  color: #fecaca;
+}
+
+html[data-theme="dark"] .licenses-page .status-badge.status-pending {
+  background-color: rgba(251, 191, 36, 0.22);
+  color: #fde68a;
+}
+
+html[data-theme="dark"] .licenses-page .state-badge {
+  background-color: rgba(59, 130, 246, 0.22);
+  color: #bfdbfe;
 }
 
 html[data-theme="dark"] .licenses-page .shadow-sm {
@@ -447,8 +476,25 @@ html[data-theme="dark"] .licenses-page .license-row .view-mode a:hover {
   transform: translateY(-1px);
   box-shadow: 0 4px 12px rgba(59, 130, 246, 0.3);
 }
-.status-badge { transition: all 0.2s ease-in-out; }
+.status-badge {
+  transition: all 0.2s ease-in-out;
+  background-color: #dcfce7;
+  color: #166534;
+}
+.status-badge.status-expired {
+  background-color: #fee2e2;
+  color: #b91c1c;
+}
+.status-badge.status-pending {
+  background-color: #fef3c7;
+  color: #92400e;
+}
 .status-badge:hover { transform: scale(1.05); }
+.state-badge {
+  transition: color 0.2s ease-in-out, background-color 0.2s ease-in-out;
+  background-color: #dbeafe;
+  color: #1d4ed8;
+}
 tbody tr:hover {
   transform: translateY(-1px);
   box-shadow: 0 4px 12px rgba(0, 0, 0, 0.05);
@@ -727,15 +773,15 @@ function updateTable() {
     
     let statusBadge = '';
     if (cert.status === 'Active') {
-      statusBadge = `<span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-green-100 text-green-800">
+      statusBadge = `<span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium status-badge status-active">
         <i class="fas fa-check-circle mr-1"></i>${cert.status}
       </span>`;
     } else if (cert.status === 'Expired' || cert.status === 'Revoked') {
-      statusBadge = `<span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-red-100 text-red-800">
+      statusBadge = `<span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium status-badge status-expired">
         <i class="fas fa-times-circle mr-1"></i>${cert.status}
       </span>`;
     } else {
-      statusBadge = `<span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-yellow-100 text-yellow-800">
+      statusBadge = `<span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium status-badge status-pending">
         <i class="fas fa-clock mr-1"></i>${cert.status}
       </span>`;
     }
@@ -762,7 +808,7 @@ function updateTable() {
       </td>
       <td class="px-6 py-4 whitespace-nowrap">
         <span class="view-mode">
-          <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-blue-100 text-blue-800">
+          <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium state-badge">
             <i class="fas fa-map-marker-alt mr-1"></i>${cert.state}
           </span>
         </span>

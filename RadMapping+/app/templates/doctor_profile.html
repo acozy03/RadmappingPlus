@@ -10,7 +10,148 @@
 {% block content %}
 
 
-<div x-data="{ editing: false }">
+<style>
+  [data-theme="dark"] body {
+    background-color: #0b1120;
+    color: #e2e8f0;
+  }
+
+  [data-theme="dark"] .doctor-profile-page {
+    color: #e2e8f0;
+  }
+
+  [data-theme="dark"] .doctor-profile-page .bg-white,
+  [data-theme="dark"] .doctor-profile-page .bg-gray-50 {
+    background-color: #111827 !important;
+    color: #e2e8f0;
+  }
+
+  [data-theme="dark"] .doctor-profile-page .bg-blue-100 {
+    background-color: rgba(59, 130, 246, 0.2) !important;
+  }
+
+  [data-theme="dark"] .doctor-profile-page .bg-green-100 {
+    background-color: rgba(52, 211, 153, 0.2) !important;
+  }
+
+  [data-theme="dark"] .doctor-profile-page .bg-purple-100 {
+    background-color: rgba(167, 139, 250, 0.18) !important;
+  }
+
+  [data-theme="dark"] .doctor-profile-page .bg-yellow-100 {
+    background-color: rgba(253, 224, 71, 0.15) !important;
+  }
+
+  [data-theme="dark"] .doctor-profile-page .bg-pink-100,
+  [data-theme="dark"] .doctor-profile-page .bg-rose-100 {
+    background-color: rgba(244, 114, 182, 0.18) !important;
+  }
+
+  [data-theme="dark"] .doctor-profile-page .bg-indigo-100 {
+    background-color: rgba(129, 140, 248, 0.18) !important;
+  }
+
+  [data-theme="dark"] .doctor-profile-page .bg-orange-100 {
+    background-color: rgba(251, 146, 60, 0.18) !important;
+  }
+
+  [data-theme="dark"] .doctor-profile-page .bg-cyan-100 {
+    background-color: rgba(34, 211, 238, 0.2) !important;
+  }
+
+  [data-theme="dark"] .doctor-profile-page .border {
+    border-color: #1f2937 !important;
+  }
+
+  [data-theme="dark"] .doctor-profile-page .shadow {
+    box-shadow: 0 20px 25px -15px rgba(15, 23, 42, 0.8) !important;
+  }
+
+  [data-theme="dark"] .doctor-profile-page .text-gray-900,
+  [data-theme="dark"] .doctor-profile-page .text-gray-800,
+  [data-theme="dark"] .doctor-profile-page .text-gray-700 {
+    color: #e5e7eb !important;
+  }
+
+  [data-theme="dark"] .doctor-profile-page .text-gray-600,
+  [data-theme="dark"] .doctor-profile-page .text-gray-500 {
+    color: #cbd5f5 !important;
+  }
+
+  [data-theme="dark"] .doctor-profile-page .text-gray-400 {
+    color: #9ca3af !important;
+  }
+
+  [data-theme="dark"] .doctor-profile-page .text-blue-800,
+  [data-theme="dark"] .doctor-profile-page .text-blue-600 {
+    color: #60a5fa !important;
+  }
+
+  [data-theme="dark"] .doctor-profile-page .text-green-700 {
+    color: #34d399 !important;
+  }
+
+  [data-theme="dark"] .doctor-profile-page .text-red-600 {
+    color: #f87171 !important;
+  }
+
+  [data-theme="dark"] .doctor-profile-page .hover\:bg-gray-100:hover {
+    background-color: #1f2937 !important;
+  }
+
+  [data-theme="dark"] .doctor-profile-page .today-highlight {
+    background-color: rgba(37, 99, 235, 0.35) !important;
+    border-color: #1d4ed8 !important;
+    color: #f8fafc !important;
+  }
+
+  [data-theme="dark"] .doctor-profile-page .day-tile {
+    background-color: #0f172a;
+    border-color: #1f2937;
+  }
+
+  [data-theme="dark"] .doctor-profile-page input,
+  [data-theme="dark"] .doctor-profile-page select,
+  [data-theme="dark"] .doctor-profile-page textarea {
+    background-color: #0f172a;
+    border-color: #1f2937;
+    color: #e2e8f0;
+  }
+
+  [data-theme="dark"] .doctor-profile-page input::placeholder,
+  [data-theme="dark"] .doctor-profile-page textarea::placeholder {
+    color: #94a3b8;
+  }
+
+  [data-theme="dark"] .doctor-profile-page .cert-item {
+    background-color: #0f172a;
+    border-color: #1f2937;
+  }
+
+  [data-theme="dark"] .doctor-profile-page .cert-item .text-gray-800 {
+    color: #e5e7eb !important;
+  }
+
+  [data-theme="dark"] .doctor-profile-page .cert-item .text-gray-500 {
+    color: #94a3b8 !important;
+  }
+
+  [data-theme="dark"] .doctor-profile-page button,
+  [data-theme="dark"] .doctor-profile-page .text-blue-600:hover {
+    color: #93c5fd;
+  }
+
+  [data-theme="dark"] .doctor-profile-page .bg-black.bg-opacity-50 {
+    background-color: rgba(15, 23, 42, 0.75) !important;
+  }
+
+  [data-theme="dark"] .doctor-profile-page .today-highlight .text-gray-700 {
+    color: #e2e8f0 !important;
+  }
+</style>
+
+
+<div class="doctor-profile-page" x-data="{ editing: false }">
   <div class="mb-8">
     <div class="bg-white rounded-lg shadow p-6 border flex flex-col sm:flex-row items-center justify-between gap-4{% if doctor.active_status %} border-green-500{% else %} border-red-500{% endif %}">
       <h2 class="text-3xl font-bold text-blue-800 text-center sm:text-left mb-2 sm:mb-0 flex-1">

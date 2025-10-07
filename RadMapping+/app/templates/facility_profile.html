@@ -3,7 +3,114 @@
 {% block title %}{{ facility.name }}{% endblock %}
 
 {% block content %}
-<div x-data="{ editing: false }">
+<style>
+  [data-theme="dark"] body {
+    background-color: #0b1120;
+    color: #e2e8f0;
+  }
+
+  [data-theme="dark"] .facility-profile-page {
+    color: #e2e8f0;
+  }
+
+  [data-theme="dark"] .facility-profile-page .bg-white,
+  [data-theme="dark"] .facility-profile-page .bg-gray-50 {
+    background-color: #111827 !important;
+    color: #e2e8f0;
+  }
+
+  [data-theme="dark"] .facility-profile-page .bg-blue-100 {
+    background-color: rgba(59, 130, 246, 0.2) !important;
+  }
+
+  [data-theme="dark"] .facility-profile-page .bg-purple-100 {
+    background-color: rgba(167, 139, 250, 0.18) !important;
+  }
+
+  [data-theme="dark"] .facility-profile-page .bg-yellow-100 {
+    background-color: rgba(253, 224, 71, 0.15) !important;
+  }
+
+  [data-theme="dark"] .facility-profile-page .bg-pink-100 {
+    background-color: rgba(244, 114, 182, 0.18) !important;
+  }
+
+  [data-theme="dark"] .facility-profile-page .bg-green-100 {
+    background-color: rgba(74, 222, 128, 0.18) !important;
+  }
+
+  [data-theme="dark"] .facility-profile-page .bg-gray-100 {
+    background-color: rgba(148, 163, 184, 0.15) !important;
+  }
+
+  [data-theme="dark"] .facility-profile-page .border {
+    border-color: #1f2937 !important;
+  }
+
+  [data-theme="dark"] .facility-profile-page .shadow {
+    box-shadow: 0 20px 25px -15px rgba(15, 23, 42, 0.8) !important;
+  }
+
+  [data-theme="dark"] .facility-profile-page .text-gray-900,
+  [data-theme="dark"] .facility-profile-page .text-gray-800,
+  [data-theme="dark"] .facility-profile-page .text-gray-700 {
+    color: #e5e7eb !important;
+  }
+
+  [data-theme="dark"] .facility-profile-page .text-gray-600,
+  [data-theme="dark"] .facility-profile-page .text-gray-500,
+  [data-theme="dark"] .facility-profile-page .text-gray-400 {
+    color: #94a3b8 !important;
+  }
+
+  [data-theme="dark"] .facility-profile-page .text-blue-800,
+  [data-theme="dark"] .facility-profile-page .text-blue-600 {
+    color: #60a5fa !important;
+  }
+
+  [data-theme="dark"] .facility-profile-page .text-green-700 {
+    color: #34d399 !important;
+  }
+
+  [data-theme="dark"] .facility-profile-page .text-red-700,
+  [data-theme="dark"] .facility-profile-page .text-red-600 {
+    color: #f87171 !important;
+  }
+
+  [data-theme="dark"] .facility-profile-page .text-black-600,
+  [data-theme="dark"] .facility-profile-page .text-black-700 {
+    color: #f9fafb !important;
+  }
+
+  [data-theme="dark"] .facility-profile-page .hover\:bg-gray-100:hover {
+    background-color: #1f2937 !important;
+  }
+
+  [data-theme="dark"] .facility-profile-page input,
+  [data-theme="dark"] .facility-profile-page select,
+  [data-theme="dark"] .facility-profile-page textarea {
+    background-color: #0f172a;
+    border-color: #1f2937;
+    color: #e2e8f0;
+  }
+
+  [data-theme="dark"] .facility-profile-page input::placeholder,
+  [data-theme="dark"] .facility-profile-page textarea::placeholder {
+    color: #94a3b8;
+  }
+
+  [data-theme="dark"] .facility-profile-page button,
+  [data-theme="dark"] .facility-profile-page .text-blue-600:hover {
+    color: #93c5fd;
+  }
+
+  [data-theme="dark"] .facility-profile-page .bg-black.bg-opacity-50 {
+    background-color: rgba(15, 23, 42, 0.75) !important;
+  }
+</style>
+
+
+<div class="facility-profile-page" x-data="{ editing: false }">
   <div class="mb-8">
     <div class="bg-white rounded-lg shadow p-6 border flex flex-col sm:flex-row items-center justify-between gap-4{% if facility.active_status == 'true' %} border-green-500{% elif facility.active_status == 'false' %} border-red-500{% elif facility.active_status == 'pending' %} border-yellow-500{% endif %}">
       <h2 class="text-3xl font-bold text-blue-800 text-center sm:text-left mb-2 sm:mb-0 flex-1">
