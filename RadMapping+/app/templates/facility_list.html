@@ -4,8 +4,36 @@
 
 {% block content %}
 <style>
-  html[data-theme="dark"] #searchBox::placeholder {
-    color: #e2e8f0;
+    .directory-search-input {
+    padding: 0.75rem 1rem;
+    border-radius: 0.75rem;
+    background-color: #202938;
+    border : 1px solid #202938;
+    color: #f8fafc;
+    transition: background-color 0.2s ease, border-color 0.2s ease, box-shadow 0.2s ease;
+  }
+
+  .directory-search-input::placeholder {
+    color: #f1f5f9;
+    opacity: 1;
+  }
+
+  .directory-search-input:focus {
+    outline: none;
+    border-color: #93c5fd;
+    background-color: rgba(42, 116, 150, 0.35);
+    box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.35);
+  }
+
+ html[data-theme="light"] .directory-search-input {
+    background-color: #ffffff;
+    color: #1e293b;
+    border-color: rgba(214, 214, 214, 0.5);
+  }
+
+  
+  html[data-theme="light"] .directory-search-input::placeholder {
+    color: #464646;
   }
 
   html[data-theme="dark"] .status-filter-button {
@@ -23,6 +51,28 @@
     border-color: rgba(147, 197, 253, 0.75);
     color: #ffffff;
   }
+      html[data-theme="dark"] .directory-search-input {
+        background-color: #202938; /* Existing background, but you can change it */
+        border: 1px solid #202938;
+        color: #f8fafc; /* Existing text color, but you can change it */
+        transition: background-color 0.2s ease, border-color 0.2s ease, box-shadow 0.2s ease;
+    }
+
+
+    /* Target the dropdown options for their background/text colors when the dropdown is open */
+    html[data-theme="dark"] #stateFilter option {
+        /* This changes the color of the options when the dropdown list is open */
+        background-color: #1a202c; 
+        color: #e2e8f0;
+    }
+
+    /* To address potential issues with the hover/selected state of the dropdown list */
+    html[data-theme="dark"] #stateFilter option:hover,
+    html[data-theme="dark"] #stateFilter option:checked {
+        /* Example: A slightly different background for a selected/hovered item in the list */
+        background-color: #2d3748; 
+        color: #93c5fd; /* Light blue text for contrast */
+    }
 </style>
 <div class="flex justify-between items-center mb-6 border-b pb-2">
   <h2 class="text-2xl font-semibold">Facilities</h2>
@@ -48,12 +98,12 @@
     <input type="text"
            id="searchBox"
            placeholder="Search by name..."
-           class="w-full p-2 border rounded"
+           class="directory-search-input w-full"
            onkeyup="debounceSearch()" />
   </div>
   <div class="flex-1">
     <select id="stateFilter"
-            class="w-full p-2 border rounded"
+            class="directory-search-input w-full p-2 border rounded"
             onchange="debounceSearch()">
       <option value="">Filter by State (All)</option>
       <option value="AL">Alabama</option>

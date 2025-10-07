@@ -154,7 +154,7 @@
   .doctor-profile-page .surface-elevated {
     background-color: var(--doctor-surface-elevated);
     border-color: var(--doctor-border);
-    box-shadow: 0 12px 30px -18px rgba(15, 23, 42, 0.45);
+   
   }
 
   .doctor-profile-page .text-highlight {
@@ -276,7 +276,7 @@
   .doctor-profile-page .btn {
     border-radius: 0.5rem;
     font-weight: 600;
-    transition: background-color 0.2s ease, color 0.2s ease, box-shadow 0.2s ease;
+
   }
 
   .doctor-profile-page .btn:focus-visible {
@@ -287,7 +287,7 @@
   .doctor-profile-page .btn-primary {
     background-color: var(--doctor-button-primary-bg);
     color: var(--doctor-button-primary-text);
-    box-shadow: 0 10px 25px -12px rgba(37, 99, 235, 0.6);
+  
   }
 
   .doctor-profile-page .btn-primary:hover {
@@ -297,7 +297,7 @@
 
   .doctor-profile-page .btn-warning {
     background-color: var(--doctor-button-warning-bg);
-    color: var(--doctor-button-warning-text);
+    color: #ffffff;
   }
 
   .doctor-profile-page .btn-warning:hover {
@@ -345,7 +345,7 @@
   .doctor-profile-page .day-tile {
     background-color: var(--doctor-surface-muted);
     border-color: var(--doctor-border);
-    transition: background-color 0.2s ease, border-color 0.2s ease, box-shadow 0.2s ease;
+    
   }
 
   .doctor-profile-page .day-tile:hover {
@@ -385,11 +385,11 @@
   .doctor-profile-page .facility-item {
     background-color: var(--doctor-surface-elevated);
     border-color: var(--doctor-border);
-    box-shadow: 0 16px 32px -24px rgba(15, 23, 42, 0.5);
+   
   }
 
   .doctor-profile-page .facility-item:hover {
-    box-shadow: 0 18px 36px -22px rgba(37, 99, 235, 0.25);
+    
   }
 
   .doctor-profile-page .facility-divider {
@@ -434,12 +434,12 @@
 
 <div class="doctor-profile-page" x-data="{ editing: false }">
   <div class="mb-8">
-    <div class="surface-card rounded-lg shadow p-6 border flex flex-col sm:flex-row items-center justify-between gap-4{% if doctor.active_status %} border-status-active{% else %} border-status-inactive{% endif %}">
+    <div class="surface-card rounded-lg  p-6 border flex flex-col sm:flex-row items-center justify-between gap-4{% if doctor.active_status %} border-status-active{% else %} border-status-inactive{% endif %}">
       <h2 class="text-3xl font-bold text-highlight text-center sm:text-left mb-2 sm:mb-0 flex-1">
         {{ doctor.name }}
       </h2>
       {% if session.user.role == 'admin' %}
-        <button @click="editing = !editing" class="inline-flex items-center gap-2 px-5 py-2 btn btn-primary shadow">
+        <button @click="editing = !editing" class="inline-flex items-center gap-2 px-5 py-2 btn btn-primary ">
           <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11 5h2m-1 0v14m-7-7h14" /></svg>
           <span x-show="!editing">Edit Info</span>
           <span x-show="editing">Cancel Edit</span>
@@ -449,7 +449,7 @@
   </div>
 
   <div x-show="!editing" class="mb-8">
-    <div class="surface-card rounded-lg shadow p-6 border grid grid-cols-1 sm:grid-cols-2 gap-6">
+    <div class="surface-card rounded-lg p-6 border grid grid-cols-1 sm:grid-cols-2 gap-6">
       <div class="flex items-center space-x-3">
         <span class="inline-flex items-center justify-center w-8 h-8 accent-icon rounded-full">
           <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M16 12a4 4 0 01-8 0m8 0a4 4 0 00-8 0m8 0V8a4 4 0 00-8 0v4m8 0v4a4 4 0 01-8 0v-4" /></svg>
@@ -640,7 +640,7 @@
   </div>
 
   <div x-show="editing" class="mb-8">
-    <form method="POST" action="{{ url_for('doctors.update_doctor', rad_id=doctor.id) }}" class="surface-card rounded-lg shadow p-6 border grid grid-cols-1 sm:grid-cols-2 gap-6">
+    <form method="POST" action="{{ url_for('doctors.update_doctor', rad_id=doctor.id) }}" class="surface-card rounded-lg p-6 border grid grid-cols-1 sm:grid-cols-2 gap-6">
       <label class="block">
     <span class="font-semibold">Name</span>
     <input type="text" name="name" value="{{ doctor.name }}" required class="input w-full border rounded px-3 py-2 text-sm" />
@@ -715,7 +715,7 @@
 
   <div class="mt-8 flex flex-col md:flex-row gap-6">
     <div class="flex-1 min-w-0">
-      <div class="surface-card rounded-lg shadow p-6 border flex flex-col items-center justify-center h-full text-center">
+      <div class="surface-card rounded-lg  p-6 border flex flex-col items-center justify-center h-full text-center">
         <h3 class="font-semibold text-lg mb-2 text-highlight">Additional Info</h3>
         {% if doctor.additional_info %}
           <p class="text-secondary break-words">{{ doctor.additional_info }}</p>
@@ -725,14 +725,14 @@
       </div>
     </div>
     <div class="flex-1 min-w-0 flex flex-col">
-      <div class="surface-card rounded-lg shadow p-6 border flex flex-col items-center justify-center h-full text-center">
+      <div class="surface-card rounded-lg  p-6 border flex flex-col items-center justify-center h-full text-center">
         <h3 class="text-xl font-semibold mb-4">Licenses</h3>
         <div class="flex-1"></div>
         <button onclick="openCertModal()" class="link-primary underline w-full mt-auto">View Licenses</button>
       </div>
     </div>
     <div class="flex-1 min-w-0 flex flex-col">
-      <div class="surface-card rounded-lg shadow p-6 border flex flex-col items-center justify-center h-full text-center">
+      <div class="surface-card rounded-lg  p-6 border flex flex-col items-center justify-center h-full text-center">
         <h3 class="text-xl font-semibold mb-4">Assigned Facilities</h3>
         <div class="flex-1"></div>
         <button onclick="openFacilityModal()" class="link-primary underline w-full mt-auto">View Facilities</button>
@@ -780,7 +780,7 @@
   <div id="certModal"
        class="fixed inset-0 z-50 hidden doctor-modal-backdrop flex items-center justify-center"
        onclick="if(event.target === this) closeCertModal();">
-    <div class="modal-surface rounded-lg shadow-lg w-[90%] max-w-3xl max-h-[80vh] overflow-y-auto p-6 relative border"
+    <div class="modal-surface rounded-lg  w-[90%] max-w-3xl max-h-[80vh] overflow-y-auto p-6 relative border"
          onclick="event.stopPropagation();">
 
     <button onclick="closeCertModal()" class="absolute top-2 right-2 text-2xl font-bold modal-close">×</button>
@@ -802,7 +802,7 @@
 
     <ul id="certList" class="space-y-3 text-sm">
       {% for cert in certifications %}
-      <li class="border rounded p-4 flex justify-between items-center cert-item shadow-sm">
+      <li class="border rounded p-4 flex justify-between items-center cert-item ">
         <div class="flex items-center gap-3">
           <span class="inline-flex items-center justify-center w-8 h-8 rounded-full accent-icon{% if cert.status|lower != 'active' %} accent-icon--red{% endif %}">
             {% if cert.status|lower == 'active' %}
@@ -865,7 +865,7 @@
 <div id="facilityModal" x-data="{ editMode: false, expanded: {} }"
      class="fixed inset-0 z-50 hidden doctor-modal-backdrop flex items-center justify-center"
      onclick="if(event.target === this) closeFacilityModal();">
-  <div class="modal-surface rounded-lg shadow-lg w-[98%] max-w-5xl max-h-[90vh] overflow-y-auto p-8 relative border"
+  <div class="modal-surface rounded-lg  w-[98%] max-w-5xl max-h-[90vh] overflow-y-auto p-8 relative border"
        onclick="event.stopPropagation();">
 
     <button onclick="closeFacilityModal()" class="absolute top-2 right-2 text-2xl font-bold modal-close">×</button>
@@ -893,7 +893,7 @@
 
     <ul id="facilityList" class="space-y-4 text-sm">
       {% for assignment in assigned_facilities %}
-      <li class="facility-item border rounded-lg shadow-sm p-4">
+      <li class="facility-item border rounded-lg p-4">
         <div :class="editMode ? '{{ 'border-status-active' if assignment.facilities.active_status == 'true' else 'border-status-inactive' }}' : 'facility-divider'" class="flex flex-col gap-2 border rounded-lg p-3">
           <div class="flex items-center justify-between">
             <div class="flex items-center gap-3">
@@ -999,7 +999,7 @@
 <div id="addFacilityModal"
      class="fixed inset-0 z-50 hidden doctor-modal-backdrop flex items-center justify-center"
      onclick="if(event.target === this) closeAddFacilityModal();">
-  <div class="modal-surface rounded-lg shadow-lg w-[90%] max-w-2xl p-6 relative border"
+  <div class="modal-surface rounded-lg w-[90%] max-w-2xl p-6 relative border"
        onclick="event.stopPropagation();">
     <button onclick="closeAddFacilityModal()" class="absolute top-2 right-2 text-2xl font-bold modal-close">×</button>
     <h3 class="text-xl font-semibold mb-4">Add Facility Assignment</h3>
@@ -1127,7 +1127,7 @@ input[type=number]::-webkit-inner-spin-button {
   </style>
 
   <div id="delete-confirm-modal" class="fixed inset-0 z-50 hidden doctor-modal-backdrop flex items-center justify-center p-4">
-    <div class="modal-surface rounded-xl shadow-2xl w-full max-w-md transform transition-all border" onclick="event.stopPropagation();">
+    <div class="modal-surface rounded-xl  w-full max-w-md transform transition-all border" onclick="event.stopPropagation();">
       <div class="flex items-center gap-4 p-6 border-b facility-divider">
         <div class="flex-shrink-0 w-12 h-12 flex items-center justify-center rounded-lg accent-icon accent-icon--red text-xl">
           <i class="fas fa-exclamation-triangle"></i>
@@ -1193,7 +1193,7 @@ input[type=number]::-webkit-inner-spin-button {
         onsubmit="handleRemoveDoctor(event, this)" 
         class="mt-4"
         data-item-name="{{ doctor.name }}">
-    <button type="submit" class="inline-flex items-center gap-2 px-5 py-2 btn btn-danger shadow transition text-base font-semibold">
+    <button type="submit" class="inline-flex items-center gap-2 px-5 py-2 btn btn-danger  transition text-base font-semibold">
       <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/></svg>
       Remove Doctor
     </button>
