@@ -1699,20 +1699,32 @@ thead.sticky th {
     box-shadow: 0 24px 48px rgba(15, 23, 42, 0.08);
 }
 
-.directory-input {
-    background-color: rgba(255, 255, 255, 0.95);
+[data-theme="dark"] .directory-input {
+    background-color: rgba(184, 186, 195, 0.95);
     border: 1px solid rgba(148, 163, 184, 0.45);
     border-radius: 0.75rem;
     padding: 0.65rem 0.85rem;
-    transition: border-color 0.2s ease, box-shadow 0.2s ease, background-color 0.2s ease;
-    color: #1f2937;
     box-shadow: 0 12px 30px rgba(15, 23, 42, 0.06);
 }
 
+.directory-input {
+    background-color: rgba(255, 255, 255, 0.95);
+    border: 1px solid rgba(214, 216, 219, 0.45);
+    border-radius: 0.75rem;
+    padding: 0.65rem 0.85rem;
+    
+    color: #1f2937;
+
+}
+
+[data-theme="dark"] .directory-input:focus {
+    outline: none;
+    border-color: rgba(59, 130, 246, 0.55);
+    background-color: rgba(184, 186, 195, 0.95);
+}
 .directory-input:focus {
     outline: none;
     border-color: rgba(59, 130, 246, 0.55);
-    box-shadow: 0 22px 44px rgba(59, 130, 246, 0.18);
     background-color: #ffffff;
 }
 
@@ -1868,7 +1880,6 @@ thead.sticky th {
 .directory-modal-item__label span {
     white-space: nowrap;
 }
-
 [data-theme="dark"] .daily-page .bg-red-50 {
     background-color: rgba(248, 113, 113, 0.28) !important;
     color: #fee2e2 !important;
