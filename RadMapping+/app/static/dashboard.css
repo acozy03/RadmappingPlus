@@ -144,7 +144,7 @@ thead.sticky {
   background: white; /* so rows don’t show through */
 }
 thead.sticky th {
-  background: white;
+ 
   z-index: 50;
 }
 

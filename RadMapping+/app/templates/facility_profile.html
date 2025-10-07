@@ -3,7 +3,198 @@
 {% block title %}{{ facility.name }}{% endblock %}
 
 {% block content %}
-<div x-data="{ editing: false }">
+<style>
+
+    :root {
+    --doctor-page-background: #f8fafc;
+    --doctor-surface: #ffffff;
+    --doctor-surface-muted: #f9fafb;
+    --doctor-surface-elevated: #f3f4f6;
+    --doctor-surface-soft: #f1f5f9;
+    --doctor-border: #e5e7eb;
+    --doctor-text-primary: #1f2937;
+    --doctor-text-secondary: #4b5563;
+    --doctor-text-muted: #6b7280;
+    --doctor-text-soft: #9ca3af;
+    --doctor-heading-accent: #1e3a8a;
+    --doctor-link: #2563eb;
+    --doctor-link-hover: #1d4ed8;
+    --doctor-button-primary-bg: #2563eb;
+    --doctor-button-primary-bg-hover: #1d4ed8;
+    --doctor-button-primary-text: #ffffff;
+    --doctor-button-warning-bg: #f59e0b;
+    --doctor-button-warning-bg-hover: #d97706;
+    --doctor-button-warning-text: #1f2937;
+    --doctor-button-neutral-bg: #e5e7eb;
+    --doctor-button-neutral-bg-hover: #d1d5db;
+    --doctor-button-neutral-text: #1f2937;
+    --doctor-button-danger-bg: #dc2626;
+    --doctor-button-danger-bg-hover: #b91c1c;
+    --doctor-button-danger-text: #ffffff;
+    --doctor-status-active: #047857;
+    --doctor-status-pending: #1d4ed8;
+    --doctor-status-inactive: #b91c1c;
+    --doctor-border-status-active: #10b981;
+    --doctor-border-status-inactive: #f87171;
+    --doctor-modal-backdrop: rgba(15, 23, 42, 0.45);
+    --doctor-calendar-highlight-bg: rgba(59, 130, 246, 0.12);
+    --doctor-calendar-highlight-border: #2563eb;
+    --doctor-calendar-highlight-text: #1f2937;
+    --doctor-accent-blue-bg: #dbeafe;
+    --doctor-accent-blue-text: #1d4ed8;
+    --doctor-accent-green-bg: #dcfce7;
+    --doctor-accent-green-text: #047857;
+    --doctor-accent-purple-bg: #ede9fe;
+    --doctor-accent-purple-text: #5b21b6;
+    --doctor-accent-yellow-bg: #fef3c7;
+    --doctor-accent-yellow-text: #b45309;
+    --doctor-accent-pink-bg: #fce7f3;
+    --doctor-accent-pink-text: #be185d;
+    --doctor-accent-indigo-bg: #e0e7ff;
+    --doctor-accent-indigo-text: #3730a3;
+    --doctor-accent-cyan-bg: #cffafe;
+    --doctor-accent-cyan-text: #0e7490;
+    --doctor-accent-orange-bg: #ffedd5;
+    --doctor-accent-orange-text: #c2410c;
+    --doctor-accent-emerald-bg: #d1fae5;
+    --doctor-accent-emerald-text: #047857;
+    --doctor-accent-rose-bg: #ffe4e6;
+    --doctor-accent-rose-text: #be123c;
+    --doctor-accent-red-bg: #fee2e2;
+    --doctor-accent-red-text: #b91c1c;
+    --doctor-alert-danger-bg: #fef2f2;
+    --doctor-alert-danger-border: #fca5a5;
+    --doctor-alert-danger-text: #b91c1c;
+  }
+
+  [data-theme="dark"] {
+    --doctor-page-background: #0b1120;
+    --doctor-surface: #111827;
+    --doctor-surface-muted: #172541;
+    --doctor-surface-elevated: #1d2b4a;
+    --doctor-surface-soft: #14203a;
+    --doctor-border: #25324d;
+    --doctor-text-primary: #e2e8f0;
+    --doctor-text-secondary: #cbd5f5;
+    --doctor-text-muted: #94a3b8;
+    --doctor-text-soft: #7c8ba5;
+    --doctor-heading-accent: #93c5fd;
+    --doctor-link: #93c5fd;
+    --doctor-link-hover: #bfdbfe;
+    --doctor-button-primary-bg: #2563eb;
+    --doctor-button-primary-bg-hover: #1d4ed8;
+    --doctor-button-primary-text: #f8fafc;
+    --doctor-button-warning-bg: #f59e0b;
+    --doctor-button-warning-bg-hover: #d97706;
+    --doctor-button-warning-text: #0b1120;
+    --doctor-button-neutral-bg: #2a3b5d;
+    --doctor-button-neutral-bg-hover: #36486b;
+    --doctor-button-neutral-text: #e2e8f0;
+    --doctor-button-danger-bg: #ef4444;
+    --doctor-button-danger-bg-hover: #dc2626;
+    --doctor-button-danger-text: #fdf2f8;
+    --doctor-status-active: #34d399;
+    --doctor-status-pending: #60a5fa;
+    --doctor-status-inactive: #f87171;
+    --doctor-border-status-active: #34d399;
+    --doctor-border-status-inactive: #fca5a5;
+    --doctor-modal-backdrop: rgba(4, 13, 28, 0.78);
+    --doctor-calendar-highlight-bg: rgba(59, 130, 246, 0.32);
+    --doctor-calendar-highlight-border: #3b82f6;
+    --doctor-calendar-highlight-text: #f8fafc;
+    --doctor-accent-blue-bg: rgba(59, 130, 246, 0.18);
+    --doctor-accent-blue-text: #93c5fd;
+    --doctor-accent-green-bg: rgba(34, 197, 94, 0.18);
+    --doctor-accent-green-text: #6ee7b7;
+    --doctor-accent-purple-bg: rgba(167, 139, 250, 0.18);
+    --doctor-accent-purple-text: #c4b5fd;
+    --doctor-accent-yellow-bg: rgba(253, 224, 71, 0.18);
+    --doctor-accent-yellow-text: #facc15;
+    --doctor-accent-pink-bg: rgba(244, 114, 182, 0.18);
+    --doctor-accent-pink-text: #f9a8d4;
+    --doctor-accent-indigo-bg: rgba(129, 140, 248, 0.18);
+    --doctor-accent-indigo-text: #a5b4fc;
+    --doctor-accent-cyan-bg: rgba(34, 211, 238, 0.2);
+    --doctor-accent-cyan-text: #67e8f9;
+    --doctor-accent-orange-bg: rgba(251, 146, 60, 0.2);
+    --doctor-accent-orange-text: #fbbf24;
+    --doctor-accent-emerald-bg: rgba(16, 185, 129, 0.2);
+    --doctor-accent-emerald-text: #6ee7b7;
+    --doctor-accent-rose-bg: rgba(244, 63, 94, 0.2);
+    --doctor-accent-rose-text: #fb7185;
+    --doctor-accent-red-bg: rgba(248, 113, 113, 0.2);
+    --doctor-accent-red-text: #fca5a5;
+    --doctor-alert-danger-bg: rgba(248, 113, 113, 0.12);
+    --doctor-alert-danger-border: rgba(248, 113, 113, 0.5);
+    --doctor-alert-danger-text: #fecaca;
+  }
+  .facility-profile {
+    color: #371f1f;
+  }
+
+  [data-theme="dark"] .facility-profile {
+    color: #e2e8f0;
+  }
+
+  [data-theme="dark"] .facility-profile .text-gray-900 {
+    color: #e2e8f0 !important;
+  }
+
+  [data-theme="dark"] .facility-profile .text-gray-700,
+  [data-theme="dark"] .facility-profile .text-gray-600 {
+    color: #cbd5f5 !important;
+  }
+
+  [data-theme="dark"] .facility-profile .text-gray-500,
+  [data-theme="dark"] .facility-profile .text-gray-400 {
+    color: #94a3b8 !important;
+  }
+
+  [data-theme="dark"] .facility-profile .text-blue-800,
+  [data-theme="dark"] .facility-profile .text-blue-700,
+  [data-theme="dark"] .facility-profile .text-blue-600 {
+    color: #93c5fd !important;
+  }
+
+  [data-theme="dark"] .facility-profile .text-purple-800,
+  [data-theme="dark"] .facility-profile .text-purple-600 {
+    color: #c4b5fd !important;
+  }
+
+  [data-theme="dark"] .facility-profile .text-pink-600 {
+    color: #f9a8d4 !important;
+  }
+
+  [data-theme="dark"] .facility-profile .text-yellow-600 {
+    color: #facc15 !important;
+  }
+
+  [data-theme="dark"] .facility-profile .text-green-600,
+  [data-theme="dark"] .facility-profile .text-green-700 {
+    color: #34d399 !important;
+  }
+
+  [data-theme="dark"] .facility-profile .text-red-700 {
+    color: #fca5a5 !important;
+  }
+
+  [data-theme="dark"] .facility-profile .text-red-600,
+  [data-theme="dark"] .facility-profile .text-red-800 {
+    color: #ef0000 !important;
+  }
+
+  [data-theme="dark"] .facility-profile .text-blue-100,
+  [data-theme="dark"] .facility-profile .text-green-100,
+  [data-theme="dark"] .facility-profile .text-yellow-100,
+  [data-theme="dark"] .facility-profile .text-pink-100,
+  [data-theme="dark"] .facility-profile .text-purple-100,
+  [data-theme="dark"] .facility-profile .text-gray-100,
+  [data-theme="dark"] .facility-profile .text-blue-50 {
+    color: #cbd5f5 !important;
+  }
+
+</style>
+<div class="facility-profile" x-data="{ editing: false }">
   <div class="mb-8">
     <div class="bg-white rounded-lg shadow p-6 border flex flex-col sm:flex-row items-center justify-between gap-4{% if facility.active_status == 'true' %} border-green-500{% elif facility.active_status == 'false' %} border-red-500{% elif facility.active_status == 'pending' %} border-yellow-500{% endif %}">
       <h2 class="text-3xl font-bold text-blue-800 text-center sm:text-left mb-2 sm:mb-0 flex-1">
@@ -322,7 +513,7 @@
 
             <tbody>
               {% for assignment in doctor_assignments %}
-              <tr class="hover:bg-blue-50 radiologist-item">
+              <tr class="bg-white radiologist-item">
                 <td class="px-4 py-2 border-b">
                 <a href="{{ url_for('doctors.doctor_profile', rad_id=assignment.radiologists.id) }}"
                    target="_blank"
@@ -497,7 +688,7 @@
 
       <div class="overflow-y-auto" style="max-height: 60vh;">
         <table class="min-w-full bg-white border border-gray-200 text-sm rounded">
-          <thead class="bg-gray-100 sticky top-0 z-10">
+          <thead class="bg-white sticky top-0 z-10">
             <tr class="text-left">
               <th class="px-4 py-2 border-b">Name</th>
               <th class="px-4 py-2 border-b w-40">Can Read</th>
