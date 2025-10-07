@@ -132,6 +132,23 @@
     color: #371f1f;
   }
 
+  /* Map all Tailwind blue text utilities to your dark accent */
+.dark .facility-profile :is(.text-blue-400,.text-blue-500,.text-blue-600,.text-blue-700,.text-blue-800,.text-blue-900),
+[data-theme="dark"] .facility-profile :is(.text-blue-400,.text-blue-500,.text-blue-600,.text-blue-700,.text-blue-800,.text-blue-900){
+  color: var(--doctor-heading-accent) !important;
+}
+
+
+/* Links match the same accent */
+.dark .facility-profile a,
+[data-theme="dark"] .facility-profile a {
+  color: var(--doctor-link, var(--doctor-heading-accent)) !important;
+}
+.dark .facility-profile a:hover,
+[data-theme="dark"] .facility-profile a:hover {
+  color: var(--doctor-link-hover, var(--doctor-heading-accent)) !important;
+}
+
   [data-theme="dark"] .facility-profile {
     color: #e2e8f0;
   }
@@ -193,28 +210,208 @@
     color: #cbd5f5 !important;
   }
 
+  .facility-profile .surface-card,
+  #addContactModal .surface-card,
+  #editContactModal .surface-card,
+  #radiologistModal .surface-card,
+  #bulkEditAssignmentsModal .surface-card,
+  #delete-confirm-modal .surface-card {
+    background-color: var(--doctor-surface) !important;
+    border: 1px solid var(--doctor-border) !important;
+  }
+
+  .facility-profile .surface-card.surface-status-accent.border-green-500 {
+    border-color: var(--doctor-border-status-active) !important;
+  }
+
+  .facility-profile .surface-card.surface-status-accent.border-red-500 {
+    border-color: var(--doctor-border-status-inactive) !important;
+  }
+
+  .facility-profile .surface-card.surface-status-accent.border-yellow-500 {
+    border-color: var(--doctor-status-pending) !important;
+  }
+
+  .facility-profile .border,
+  .facility-profile .border-t,
+  .facility-profile .border-b,
+  .facility-profile .border-l,
+  .facility-profile .border-r,
+  .facility-profile .border-x,
+  .facility-profile .border-y,
+  #addContactModal .border,
+  #addContactModal .border-t,
+  #addContactModal .border-b,
+  #addContactModal .border-l,
+  #addContactModal .border-r,
+  #addContactModal .border-x,
+  #addContactModal .border-y,
+  #editContactModal .border,
+  #editContactModal .border-t,
+  #editContactModal .border-b,
+  #editContactModal .border-l,
+  #editContactModal .border-r,
+  #editContactModal .border-x,
+  #editContactModal .border-y,
+  #radiologistModal .border,
+  #radiologistModal .border-t,
+  #radiologistModal .border-b,
+  #radiologistModal .border-l,
+  #radiologistModal .border-r,
+  #radiologistModal .border-x,
+  #radiologistModal .border-y,
+  #bulkEditAssignmentsModal .border,
+  #bulkEditAssignmentsModal .border-t,
+  #bulkEditAssignmentsModal .border-b,
+  #bulkEditAssignmentsModal .border-l,
+  #bulkEditAssignmentsModal .border-r,
+  #bulkEditAssignmentsModal .border-x,
+  #bulkEditAssignmentsModal .border-y,
+  #delete-confirm-modal .border,
+  #delete-confirm-modal .border-t,
+  #delete-confirm-modal .border-b,
+  #delete-confirm-modal .border-l,
+  #delete-confirm-modal .border-r,
+  #delete-confirm-modal .border-x,
+  #delete-confirm-modal .border-y {
+    border-color: var(--doctor-border) !important;
+  }
+
+  .facility-profile .surface-subtle {
+    background-color: var(--doctor-surface-muted) !important;
+    border: 1px solid var(--doctor-border) !important;
+  }
+
+  .facility-profile .surface-subtle .border,
+  .facility-profile .surface-subtle .border-t,
+  .facility-profile .surface-subtle .border-b,
+  .facility-profile .surface-subtle .border-l,
+  .facility-profile .surface-subtle .border-r,
+  .facility-profile .surface-subtle .border-x,
+  .facility-profile .surface-subtle .border-y {
+    border-color: var(--doctor-border) !important;
+  }
+
+  .facility-profile .surface-table,
+  #bulkEditAssignmentsModal .surface-table {
+    background-color: var(--doctor-surface) !important;
+    border: 1px solid var(--doctor-border) !important;
+  }
+
+  .facility-profile .surface-table th,
+  .facility-profile .surface-table td,
+  #bulkEditAssignmentsModal .surface-table th,
+  #bulkEditAssignmentsModal .surface-table td {
+    background-color: var(--doctor-surface) !important;
+    border-color: var(--doctor-border) !important;
+  }
+
+  .facility-profile .border-gray-200,
+  .facility-profile .border-gray-300,
+  .facility-profile .border-gray-100,
+  .facility-profile .border-gray-50 {
+    border-color: var(--doctor-border) !important;
+  }
+
+  .facility-profile .border-red-400 {
+    border-color: var(--doctor-alert-danger-border) !important;
+  }
+
+  .facility-profile input,
+  .facility-profile select,
+  .facility-profile textarea {
+    background-color: var(--doctor-surface-elevated);
+    border: 1px solid var(--doctor-border);
+    color: var(--doctor-text-primary);
+  }
+
+  .facility-profile input::placeholder,
+  .facility-profile textarea::placeholder {
+    color: var(--doctor-text-muted);
+  }
+
+  .facility-profile input:focus,
+  .facility-profile select:focus,
+  .facility-profile textarea:focus {
+    border-color: var(--doctor-link);
+    box-shadow: 0 0 0 2px rgba(37, 99, 235, 0.25);
+    outline: none;
+  }
+  /* also support .dark in case the app toggles that instead of data-theme */
+
+.dark .facility-profile .bg-white,
+.dark .facility-profile .bg-gray-50,
+.dark .facility-profile .bg-gray-100,
+[data-theme="dark"] .facility-profile .bg-white,
+[data-theme="dark"] .facility-profile .bg-gray-50,
+[data-theme="dark"] .facility-profile .bg-gray-100,
+.dark #delete-confirm-modal .bg-white,
+.dark #delete-confirm-modal .bg-gray-50,
+.dark #delete-confirm-modal .bg-gray-100,
+[data-theme="dark"] #delete-confirm-modal .bg-white,
+[data-theme="dark"] #delete-confirm-modal .bg-gray-50,
+[data-theme="dark"] #delete-confirm-modal .bg-gray-100,
+.dark #bulkEditAssignmentsModal .bg-white,
+.dark #bulkEditAssignmentsModal .bg-gray-50,
+.dark #bulkEditAssignmentsModal .bg-gray-100,
+[data-theme="dark"] #bulkEditAssignmentsModal .bg-white,
+[data-theme="dark"] #bulkEditAssignmentsModal .bg-gray-50,
+[data-theme="dark"] #bulkEditAssignmentsModal .bg-gray-100 {
+  background-color: var(--doctor-surface) !important;
+}
+
+/* borders: any border-* utility that slipped through */
+.dark .facility-profile [class*="border-"],
+[data-theme="dark"] .facility-profile [class*="border-"],
+.dark #delete-confirm-modal [class*="border-"],
+[data-theme="dark"] #delete-confirm-modal [class*="border-"],
+.dark #bulkEditAssignmentsModal [class*="border-"],
+[data-theme="dark"] #bulkEditAssignmentsModal [class*="border-"] {
+  border-color: var(--doctor-border) !important;
+}
+
+/* tables: thead & sticky headers */
+.dark .surface-table thead,
+.dark .surface-table thead tr,
+[data-theme="dark"] .surface-table thead,
+[data-theme="dark"] .surface-table thead tr {
+  background-color: var(--doctor-surface) !important;
+}
+
+/* bulk edit sticky thead explicitly says bg-white; neutralize it */
+.dark #bulkEditAssignmentsModal thead,
+[data-theme="dark"] #bulkEditAssignmentsModal thead {
+  background-color: var(--doctor-surface) !important;
+}
+
+/* modal footers that use bg-gray-50 */
+.dark #delete-confirm-modal .bg-gray-50,
+[data-theme="dark"] #delete-confirm-modal .bg-gray-50 {
+  background-color: var(--doctor-surface) !important;
+}
+
 </style>
 <div class="facility-profile" x-data="{ editing: false }">
-  <div class="mb-8">
-    <div class="bg-white rounded-lg shadow p-6 border flex flex-col sm:flex-row items-center justify-between gap-4{% if facility.active_status == 'true' %} border-green-500{% elif facility.active_status == 'false' %} border-red-500{% elif facility.active_status == 'pending' %} border-yellow-500{% endif %}">
-      <h2 class="text-3xl font-bold text-blue-800 text-center sm:text-left mb-2 sm:mb-0 flex-1">
-        {{ facility.name }}
-        {% if facility.id in prioritized_facility_ids %}
-          <span title="Prioritized Facility" class="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium bg-purple-100 text-purple-800 ml-2">PRIO</span>
+    <div class="mb-8">
+      <div class="bg-white rounded-lg shadow p-6 border flex flex-col sm:flex-row items-center justify-between gap-4 surface-card surface-status-accent{% if facility.active_status == 'true' %} border-green-500{% elif facility.active_status == 'false' %} border-red-500{% elif facility.active_status == 'pending' %} border-yellow-500{% endif %}">
+        <h2 class="text-3xl font-bold text-blue-800 text-center sm:text-left mb-2 sm:mb-0 flex-1">
+          {{ facility.name }}
+          {% if facility.id in prioritized_facility_ids %}
+            <span title="Prioritized Facility" class="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium bg-purple-100 text-purple-800 ml-2">PRIO</span>
+          {% endif %}
+        </h2>
+        {% if session.user.role == 'admin' %}
+          <button @click="editing = !editing" class="inline-flex items-center gap-2 px-5 py-2 bg-blue-600 text-white rounded-lg shadow hover:bg-blue-700 transition text-base font-semibold focus:outline-none focus:ring-2 focus:ring-blue-400">
+            <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11 5h2m-1 0v14m-7-7h14" /></svg>
+            <span x-show="!editing">Edit Info</span>
+            <span x-show="editing">Cancel Edit</span>
+          </button>
         {% endif %}
-      </h2>
-      {% if session.user.role == 'admin' %}
-        <button @click="editing = !editing" class="inline-flex items-center gap-2 px-5 py-2 bg-blue-600 text-white rounded-lg shadow hover:bg-blue-700 transition text-base font-semibold focus:outline-none focus:ring-2 focus:ring-blue-400">
-          <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11 5h2m-1 0v14m-7-7h14" /></svg>
-          <span x-show="!editing">Edit Info</span>
-          <span x-show="editing">Cancel Edit</span>
-        </button>
-      {% endif %}
+      </div>
     </div>
-  </div>
 
   <div x-show="!editing" class="mb-8">
-    <div class="bg-white rounded-lg shadow p-6 border grid grid-cols-1 sm:grid-cols-2 gap-6">
+    <div class="bg-white rounded-lg shadow p-6 border grid grid-cols-1 sm:grid-cols-2 gap-6 surface-card">
       <div class="flex items-center space-x-3">
         <span class="inline-flex items-center justify-center w-8 h-8 bg-blue-100 text-blue-600 rounded-full text-lg">📍</span>
         <div>
@@ -336,7 +533,7 @@
         </span>
         <div>
           <div class="text-xs text-gray-500 font-semibold uppercase">Status</div>
-          <div class="text-base font-medium {% if facility.active_status == 'true' %}text-green-700{% elif facility.active_status == 'false' %}text-red-700{% elif facility.active_status == 'hold' %}text-blue-700% elif facility.active_status == 'pending' %}text-black-700{% endif %}">
+          <div class="text-base font-medium {% if facility.active_status == 'true' %}text-green-700{% elif facility.active_status == 'false' %}text-red-700{% elif facility.active_status == 'hold' %}text-blue-700% {elif facility.active_status == 'pending' %}text-black-700{% endif %}">
             {% if facility.active_status == 'true' %}Active{% elif facility.active_status == 'false' %}Inactive{% elif facility.active_status == 'hold' %}Hold{% elif facility.active_status == 'pending' %}Pending{% endif %}
           </div>
         </div>
@@ -346,7 +543,7 @@
   </div>
 
   <div x-show="editing" class="mb-8">
-    <form method="POST" action="{{ url_for('facilities.update_facility', facility_id=facility.id) }}" class="bg-white rounded-lg shadow p-6 border grid grid-cols-1 sm:grid-cols-2 gap-6">
+    <form method="POST" action="{{ url_for('facilities.update_facility', facility_id=facility.id) }}" class="bg-white rounded-lg shadow p-6 border grid grid-cols-1 sm:grid-cols-2 gap-6 surface-card">
       <label class="block">
         <span class="font-semibold">Facility Name</span>
         <input type="text" name="name" value="{{ facility.name }}" class="input w-full border rounded px-3 py-2 text-sm" />
@@ -411,7 +608,10 @@
 
 <div class="flex flex-col md:flex-row gap-8 mt-8">
   <div class="flex-1 min-w-0">
-    <div class="bg-white rounded-lg shadow p-6 border h-full flex flex-col">
+   <div class="bg-[var(--doctor-surface)] rounded-lg shadow p-6
+            border border-[var(--doctor-border)]
+            h-full flex flex-col surface-card">
+
       <div class="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 mb-4">
   <div class="w-full sm:w-1/2 relative">
     <input
@@ -432,8 +632,8 @@
       {% if facility_contacts %}
         <div class="grid grid-cols-1 gap-4">
           {% for contact in facility_contacts %}
-            <div class="border rounded-lg shadow-sm bg-gray-50 p-4 contact-item flex flex-col h-full">
-              <p class="text-blue-600 font-bold text-xl mb-3 pb-2 border-b searchable">{{ contact.role }}</p>
+            <div class="border border-[var(--doctor-border)] rounded-lg shadow-sm bg-gray-50 p-4 contact-item flex flex-col h-full surface-subtle">
+              <p class="text-[var(--doctor-link)] hover:text-[var(--doctor-link-hover)] font-bold text-xl mb-3 pb-2 border-b searchable">{{ contact.role }}</p>
               <div class="space-y-2 flex-grow">
                 <div class="whitespace-pre-line searchable">{{ contact.text }}</div>
               </div>
@@ -441,7 +641,7 @@
                 {% if session.user.role == 'admin' %}
                   <div class="flex gap-2">
                     <button 
-                      class="bg-blue-100 text-blue-700 px-3 py-1 rounded hover:bg-blue-200 edit-contact-btn"
+                      class="bg-blue-100 text-[var(--doctor-link)] hover:text-[var(--doctor-link-hover)] px-3 py-1 rounded hover:bg-blue-200 edit-contact-btn"
                       data-contact-id="{{ contact.id }}"
                       data-contact-text="{{ contact.text }}"
                       data-contact-role="{{ contact.role }}"
@@ -459,7 +659,7 @@
     </div>
   </div>
   <div class="flex-1 min-w-0">
-    <div class="bg-white rounded-lg shadow p-6 border h-full flex flex-col">
+    <div class="bg-white rounded-lg shadow p-6 border border-[var(--doctor-border)] h-full flex flex-col surface-card">
       <div class="flex flex-col sm:flex-row sm:items-center sm:justify-between mb-4 gap-2">
         <h3 class="text-lg font-semibold">Assigned Radiologists</h3>
         <div class="flex items-center gap-2 w-full sm:w-auto">
@@ -477,7 +677,7 @@
       </div>
       {% if doctor_assignments %}
         <div class="overflow-x-auto">
-          <table class="min-w-full bg-white border border-gray-200 text-sm rounded">
+          <table class="min-w-full bg-white border border-gray-200 text-sm rounded surface-table">
             <thead class="bg-gray-100">
               <tr class="text-left">
                 <th class="px-4 py-2 border-b">Name</th>
@@ -496,7 +696,7 @@
 <div id="all-doctor-popups" class="hidden">
   {% for assignment in doctor_assignments %}
     {% set doc = assignment.radiologists %}
-    <div id="popup-{{ doc.id }}" class="doctor-popup bg-white border p-4 rounded-lg shadow-lg w-[20rem]">
+    <div id="popup-{{ doc.id }}" class="doctor-popup bg-white border p-4 rounded-lg shadow-lg w-[20rem] surface-card">
       <h4 class="font-medium text-lg text-gray-900 mb-2">{{ doc.name }}</h4>
       <div class="space-y-2 text-sm text-left">
         <p><strong>Phone:</strong> {{ doc.phone or 'N/A' }}</p>
@@ -517,7 +717,7 @@
                 <td class="px-4 py-2 border-b">
                 <a href="{{ url_for('doctors.doctor_profile', rad_id=assignment.radiologists.id) }}"
                    target="_blank"
-                   class="text-blue-700 hover:underline relative"
+                   class="text-[var(--doctor-link)] hover:text-[var(--doctor-link-hover)] hover:underline relative"
                    onmouseenter="showDoctorPopup(event, '{{ assignment.radiologists.id }}')"
                    onmouseleave="hideDoctorPopup()">
                   {{ assignment.radiologists.name }}
@@ -540,10 +740,10 @@
   {% set full = assignment.radiologists.stipulations or "—" %}
   {% if full|length > 100 %}
     <div x-data="{ expanded: false }">
-      <div x-show="!expanded">{{ full[:100] }}... <button @click="expanded = true" class="text-blue-600 underline text-sm">Show More</button></div>
+      <div x-show="!expanded">{{ full[:100] }}... <button @click="expanded = true" class="text-[var(--doctor-link)] hover:text-[var(--doctor-link-hover)] underline text-sm">Show More</button></div>
       <div x-show="expanded">
         <div class="whitespace-pre-line">{{ full }}</div>
-        <button @click="expanded = false" class="text-blue-600 underline text-sm">Show Less</button>
+        <button @click="expanded = false" class="text-[var(--doctor-link)] hover:text-[var(--doctor-link-hover)] underline text-sm">Show Less</button>
       </div>
     </div>
   {% else %}
@@ -577,101 +777,101 @@
   </div>
 </div>
 
-<div id="addContactModal" class="fixed inset-0 z-50 hidden bg-black bg-opacity-50 flex items-center justify-center" onclick="if(event.target === this) closeAddContactModal();">
-  <div class="bg-white rounded-lg shadow-lg w-[90%] max-w-xl max-h-[80vh] overflow-y-auto p-6 relative" onclick="event.stopPropagation();">
-    <button onclick="closeAddContactModal()" class="absolute top-2 right-2 text-2xl font-bold text-gray-500 hover:text-black">×</button>
-    <h3 class="text-xl font-semibold mb-4">Add New Contact</h3>
-    
-    <form method="POST" action="{{ url_for('facilities.add_facility_contact', facility_id=facility.id) }}" class="space-y-4">
-      <div>
-        <label class="block text-sm font-medium text-gray-700">Role</label>
-        <input type="text" name="role" required class="mt-1 block w-full border rounded-md shadow-sm py-2 px-3 text-sm">
-      </div>
-      
-      <div>
-        <label class="block text-sm font-medium text-gray-700">Contact Information</label>
-        <textarea name="text" rows="4" required class="mt-1 block w-full border rounded-md shadow-sm py-2 px-3 text-sm"></textarea>
-      </div>
-      
-      <div class="flex justify-end gap-3">
-        <button type="button" onclick="closeAddContactModal()" class="px-4 py-2 text-sm border rounded text-gray-700 hover:bg-gray-50">Cancel</button>
-        <button type="submit" class="px-4 py-2 text-sm bg-blue-600 text-white rounded hover:bg-blue-700">Add Contact</button>
-      </div>
-    </form>
+  <div id="addContactModal" class="fixed inset-0 z-50 hidden bg-black bg-opacity-50 flex items-center justify-center" onclick="if(event.target === this) closeAddContactModal();">
+    <div class="bg-white rounded-lg shadow-lg w-[90%] max-w-xl max-h-[80vh] overflow-y-auto p-6 relative surface-card" onclick="event.stopPropagation();">
+      <button onclick="closeAddContactModal()" class="absolute top-2 right-2 text-2xl font-bold text-gray-500 hover:text-black">×</button>
+      <h3 class="text-xl font-semibold mb-4">Add New Contact</h3>
+
+      <form method="POST" action="{{ url_for('facilities.add_facility_contact', facility_id=facility.id) }}" class="space-y-4">
+        <div>
+          <label class="block text-sm font-medium text-gray-700">Role</label>
+          <input type="text" name="role" required class="mt-1 block w-full border rounded-md shadow-sm py-2 px-3 text-sm">
+        </div>
+
+        <div>
+          <label class="block text-sm font-medium text-gray-700">Contact Information</label>
+          <textarea name="text" rows="4" required class="mt-1 block w-full border rounded-md shadow-sm py-2 px-3 text-sm"></textarea>
+        </div>
+
+        <div class="flex justify-end gap-3">
+          <button type="button" onclick="closeAddContactModal()" class="px-4 py-2 text-sm border rounded text-gray-700 hover:bg-gray-50">Cancel</button>
+          <button type="submit" class="px-4 py-2 text-sm bg-blue-600 text-white rounded hover:bg-blue-700">Add Contact</button>
+        </div>
+      </form>
+    </div>
   </div>
-</div>
 
-<div id="editContactModal" class="fixed inset-0 z-50 hidden bg-black bg-opacity-50 flex items-center justify-center" onclick="if(event.target === this) closeEditContactModal();">
-  <div class="bg-white rounded-lg shadow-lg w-[90%] max-w-xl max-h-[80vh] overflow-y-auto p-6 relative" onclick="event.stopPropagation();">
-    <button onclick="closeEditContactModal()" class="absolute top-2 right-2 text-2xl font-bold text-gray-500 hover:text-black">×</button>
-    <h3 class="text-xl font-semibold mb-4">Edit Contact</h3>
-    
-    <form id="editContactForm" method="POST" action="{{ url_for('facilities.edit_facility_contact', facility_id=facility.id, contact_id='') }}" class="space-y-4">
-      <div>
-        <label class="block text-sm font-medium text-gray-700">Role</label>
-        <input type="text" name="role" required class="mt-1 block w-full border rounded-md shadow-sm py-2 px-3 text-sm">
-      </div>
-      
-      <div>
-        <label class="block text-sm font-medium text-gray-700">Contact Information</label>
-        <textarea name="text" rows="4" required class="mt-1 block w-full border rounded-md shadow-sm py-2 px-3 text-sm"></textarea>
-      </div>
-      
-      <div class="flex justify-end gap-3">
-        <button type="button" onclick="closeEditContactModal()" class="px-4 py-2 text-sm border rounded text-gray-700 hover:bg-gray-50">Cancel</button>
-        <button type="submit" class="px-4 py-2 text-sm bg-blue-600 text-white rounded hover:bg-blue-700">Save Changes</button>
-      </div>
-    </form>
+  <div id="editContactModal" class="fixed inset-0 z-50 hidden bg-black bg-opacity-50 flex items-center justify-center" onclick="if(event.target === this) closeEditContactModal();">
+    <div class="bg-white rounded-lg shadow-lg w-[90%] max-w-xl max-h-[80vh] overflow-y-auto p-6 relative surface-card" onclick="event.stopPropagation();">
+      <button onclick="closeEditContactModal()" class="absolute top-2 right-2 text-2xl font-bold text-gray-500 hover:text-black">×</button>
+      <h3 class="text-xl font-semibold mb-4">Edit Contact</h3>
+
+      <form id="editContactForm" method="POST" action="{{ url_for('facilities.edit_facility_contact', facility_id=facility.id, contact_id='') }}" class="space-y-4">
+        <div>
+          <label class="block text-sm font-medium text-gray-700">Role</label>
+          <input type="text" name="role" required class="mt-1 block w-full border rounded-md shadow-sm py-2 px-3 text-sm">
+        </div>
+
+        <div>
+          <label class="block text-sm font-medium text-gray-700">Contact Information</label>
+          <textarea name="text" rows="4" required class="mt-1 block w-full border rounded-md shadow-sm py-2 px-3 text-sm"></textarea>
+        </div>
+
+        <div class="flex justify-end gap-3">
+          <button type="button" onclick="closeEditContactModal()" class="px-4 py-2 text-sm border rounded text-gray-700 hover:bg-gray-50">Cancel</button>
+          <button type="submit" class="px-4 py-2 text-sm bg-blue-600 text-white rounded hover:bg-blue-700">Save Changes</button>
+        </div>
+      </form>
+    </div>
   </div>
-</div>
 
-<div id="radiologistModal" class="fixed inset-0 z-50 hidden bg-black bg-opacity-50 flex items-center justify-center" onclick="if(event.target === this) closeRadiologistModal();">
-  <div class="bg-white rounded-lg shadow-lg w-[90%] max-w-2xl max-h-[90vh] overflow-y-auto p-6 relative" onclick="event.stopPropagation();">
-    <button onclick="closeRadiologistModal()" class="absolute top-2 right-2 text-2xl font-bold text-gray-500 hover:text-black">×</button>
-    <h3 class="text-xl font-semibold mb-4">Assign Radiologist to Facility</h3>
+  <div id="radiologistModal" class="fixed inset-0 z-50 hidden bg-black bg-opacity-50 flex items-center justify-center" onclick="if(event.target === this) closeRadiologistModal();">
+    <div class="bg-white rounded-lg shadow-lg w-[90%] max-w-2xl max-h-[90vh] overflow-y-auto p-6 relative surface-card" onclick="event.stopPropagation();">
+      <button onclick="closeRadiologistModal()" class="absolute top-2 right-2 text-2xl font-bold text-gray-500 hover:text-black">×</button>
+      <h3 class="text-xl font-semibold mb-4">Assign Radiologist to Facility</h3>
 
-    <form method="POST" action="{{ url_for('facilities.assign_radiologist', facility_id=facility.id) }}" class="space-y-4">
-      <div>
-        <label class="block text-sm font-medium text-gray-700 mb-1">Select Radiologist</label>
-        <select name="radiologist_id" required class="w-full border rounded px-3 py-2 text-sm">
-          <option value="">Choose a radiologist...</option>
-          {% for rad in available_radiologists %}
-            <option value="{{ rad.id }}">{{ rad.name }}</option>
-          {% endfor %}
-        </select>
-      </div>
+      <form method="POST" action="{{ url_for('facilities.assign_radiologist', facility_id=facility.id) }}" class="space-y-4">
+        <div>
+          <label class="block text-sm font-medium text-gray-700 mb-1">Select Radiologist</label>
+          <select name="radiologist_id" required class="w-full border rounded px-3 py-2 text-sm">
+            <option value="">Choose a radiologist...</option>
+            {% for rad in available_radiologists %}
+              <option value="{{ rad.id }}">{{ rad.name }}</option>
+            {% endfor %}
+          </select>
+        </div>
 
-      <div>
-        <label class="block text-sm font-medium text-gray-700 mb-1">Approval Status</label>
-        <select name="can_read" required class="w-full border rounded px-3 py-2 text-sm">
-          <option value="true">Active</option>
-          <option value="pending">Pending</option>
-          <option value="false">Inactive</option>
-        </select>
-      </div>
+        <div>
+          <label class="block text-sm font-medium text-gray-700 mb-1">Approval Status</label>
+          <select name="can_read" required class="w-full border rounded px-3 py-2 text-sm">
+            <option value="true">Active</option>
+            <option value="pending">Pending</option>
+            <option value="false">Inactive</option>
+          </select>
+        </div>
 
-      <div>
-        <label class="block text-sm font-medium text-gray-700 mb-1">Notes</label>
-        <textarea name="notes" class="w-full border rounded px-3 py-2 text-sm" rows="2"></textarea>
-      </div>
+        <div>
+          <label class="block text-sm font-medium text-gray-700 mb-1">Notes</label>
+          <textarea name="notes" class="w-full border rounded px-3 py-2 text-sm" rows="2"></textarea>
+        </div>
 
-      <div class="flex justify-end gap-3 pt-2">
-        <button type="button" onclick="closeRadiologistModal()" class="px-4 py-2 text-sm border rounded text-gray-700 hover:bg-gray-50">Cancel</button>
-        <button type="submit" class="px-4 py-2 text-sm bg-blue-600 text-white rounded hover:bg-blue-700">Assign</button>
-      </div>
-    </form>
+        <div class="flex justify-end gap-3 pt-2">
+          <button type="button" onclick="closeRadiologistModal()" class="px-4 py-2 text-sm border rounded text-gray-700 hover:bg-gray-50">Cancel</button>
+          <button type="submit" class="px-4 py-2 text-sm bg-blue-600 text-white rounded hover:bg-blue-700">Assign</button>
+        </div>
+      </form>
+    </div>
   </div>
-</div>
 
 
 <div id="bulkEditAssignmentsModal" class="fixed inset-0 z-50 hidden bg-black bg-opacity-50 flex items-center justify-center" onclick="if(event.target === this) closeBulkEditAssignmentsModal();">
-  <div class="bg-white rounded-lg shadow-lg w-[98%] max-w-7xl max-h-[95vh] overflow-y-auto p-6 relative" onclick="event.stopPropagation();">
+  <div class="bg-white rounded-lg shadow-lg w-[98%] max-w-7xl max-h-[95vh] overflow-y-auto p-6 relative surface-card" onclick="event.stopPropagation();">
     <button onclick="closeBulkEditAssignmentsModal()" class="absolute top-2 right-2 text-2xl font-bold text-gray-500 hover:text-black">×</button>
-    
+
     <h3 class="text-xl font-semibold mb-4">Bulk Edit Assigned Radiologists</h3>
 
     <form method="POST" action="{{ url_for('facilities.bulk_update_assignments', facility_id=facility.id) }}" class="space-y-4">
-      
+
       <div class="relative mb-4 w-full max-w-md">
         <input
           type="text"
@@ -687,7 +887,7 @@
       </div>
 
       <div class="overflow-y-auto" style="max-height: 60vh;">
-        <table class="min-w-full bg-white border border-gray-200 text-sm rounded">
+        <table class="min-w-full bg-white border border-gray-200 text-sm rounded surface-table">
           <thead class="bg-white sticky top-0 z-10">
             <tr class="text-left">
               <th class="px-4 py-2 border-b">Name</th>
@@ -739,7 +939,7 @@
 </div>
 
 <div id="delete-confirm-modal" class="fixed inset-0 z-50 hidden bg-black bg-opacity-50 flex items-center justify-center p-4">
-  <div class="bg-white rounded-xl shadow-2xl w-full max-w-md transform transition-all" onclick="event.stopPropagation();">
+  <div class="bg-white rounded-xl shadow-2xl w-full max-w-md transform transition-all surface-card" onclick="event.stopPropagation();">
     <div class="flex items-center gap-4 p-6 border-b border-gray-200">
       <div class="flex-shrink-0 w-12 h-12 flex items-center justify-center bg-red-100 text-red-600 rounded-lg text-xl">
         <i class="fas fa-exclamation-triangle"></i>
@@ -754,7 +954,7 @@
         <div id="modal-info-box" class="bg-red-50 border-l-4 border-red-400 text-red-800 p-3 rounded-r-lg font-medium">
           </div>
     </div>
-    <div class="flex justify-end gap-3 p-6 bg-gray-50 rounded-b-xl">
+    <div class="flex justify-end gap-3 p-6 bg-gray-50 rounded-b-xl border-t">
       <button onclick="closeDeleteModal()" class="px-4 py-2 text-gray-700 bg-gray-200 hover:bg-gray-300 rounded-lg font-medium">Cancel</button>
       <button id="modal-confirm-btn" class="px-4 py-2 bg-red-600 hover:bg-red-700 text-white rounded-lg font-medium inline-flex items-center">
         <i class="fas fa-trash-alt mr-2"></i><span id="modal-confirm-btn-text">Confirm</span>

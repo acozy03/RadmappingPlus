@@ -1384,7 +1384,7 @@ thead.sticky th {
 }
 
 [data-theme="dark"] .daily-doctor-card {
-    background: linear-gradient(155deg, rgba(30, 64, 175, 0.35), rgba(15, 23, 42, 0.88));
+    background: linear-gradient(155deg, rgba(48, 52, 67, 0.35), rgba(15, 23, 42, 0.88));
     border-color: rgba(59, 130, 246, 0.45);
     box-shadow: 0 26px 54px rgba(2, 6, 23, 0.75);
     color: #e2e8f0;
