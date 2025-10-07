@@ -3,6 +3,27 @@
 {% block title %}Facilities{% endblock %}
 
 {% block content %}
+<style>
+  html[data-theme="dark"] #searchBox::placeholder {
+    color: #e2e8f0;
+  }
+
+  html[data-theme="dark"] .status-filter-button {
+    background-color: rgba(30, 41, 59, 0.7);
+    border: 1px solid rgba(148, 163, 184, 0.55);
+    color: #e2e8f0;
+  }
+
+  html[data-theme="dark"] .status-filter-button:hover {
+    background-color: rgba(51, 65, 85, 0.85);
+  }
+
+  html[data-theme="dark"] .status-filter-button.active-filter {
+    background-color: #2563eb;
+    border-color: rgba(147, 197, 253, 0.75);
+    color: #ffffff;
+  }
+</style>
 <div class="flex justify-between items-center mb-6 border-b pb-2">
   <h2 class="text-2xl font-semibold">Facilities</h2>
   <div class="flex gap-2">
@@ -91,27 +112,27 @@
   </div>
   <div class="flex gap-2">
     <button onclick="filterByStatus('all')"
-            class="px-4 py-2 rounded text-sm font-medium bg-gray-100 hover:bg-gray-200"
+            class="status-filter-button px-4 py-2 rounded text-sm font-medium bg-gray-100 hover:bg-gray-200"
             data-status="all">
       All
     </button>
     <button onclick="filterByStatus('active')"
-            class="px-4 py-2 rounded text-sm font-medium bg-blue-600 text-white active-filter"
+            class="status-filter-button px-4 py-2 rounded text-sm font-medium bg-blue-600 text-white active-filter"
             data-status="active">
       Active
     </button>
     <button onclick="filterByStatus('inactive')"
-            class="px-4 py-2 rounded text-sm font-medium bg-gray-100 hover:bg-gray-200"
+            class="status-filter-button px-4 py-2 rounded text-sm font-medium bg-gray-100 hover:bg-gray-200"
             data-status="inactive">
       Inactive
     </button>
     <button onclick="filterByStatus('hold')"
-            class="px-4 py-2 rounded text-sm font-medium bg-gray-100 hover:bg-gray-200"
+            class="status-filter-button px-4 py-2 rounded text-sm font-medium bg-gray-100 hover:bg-gray-200"
             data-status="hold">
       Hold
     </button>
     <button onclick="filterByStatus('pending')"
-            class="px-4 py-2 rounded text-sm font-medium bg-gray-100 hover:bg-gray-200"
+            class="status-filter-button px-4 py-2 rounded text-sm font-medium bg-gray-100 hover:bg-gray-200"
             data-status="pending">
       Pending
     </button>

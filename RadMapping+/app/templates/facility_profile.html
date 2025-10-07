@@ -3,124 +3,18 @@
 {% block title %}{{ facility.name }}{% endblock %}
 
 {% block content %}
-<style>
-  [data-theme="dark"] body {
-    background-color: #0b1120;
-    color: #e2e8f0;
-  }
 
-  [data-theme="dark"] .facility-profile-page {
-    color: #e2e8f0;
-  }
-
-  [data-theme="dark"] .facility-profile-page .bg-white,
-  [data-theme="dark"] .facility-profile-page .bg-gray-50 {
-    background-color: #111827 !important;
-    color: #e2e8f0;
-  }
-
-  [data-theme="dark"] .facility-profile-page .bg-blue-100 {
-    background-color: rgba(59, 130, 246, 0.2) !important;
-  }
-
-  [data-theme="dark"] .facility-profile-page .bg-purple-100 {
-    background-color: rgba(167, 139, 250, 0.18) !important;
-  }
-
-  [data-theme="dark"] .facility-profile-page .bg-yellow-100 {
-    background-color: rgba(253, 224, 71, 0.15) !important;
-  }
-
-  [data-theme="dark"] .facility-profile-page .bg-pink-100 {
-    background-color: rgba(244, 114, 182, 0.18) !important;
-  }
-
-  [data-theme="dark"] .facility-profile-page .bg-green-100 {
-    background-color: rgba(74, 222, 128, 0.18) !important;
-  }
-
-  [data-theme="dark"] .facility-profile-page .bg-gray-100 {
-    background-color: rgba(148, 163, 184, 0.15) !important;
-  }
-
-  [data-theme="dark"] .facility-profile-page .border {
-    border-color: #1f2937 !important;
-  }
-
-  [data-theme="dark"] .facility-profile-page .shadow {
-    box-shadow: 0 20px 25px -15px rgba(15, 23, 42, 0.8) !important;
-  }
-
-  [data-theme="dark"] .facility-profile-page .text-gray-900,
-  [data-theme="dark"] .facility-profile-page .text-gray-800,
-  [data-theme="dark"] .facility-profile-page .text-gray-700 {
-    color: #e5e7eb !important;
-  }
-
-  [data-theme="dark"] .facility-profile-page .text-gray-600,
-  [data-theme="dark"] .facility-profile-page .text-gray-500,
-  [data-theme="dark"] .facility-profile-page .text-gray-400 {
-    color: #94a3b8 !important;
-  }
-
-  [data-theme="dark"] .facility-profile-page .text-blue-800,
-  [data-theme="dark"] .facility-profile-page .text-blue-600 {
-    color: #60a5fa !important;
-  }
-
-  [data-theme="dark"] .facility-profile-page .text-green-700 {
-    color: #34d399 !important;
-  }
-
-  [data-theme="dark"] .facility-profile-page .text-red-700,
-  [data-theme="dark"] .facility-profile-page .text-red-600 {
-    color: #f87171 !important;
-  }
-
-  [data-theme="dark"] .facility-profile-page .text-black-600,
-  [data-theme="dark"] .facility-profile-page .text-black-700 {
-    color: #f9fafb !important;
-  }
-
-  [data-theme="dark"] .facility-profile-page .hover\:bg-gray-100:hover {
-    background-color: #1f2937 !important;
-  }
-
-  [data-theme="dark"] .facility-profile-page input,
-  [data-theme="dark"] .facility-profile-page select,
-  [data-theme="dark"] .facility-profile-page textarea {
-    background-color: #0f172a;
-    border-color: #1f2937;
-    color: #e2e8f0;
-  }
-
-  [data-theme="dark"] .facility-profile-page input::placeholder,
-  [data-theme="dark"] .facility-profile-page textarea::placeholder {
-    color: #94a3b8;
-  }
-
-  [data-theme="dark"] .facility-profile-page button,
-  [data-theme="dark"] .facility-profile-page .text-blue-600:hover {
-    color: #93c5fd;
-  }
-
-  [data-theme="dark"] .facility-profile-page .bg-black.bg-opacity-50 {
-    background-color: rgba(15, 23, 42, 0.75) !important;
-  }
-</style>
-
-
-<div class="facility-profile-page" x-data="{ editing: false }">
+<div class="facility-profile-page text-gray-900 dark:text-slate-100" x-data="{ editing: false }">
   <div class="mb-8">
-    <div class="bg-white rounded-lg shadow p-6 border flex flex-col sm:flex-row items-center justify-between gap-4{% if facility.active_status == 'true' %} border-green-500{% elif facility.active_status == 'false' %} border-red-500{% elif facility.active_status == 'pending' %} border-yellow-500{% endif %}">
-      <h2 class="text-3xl font-bold text-blue-800 text-center sm:text-left mb-2 sm:mb-0 flex-1">
+    <div class="bg-white dark:bg-slate-900 rounded-lg shadow dark:shadow-lg dark:shadow-slate-900/40 transition-colors p-6 border dark:border-slate-700 flex flex-col sm:flex-row items-center justify-between gap-4{% if facility.active_status == 'true' %} border-green-500{% elif facility.active_status == 'false' %} border-red-500{% elif facility.active_status == 'pending' %} border-yellow-500{% endif %}">
+      <h2 class="text-3xl font-bold text-blue-800 dark:text-blue-300 text-center sm:text-left mb-2 sm:mb-0 flex-1">
         {{ facility.name }}
         {% if facility.id in prioritized_facility_ids %}
-          <span title="Prioritized Facility" class="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium bg-purple-100 text-purple-800 ml-2">PRIO</span>
+          <span title="Prioritized Facility" class="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium bg-purple-100 dark:bg-purple-500/20 text-purple-800 dark:text-purple-200 ml-2">PRIO</span>
         {% endif %}
       </h2>
       {% if session.user.role == 'admin' %}
-        <button @click="editing = !editing" class="inline-flex items-center gap-2 px-5 py-2 bg-blue-600 text-white rounded-lg shadow hover:bg-blue-700 transition text-base font-semibold focus:outline-none focus:ring-2 focus:ring-blue-400">
+        <button @click="editing = !editing" class="inline-flex items-center gap-2 px-5 py-2 bg-blue-600 dark:bg-blue-500 text-white dark:text-white rounded-lg shadow hover:bg-blue-700 dark:hover:bg-blue-400 transition text-base font-semibold focus:outline-none focus:ring-2 focus:ring-blue-400 dark:focus:ring-blue-500">
           <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11 5h2m-1 0v14m-7-7h14" /></svg>
           <span x-show="!editing">Edit Info</span>
           <span x-show="editing">Cancel Edit</span>
@@ -130,65 +24,65 @@
   </div>
 
   <div x-show="!editing" class="mb-8">
-    <div class="bg-white rounded-lg shadow p-6 border grid grid-cols-1 sm:grid-cols-2 gap-6">
+    <div class="bg-white dark:bg-slate-900 rounded-lg shadow dark:shadow-lg dark:shadow-slate-900/40 transition-colors p-6 border dark:border-slate-700 grid grid-cols-1 sm:grid-cols-2 gap-6">
       <div class="flex items-center space-x-3">
-        <span class="inline-flex items-center justify-center w-8 h-8 bg-blue-100 text-blue-600 rounded-full text-lg">📍</span>
+        <span class="inline-flex items-center justify-center w-8 h-8 bg-blue-100 dark:bg-blue-500/20 text-blue-600 dark:text-blue-300 rounded-full text-lg">📍</span>
         <div>
-          <div class="text-xs text-gray-500 font-semibold uppercase">Location</div>
-          <div class="text-base font-medium text-gray-900">{{ facility.location }}</div>
+          <div class="text-xs text-gray-500 dark:text-slate-400 font-semibold uppercase">Location</div>
+          <div class="text-base font-medium text-gray-900 dark:text-slate-100">{{ facility.location }}</div>
         </div>
       </div>
       <div class="flex items-center space-x-3">
-        <span class="inline-flex items-center justify-center w-8 h-8 bg-pink-100 text-purple-600 rounded-full text-lg">📞</span>
+        <span class="inline-flex items-center justify-center w-8 h-8 bg-pink-100 dark:bg-pink-500/20 text-purple-600 dark:text-pink-300 rounded-full text-lg">📞</span>
         <div>
-          <div class="text-xs text-gray-500 font-semibold uppercase">Account POC</div>
-          <div class="text-base font-medium text-gray-900">{{ facility.account_poc }}</div>
+          <div class="text-xs text-gray-500 dark:text-slate-400 font-semibold uppercase">Account POC</div>
+          <div class="text-base font-medium text-gray-900 dark:text-slate-100">{{ facility.account_poc }}</div>
         </div>
       </div>
       <div class="flex items-center space-x-3">
-        <span class="inline-flex items-center justify-center w-8 h-8 bg-purple-100 text-purple-600 rounded-full text-lg">💾</span>
+        <span class="inline-flex items-center justify-center w-8 h-8 bg-purple-100 dark:bg-purple-500/20 text-purple-600 dark:text-purple-200 rounded-full text-lg">💾</span>
         <div>
-          <div class="text-xs text-gray-500 font-semibold uppercase">PACS</div>
-          <div class="text-base font-medium text-gray-900">{{ facility.pacs }}</div>
+          <div class="text-xs text-gray-500 dark:text-slate-400 font-semibold uppercase">PACS</div>
+          <div class="text-base font-medium text-gray-900 dark:text-slate-100">{{ facility.pacs }}</div>
         </div>
       </div>
       <div class="flex items-center space-x-3">
-        <span class="inline-flex items-center justify-center w-8 h-8 bg-yellow-100 text-yellow-600 rounded-full text-lg">⏱️</span>
+        <span class="inline-flex items-center justify-center w-8 h-8 bg-yellow-100 dark:bg-amber-400/20 text-yellow-600 dark:text-amber-200 rounded-full text-lg">⏱️</span>
         <div>
-          <div class="text-xs text-gray-500 font-semibold uppercase">TAT Definition</div>
-          <div class="text-base font-medium text-gray-900">{{ facility.tat_definition }}</div>
+          <div class="text-xs text-gray-500 dark:text-slate-400 font-semibold uppercase">TAT Definition</div>
+          <div class="text-base font-medium text-gray-900 dark:text-slate-100">{{ facility.tat_definition }}</div>
         </div>
       </div>
-      
+
       <div class="flex items-center space-x-3">
-        <span class="inline-flex items-center justify-center w-8 h-8 bg-pink-100 text-pink-600 rounded-full text-lg">🧬</span>
+        <span class="inline-flex items-center justify-center w-8 h-8 bg-pink-100 dark:bg-pink-500/20 text-pink-600 dark:text-pink-300 rounded-full text-lg">🧬</span>
         <div>
-          <div class="text-xs text-gray-500 font-semibold uppercase">Assignment Period</div>
-          <div class="text-base font-medium text-gray-900">{{ facility.modalities_assignment_period }}</div>
-        </div>
-      </div>
-      <div class="flex items-center space-x-3">
-        <span class="inline-flex items-center justify-center w-8 h-8 bg-pink-100 text-pink-600 rounded-full text-lg">🔢</span>
-        <div>
-          <div class="text-xs text-gray-500 font-semibold uppercase">Assignment Modalities</div>
-          <div class="text-base font-medium text-gray-900">{{ facility.modalities or '' }}</div>
+          <div class="text-xs text-gray-500 dark:text-slate-400 font-semibold uppercase">Assignment Period</div>
+          <div class="text-base font-medium text-gray-900 dark:text-slate-100">{{ facility.modalities_assignment_period }}</div>
         </div>
       </div>
       <div class="flex items-center space-x-3">
-        <span class="inline-flex items-center justify-center w-8 h-8 bg-green-100 text-pink-600 rounded-full text-lg">🚑</span>
+        <span class="inline-flex items-center justify-center w-8 h-8 bg-pink-100 dark:bg-pink-500/20 text-pink-600 dark:text-pink-300 rounded-full text-lg">🔢</span>
+        <div>
+          <div class="text-xs text-gray-500 dark:text-slate-400 font-semibold uppercase">Assignment Modalities</div>
+          <div class="text-base font-medium text-gray-900 dark:text-slate-100">{{ facility.modalities or '' }}</div>
+        </div>
+      </div>
+      <div class="flex items-center space-x-3">
+        <span class="inline-flex items-center justify-center w-8 h-8 bg-green-100 dark:bg-emerald-500/20 text-pink-600 dark:text-emerald-300 rounded-full text-lg">🚑</span>
           <div x-data="{ expanded: false }">
-    <div class="text-xs text-gray-500 font-semibold uppercase">QA Criteria</div>
-    <div class="text-base font-medium text-gray-900">
+    <div class="text-xs text-gray-500 dark:text-slate-400 font-semibold uppercase">QA Criteria</div>
+    <div class="text-base font-medium text-gray-900 dark:text-slate-100">
       {% set full_text = facility.qa_criteria or '—' %}
       {% if full_text|length > 50 %}
         <template x-if="!expanded">
           <span>
-            {{ full_text[:50] }}... <a href="#" @click.prevent="expanded = true" class="text-blue-600 hover:underline">Show More</a>
+            {{ full_text[:50] }}... <a href="#" @click.prevent="expanded = true" class="text-blue-600 dark:text-blue-300 hover:underline">Show More</a>
           </span>
         </template>
         <template x-if="expanded">
           <span>
-            {{ full_text }} <a href="#" @click.prevent="expanded = false" class="text-blue-600 hover:underline">Show less</a>
+            {{ full_text }} <a href="#" @click.prevent="expanded = false" class="text-blue-600 dark:text-blue-300 hover:underline">Show less</a>
           </span>
         </template>
       {% else %}
@@ -198,116 +92,116 @@
   </div>
       </div>
       <div class="flex items-center space-x-3">
-        <span class="inline-flex items-center justify-center w-8 h-8 bg-blue-100 text-pink-600 rounded-full text-lg">⚕️</span>
+        <span class="inline-flex items-center justify-center w-8 h-8 bg-blue-100 dark:bg-blue-500/20 text-pink-600 dark:text-blue-300 rounded-full text-lg">⚕️</span>
               <div x-data="{ expanded: false }">
-    <div class="text-xs text-gray-500 font-semibold uppercase">Monitoring</div>
-    <div class="text-base font-medium text-gray-900">
+    <div class="text-xs text-gray-500 dark:text-slate-400 font-semibold uppercase">Monitoring</div>
+    <div class="text-base font-medium text-gray-900 dark:text-slate-100">
       {% set full_text = facility.monitoring or '—' %}
       {% if full_text|length > 50 %}
         <template x-if="!expanded">
           <span>
-            {{ full_text[:50] }}... <a href="#" @click.prevent="expanded = true" class="text-blue-600 hover:underline">Show More</a>
+            {{ full_text[:50] }}... <a href="#" @click.prevent="expanded = true" class="text-blue-600 dark:text-blue-300 hover:underline">Show More</a>
           </span>
         </template>
         <template x-if="expanded">
           <span>
-            {{ full_text }} <a href="#" @click.prevent="expanded = false" class="text-blue-600 hover:underline">Show less</a>
+            {{ full_text }} <a href="#" @click.prevent="expanded = false" class="text-blue-600 dark:text-blue-300 hover:underline">Show less</a>
           </span>
         </template>
       {% else %}
         {{ full_text }}
       {% endif %}
     </div>
-  </div> 
+  </div>
   </div>
 
    <div class="flex items-center space-x-3">
-        <span class="inline-flex items-center justify-center w-8 h-8 bg-gray-100 text-pink-600 rounded-full text-lg">ⓘ</span>
+        <span class="inline-flex items-center justify-center w-8 h-8 bg-gray-100 dark:bg-slate-700/40 text-pink-600 dark:text-slate-200 rounded-full text-lg">ⓘ</span>
               <div x-data="{ expanded: false }">
-    <div class="text-xs text-gray-500 font-semibold uppercase">Additional Info / Comments</div>
-    <div class="text-base font-medium text-gray-900">
+    <div class="text-xs text-gray-500 dark:text-slate-400 font-semibold uppercase">Additional Info / Comments</div>
+    <div class="text-base font-medium text-gray-900 dark:text-slate-100">
       {% set full_text = facility.additional_info or '—' %}
       {% if full_text|length > 50 %}
         <template x-if="!expanded">
           <span>
-            {{ full_text[:50] }}... <a href="#" @click.prevent="expanded = true" class="text-blue-600 hover:underline">Show More</a>
+            {{ full_text[:50] }}... <a href="#" @click.prevent="expanded = true" class="text-blue-600 dark:text-blue-300 hover:underline">Show More</a>
           </span>
         </template>
         <template x-if="expanded">
           <span>
-            {{ full_text }} <a href="#" @click.prevent="expanded = false" class="text-blue-600 hover:underline">Show less</a>
+            {{ full_text }} <a href="#" @click.prevent="expanded = false" class="text-blue-600 dark:text-blue-300 hover:underline">Show less</a>
           </span>
         </template>
       {% else %}
         {{ full_text }}
       {% endif %}
     </div>
-  </div> 
+  </div>
   </div>
 
   <div class="flex items-center space-x-3">
         <span class="inline-flex items-center justify-center w-8 h-8 rounded-full text-lg
-          {% if facility.active_status == 'true' %}bg-green-100 text-green-600{% elif facility.active_status == 'false' %}bg-red-100 text-red-600{% elif facility.active_status == 'hold' %}bg-blue-100 text-blue-600{% elif facility.active_status == 'pending' %}bg-yellow-100 text-black-600{% endif %}">
+          {% if facility.active_status == 'true' %}bg-green-100 dark:bg-emerald-500/20 text-green-600 dark:text-emerald-300{% elif facility.active_status == 'false' %}bg-red-100 dark:bg-rose-500/20 text-red-600 dark:text-rose-300{% elif facility.active_status == 'hold' %}bg-blue-100 dark:bg-blue-500/20 text-blue-600 dark:text-blue-300{% elif facility.active_status == 'pending' %}bg-yellow-100 dark:bg-amber-400/20 text-amber-600 dark:text-amber-200{% endif %}">
           {% if facility.active_status == 'true' %}✅{% elif facility.active_status == 'false' %}❌{% elif facility.active_status == 'hold' %}⏳{% elif facility.active_status == 'pending' %}⏳{% endif %}
         </span>
         <div>
-          <div class="text-xs text-gray-500 font-semibold uppercase">Status</div>
-          <div class="text-base font-medium {% if facility.active_status == 'true' %}text-green-700{% elif facility.active_status == 'false' %}text-red-700{% elif facility.active_status == 'hold' %}text-blue-700% elif facility.active_status == 'pending' %}text-black-700{% endif %}">
+          <div class="text-xs text-gray-500 dark:text-slate-400 font-semibold uppercase">Status</div>
+          <div class="text-base font-medium {% if facility.active_status == 'true' %}text-green-700 dark:text-emerald-300{% elif facility.active_status == 'false' %}text-red-700 dark:text-rose-300{% elif facility.active_status == 'hold' %}text-blue-700 dark:text-blue-300{% elif facility.active_status == 'pending' %}text-amber-700 dark:text-amber-200{% endif %}">
             {% if facility.active_status == 'true' %}Active{% elif facility.active_status == 'false' %}Inactive{% elif facility.active_status == 'hold' %}Hold{% elif facility.active_status == 'pending' %}Pending{% endif %}
           </div>
         </div>
-        
+
       </div>
     </div>
   </div>
 
   <div x-show="editing" class="mb-8">
-    <form method="POST" action="{{ url_for('facilities.update_facility', facility_id=facility.id) }}" class="bg-white rounded-lg shadow p-6 border grid grid-cols-1 sm:grid-cols-2 gap-6">
+    <form method="POST" action="{{ url_for('facilities.update_facility', facility_id=facility.id) }}" class="bg-white dark:bg-slate-900 rounded-lg shadow dark:shadow-lg dark:shadow-slate-900/40 transition-colors p-6 border dark:border-slate-700 grid grid-cols-1 sm:grid-cols-2 gap-6">
       <label class="block">
         <span class="font-semibold">Facility Name</span>
-        <input type="text" name="name" value="{{ facility.name }}" class="input w-full border rounded px-3 py-2 text-sm" />
+        <input type="text" name="name" value="{{ facility.name }}" class="input w-full border rounded px-3 py-2 text-sm bg-white dark:bg-slate-900 border-gray-300 dark:border-slate-700 text-gray-900 dark:text-slate-100 placeholder:text-gray-400 dark:placeholder:text-slate-500" />
       </label>
       <label class="block">
         <span class="font-semibold">Account POC</span>
-        <input type="text" name="account_poc" value="{{ facility.account_poc or '' }}" class="input w-full border rounded px-3 py-2 text-sm" />
+        <input type="text" name="account_poc" value="{{ facility.account_poc or '' }}" class="input w-full border rounded px-3 py-2 text-sm bg-white dark:bg-slate-900 border-gray-300 dark:border-slate-700 text-gray-900 dark:text-slate-100 placeholder:text-gray-400 dark:placeholder:text-slate-500" />
       </label>
       <label class="block">
         <span class="font-semibold">Location</span>
-        <input type="text" name="location" value="{{ facility.location or '' }}" class="input w-full border rounded px-3 py-2 text-sm" />
+        <input type="text" name="location" value="{{ facility.location or '' }}" class="input w-full border rounded px-3 py-2 text-sm bg-white dark:bg-slate-900 border-gray-300 dark:border-slate-700 text-gray-900 dark:text-slate-100 placeholder:text-gray-400 dark:placeholder:text-slate-500" />
       </label>
       <label class="block">
         <span class="font-semibold">PACS</span>
-        <input type="text" name="pacs" value="{{ facility.pacs or '' }}" class="input w-full border rounded px-3 py-2 text-sm" />
+        <input type="text" name="pacs" value="{{ facility.pacs or '' }}" class="input w-full border rounded px-3 py-2 text-sm bg-white dark:bg-slate-900 border-gray-300 dark:border-slate-700 text-gray-900 dark:text-slate-100 placeholder:text-gray-400 dark:placeholder:text-slate-500" />
       </label>
-      
+
       <label class="block">
         <span class="font-semibold">TAT Definition</span>
-        <input type="text" name="tat_definition" value="{{ facility.tat_definition or '' }}" class="input w-full border rounded px-3 py-2 text-sm" />
+        <input type="text" name="tat_definition" value="{{ facility.tat_definition or '' }}" class="input w-full border rounded px-3 py-2 text-sm bg-white dark:bg-slate-900 border-gray-300 dark:border-slate-700 text-gray-900 dark:text-slate-100 placeholder:text-gray-400 dark:placeholder:text-slate-500" />
       </label>
       <label class="block">
         <span class="font-semibold">Assignment Period</span>
-        <input type="text" name="assignment_period" value="{{ facility.modalities_assignment_period or '' }}" class="input w-full border rounded px-3 py-2 text-sm" />
+        <input type="text" name="assignment_period" value="{{ facility.modalities_assignment_period or '' }}" class="input w-full border rounded px-3 py-2 text-sm bg-white dark:bg-slate-900 border-gray-300 dark:border-slate-700 text-gray-900 dark:text-slate-100 placeholder:text-gray-400 dark:placeholder:text-slate-500" />
       </label>
       <label class="block">
         <span class="font-semibold">Assignment Modalities</span>
-        <input type="text" name="assignment_type" value="{{ facility.modalities or '' }}" class="input w-full border rounded px-3 py-2 text-sm" />
+        <input type="text" name="assignment_type" value="{{ facility.modalities or '' }}" class="input w-full border rounded px-3 py-2 text-sm bg-white dark:bg-slate-900 border-gray-300 dark:border-slate-700 text-gray-900 dark:text-slate-100 placeholder:text-gray-400 dark:placeholder:text-slate-500" />
       </label>
        <label class="block">
         <span class="font-semibold">QA Criteria</span>
-        <input type="text" name="qa_criteria" value="{{ facility.qa_criteria or '' }}" class="input w-full border rounded px-3 py-2 text-sm" />
+        <input type="text" name="qa_criteria" value="{{ facility.qa_criteria or '' }}" class="input w-full border rounded px-3 py-2 text-sm bg-white dark:bg-slate-900 border-gray-300 dark:border-slate-700 text-gray-900 dark:text-slate-100 placeholder:text-gray-400 dark:placeholder:text-slate-500" />
       </label>
        <label class="block">
         <span class="font-semibold">Monitoring</span>
-        <input type="text" name="monitoring" value="{{ facility.monitoring or '' }}" class="input w-full border rounded px-3 py-2 text-sm" />
+        <input type="text" name="monitoring" value="{{ facility.monitoring or '' }}" class="input w-full border rounded px-3 py-2 text-sm bg-white dark:bg-slate-900 border-gray-300 dark:border-slate-700 text-gray-900 dark:text-slate-100 placeholder:text-gray-400 dark:placeholder:text-slate-500" />
       </label>
       <label class="block">
         <span class="font-semibold">Additional Info / Comments</span>
-        <input type="text" name="additional_info" value="{{ facility.additional_info or '' }}" class="input w-full border rounded px-3 py-2 text-sm" />
+        <input type="text" name="additional_info" value="{{ facility.additional_info or '' }}" class="input w-full border rounded px-3 py-2 text-sm bg-white dark:bg-slate-900 border-gray-300 dark:border-slate-700 text-gray-900 dark:text-slate-100 placeholder:text-gray-400 dark:placeholder:text-slate-500" />
       </label>
 
      <label class="flex items-center space-x-2 mt-4">
   <span class="text-sm font-medium">Status:</span>
-  <select name="active_status" class="form-select h-8 px-2 border rounded-md text-sm text-gray-700">
+  <select name="active_status" class="form-select h-8 px-2 border rounded-md text-sm text-gray-700 dark:text-slate-100 bg-white dark:bg-slate-900 border-gray-300 dark:border-slate-700">
     <option value="true" {% if facility.active_status == 'true' %}selected{% endif %}>Active</option>
     <option value="false" {% if facility.active_status == 'false' %}selected{% endif %}>Inactive</option>
     <option value="hold" {% if facility.active_status == 'hold' %}selected{% endif %}>On Hold</option>
@@ -317,7 +211,7 @@
 </label>
 
       <div class="col-span-2">
-        <button type="submit" class="bg-blue-600 text-white px-4 py-2 rounded text-sm font-semibold mt-2">
+        <button type="submit" class="bg-blue-600 dark:bg-blue-500 text-white dark:text-white px-4 py-2 rounded text-sm font-semibold mt-2 hover:bg-blue-700 dark:hover:bg-blue-400 transition focus:outline-none focus:ring-2 focus:ring-blue-400 dark:focus:ring-blue-500">
           Save Changes
         </button>
       </div>
@@ -327,42 +221,42 @@
 
 <div class="flex flex-col md:flex-row gap-8 mt-8">
   <div class="flex-1 min-w-0">
-    <div class="bg-white rounded-lg shadow p-6 border h-full flex flex-col">
+    <div class="bg-white dark:bg-slate-900 rounded-lg shadow dark:shadow-lg dark:shadow-slate-900/40 transition-colors p-6 border border-gray-200 dark:border-slate-700 h-full flex flex-col">
       <div class="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 mb-4">
   <div class="w-full sm:w-1/2 relative">
     <input
       type="text"
       placeholder="Search contacts..."
       oninput="filterContacts(this.value)"
-      class="w-full border border-gray-300 rounded-lg px-10 py-2 text-sm focus:ring-2 focus:ring-blue-200 focus:border-blue-400 bg-gray-50"
+      class="w-full border border-gray-300 dark:border-slate-700 rounded-lg px-10 py-2 text-sm focus:ring-2 focus:ring-blue-200 focus:border-blue-400 dark:focus:ring-blue-500/40 dark:focus:border-blue-500/60 bg-gray-50 dark:bg-slate-900 text-gray-900 dark:text-slate-100 placeholder:text-gray-400 dark:placeholder:text-slate-500"
     />
-    <span class="absolute left-3 top-2.5 text-gray-400 pointer-events-none">
+    <span class="absolute left-3 top-2.5 text-gray-400 dark:text-slate-500 pointer-events-none">
       <svg class="h-5 w-5" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
     </span>
   </div>
   {% if session.user.role == 'admin' %}
-    <button onclick="openAddContactModal()" class="bg-blue-600 text-white px-4 py-2 rounded text-sm font-medium hover:bg-blue-700 whitespace-nowrap">Add Contact</button>
+    <button onclick="openAddContactModal()" class="bg-blue-600 dark:bg-blue-500 text-white dark:text-white px-4 py-2 rounded text-sm font-medium hover:bg-blue-700 dark:hover:bg-blue-400 whitespace-nowrap transition focus:outline-none focus:ring-2 focus:ring-blue-400 dark:focus:ring-blue-500">Add Contact</button>
   {% endif %}
 </div>
 
       {% if facility_contacts %}
         <div class="grid grid-cols-1 gap-4">
           {% for contact in facility_contacts %}
-            <div class="border rounded-lg shadow-sm bg-gray-50 p-4 contact-item flex flex-col h-full">
-              <p class="text-blue-600 font-bold text-xl mb-3 pb-2 border-b searchable">{{ contact.role }}</p>
-              <div class="space-y-2 flex-grow">
+            <div class="border border-gray-200 dark:border-slate-700 rounded-lg shadow-sm dark:shadow-lg dark:shadow-slate-900/40 bg-gray-50 dark:bg-slate-900 p-4 contact-item flex flex-col h-full transition-colors">
+              <p class="text-blue-600 dark:text-blue-300 font-bold text-xl mb-3 pb-2 border-b border-gray-200 dark:border-slate-700 searchable">{{ contact.role }}</p>
+              <div class="space-y-2 flex-grow text-gray-700 dark:text-slate-200">
                 <div class="whitespace-pre-line searchable">{{ contact.text }}</div>
               </div>
-              <div class="mt-3 pt-3 border-t flex items-center justify-between">
+              <div class="mt-3 pt-3 border-t border-gray-200 dark:border-slate-700 flex items-center justify-between">
                 {% if session.user.role == 'admin' %}
                   <div class="flex gap-2">
-                    <button 
-                      class="bg-blue-100 text-blue-700 px-3 py-1 rounded hover:bg-blue-200 edit-contact-btn"
+                    <button
+                      class="bg-blue-100 dark:bg-blue-500/20 text-blue-700 dark:text-blue-200 px-3 py-1 rounded hover:bg-blue-200 dark:hover:bg-blue-500/30 transition edit-contact-btn"
                       data-contact-id="{{ contact.id }}"
                       data-contact-text="{{ contact.text }}"
                       data-contact-role="{{ contact.role }}"
                     >Edit</button>
-                    <button onclick="deleteContact('{{ contact.id }}', '{{ facility.id }}', '{{ contact.role }}')" class="bg-red-100 text-red-700 px-3 py-1 rounded hover:bg-red-200">Delete</button>
+                    <button onclick="deleteContact('{{ contact.id }}', '{{ facility.id }}', '{{ contact.role }}')" class="bg-red-100 dark:bg-rose-500/20 text-red-700 dark:text-rose-200 px-3 py-1 rounded hover:bg-red-200 dark:hover:bg-rose-500/30 transition">Delete</button>
                   </div>
                 {% endif %}
               </div>
@@ -370,40 +264,40 @@
           {% endfor %}
         </div>
       {% else %}
-        <p class="text-gray-500 italic">No contacts available for this facility.</p>
+        <p class="text-gray-500 dark:text-slate-400 italic">No contacts available for this facility.</p>
       {% endif %}
     </div>
   </div>
   <div class="flex-1 min-w-0">
-    <div class="bg-white rounded-lg shadow p-6 border h-full flex flex-col">
+    <div class="bg-white dark:bg-slate-900 rounded-lg shadow dark:shadow-lg dark:shadow-slate-900/40 transition-colors p-6 border border-gray-200 dark:border-slate-700 h-full flex flex-col">
       <div class="flex flex-col sm:flex-row sm:items-center sm:justify-between mb-4 gap-2">
-        <h3 class="text-lg font-semibold">Assigned Radiologists</h3>
+        <h3 class="text-lg font-semibold text-gray-900 dark:text-slate-100">Assigned Radiologists</h3>
         <div class="flex items-center gap-2 w-full sm:w-auto">
           <div class="relative w-full sm:w-64">
-            <span class="absolute inset-y-0 left-0 flex items-center pl-3 text-gray-400 pointer-events-none">
+            <span class="absolute inset-y-0 left-0 flex items-center pl-3 text-gray-400 dark:text-slate-500 pointer-events-none">
               <svg class="h-5 w-5" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
             </span>
-            <input type="text" class="pl-10 pr-4 py-2 border border-gray-300 rounded-lg shadow-sm focus:ring-2 focus:ring-blue-200 focus:border-blue-400 text-sm w-full bg-gray-50" placeholder="Search radiologists..." oninput="filterRadiologists(this.value)" />
+            <input type="text" class="pl-10 pr-4 py-2 border border-gray-300 dark:border-slate-700 rounded-lg shadow-sm focus:ring-2 focus:ring-blue-200 focus:border-blue-400 dark:focus:ring-blue-500/40 dark:focus:border-blue-500/60 text-sm w-full bg-gray-50 dark:bg-slate-900 text-gray-900 dark:text-slate-100 placeholder:text-gray-400 dark:placeholder:text-slate-500" placeholder="Search radiologists..." oninput="filterRadiologists(this.value)" />
           </div>
           {% if session.user.role == 'admin' %}
-            <button type="button" onclick="openRadiologistModal()" class="bg-blue-600 text-white px-4 py-2 rounded text-sm font-medium hover:bg-blue-700 whitespace-nowrap">Assign Radiologists</button>
-            <button type="button" onclick="openBulkEditAssignmentsModal()" class="bg-yellow-500 text-white px-4 py-2 rounded text-sm font-medium hover:bg-yellow-600 whitespace-nowrap">Edit Assignments</button>
+            <button type="button" onclick="openRadiologistModal()" class="bg-blue-600 dark:bg-blue-500 text-white dark:text-white px-4 py-2 rounded text-sm font-medium hover:bg-blue-700 dark:hover:bg-blue-400 whitespace-nowrap transition focus:outline-none focus:ring-2 focus:ring-blue-400 dark:focus:ring-blue-500">Assign Radiologists</button>
+            <button type="button" onclick="openBulkEditAssignmentsModal()" class="bg-yellow-500 dark:bg-amber-500 text-white dark:text-white px-4 py-2 rounded text-sm font-medium hover:bg-yellow-600 dark:hover:bg-amber-400 whitespace-nowrap transition focus:outline-none focus:ring-2 focus:ring-yellow-400 dark:focus:ring-amber-400">Edit Assignments</button>
           {% endif %}
         </div>
       </div>
       {% if doctor_assignments %}
         <div class="overflow-x-auto">
-          <table class="min-w-full bg-white border border-gray-200 text-sm rounded">
-            <thead class="bg-gray-100">
+          <table class="min-w-full bg-white dark:bg-slate-900 border border-gray-200 dark:border-slate-700 text-sm rounded transition-colors">
+            <thead class="bg-gray-100 dark:bg-slate-800 text-gray-700 dark:text-slate-200">
               <tr class="text-left">
-                <th class="px-4 py-2 border-b">Name</th>
-                <th class="px-4 py-2 border-b">Can Read</th>
-                <th class="px-4 py-2 border-b">Does Stats</th>
-                <th class="px-4 py-2 border-b">Does Routines</th>
-                <th class="px-4 py-2 border-b">Stipulations</th>
-                <th class="px-4 py-2 border-b">Notes</th>
+                <th class="px-4 py-2 border-b border-gray-200 dark:border-slate-700">Name</th>
+                <th class="px-4 py-2 border-b border-gray-200 dark:border-slate-700">Can Read</th>
+                <th class="px-4 py-2 border-b border-gray-200 dark:border-slate-700">Does Stats</th>
+                <th class="px-4 py-2 border-b border-gray-200 dark:border-slate-700">Does Routines</th>
+                <th class="px-4 py-2 border-b border-gray-200 dark:border-slate-700">Stipulations</th>
+                <th class="px-4 py-2 border-b border-gray-200 dark:border-slate-700">Notes</th>
                 {% if session.user.role == 'admin' %}
-                <th class="px-4 py-2 border-b">Actions</th>
+                <th class="px-4 py-2 border-b border-gray-200 dark:border-slate-700">Actions</th>
                 {% endif %}
               </tr>
             </thead>
@@ -412,8 +306,8 @@
 <div id="all-doctor-popups" class="hidden">
   {% for assignment in doctor_assignments %}
     {% set doc = assignment.radiologists %}
-    <div id="popup-{{ doc.id }}" class="doctor-popup bg-white border p-4 rounded-lg shadow-lg w-[20rem]">
-      <h4 class="font-medium text-lg text-gray-900 mb-2">{{ doc.name }}</h4>
+    <div id="popup-{{ doc.id }}" class="doctor-popup bg-white dark:bg-slate-900 border border-gray-200 dark:border-slate-700 p-4 rounded-lg shadow-lg dark:shadow-slate-900/40 w-[20rem] text-gray-900 dark:text-slate-100">
+      <h4 class="font-medium text-lg text-gray-900 dark:text-slate-100 mb-2">{{ doc.name }}</h4>
       <div class="space-y-2 text-sm text-left">
         <p><strong>Phone:</strong> {{ doc.phone or 'N/A' }}</p>
         <p><strong>Email:</strong> {{ doc.email or 'N/A' }}</p>
@@ -427,19 +321,19 @@
   {% endfor %}
 </div>
 
-            <tbody>
+            <tbody class="divide-y divide-gray-200 dark:divide-slate-700">
               {% for assignment in doctor_assignments %}
-              <tr class="hover:bg-blue-50 radiologist-item">
-                <td class="px-4 py-2 border-b">
+              <tr class="bg-white dark:bg-slate-900 hover:bg-blue-50 dark:hover:bg-slate-800/70 transition-colors radiologist-item">
+                <td class="px-4 py-2 border-b border-gray-200 dark:border-slate-700 text-gray-900 dark:text-slate-100">
                 <a href="{{ url_for('doctors.doctor_profile', rad_id=assignment.radiologists.id) }}"
                    target="_blank"
-                   class="text-blue-700 hover:underline relative"
+                   class="text-blue-700 dark:text-blue-300 hover:underline dark:hover:text-blue-200 relative"
                    onmouseenter="showDoctorPopup(event, '{{ assignment.radiologists.id }}')"
                    onmouseleave="hideDoctorPopup()">
                   {{ assignment.radiologists.name }}
                 </a>
                 </td>
-                <td class="px-4 py-2 border-b">
+                <td class="px-4 py-2 border-b border-gray-200 dark:border-slate-700 text-gray-900 dark:text-slate-100">
   {% if assignment.can_read == "true" %}
     ✅
   {% elif assignment.can_read == "pending" %}
@@ -449,33 +343,33 @@
   {% endif %}
 </td>
 
-                <td class="px-4 py-2 border-b">{{ "✅" if assignment.radiologists.reads_stats == 'YES' else "❌" }}</td>
-                <td class="px-4 py-2 border-b">{{ "✅" if assignment.radiologists.reads_routines == 'YES' else "❌" }}</td>
-                
-                <td class="px-4 py-2 border-b">
+                <td class="px-4 py-2 border-b border-gray-200 dark:border-slate-700 text-gray-900 dark:text-slate-100">{{ "✅" if assignment.radiologists.reads_stats == 'YES' else "❌" }}</td>
+                <td class="px-4 py-2 border-b border-gray-200 dark:border-slate-700 text-gray-900 dark:text-slate-100">{{ "✅" if assignment.radiologists.reads_routines == 'YES' else "❌" }}</td>
+
+                <td class="px-4 py-2 border-b border-gray-200 dark:border-slate-700 text-gray-900 dark:text-slate-100">
   {% set full = assignment.radiologists.stipulations or "—" %}
   {% if full|length > 100 %}
     <div x-data="{ expanded: false }">
-      <div x-show="!expanded">{{ full[:100] }}... <button @click="expanded = true" class="text-blue-600 underline text-sm">Show More</button></div>
+      <div x-show="!expanded">{{ full[:100] }}... <button @click="expanded = true" class="text-blue-600 dark:text-blue-300 underline text-sm">Show More</button></div>
       <div x-show="expanded">
         <div class="whitespace-pre-line">{{ full }}</div>
-        <button @click="expanded = false" class="text-blue-600 underline text-sm">Show Less</button>
+        <button @click="expanded = false" class="text-blue-600 dark:text-blue-300 underline text-sm">Show Less</button>
       </div>
     </div>
   {% else %}
     <div class="whitespace-pre-line">{{ full }}</div>
   {% endif %}
 </td>
-    <td class="px-4 py-2 border-b">{{ assignment.notes or "—" }}</td>
+    <td class="px-4 py-2 border-b border-gray-200 dark:border-slate-700 text-gray-900 dark:text-slate-100">{{ assignment.notes or "—" }}</td>
                 {% if session.user.role == 'admin' %}
-                <td class="px-4 py-2 border-b">
-                  <form action="{{ url_for('facilities.remove_assignment', facility_id=facility.id, assignment_id=assignment.id) }}" 
-                        method="POST" 
-                        style="display: inline;" 
+                <td class="px-4 py-2 border-b border-gray-200 dark:border-slate-700">
+                  <form action="{{ url_for('facilities.remove_assignment', facility_id=facility.id, assignment_id=assignment.id) }}"
+                        method="POST"
+                        style="display: inline;"
                         onsubmit="handleFormDelete(event, this)"
                         data-title="Remove Assignment"
                         data-item-name="Assignment for {{ assignment.radiologists.name }}">
-                    <button type="submit" class="bg-red-100 text-red-700 px-3 py-1 rounded hover:bg-red-200 text-sm">
+                    <button type="submit" class="bg-red-100 dark:bg-rose-500/20 text-red-700 dark:text-rose-200 px-3 py-1 rounded hover:bg-red-200 dark:hover:bg-rose-500/30 text-sm transition">
                       Remove
                     </button>
                   </form>
@@ -487,69 +381,69 @@
           </table>
         </div>
       {% else %}
-        <p class="text-gray-500 italic">No doctors assigned.</p>
+        <p class="text-gray-500 dark:text-slate-400 italic">No doctors assigned.</p>
       {% endif %}
     </div>
   </div>
 </div>
 
-<div id="addContactModal" class="fixed inset-0 z-50 hidden bg-black bg-opacity-50 flex items-center justify-center" onclick="if(event.target === this) closeAddContactModal();">
-  <div class="bg-white rounded-lg shadow-lg w-[90%] max-w-xl max-h-[80vh] overflow-y-auto p-6 relative" onclick="event.stopPropagation();">
-    <button onclick="closeAddContactModal()" class="absolute top-2 right-2 text-2xl font-bold text-gray-500 hover:text-black">×</button>
+<div id="addContactModal" class="fixed inset-0 z-50 hidden bg-black bg-opacity-50 dark:bg-slate-950 dark:bg-opacity-70 flex items-center justify-center" onclick="if(event.target === this) closeAddContactModal();">
+  <div class="bg-white dark:bg-slate-900 text-gray-900 dark:text-slate-100 border border-gray-200 dark:border-slate-700 rounded-lg shadow-lg dark:shadow-slate-900/40 w-[90%] max-w-xl max-h-[80vh] overflow-y-auto p-6 relative transition-colors" onclick="event.stopPropagation();">
+    <button onclick="closeAddContactModal()" class="absolute top-2 right-2 text-2xl font-bold text-gray-500 dark:text-slate-400 hover:text-black dark:hover:text-slate-200">×</button>
     <h3 class="text-xl font-semibold mb-4">Add New Contact</h3>
-    
+
     <form method="POST" action="{{ url_for('facilities.add_facility_contact', facility_id=facility.id) }}" class="space-y-4">
       <div>
-        <label class="block text-sm font-medium text-gray-700">Role</label>
-        <input type="text" name="role" required class="mt-1 block w-full border rounded-md shadow-sm py-2 px-3 text-sm">
+        <label class="block text-sm font-medium text-gray-700 dark:text-slate-300">Role</label>
+        <input type="text" name="role" required class="mt-1 block w-full border border-gray-300 dark:border-slate-700 rounded-md shadow-sm py-2 px-3 text-sm bg-white dark:bg-slate-900 text-gray-900 dark:text-slate-100 placeholder:text-gray-400 dark:placeholder:text-slate-500">
       </div>
-      
+
       <div>
-        <label class="block text-sm font-medium text-gray-700">Contact Information</label>
-        <textarea name="text" rows="4" required class="mt-1 block w-full border rounded-md shadow-sm py-2 px-3 text-sm"></textarea>
+        <label class="block text-sm font-medium text-gray-700 dark:text-slate-300">Contact Information</label>
+        <textarea name="text" rows="4" required class="mt-1 block w-full border border-gray-300 dark:border-slate-700 rounded-md shadow-sm py-2 px-3 text-sm bg-white dark:bg-slate-900 text-gray-900 dark:text-slate-100 placeholder:text-gray-400 dark:placeholder:text-slate-500"></textarea>
       </div>
-      
+
       <div class="flex justify-end gap-3">
-        <button type="button" onclick="closeAddContactModal()" class="px-4 py-2 text-sm border rounded text-gray-700 hover:bg-gray-50">Cancel</button>
-        <button type="submit" class="px-4 py-2 text-sm bg-blue-600 text-white rounded hover:bg-blue-700">Add Contact</button>
+        <button type="button" onclick="closeAddContactModal()" class="px-4 py-2 text-sm border border-gray-300 dark:border-slate-700 rounded text-gray-700 dark:text-slate-200 hover:bg-gray-50 dark:hover:bg-slate-800">Cancel</button>
+        <button type="submit" class="px-4 py-2 text-sm bg-blue-600 dark:bg-blue-500 text-white dark:text-white rounded hover:bg-blue-700 dark:hover:bg-blue-400 transition focus:outline-none focus:ring-2 focus:ring-blue-400 dark:focus:ring-blue-500">Add Contact</button>
       </div>
     </form>
   </div>
 </div>
 
-<div id="editContactModal" class="fixed inset-0 z-50 hidden bg-black bg-opacity-50 flex items-center justify-center" onclick="if(event.target === this) closeEditContactModal();">
-  <div class="bg-white rounded-lg shadow-lg w-[90%] max-w-xl max-h-[80vh] overflow-y-auto p-6 relative" onclick="event.stopPropagation();">
-    <button onclick="closeEditContactModal()" class="absolute top-2 right-2 text-2xl font-bold text-gray-500 hover:text-black">×</button>
+<div id="editContactModal" class="fixed inset-0 z-50 hidden bg-black bg-opacity-50 dark:bg-slate-950 dark:bg-opacity-70 flex items-center justify-center" onclick="if(event.target === this) closeEditContactModal();">
+  <div class="bg-white dark:bg-slate-900 text-gray-900 dark:text-slate-100 border border-gray-200 dark:border-slate-700 rounded-lg shadow-lg dark:shadow-slate-900/40 w-[90%] max-w-xl max-h-[80vh] overflow-y-auto p-6 relative transition-colors" onclick="event.stopPropagation();">
+    <button onclick="closeEditContactModal()" class="absolute top-2 right-2 text-2xl font-bold text-gray-500 dark:text-slate-400 hover:text-black dark:hover:text-slate-200">×</button>
     <h3 class="text-xl font-semibold mb-4">Edit Contact</h3>
-    
+
     <form id="editContactForm" method="POST" action="{{ url_for('facilities.edit_facility_contact', facility_id=facility.id, contact_id='') }}" class="space-y-4">
       <div>
-        <label class="block text-sm font-medium text-gray-700">Role</label>
-        <input type="text" name="role" required class="mt-1 block w-full border rounded-md shadow-sm py-2 px-3 text-sm">
+        <label class="block text-sm font-medium text-gray-700 dark:text-slate-300">Role</label>
+        <input type="text" name="role" required class="mt-1 block w-full border border-gray-300 dark:border-slate-700 rounded-md shadow-sm py-2 px-3 text-sm bg-white dark:bg-slate-900 text-gray-900 dark:text-slate-100 placeholder:text-gray-400 dark:placeholder:text-slate-500">
       </div>
-      
+
       <div>
-        <label class="block text-sm font-medium text-gray-700">Contact Information</label>
-        <textarea name="text" rows="4" required class="mt-1 block w-full border rounded-md shadow-sm py-2 px-3 text-sm"></textarea>
+        <label class="block text-sm font-medium text-gray-700 dark:text-slate-300">Contact Information</label>
+        <textarea name="text" rows="4" required class="mt-1 block w-full border border-gray-300 dark:border-slate-700 rounded-md shadow-sm py-2 px-3 text-sm bg-white dark:bg-slate-900 text-gray-900 dark:text-slate-100 placeholder:text-gray-400 dark:placeholder:text-slate-500"></textarea>
       </div>
-      
+
       <div class="flex justify-end gap-3">
-        <button type="button" onclick="closeEditContactModal()" class="px-4 py-2 text-sm border rounded text-gray-700 hover:bg-gray-50">Cancel</button>
-        <button type="submit" class="px-4 py-2 text-sm bg-blue-600 text-white rounded hover:bg-blue-700">Save Changes</button>
+        <button type="button" onclick="closeEditContactModal()" class="px-4 py-2 text-sm border border-gray-300 dark:border-slate-700 rounded text-gray-700 dark:text-slate-200 hover:bg-gray-50 dark:hover:bg-slate-800">Cancel</button>
+        <button type="submit" class="px-4 py-2 text-sm bg-blue-600 dark:bg-blue-500 text-white dark:text-white rounded hover:bg-blue-700 dark:hover:bg-blue-400 transition focus:outline-none focus:ring-2 focus:ring-blue-400 dark:focus:ring-blue-500">Save Changes</button>
       </div>
     </form>
   </div>
 </div>
 
-<div id="radiologistModal" class="fixed inset-0 z-50 hidden bg-black bg-opacity-50 flex items-center justify-center" onclick="if(event.target === this) closeRadiologistModal();">
-  <div class="bg-white rounded-lg shadow-lg w-[90%] max-w-2xl max-h-[90vh] overflow-y-auto p-6 relative" onclick="event.stopPropagation();">
-    <button onclick="closeRadiologistModal()" class="absolute top-2 right-2 text-2xl font-bold text-gray-500 hover:text-black">×</button>
+<div id="radiologistModal" class="fixed inset-0 z-50 hidden bg-black bg-opacity-50 dark:bg-slate-950 dark:bg-opacity-70 flex items-center justify-center" onclick="if(event.target === this) closeRadiologistModal();">
+  <div class="bg-white dark:bg-slate-900 text-gray-900 dark:text-slate-100 border border-gray-200 dark:border-slate-700 rounded-lg shadow-lg dark:shadow-slate-900/40 w-[90%] max-w-2xl max-h-[90vh] overflow-y-auto p-6 relative transition-colors" onclick="event.stopPropagation();">
+    <button onclick="closeRadiologistModal()" class="absolute top-2 right-2 text-2xl font-bold text-gray-500 dark:text-slate-400 hover:text-black dark:hover:text-slate-200">×</button>
     <h3 class="text-xl font-semibold mb-4">Assign Radiologist to Facility</h3>
 
     <form method="POST" action="{{ url_for('facilities.assign_radiologist', facility_id=facility.id) }}" class="space-y-4">
       <div>
-        <label class="block text-sm font-medium text-gray-700 mb-1">Select Radiologist</label>
-        <select name="radiologist_id" required class="w-full border rounded px-3 py-2 text-sm">
+        <label class="block text-sm font-medium text-gray-700 dark:text-slate-300 mb-1">Select Radiologist</label>
+        <select name="radiologist_id" required class="w-full border border-gray-300 dark:border-slate-700 rounded px-3 py-2 text-sm bg-white dark:bg-slate-900 text-gray-900 dark:text-slate-100">
           <option value="">Choose a radiologist...</option>
           {% for rad in available_radiologists %}
             <option value="{{ rad.id }}">{{ rad.name }}</option>
@@ -558,8 +452,8 @@
       </div>
 
       <div>
-        <label class="block text-sm font-medium text-gray-700 mb-1">Approval Status</label>
-        <select name="can_read" required class="w-full border rounded px-3 py-2 text-sm">
+        <label class="block text-sm font-medium text-gray-700 dark:text-slate-300 mb-1">Approval Status</label>
+        <select name="can_read" required class="w-full border border-gray-300 dark:border-slate-700 rounded px-3 py-2 text-sm bg-white dark:bg-slate-900 text-gray-900 dark:text-slate-100">
           <option value="true">Active</option>
           <option value="pending">Pending</option>
           <option value="false">Inactive</option>
@@ -567,22 +461,22 @@
       </div>
 
       <div>
-        <label class="block text-sm font-medium text-gray-700 mb-1">Notes</label>
-        <textarea name="notes" class="w-full border rounded px-3 py-2 text-sm" rows="2"></textarea>
+        <label class="block text-sm font-medium text-gray-700 dark:text-slate-300 mb-1">Notes</label>
+        <textarea name="notes" class="w-full border border-gray-300 dark:border-slate-700 rounded px-3 py-2 text-sm bg-white dark:bg-slate-900 text-gray-900 dark:text-slate-100 placeholder:text-gray-400 dark:placeholder:text-slate-500" rows="2"></textarea>
       </div>
 
       <div class="flex justify-end gap-3 pt-2">
-        <button type="button" onclick="closeRadiologistModal()" class="px-4 py-2 text-sm border rounded text-gray-700 hover:bg-gray-50">Cancel</button>
-        <button type="submit" class="px-4 py-2 text-sm bg-blue-600 text-white rounded hover:bg-blue-700">Assign</button>
+        <button type="button" onclick="closeRadiologistModal()" class="px-4 py-2 text-sm border border-gray-300 dark:border-slate-700 rounded text-gray-700 dark:text-slate-200 hover:bg-gray-50 dark:hover:bg-slate-800">Cancel</button>
+        <button type="submit" class="px-4 py-2 text-sm bg-blue-600 dark:bg-blue-500 text-white dark:text-white rounded hover:bg-blue-700 dark:hover:bg-blue-400 transition focus:outline-none focus:ring-2 focus:ring-blue-400 dark:focus:ring-blue-500">Assign</button>
       </div>
     </form>
   </div>
 </div>
 
 
-<div id="bulkEditAssignmentsModal" class="fixed inset-0 z-50 hidden bg-black bg-opacity-50 flex items-center justify-center" onclick="if(event.target === this) closeBulkEditAssignmentsModal();">
-  <div class="bg-white rounded-lg shadow-lg w-[98%] max-w-7xl max-h-[95vh] overflow-y-auto p-6 relative" onclick="event.stopPropagation();">
-    <button onclick="closeBulkEditAssignmentsModal()" class="absolute top-2 right-2 text-2xl font-bold text-gray-500 hover:text-black">×</button>
+<div id="bulkEditAssignmentsModal" class="fixed inset-0 z-50 hidden bg-black bg-opacity-50 dark:bg-slate-950 dark:bg-opacity-70 flex items-center justify-center" onclick="if(event.target === this) closeBulkEditAssignmentsModal();">
+  <div class="bg-white dark:bg-slate-900 text-gray-900 dark:text-slate-100 border border-gray-200 dark:border-slate-700 rounded-lg shadow-lg dark:shadow-slate-900/40 w-[98%] max-w-7xl max-h-[95vh] overflow-y-auto p-6 relative transition-colors" onclick="event.stopPropagation();">
+    <button onclick="closeBulkEditAssignmentsModal()" class="absolute top-2 right-2 text-2xl font-bold text-gray-500 dark:text-slate-400 hover:text-black dark:hover:text-slate-200">×</button>
     
     <h3 class="text-xl font-semibold mb-4">Bulk Edit Assigned Radiologists</h3>
 
@@ -593,9 +487,9 @@
           type="text"
           placeholder="Search doctors..."
           oninput="filterBulkDoctors(this.value)"
-          class="w-full border border-gray-300 rounded-lg px-10 py-2 text-sm focus:ring-2 focus:ring-blue-200 focus:border-blue-400 bg-gray-50"
+          class="w-full border border-gray-300 dark:border-slate-700 rounded-lg px-10 py-2 text-sm focus:ring-2 focus:ring-blue-200 focus:border-blue-400 dark:focus:ring-blue-500/40 dark:focus:border-blue-500/60 bg-gray-50 dark:bg-slate-900 text-gray-900 dark:text-slate-100 placeholder:text-gray-400 dark:placeholder:text-slate-500"
         />
-        <span class="absolute inset-y-0 left-0 flex items-center pl-3 text-gray-400 pointer-events-none">
+        <span class="absolute inset-y-0 left-0 flex items-center pl-3 text-gray-400 dark:text-slate-500 pointer-events-none">
           <svg class="h-5 w-5" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
             <circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/>
           </svg>
@@ -603,40 +497,40 @@
       </div>
 
       <div class="overflow-y-auto" style="max-height: 60vh;">
-        <table class="min-w-full bg-white border border-gray-200 text-sm rounded">
-          <thead class="bg-gray-100 sticky top-0 z-10">
+        <table class="min-w-full bg-white dark:bg-slate-900 border border-gray-200 dark:border-slate-700 text-sm rounded transition-colors">
+          <thead class="bg-gray-100 dark:bg-slate-800 sticky top-0 z-10 text-gray-700 dark:text-slate-200">
             <tr class="text-left">
-              <th class="px-4 py-2 border-b">Name</th>
-              <th class="px-4 py-2 border-b w-40">Can Read</th>
-              <th class="px-4 py-2 border-b w-32 text-center">Does Stats</th>
-              <th class="px-4 py-2 border-b w-36 text-center">Does Routines</th>
-              <th class="px-4 py-2 border-b">Stipulations</th>
-              <th class="px-4 py-2 border-b">Notes</th>
+              <th class="px-4 py-2 border-b border-gray-200 dark:border-slate-700">Name</th>
+              <th class="px-4 py-2 border-b border-gray-200 dark:border-slate-700 w-40">Can Read</th>
+              <th class="px-4 py-2 border-b border-gray-200 dark:border-slate-700 w-32 text-center">Does Stats</th>
+              <th class="px-4 py-2 border-b border-gray-200 dark:border-slate-700 w-36 text-center">Does Routines</th>
+              <th class="px-4 py-2 border-b border-gray-200 dark:border-slate-700">Stipulations</th>
+              <th class="px-4 py-2 border-b border-gray-200 dark:border-slate-700">Notes</th>
             </tr>
           </thead>
-          <tbody>
+          <tbody class="divide-y divide-gray-200 dark:divide-slate-700">
             {% for assignment in doctor_assignments %}
-            <tr class="border-t bulk-doctor-row">
-              <td class="px-4 py-2 border-b font-medium align-middle">{{ assignment.radiologists.name }}</td>
-              <td class="px-4 py-2 border-b text-center">
-                <select name="can_read_{{ assignment.id }}" class="w-full border rounded px-2 py-1">
+            <tr class="border-t border-gray-200 dark:border-slate-700 bg-white dark:bg-slate-900 bulk-doctor-row">
+              <td class="px-4 py-2 border-b border-gray-200 dark:border-slate-700 font-medium align-middle text-gray-900 dark:text-slate-100">{{ assignment.radiologists.name }}</td>
+              <td class="px-4 py-2 border-b border-gray-200 dark:border-slate-700 text-center">
+                <select name="can_read_{{ assignment.id }}" class="w-full border border-gray-300 dark:border-slate-700 rounded px-2 py-1 bg-white dark:bg-slate-900 text-gray-900 dark:text-slate-100">
                   <option value="true" {% if assignment.can_read == "true" %}selected{% endif %}>Active</option>
                   <option value="pending" {% if assignment.can_read == "pending" %}selected{% endif %}>Pending</option>
                   <option value="false" {% if assignment.can_read == "false" %}selected{% endif %}>Inactive</option>
                   <option value="withdrawn" {% if assignment.can_read == "withdrawn" %}selected{% endif %}>Withdrawn</option>
                 </select>
               </td>
-              <td class="px-4 py-2 border-b text-center">
-                <input type="checkbox" name="reads_stats_{{ assignment.radiologists.id }}" {% if assignment.radiologists.reads_stats == 'YES' %}checked{% endif %} class="h-4 w-4">
+              <td class="px-4 py-2 border-b border-gray-200 dark:border-slate-700 text-center">
+                <input type="checkbox" name="reads_stats_{{ assignment.radiologists.id }}" {% if assignment.radiologists.reads_stats == 'YES' %}checked{% endif %} class="h-4 w-4 border border-gray-300 dark:border-slate-600 bg-white dark:bg-slate-900 text-blue-600 dark:text-blue-400 focus:ring-blue-400 dark:focus:ring-blue-500">
               </td>
-              <td class="px-4 py-2 border-b text-center">
-                <input type="checkbox" name="reads_routines_{{ assignment.radiologists.id }}" {% if assignment.radiologists.reads_routines == 'YES' %}checked{% endif %} class="h-4 w-4">
+              <td class="px-4 py-2 border-b border-gray-200 dark:border-slate-700 text-center">
+                <input type="checkbox" name="reads_routines_{{ assignment.radiologists.id }}" {% if assignment.radiologists.reads_routines == 'YES' %}checked{% endif %} class="h-4 w-4 border border-gray-300 dark:border-slate-600 bg-white dark:bg-slate-900 text-blue-600 dark:text-blue-400 focus:ring-blue-400 dark:focus:ring-blue-500">
               </td>
-              <td class="px-4 py-2 border-b">
-                <textarea name="stipulations_{{ assignment.radiologists.id }}" class="w-full border rounded px-2 py-1">{{ assignment.radiologists.stipulations }}</textarea>
+              <td class="px-4 py-2 border-b border-gray-200 dark:border-slate-700">
+                <textarea name="stipulations_{{ assignment.radiologists.id }}" class="w-full border border-gray-300 dark:border-slate-700 rounded px-2 py-1 bg-white dark:bg-slate-900 text-gray-900 dark:text-slate-100 placeholder:text-gray-400 dark:placeholder:text-slate-500">{{ assignment.radiologists.stipulations }}</textarea>
               </td>
-              <td class="px-4 py-2 border-b">
-                <textarea name="notes_{{ assignment.id }}" class="w-full border rounded px-2 py-1">{{ assignment.notes }}</textarea>
+              <td class="px-4 py-2 border-b border-gray-200 dark:border-slate-700">
+                <textarea name="notes_{{ assignment.id }}" class="w-full border border-gray-300 dark:border-slate-700 rounded px-2 py-1 bg-white dark:bg-slate-900 text-gray-900 dark:text-slate-100 placeholder:text-gray-400 dark:placeholder:text-slate-500">{{ assignment.notes }}</textarea>
               </td>
               <input type="hidden" name="assignment_ids[]" value="{{ assignment.id }}">
 
@@ -647,32 +541,32 @@
       </div>
 
       <div class="flex justify-end gap-3 mt-4">
-        <button type="button" onclick="closeBulkEditAssignmentsModal()" class="px-4 py-2 text-sm border rounded text-gray-700 hover:bg-gray-50">Cancel</button>
-        <button type="submit" class="px-4 py-2 text-sm bg-blue-600 text-white rounded hover:bg-blue-700">Save Changes</button>
+        <button type="button" onclick="closeBulkEditAssignmentsModal()" class="px-4 py-2 text-sm border border-gray-300 dark:border-slate-700 rounded text-gray-700 dark:text-slate-200 hover:bg-gray-50 dark:hover:bg-slate-800">Cancel</button>
+        <button type="submit" class="px-4 py-2 text-sm bg-blue-600 dark:bg-blue-500 text-white dark:text-white rounded hover:bg-blue-700 dark:hover:bg-blue-400 transition focus:outline-none focus:ring-2 focus:ring-blue-400 dark:focus:ring-blue-500">Save Changes</button>
       </div>
     </form>
   </div>
 </div>
 
-<div id="delete-confirm-modal" class="fixed inset-0 z-50 hidden bg-black bg-opacity-50 flex items-center justify-center p-4">
-  <div class="bg-white rounded-xl shadow-2xl w-full max-w-md transform transition-all" onclick="event.stopPropagation();">
-    <div class="flex items-center gap-4 p-6 border-b border-gray-200">
-      <div class="flex-shrink-0 w-12 h-12 flex items-center justify-center bg-red-100 text-red-600 rounded-lg text-xl">
+<div id="delete-confirm-modal" class="fixed inset-0 z-50 hidden bg-black bg-opacity-50 dark:bg-slate-950 dark:bg-opacity-70 flex items-center justify-center p-4">
+  <div class="bg-white dark:bg-slate-900 text-gray-900 dark:text-slate-100 rounded-xl shadow-2xl dark:shadow-slate-900/40 w-full max-w-md transform transition-all border border-gray-200 dark:border-slate-700" onclick="event.stopPropagation();">
+    <div class="flex items-center gap-4 p-6 border-b border-gray-200 dark:border-slate-700">
+      <div class="flex-shrink-0 w-12 h-12 flex items-center justify-center bg-red-100 dark:bg-rose-500/20 text-red-600 dark:text-rose-200 rounded-lg text-xl">
         <i class="fas fa-exclamation-triangle"></i>
       </div>
-      <h3 id="modal-title" class="text-lg font-semibold text-gray-900">Confirmation</h3>
-      <button onclick="closeDeleteModal()" class="ml-auto p-2 text-gray-400 hover:text-gray-600 hover:bg-gray-100 rounded-lg transition-colors">
+      <h3 id="modal-title" class="text-lg font-semibold text-gray-900 dark:text-slate-100">Confirmation</h3>
+      <button onclick="closeDeleteModal()" class="ml-auto p-2 text-gray-400 dark:text-slate-400 hover:text-gray-600 dark:hover:text-slate-200 hover:bg-gray-100 dark:hover:bg-slate-800 rounded-lg transition-colors">
           <i class="fas fa-times"></i>
       </button>
     </div>
     <div class="p-6">
-        <p id="modal-text" class="text-gray-600 mb-4">Are you sure you want to remove this? This action cannot be undone.</p>
-        <div id="modal-info-box" class="bg-red-50 border-l-4 border-red-400 text-red-800 p-3 rounded-r-lg font-medium">
+        <p id="modal-text" class="text-gray-600 dark:text-slate-300 mb-4">Are you sure you want to remove this? This action cannot be undone.</p>
+        <div id="modal-info-box" class="bg-red-50 dark:bg-rose-500/20 border-l-4 border-red-400 dark:border-rose-400 text-red-800 dark:text-rose-200 p-3 rounded-r-lg font-medium">
           </div>
     </div>
-    <div class="flex justify-end gap-3 p-6 bg-gray-50 rounded-b-xl">
-      <button onclick="closeDeleteModal()" class="px-4 py-2 text-gray-700 bg-gray-200 hover:bg-gray-300 rounded-lg font-medium">Cancel</button>
-      <button id="modal-confirm-btn" class="px-4 py-2 bg-red-600 hover:bg-red-700 text-white rounded-lg font-medium inline-flex items-center">
+    <div class="flex justify-end gap-3 p-6 bg-gray-50 dark:bg-slate-800 rounded-b-xl">
+      <button onclick="closeDeleteModal()" class="px-4 py-2 text-gray-700 dark:text-slate-200 bg-gray-200 dark:bg-slate-700 hover:bg-gray-300 dark:hover:bg-slate-600 rounded-lg font-medium">Cancel</button>
+      <button id="modal-confirm-btn" class="px-4 py-2 bg-red-600 dark:bg-rose-600 hover:bg-red-700 dark:hover:bg-rose-500 text-white rounded-lg font-medium inline-flex items-center">
         <i class="fas fa-trash-alt mr-2"></i><span id="modal-confirm-btn-text">Confirm</span>
       </button>
     </div>
@@ -905,7 +799,7 @@ function hideDoctorPopup() {
       class="mt-4"
       data-title="Remove Facility"
       data-item-name="{{ facility.name }}">
-  <button type="submit" class="inline-flex items-center gap-2 px-5 py-2 bg-red-600 text-white rounded-lg shadow hover:bg-red-700 transition text-base font-semibold focus:outline-none focus:ring-2 focus:ring-red-400">
+  <button type="submit" class="inline-flex items-center gap-2 px-5 py-2 bg-red-600 dark:bg-rose-600 text-white dark:text-white rounded-lg shadow hover:bg-red-700 dark:hover:bg-rose-500 transition text-base font-semibold focus:outline-none focus:ring-2 focus:ring-red-400 dark:focus:ring-rose-500">
     <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/></svg>
     Remove Facility
   </button>

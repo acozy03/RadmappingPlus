@@ -11,154 +11,435 @@
 
 
 <style>
-  [data-theme="dark"] body {
-    background-color: #0b1120;
-    color: #e2e8f0;
+  :root {
+    --doctor-page-background: #f8fafc;
+    --doctor-surface: #ffffff;
+    --doctor-surface-muted: #f9fafb;
+    --doctor-surface-elevated: #f3f4f6;
+    --doctor-surface-soft: #f1f5f9;
+    --doctor-border: #e5e7eb;
+    --doctor-text-primary: #1f2937;
+    --doctor-text-secondary: #4b5563;
+    --doctor-text-muted: #6b7280;
+    --doctor-text-soft: #9ca3af;
+    --doctor-heading-accent: #1e3a8a;
+    --doctor-link: #2563eb;
+    --doctor-link-hover: #1d4ed8;
+    --doctor-button-primary-bg: #2563eb;
+    --doctor-button-primary-bg-hover: #1d4ed8;
+    --doctor-button-primary-text: #ffffff;
+    --doctor-button-warning-bg: #f59e0b;
+    --doctor-button-warning-bg-hover: #d97706;
+    --doctor-button-warning-text: #1f2937;
+    --doctor-button-neutral-bg: #e5e7eb;
+    --doctor-button-neutral-bg-hover: #d1d5db;
+    --doctor-button-neutral-text: #1f2937;
+    --doctor-button-danger-bg: #dc2626;
+    --doctor-button-danger-bg-hover: #b91c1c;
+    --doctor-button-danger-text: #ffffff;
+    --doctor-status-active: #047857;
+    --doctor-status-pending: #1d4ed8;
+    --doctor-status-inactive: #b91c1c;
+    --doctor-border-status-active: #10b981;
+    --doctor-border-status-inactive: #f87171;
+    --doctor-modal-backdrop: rgba(15, 23, 42, 0.45);
+    --doctor-calendar-highlight-bg: rgba(59, 130, 246, 0.12);
+    --doctor-calendar-highlight-border: #2563eb;
+    --doctor-calendar-highlight-text: #1f2937;
+    --doctor-accent-blue-bg: #dbeafe;
+    --doctor-accent-blue-text: #1d4ed8;
+    --doctor-accent-green-bg: #dcfce7;
+    --doctor-accent-green-text: #047857;
+    --doctor-accent-purple-bg: #ede9fe;
+    --doctor-accent-purple-text: #5b21b6;
+    --doctor-accent-yellow-bg: #fef3c7;
+    --doctor-accent-yellow-text: #b45309;
+    --doctor-accent-pink-bg: #fce7f3;
+    --doctor-accent-pink-text: #be185d;
+    --doctor-accent-indigo-bg: #e0e7ff;
+    --doctor-accent-indigo-text: #3730a3;
+    --doctor-accent-cyan-bg: #cffafe;
+    --doctor-accent-cyan-text: #0e7490;
+    --doctor-accent-orange-bg: #ffedd5;
+    --doctor-accent-orange-text: #c2410c;
+    --doctor-accent-emerald-bg: #d1fae5;
+    --doctor-accent-emerald-text: #047857;
+    --doctor-accent-rose-bg: #ffe4e6;
+    --doctor-accent-rose-text: #be123c;
+    --doctor-accent-red-bg: #fee2e2;
+    --doctor-accent-red-text: #b91c1c;
+    --doctor-alert-danger-bg: #fef2f2;
+    --doctor-alert-danger-border: #fca5a5;
+    --doctor-alert-danger-text: #b91c1c;
   }
 
-  [data-theme="dark"] .doctor-profile-page {
-    color: #e2e8f0;
+  [data-theme="dark"] {
+    --doctor-page-background: #0b1120;
+    --doctor-surface: #111827;
+    --doctor-surface-muted: #172541;
+    --doctor-surface-elevated: #1d2b4a;
+    --doctor-surface-soft: #14203a;
+    --doctor-border: #25324d;
+    --doctor-text-primary: #e2e8f0;
+    --doctor-text-secondary: #cbd5f5;
+    --doctor-text-muted: #94a3b8;
+    --doctor-text-soft: #7c8ba5;
+    --doctor-heading-accent: #93c5fd;
+    --doctor-link: #93c5fd;
+    --doctor-link-hover: #bfdbfe;
+    --doctor-button-primary-bg: #2563eb;
+    --doctor-button-primary-bg-hover: #1d4ed8;
+    --doctor-button-primary-text: #f8fafc;
+    --doctor-button-warning-bg: #f59e0b;
+    --doctor-button-warning-bg-hover: #d97706;
+    --doctor-button-warning-text: #0b1120;
+    --doctor-button-neutral-bg: #2a3b5d;
+    --doctor-button-neutral-bg-hover: #36486b;
+    --doctor-button-neutral-text: #e2e8f0;
+    --doctor-button-danger-bg: #ef4444;
+    --doctor-button-danger-bg-hover: #dc2626;
+    --doctor-button-danger-text: #fdf2f8;
+    --doctor-status-active: #34d399;
+    --doctor-status-pending: #60a5fa;
+    --doctor-status-inactive: #f87171;
+    --doctor-border-status-active: #34d399;
+    --doctor-border-status-inactive: #fca5a5;
+    --doctor-modal-backdrop: rgba(4, 13, 28, 0.78);
+    --doctor-calendar-highlight-bg: rgba(59, 130, 246, 0.32);
+    --doctor-calendar-highlight-border: #3b82f6;
+    --doctor-calendar-highlight-text: #f8fafc;
+    --doctor-accent-blue-bg: rgba(59, 130, 246, 0.18);
+    --doctor-accent-blue-text: #93c5fd;
+    --doctor-accent-green-bg: rgba(34, 197, 94, 0.18);
+    --doctor-accent-green-text: #6ee7b7;
+    --doctor-accent-purple-bg: rgba(167, 139, 250, 0.18);
+    --doctor-accent-purple-text: #c4b5fd;
+    --doctor-accent-yellow-bg: rgba(253, 224, 71, 0.18);
+    --doctor-accent-yellow-text: #facc15;
+    --doctor-accent-pink-bg: rgba(244, 114, 182, 0.18);
+    --doctor-accent-pink-text: #f9a8d4;
+    --doctor-accent-indigo-bg: rgba(129, 140, 248, 0.18);
+    --doctor-accent-indigo-text: #a5b4fc;
+    --doctor-accent-cyan-bg: rgba(34, 211, 238, 0.2);
+    --doctor-accent-cyan-text: #67e8f9;
+    --doctor-accent-orange-bg: rgba(251, 146, 60, 0.2);
+    --doctor-accent-orange-text: #fbbf24;
+    --doctor-accent-emerald-bg: rgba(16, 185, 129, 0.2);
+    --doctor-accent-emerald-text: #6ee7b7;
+    --doctor-accent-rose-bg: rgba(244, 63, 94, 0.2);
+    --doctor-accent-rose-text: #fb7185;
+    --doctor-accent-red-bg: rgba(248, 113, 113, 0.2);
+    --doctor-accent-red-text: #fca5a5;
+    --doctor-alert-danger-bg: rgba(248, 113, 113, 0.12);
+    --doctor-alert-danger-border: rgba(248, 113, 113, 0.5);
+    --doctor-alert-danger-text: #fecaca;
   }
 
-  [data-theme="dark"] .doctor-profile-page .bg-white,
-  [data-theme="dark"] .doctor-profile-page .bg-gray-50 {
-    background-color: #111827 !important;
-    color: #e2e8f0;
+  .doctor-profile-page {
+    background-color: var(--doctor-page-background);
+    color: var(--doctor-text-primary);
   }
 
-  [data-theme="dark"] .doctor-profile-page .bg-blue-100 {
-    background-color: rgba(59, 130, 246, 0.2) !important;
+  .doctor-profile-page .surface-card {
+    background-color: var(--doctor-surface);
+    border-color: var(--doctor-border);
+    color: var(--doctor-text-primary);
   }
 
-  [data-theme="dark"] .doctor-profile-page .bg-green-100 {
-    background-color: rgba(52, 211, 153, 0.2) !important;
+  .doctor-profile-page .surface-subtle {
+    background-color: var(--doctor-surface-muted);
+    border-color: var(--doctor-border);
   }
 
-  [data-theme="dark"] .doctor-profile-page .bg-purple-100 {
-    background-color: rgba(167, 139, 250, 0.18) !important;
+  .doctor-profile-page .surface-elevated {
+    background-color: var(--doctor-surface-elevated);
+    border-color: var(--doctor-border);
+    box-shadow: 0 12px 30px -18px rgba(15, 23, 42, 0.45);
   }
 
-  [data-theme="dark"] .doctor-profile-page .bg-yellow-100 {
-    background-color: rgba(253, 224, 71, 0.15) !important;
+  .doctor-profile-page .text-highlight {
+    color: var(--doctor-heading-accent);
   }
 
-  [data-theme="dark"] .doctor-profile-page .bg-pink-100,
-  [data-theme="dark"] .doctor-profile-page .bg-rose-100 {
-    background-color: rgba(244, 114, 182, 0.18) !important;
+  .doctor-profile-page .text-primary {
+    color: var(--doctor-text-primary);
   }
 
-  [data-theme="dark"] .doctor-profile-page .bg-indigo-100 {
-    background-color: rgba(129, 140, 248, 0.18) !important;
+  .doctor-profile-page .text-secondary {
+    color: var(--doctor-text-secondary);
   }
 
-  [data-theme="dark"] .doctor-profile-page .bg-orange-100 {
-    background-color: rgba(251, 146, 60, 0.18) !important;
+  .doctor-profile-page .text-muted {
+    color: var(--doctor-text-muted);
   }
 
-  [data-theme="dark"] .doctor-profile-page .bg-cyan-100 {
-    background-color: rgba(34, 211, 238, 0.2) !important;
+  .doctor-profile-page .text-soft {
+    color: var(--doctor-text-soft);
   }
 
-  [data-theme="dark"] .doctor-profile-page .border {
-    border-color: #1f2937 !important;
+  .doctor-profile-page .label-title {
+    color: var(--doctor-text-muted);
+    letter-spacing: 0.08em;
   }
 
-  [data-theme="dark"] .doctor-profile-page .shadow {
-    box-shadow: 0 20px 25px -15px rgba(15, 23, 42, 0.8) !important;
+  .doctor-profile-page .link-primary {
+    color: var(--doctor-link);
   }
 
-  [data-theme="dark"] .doctor-profile-page .text-gray-900,
-  [data-theme="dark"] .doctor-profile-page .text-gray-800,
-  [data-theme="dark"] .doctor-profile-page .text-gray-700 {
-    color: #e5e7eb !important;
+  .doctor-profile-page .link-primary:hover {
+    color: var(--doctor-link-hover);
   }
 
-  [data-theme="dark"] .doctor-profile-page .text-gray-600,
-  [data-theme="dark"] .doctor-profile-page .text-gray-500 {
-    color: #cbd5f5 !important;
+  .doctor-profile-page .link-danger {
+    color: var(--doctor-status-inactive);
   }
 
-  [data-theme="dark"] .doctor-profile-page .text-gray-400 {
-    color: #9ca3af !important;
+  .doctor-profile-page .accent-icon {
+    background-color: var(--doctor-accent-blue-bg);
+    color: var(--doctor-accent-blue-text);
   }
 
-  [data-theme="dark"] .doctor-profile-page .text-blue-800,
-  [data-theme="dark"] .doctor-profile-page .text-blue-600 {
-    color: #60a5fa !important;
+  .doctor-profile-page .accent-icon--green {
+    background-color: var(--doctor-accent-green-bg);
+    color: var(--doctor-accent-green-text);
   }
 
-  [data-theme="dark"] .doctor-profile-page .text-green-700 {
-    color: #34d399 !important;
+  .doctor-profile-page .accent-icon--purple {
+    background-color: var(--doctor-accent-purple-bg);
+    color: var(--doctor-accent-purple-text);
   }
 
-  [data-theme="dark"] .doctor-profile-page .text-red-600 {
-    color: #f87171 !important;
+  .doctor-profile-page .accent-icon--yellow {
+    background-color: var(--doctor-accent-yellow-bg);
+    color: var(--doctor-accent-yellow-text);
   }
 
-  [data-theme="dark"] .doctor-profile-page .hover\:bg-gray-100:hover {
-    background-color: #1f2937 !important;
+  .doctor-profile-page .accent-icon--pink {
+    background-color: var(--doctor-accent-pink-bg);
+    color: var(--doctor-accent-pink-text);
   }
 
-  [data-theme="dark"] .doctor-profile-page .today-highlight {
-    background-color: rgba(37, 99, 235, 0.35) !important;
-    border-color: #1d4ed8 !important;
-    color: #f8fafc !important;
+  .doctor-profile-page .accent-icon--indigo {
+    background-color: var(--doctor-accent-indigo-bg);
+    color: var(--doctor-accent-indigo-text);
   }
 
-  [data-theme="dark"] .doctor-profile-page .day-tile {
-    background-color: #0f172a;
-    border-color: #1f2937;
+  .doctor-profile-page .accent-icon--cyan {
+    background-color: var(--doctor-accent-cyan-bg);
+    color: var(--doctor-accent-cyan-text);
   }
 
-  [data-theme="dark"] .doctor-profile-page input,
-  [data-theme="dark"] .doctor-profile-page select,
-  [data-theme="dark"] .doctor-profile-page textarea {
-    background-color: #0f172a;
-    border-color: #1f2937;
-    color: #e2e8f0;
+  .doctor-profile-page .accent-icon--orange {
+    background-color: var(--doctor-accent-orange-bg);
+    color: var(--doctor-accent-orange-text);
   }
 
-  [data-theme="dark"] .doctor-profile-page input::placeholder,
-  [data-theme="dark"] .doctor-profile-page textarea::placeholder {
-    color: #94a3b8;
+  .doctor-profile-page .accent-icon--emerald {
+    background-color: var(--doctor-accent-emerald-bg);
+    color: var(--doctor-accent-emerald-text);
   }
 
-  [data-theme="dark"] .doctor-profile-page .cert-item {
-    background-color: #0f172a;
-    border-color: #1f2937;
+  .doctor-profile-page .accent-icon--rose {
+    background-color: var(--doctor-accent-rose-bg);
+    color: var(--doctor-accent-rose-text);
   }
 
-  [data-theme="dark"] .doctor-profile-page .cert-item .text-gray-800 {
-    color: #e5e7eb !important;
+  .doctor-profile-page .accent-icon--red {
+    background-color: var(--doctor-accent-red-bg);
+    color: var(--doctor-accent-red-text);
   }
 
-  [data-theme="dark"] .doctor-profile-page .cert-item .text-gray-500 {
-    color: #94a3b8 !important;
+  .doctor-profile-page .status-text {
+    font-weight: 600;
   }
 
-  [data-theme="dark"] .doctor-profile-page button,
-  [data-theme="dark"] .doctor-profile-page .text-blue-600:hover {
-    color: #93c5fd;
+  .doctor-profile-page .status-text--active {
+    color: var(--doctor-status-active);
   }
 
-  [data-theme="dark"] .doctor-profile-page .bg-black.bg-opacity-50 {
-    background-color: rgba(15, 23, 42, 0.75) !important;
+  .doctor-profile-page .status-text--pending {
+    color: var(--doctor-status-pending);
   }
 
-  [data-theme="dark"] .doctor-profile-page .today-highlight .text-gray-700 {
-    color: #e2e8f0 !important;
+  .doctor-profile-page .status-text--inactive {
+    color: var(--doctor-status-inactive);
+  }
+
+  .doctor-profile-page .border-status-active {
+    border-color: var(--doctor-border-status-active) !important;
+  }
+
+  .doctor-profile-page .border-status-inactive {
+    border-color: var(--doctor-border-status-inactive) !important;
+  }
+
+  .doctor-profile-page .btn {
+    border-radius: 0.5rem;
+    font-weight: 600;
+    transition: background-color 0.2s ease, color 0.2s ease, box-shadow 0.2s ease;
+  }
+
+  .doctor-profile-page .btn:focus-visible {
+    outline: 2px solid var(--doctor-link);
+    outline-offset: 3px;
+  }
+
+  .doctor-profile-page .btn-primary {
+    background-color: var(--doctor-button-primary-bg);
+    color: var(--doctor-button-primary-text);
+    box-shadow: 0 10px 25px -12px rgba(37, 99, 235, 0.6);
+  }
+
+  .doctor-profile-page .btn-primary:hover {
+    background-color: var(--doctor-button-primary-bg-hover);
+    color: var(--doctor-button-primary-text);
+  }
+
+  .doctor-profile-page .btn-warning {
+    background-color: var(--doctor-button-warning-bg);
+    color: var(--doctor-button-warning-text);
+  }
+
+  .doctor-profile-page .btn-warning:hover {
+    background-color: var(--doctor-button-warning-bg-hover);
+    color: var(--doctor-button-warning-text);
+  }
+
+  .doctor-profile-page .btn-neutral {
+    background-color: var(--doctor-button-neutral-bg);
+    color: var(--doctor-button-neutral-text);
+  }
+
+  .doctor-profile-page .btn-neutral:hover {
+    background-color: var(--doctor-button-neutral-bg-hover);
+    color: var(--doctor-button-neutral-text);
+  }
+
+  .doctor-profile-page .btn-danger {
+    background-color: var(--doctor-button-danger-bg);
+    color: var(--doctor-button-danger-text);
+  }
+
+  .doctor-profile-page .btn-danger:hover {
+    background-color: var(--doctor-button-danger-bg-hover);
+    color: var(--doctor-button-danger-text);
+  }
+
+  .doctor-profile-page input,
+  .doctor-profile-page select,
+  .doctor-profile-page textarea {
+    background-color: var(--doctor-surface-muted);
+    border-color: var(--doctor-border);
+    color: var(--doctor-text-primary);
+  }
+
+  .doctor-profile-page .form-checkbox {
+    accent-color: var(--doctor-button-primary-bg);
+  }
+
+  .doctor-profile-page input::placeholder,
+  .doctor-profile-page textarea::placeholder {
+    color: var(--doctor-text-soft);
+  }
+
+  .doctor-profile-page .day-tile {
+    background-color: var(--doctor-surface-muted);
+    border-color: var(--doctor-border);
+    transition: background-color 0.2s ease, border-color 0.2s ease, box-shadow 0.2s ease;
+  }
+
+  .doctor-profile-page .day-tile:hover {
+    background-color: var(--doctor-surface-elevated);
+  }
+
+  .doctor-profile-page .today-highlight {
+    background-color: var(--doctor-calendar-highlight-bg) !important;
+    border-color: var(--doctor-calendar-highlight-border) !important;
+    color: var(--doctor-calendar-highlight-text) !important;
+  }
+
+  .doctor-profile-page .doctor-modal-backdrop {
+    background-color: var(--doctor-modal-backdrop);
+  }
+
+  .doctor-profile-page .modal-surface {
+    background-color: var(--doctor-surface);
+    color: var(--doctor-text-primary);
+    border-color: var(--doctor-border);
+  }
+
+  .doctor-profile-page .modal-close {
+    color: var(--doctor-text-muted);
+    transition: color 0.2s ease;
+  }
+
+  .doctor-profile-page .modal-close:hover {
+    color: var(--doctor-text-primary);
+  }
+
+  .doctor-profile-page .cert-item {
+    background-color: var(--doctor-surface-muted);
+    border-color: var(--doctor-border);
+  }
+
+  .doctor-profile-page .facility-item {
+    background-color: var(--doctor-surface-elevated);
+    border-color: var(--doctor-border);
+    box-shadow: 0 16px 32px -24px rgba(15, 23, 42, 0.5);
+  }
+
+  .doctor-profile-page .facility-item:hover {
+    box-shadow: 0 18px 36px -22px rgba(37, 99, 235, 0.25);
+  }
+
+  .doctor-profile-page .facility-divider {
+    border-color: var(--doctor-border);
+  }
+
+  .doctor-profile-page .section-divider {
+    border-color: var(--doctor-border);
+  }
+
+  .doctor-profile-page .surface-soft {
+    background-color: var(--doctor-surface-soft);
+  }
+
+  .doctor-profile-page .alert-danger {
+    background-color: var(--doctor-alert-danger-bg);
+    border-left: 4px solid var(--doctor-alert-danger-border);
+    color: var(--doctor-alert-danger-text);
+  }
+
+  .doctor-profile-page .select2-container--classic .select2-selection--single {
+    background-color: var(--doctor-surface-muted);
+    border-color: var(--doctor-border);
+    color: var(--doctor-text-primary);
+  }
+
+  .doctor-profile-page .select2-results__option {
+    color: var(--doctor-text-primary);
+  }
+
+  [data-theme="dark"] .doctor-profile-page .select2-container--classic .select2-selection--single {
+    background-color: var(--doctor-surface-elevated);
+    color: var(--doctor-text-primary);
+  }
+
+  [data-theme="dark"] .doctor-profile-page .select2-dropdown {
+    background-color: var(--doctor-surface);
+    color: var(--doctor-text-primary);
   }
 </style>
 
 
 <div class="doctor-profile-page" x-data="{ editing: false }">
   <div class="mb-8">
-    <div class="bg-white rounded-lg shadow p-6 border flex flex-col sm:flex-row items-center justify-between gap-4{% if doctor.active_status %} border-green-500{% else %} border-red-500{% endif %}">
-      <h2 class="text-3xl font-bold text-blue-800 text-center sm:text-left mb-2 sm:mb-0 flex-1">
+    <div class="surface-card rounded-lg shadow p-6 border flex flex-col sm:flex-row items-center justify-between gap-4{% if doctor.active_status %} border-status-active{% else %} border-status-inactive{% endif %}">
+      <h2 class="text-3xl font-bold text-highlight text-center sm:text-left mb-2 sm:mb-0 flex-1">
         {{ doctor.name }}
       </h2>
       {% if session.user.role == 'admin' %}
-        <button @click="editing = !editing" class="inline-flex items-center gap-2 px-5 py-2 bg-blue-600 text-white rounded-lg shadow hover:bg-blue-700 transition text-base font-semibold focus:outline-none focus:ring-2 focus:ring-blue-400">
+        <button @click="editing = !editing" class="inline-flex items-center gap-2 px-5 py-2 btn btn-primary shadow">
           <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11 5h2m-1 0v14m-7-7h14" /></svg>
           <span x-show="!editing">Edit Info</span>
           <span x-show="editing">Cancel Edit</span>
@@ -168,86 +449,86 @@
   </div>
 
   <div x-show="!editing" class="mb-8">
-    <div class="bg-white rounded-lg shadow p-6 border grid grid-cols-1 sm:grid-cols-2 gap-6">
+    <div class="surface-card rounded-lg shadow p-6 border grid grid-cols-1 sm:grid-cols-2 gap-6">
       <div class="flex items-center space-x-3">
-        <span class="inline-flex items-center justify-center w-8 h-8 bg-blue-100 text-blue-600 rounded-full">
+        <span class="inline-flex items-center justify-center w-8 h-8 accent-icon rounded-full">
           <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M16 12a4 4 0 01-8 0m8 0a4 4 0 00-8 0m8 0V8a4 4 0 00-8 0v4m8 0v4a4 4 0 01-8 0v-4" /></svg>
         </span>
         <div>
-          <div class="text-xs text-gray-500 font-semibold uppercase">Email</div>
-          <div class="text-base font-medium text-gray-900">{{ doctor.email }}</div>
+          <div class="text-xs label-title font-semibold uppercase">Email</div>
+          <div class="text-base font-medium text-primary">{{ doctor.email }}</div>
         </div>
       </div>
       <div class="flex items-center space-x-3">
-        <span class="inline-flex items-center justify-center w-8 h-8 bg-green-100 text-green-600 rounded-full">
+        <span class="inline-flex items-center justify-center w-8 h-8 accent-icon accent-icon--green rounded-full">
           <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 5h2l.4 2M7 13h10l4-8H5.4M7 13l-1.35 2.7A2 2 0 007.52 19h8.96a2 2 0 001.87-2.3L17 13M7 13V6a1 1 0 011-1h6a1 1 0 011 1v7" /></svg>
         </span>
         <div>
-          <div class="text-xs text-gray-500 font-semibold uppercase">Phone</div>
-          <div class="text-base font-medium text-gray-900">{{ doctor.phone }}</div>
+          <div class="text-xs label-title font-semibold uppercase">Phone</div>
+          <div class="text-base font-medium text-primary">{{ doctor.phone }}</div>
         </div>
       </div>
       <div class="flex items-center space-x-3">
-        <span class="inline-flex items-center justify-center w-8 h-8 bg-purple-100 text-purple-600 rounded-full">
+        <span class="inline-flex items-center justify-center w-8 h-8 accent-icon accent-icon--purple rounded-full">
           <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 17v-2a2 2 0 012-2h2a2 2 0 012 2v2m-6 0a2 2 0 002 2h2a2 2 0 002-2m-6 0V7a2 2 0 012-2h2a2 2 0 012 2v10" /></svg>
         </span>
         <div>
-          <div class="text-xs text-gray-500 font-semibold uppercase">PACS</div>
-          <div class="text-base font-medium text-gray-900">{{ doctor.pacs }}</div>
+          <div class="text-xs label-title font-semibold uppercase">PACS</div>
+          <div class="text-base font-medium text-primary">{{ doctor.pacs }}</div>
         </div>
       </div>
       <div class="flex items-center space-x-3">
-        <span class="inline-flex items-center justify-center w-8 h-8 bg-yellow-100 text-yellow-600 rounded-full">
+        <span class="inline-flex items-center justify-center w-8 h-8 accent-icon accent-icon--yellow rounded-full">
           <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" /></svg>
         </span>
         <div>
-          <div class="text-xs text-gray-500 font-semibold uppercase">Primary Method</div>
-          <div class="text-base font-medium text-gray-900">{{ doctor.primary_contact_method }}</div>
+          <div class="text-xs label-title font-semibold uppercase">Primary Method</div>
+          <div class="text-base font-medium text-primary">{{ doctor.primary_contact_method }}</div>
         </div>
       </div>
       <div class="flex items-center space-x-3">
-        <span class="inline-flex items-center justify-center w-8 h-8 bg-pink-100 text-pink-600 rounded-full">
+        <span class="inline-flex items-center justify-center w-8 h-8 accent-icon accent-icon--pink rounded-full">
           <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 18a4 4 0 008 0m-8 0V7a4 4 0 018 0v11m-8 0a4 4 0 008 0" /></svg>
         </span>
         <div>
-          <div class="text-xs text-gray-500 font-semibold uppercase">Modalities</div>
-          <div class="text-base font-medium text-gray-900">{{ doctor.modalities or "—" }}</div>
+          <div class="text-xs label-title font-semibold uppercase">Modalities</div>
+          <div class="text-base font-medium text-primary">{{ doctor.modalities or "—" }}</div>
         </div>
       </div>
       <div class="flex items-center space-x-3">
-        <span class="inline-flex items-center justify-center w-8 h-8 bg-indigo-100 text-indigo-600 rounded-full">
+        <span class="inline-flex items-center justify-center w-8 h-8 accent-icon accent-icon--indigo rounded-full">
           <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4l3 3m6 0a9 9 0 11-18 0 9 9 0 0118 0z" /></svg>
         </span>
         <div>
-          <div class="text-xs text-gray-500 font-semibold uppercase">Timezone</div>
-          <div class="text-base font-medium text-gray-900">{{ doctor.timezone or "—" }}</div>
+          <div class="text-xs label-title font-semibold uppercase">Timezone</div>
+          <div class="text-base font-medium text-primary">{{ doctor.timezone or "—" }}</div>
         </div>
       </div>
       <div class="flex items-center space-x-3">
-        <span class="inline-flex items-center justify-center w-8 h-8 bg-cyan-100 text-cyan-600 rounded-full">
+        <span class="inline-flex items-center justify-center w-8 h-8 accent-icon accent-icon--cyan rounded-full">
           <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 14l9-5-9-5-9 5 9 5zm0 0v6m0 0H6m6 0h6" /></svg>
         </span>
         <div>
-          <div class="text-xs text-gray-500 font-semibold uppercase">Fellowship</div>
+          <div class="text-xs label-title font-semibold uppercase">Fellowship</div>
           {% if doctor_specialty %}
-            <div class="text-base font-medium text-gray-900">{{ doctor_specialty }}</div>
+            <div class="text-base font-medium text-primary">{{ doctor_specialty }}</div>
           {% else %}
-            <div class="text-gray-400 italic">No Fellowship</div>
+            <div class="text-soft italic">No Fellowship</div>
           {% endif %}
         </div>
       </div>
       {% if doctor_specialties and doctor_specialties|length > 0 %}
       <div class="flex items-center space-x-3">
-        <span class="inline-flex items-center justify-center w-8 h-8 bg-orange-100 text-orange-600 rounded-full">
+        <span class="inline-flex items-center justify-center w-8 h-8 accent-icon accent-icon--orange rounded-full">
           <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11.049 2.927c.3-.921 1.603-.921 1.902 0l2.036 6.29a1 1 0 00.95.69h6.631c.969 0 1.371 1.24.588 1.81l-5.37 3.905a1 1 0 00-.364 1.118l2.036 6.29c.3.921-.755 1.688-1.54 1.118l-5.37-3.905a1 1 0 00-1.176 0l-5.37 3.905c-.784.57-1.838-.197-1.54-1.118l2.036-6.29a1 1 0 00-.364-1.118L2.342 11.717c-.783-.57-.38-1.81.588-1.81h6.631a1 1 0 00.95-.69l2.036-6.29z" /></svg>
         </span>
         <div>
-          <div class="text-xs text-gray-500 font-semibold uppercase">Specialties</div>
+          <div class="text-xs label-title font-semibold uppercase">Specialties</div>
           <div class="flex flex-wrap gap-2 mt-1">
  <div x-data="{ showAll: false }" class="flex flex-wrap gap-2 mt-1">
   {% for spec in doctor_specialties %}
     <span
-      class="inline-block bg-orange-200 text-orange-800 px-2 py-1 rounded text-xs font-semibold"
+      class="inline-block px-2 py-1 rounded text-xs font-semibold surface-subtle text-primary"
       x-show="showAll || {{ loop.index }} <= 5"
       x-transition
     >
@@ -256,7 +537,7 @@
   {% endfor %}
   {% if doctor_specialties|length > 5 %}
     <button
-      class="text-blue-600 text-xs font-semibold ml-1 underline focus:outline-none"
+      class="link-primary text-xs font-semibold ml-1 underline"
       @click="showAll = !showAll"
       x-text="showAll ? 'Show Less' : 'Show More'">
     </button>
@@ -268,25 +549,25 @@
       </div>
       {% else %}
       <div class="flex items-center space-x-3">
-        <span class="inline-flex items-center justify-center w-8 h-8 bg-orange-100 text-orange-600 rounded-full">
+        <span class="inline-flex items-center justify-center w-8 h-8 accent-icon accent-icon--orange rounded-full">
           <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11.049 2.927c.3-.921 1.603-.921 1.902 0l2.036 6.29a1 1 0 00.95.69h6.631c.969 0 1.371 1.24.588 1.81l-5.37 3.905a1 1 0 00-.364 1.118l2.036 6.29c.3.921-.755 1.688-1.54 1.118l-5.37-3.905a1 1 0 00-1.176 0l-5.37 3.905c-.784.57-1.838-.197-1.54-1.118l2.036-6.29a1 1 0 00-.364-1.118L2.342 11.717c-.783-.57-.38-1.81.588-1.81h6.631a1 1 0 00.95-.69l2.036-6.29z" /></svg>
         </span>
         <div>
-          <div class="text-xs text-gray-500 font-semibold uppercase">Specialties</div>
-          <div class="text-gray-400 italic">No Specialties</div>
+          <div class="text-xs label-title font-semibold uppercase">Specialties</div>
+          <div class="text-soft italic">No Specialties</div>
         </div>
       </div>
       
       {% endif %}
       <div class="flex items-center space-x-3">
-  <span class="inline-flex items-center justify-center w-8 h-8 bg-emerald-100 text-emerald-600 rounded-full">
+  <span class="inline-flex items-center justify-center w-8 h-8 accent-icon accent-icon--emerald rounded-full">
     <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
       <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 6h16M4 10h16M4 14h10M4 18h6"/>
     </svg>
   </span>
   <div>
-    <div class="text-xs text-gray-500 font-semibold uppercase">Reads Stats</div>
-    <div class="text-base font-medium text-gray-900">
+    <div class="text-xs label-title font-semibold uppercase">Reads Stats</div>
+    <div class="text-base font-medium text-primary">
       {{ doctor.reads_stats or '—' }}
 
     </div>
@@ -294,14 +575,14 @@
 </div>
 
 <div class="flex items-center space-x-3">
-  <span class="inline-flex items-center justify-center w-8 h-8 bg-blue-100 text-blue-600 rounded-full">
+  <span class="inline-flex items-center justify-center w-8 h-8 accent-icon rounded-full">
     <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
       <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 17v-2h6v2a2 2 0 002 2H7a2 2 0 002-2zM9 11h6m-6-4h6M5 3h14a2 2 0 012 2v16a2 2 0 01-2 2H5a2 2 0 01-2-2V5a2 2 0 012-2z"/>
     </svg>
   </span>
   <div>
-    <div class="text-xs text-gray-500 font-semibold uppercase">Reads Routine</div>
-    <div class="text-base font-medium text-gray-900">
+    <div class="text-xs label-title font-semibold uppercase">Reads Routine</div>
+    <div class="text-base font-medium text-primary">
       {{ doctor.reads_routines or '—' }}
 
     </div>
@@ -309,15 +590,15 @@
 </div>
 
 <div class="flex items-center space-x-3">
-<span class="inline-flex items-center justify-center w-8 h-8 bg-rose-100 text-rose-600 rounded-full">
+<span class="inline-flex items-center justify-center w-8 h-8 accent-icon accent-icon--rose rounded-full">
   <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 17l6-6 4 4 8-8M5 21h14" />
   </svg>
 </span>
 
   <div>
-    <div class="text-xs text-gray-500 font-semibold uppercase">RVU Score</div>
-<div class="text-base font-medium text-gray-900">
+    <div class="text-xs label-title font-semibold uppercase">RVU Score</div>
+<div class="text-base font-medium text-primary">
   {{ rvu | round(1) if rvu is not none else '—' }}
 </div>
 
@@ -325,25 +606,25 @@
 </div>
 
 <div class="flex items-center space-x-3">
-  <span class="inline-flex items-center justify-center w-8 h-8 bg-red-100 text-red-600 rounded-full">
+  <span class="inline-flex items-center justify-center w-8 h-8 accent-icon accent-icon--red rounded-full">
     <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
       <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
         d="M9 5h6m-6 4h6m-4 4h4m-4 4h4M9 7h.01M4 6a2 2 0 012-2h1.4a1 1 0 00.8-.4l.6-.8A1 1 0 0110 2h4a1 1 0 01.8.4l.6.8a1 1 0 00.8.4H18a2 2 0 012 2v14a2 2 0 01-2 2H6a2 2 0 01-2-2V6z"/>
     </svg>
   </span>
   <div x-data="{ expanded: false }">
-    <div class="text-xs text-gray-500 font-semibold uppercase">Stipulations</div>
-    <div class="text-base font-medium text-gray-900">
+    <div class="text-xs label-title font-semibold uppercase">Stipulations</div>
+    <div class="text-base font-medium text-primary">
       {% set full_text = doctor.stipulations or '—' %}
       {% if full_text|length > 50 %}
         <template x-if="!expanded">
           <span>
-            {{ full_text[:50] }}... <a href="#" @click.prevent="expanded = true" class="text-blue-600 hover:underline">Show More</a>
+            {{ full_text[:50] }}... <a href="#" @click.prevent="expanded = true" class="link-primary underline">Show More</a>
           </span>
         </template>
         <template x-if="expanded">
           <span>
-            {{ full_text }} <a href="#" @click.prevent="expanded = false" class="text-blue-600 hover:underline">Show less</a>
+            {{ full_text }} <a href="#" @click.prevent="expanded = false" class="link-primary underline">Show less</a>
           </span>
         </template>
       {% else %}
@@ -359,7 +640,7 @@
   </div>
 
   <div x-show="editing" class="mb-8">
-    <form method="POST" action="{{ url_for('doctors.update_doctor', rad_id=doctor.id) }}" class="bg-white rounded-lg shadow p-6 border grid grid-cols-1 sm:grid-cols-2 gap-6">
+    <form method="POST" action="{{ url_for('doctors.update_doctor', rad_id=doctor.id) }}" class="surface-card rounded-lg shadow p-6 border grid grid-cols-1 sm:grid-cols-2 gap-6">
       <label class="block">
     <span class="font-semibold">Name</span>
     <input type="text" name="name" value="{{ doctor.name }}" required class="input w-full border rounded px-3 py-2 text-sm" />
@@ -421,11 +702,11 @@
       </label>
 
       <label class="flex items-center space-x-2 mt-4">
-        <input type="checkbox" name="active_status" value="true" {% if doctor.active_status %}checked{% endif %} class="form-checkbox h-5 w-5 text-blue-600">
+        <input type="checkbox" name="active_status" value="true" {% if doctor.active_status %}checked{% endif %} class="form-checkbox h-5 w-5">
         <span class="text-sm font-medium">Active</span>
       </label>
       <div class="col-span-2">
-        <button type="submit" class="bg-blue-600 text-white px-4 py-2 rounded text-sm font-semibold mt-2">
+        <button type="submit" class="btn btn-primary px-4 py-2 text-sm font-semibold mt-2">
           Save Changes
         </button>
       </div>
@@ -434,36 +715,36 @@
 
   <div class="mt-8 flex flex-col md:flex-row gap-6">
     <div class="flex-1 min-w-0">
-      <div class="bg-white rounded-lg shadow p-6 border flex flex-col items-center justify-center h-full text-center">
-        <h3 class="font-semibold text-lg mb-2 text-blue-800">Additional Info</h3>
+      <div class="surface-card rounded-lg shadow p-6 border flex flex-col items-center justify-center h-full text-center">
+        <h3 class="font-semibold text-lg mb-2 text-highlight">Additional Info</h3>
         {% if doctor.additional_info %}
-          <p class="text-gray-700 break-words">{{ doctor.additional_info }}</p>
+          <p class="text-secondary break-words">{{ doctor.additional_info }}</p>
         {% else %}
-          <p class="text-gray-400 italic">No additional info provided.</p>
+          <p class="text-soft italic">No additional info provided.</p>
         {% endif %}
       </div>
     </div>
     <div class="flex-1 min-w-0 flex flex-col">
-      <div class="bg-white rounded-lg shadow p-6 border flex flex-col items-center justify-center h-full text-center">
+      <div class="surface-card rounded-lg shadow p-6 border flex flex-col items-center justify-center h-full text-center">
         <h3 class="text-xl font-semibold mb-4">Licenses</h3>
         <div class="flex-1"></div>
-        <button onclick="openCertModal()" class="text-blue-600 hover:underline w-full mt-auto">View Licenses</button>
+        <button onclick="openCertModal()" class="link-primary underline w-full mt-auto">View Licenses</button>
       </div>
     </div>
     <div class="flex-1 min-w-0 flex flex-col">
-      <div class="bg-white rounded-lg shadow p-6 border flex flex-col items-center justify-center h-full text-center">
+      <div class="surface-card rounded-lg shadow p-6 border flex flex-col items-center justify-center h-full text-center">
         <h3 class="text-xl font-semibold mb-4">Assigned Facilities</h3>
         <div class="flex-1"></div>
-        <button onclick="openFacilityModal()" class="text-blue-600 hover:underline w-full mt-auto">View Facilities</button>
+        <button onclick="openFacilityModal()" class="link-primary underline w-full mt-auto">View Facilities</button>
       </div>
     </div>
   </div>
-  <hr class="my-10 border-t-2 border-gray-200">
+  <hr class="my-10 border-t-2 section-divider">
 
   <!-- {% if session.user.role == 'admin' %} ... schedule content ... {% endif %} -->
 
   <div class="mt-10">
-      <div class="grid grid-cols-7 gap-4 mb-2 text-sm font-semibold text-gray-600">
+      <div class="grid grid-cols-7 gap-4 mb-2 text-sm font-semibold text-muted">
         {% for day in ["M", "T", "W", "Th", "F", "Sa", "Su"] %}
           <div class="text-center">{{ day }}</div>
         {% endfor %}
@@ -480,14 +761,14 @@
         {% set day_str = "%04d-%02d-%02d"|format(year, month, day) %}
         {% set entry = calendar.get(day_str) %}
         {% set is_today = (day_str == today_str) %}
-        <div class="relative border p-4 rounded hover:bg-gray-100 min-h-[8rem] cursor-pointer day-tile {{ 'bg-blue-100 font-semibold border-blue-300 today-highlight' if is_today else '' }}" data-date="{{ day_str }}">
+        <div class="relative border p-4 rounded min-h-[8rem] cursor-pointer day-tile {{ 'today-highlight font-semibold' if is_today else '' }}" data-date="{{ day_str }}">
           <div class="font-bold text-lg">{{ day }}</div>
           {% if entry %}
-            <div class="text-sm text-gray-700">
+            <div class="text-sm text-secondary">
               {{ entry.start_time | ampm }} – {{ entry.end_time | ampm }}
             </div>
           {% else %}
-            <div class="text-sm text-gray-400 italic">No shift</div>
+            <div class="text-sm text-soft italic">No shift</div>
           {% endif %}
 
           <!-- {% if session.user.role == 'admin' %} ... schedule form ... {% endif %} -->
@@ -497,15 +778,15 @@
   </div>
 
   <div id="certModal"
-       class="fixed inset-0 z-50 hidden bg-black bg-opacity-50 flex items-center justify-center"
+       class="fixed inset-0 z-50 hidden doctor-modal-backdrop flex items-center justify-center"
        onclick="if(event.target === this) closeCertModal();">
-    <div class="bg-white rounded-lg shadow-lg w-[90%] max-w-3xl max-h-[80vh] overflow-y-auto p-6 relative"
+    <div class="modal-surface rounded-lg shadow-lg w-[90%] max-w-3xl max-h-[80vh] overflow-y-auto p-6 relative border"
          onclick="event.stopPropagation();">
-    
-    <button onclick="closeCertModal()" class="absolute top-2 right-2 text-2xl font-bold text-gray-500 hover:text-black">×</button>
+
+    <button onclick="closeCertModal()" class="absolute top-2 right-2 text-2xl font-bold modal-close">×</button>
 
     <h3 class="text-xl font-semibold mb-4 flex items-center gap-2">
-      <span class="inline-flex items-center justify-center w-8 h-8 bg-green-100 text-green-600 rounded-full">
+      <span class="inline-flex items-center justify-center w-8 h-8 accent-icon accent-icon--green rounded-full">
         <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
           <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
                 d="M12 8v4l3 3m6 0a9 9 0 11-18 0 9 9 0 0118 0z" />
@@ -521,10 +802,9 @@
 
     <ul id="certList" class="space-y-3 text-sm">
       {% for cert in certifications %}
-      <li class="border rounded p-4 bg-gray-50 flex justify-between items-center cert-item shadow-sm">
+      <li class="border rounded p-4 flex justify-between items-center cert-item shadow-sm">
         <div class="flex items-center gap-3">
-          <span class="inline-flex items-center justify-center w-8 h-8 rounded-full
-            {% if cert.status|lower == 'active' %}bg-blue-100 text-blue-600{% else %}bg-red-100 text-red-600{% endif %}">
+          <span class="inline-flex items-center justify-center w-8 h-8 rounded-full accent-icon{% if cert.status|lower != 'active' %} accent-icon--red{% endif %}">
             {% if cert.status|lower == 'active' %}
             <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" fill="none"
                  viewBox="0 0 24 24" stroke="currentColor">
@@ -540,9 +820,9 @@
             {% endif %}
           </span>
           <div>
-            <p class="font-semibold text-gray-800">{{ cert.state }}</p>
-            <p class="text-xs text-gray-500">Expires <span class="text-gray-700">{{ cert.expiration_date }}</span></p>
-            <p class="text-xs text-gray-500">{{ cert.status | capitalize }}</p>
+            <p class="font-semibold text-primary">{{ cert.state }}</p>
+            <p class="text-xs text-muted">Expires <span class="text-secondary">{{ cert.expiration_date }}</span></p>
+            <p class="text-xs text-muted">{{ cert.status | capitalize }}</p>
           </div>
         </div>
         {% if session.user.role == 'adminn' %}
@@ -550,7 +830,7 @@
       action="{{ url_for('doctors.delete_certification', cert_id=cert.id, rad_id=doctor.id) }}"
       class="ml-4"
       onsubmit="return confirm('Are you sure you want to delete this license for {{ cert.state }}?');">
-  <button type="submit" class="text-red-600 hover:text-red-800">Delete</button>
+  <button type="submit" class="link-danger">Delete</button>
 </form>
 
         {% endif %}
@@ -583,15 +863,15 @@
     </script>
     
 <div id="facilityModal" x-data="{ editMode: false, expanded: {} }"
-     class="fixed inset-0 z-50 hidden bg-black bg-opacity-50 flex items-center justify-center"
+     class="fixed inset-0 z-50 hidden doctor-modal-backdrop flex items-center justify-center"
      onclick="if(event.target === this) closeFacilityModal();">
-  <div class="bg-white rounded-lg shadow-lg w-[98%] max-w-5xl max-h-[90vh] overflow-y-auto p-8 relative"
+  <div class="modal-surface rounded-lg shadow-lg w-[98%] max-w-5xl max-h-[90vh] overflow-y-auto p-8 relative border"
        onclick="event.stopPropagation();">
-    
-    <button onclick="closeFacilityModal()" class="absolute top-2 right-2 text-2xl font-bold text-gray-500 hover:text-black">×</button>
+
+    <button onclick="closeFacilityModal()" class="absolute top-2 right-2 text-2xl font-bold modal-close">×</button>
 
     <h3 class="text-xl font-semibold mb-4 flex items-center gap-2">
-      <span class="inline-flex items-center justify-center w-8 h-8 bg-purple-100 text-purple-600 rounded-full">
+      <span class="inline-flex items-center justify-center w-8 h-8 accent-icon accent-icon--purple rounded-full">
         <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
           <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
                 d="M9 17v-2a2 2 0 012-2h2a2 2 0 012 2v2m-6 0a2 2 0 002 2h2a2 2 0 002-2m-6 0V7a2 2 0 012-2h2a2 2 0 012 2v10" />
@@ -604,47 +884,47 @@
       <input type="text" placeholder="Search facilities..." oninput="filterFacilities(this.value)" class="w-full mr-4 px-3 py-2 border rounded text-sm">
       <div class="flex gap-2">
         {% if session.user.role == 'admin' %}
-          <button x-show="!editMode" @click="editMode = true" class="bg-yellow-500 text-white px-4 py-2 rounded text-sm font-medium">Edit Assignments</button>
-          <button x-show="editMode" @click="editMode = false" class="bg-gray-300 text-gray-800 px-4 py-2 rounded text-sm font-medium">Cancel Edit</button>
-          <button onclick="openAddFacilityModal()" class="bg-blue-600 text-white px-4 py-2 rounded text-sm font-medium">Add Facility</button>
+          <button x-show="!editMode" @click="editMode = true" class="btn btn-warning px-4 py-2 text-sm font-medium">Edit Assignments</button>
+          <button x-show="editMode" @click="editMode = false" class="btn btn-neutral px-4 py-2 text-sm font-medium">Cancel Edit</button>
+          <button onclick="openAddFacilityModal()" class="btn btn-primary px-4 py-2 text-sm font-medium">Add Facility</button>
         {% endif %}
       </div>
     </div>
 
     <ul id="facilityList" class="space-y-4 text-sm">
       {% for assignment in assigned_facilities %}
-      <li class="facility-item border rounded-lg bg-gray-50 shadow-sm p-4">
-        <div :class="editMode ? '{{ 'border-green-500' if assignment.facilities.active_status == 'true' else 'border-red-500' }}' : 'border-gray-200'" class="flex flex-col gap-2">
+      <li class="facility-item border rounded-lg shadow-sm p-4">
+        <div :class="editMode ? '{{ 'border-status-active' if assignment.facilities.active_status == 'true' else 'border-status-inactive' }}' : 'facility-divider'" class="flex flex-col gap-2 border rounded-lg p-3">
           <div class="flex items-center justify-between">
             <div class="flex items-center gap-3">
-              <span class="inline-flex items-center justify-center w-8 h-8 bg-indigo-100 text-indigo-600 rounded-full">
+              <span class="inline-flex items-center justify-center w-8 h-8 accent-icon accent-icon--indigo rounded-full">
                 <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                   <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4l3 3m6 0a9 9 0 11-18 0 9 9 0 0118 0z"/>
                 </svg>
               </span>
               <div>
-<div class="font-semibold text-gray-800">{{ assignment.facilities.name }}</div>
+<div class="font-semibold text-primary">{{ assignment.facilities.name }}</div>
 
-<div class="flex text-xs text-gray-500 w-full">
+<div class="flex text-xs text-muted w-full flex-wrap gap-4">
   <div class="flex items-center gap-1">
     Facility Status:
-    <span class="font-medium {{ 'text-green-700' if assignment.facilities.active_status == 'true' else 'text-red-700' }}">
+    <span class="status-text {{ 'status-text--active' if assignment.facilities.active_status == 'true' else 'status-text--inactive' }}">
       {{ 'Active' if assignment.facilities.active_status == 'true' else 'Inactive' }}
     </span>
   </div>
 
-  <div class="flex items-center px-4 gap-1">
+  <div class="flex items-center gap-1">
     Read Status:
     {% if assignment.can_read == 'true' %}
-      <span class="font-medium text-green-700">Active</span>
+      <span class="status-text status-text--active">Active</span>
     {% elif assignment.can_read == 'pending' %}
-      <span class="font-medium text-blue-700">Pending</span>
+      <span class="status-text status-text--pending">Pending</span>
     {% else %}
-      <span class="font-medium text-red-700">Inactive</span>
+      <span class="status-text status-text--inactive">Inactive</span>
     {% endif %}
   </div>
 </div>
-                
+
               </div>
             </div>
 
@@ -653,27 +933,27 @@
             </div>
           </div>
 
-          <div class="mt-2 border-t pt-2">
+          <div class="mt-2 border-t pt-2 facility-divider">
             <div class="grid grid-cols-1 md:grid-cols-2 gap-2">
               <div>
-                <div class="text-xs text-gray-500 font-semibold mb-1">Stipulations</div>
+                <div class="text-xs label-title font-semibold mb-1">Stipulations</div>
                 {% set stip = doctor.stipulations or '—' %}
                 {% if stip|length > 100 %}
                 <div x-data="{ expanded: false }">
-                  <div x-show="!expanded" class="text-gray-700 whitespace-pre-line">
-                    {{ stip[:100] }}... <button @click="expanded = true" class="text-blue-600 underline text-sm">Show More</button>
+                  <div x-show="!expanded" class="text-secondary whitespace-pre-line">
+                    {{ stip[:100] }}... <button @click="expanded = true" class="link-primary underline text-sm">Show More</button>
                   </div>
-                  <div x-show="expanded" class="text-gray-700 whitespace-pre-line">
-                    {{ stip }} <button @click="expanded = false" class="text-blue-600 underline text-sm">Show Less</button>
+                  <div x-show="expanded" class="text-secondary whitespace-pre-line">
+                    {{ stip }} <button @click="expanded = false" class="link-primary underline text-sm">Show Less</button>
                   </div>
                 </div>
                 {% else %}
-                  <div class="text-gray-700 whitespace-pre-line">{{ stip }}</div>
+                  <div class="text-secondary whitespace-pre-line">{{ stip }}</div>
                 {% endif %}
               </div>
               <div>
-                <div class="text-xs text-gray-500 font-semibold mb-1">Notes</div>
-                <div class="text-gray-700 whitespace-pre-line">{{ assignment.notes or '—' }}</div>
+                <div class="text-xs label-title font-semibold mb-1">Notes</div>
+                <div class="text-secondary whitespace-pre-line">{{ assignment.notes or '—' }}</div>
               </div>
             </div>
           </div>
@@ -681,7 +961,7 @@
 <template x-if="editMode">
   <form method="POST" action="{{ url_for('doctors.update_assignment', assignment_id=assignment.id) }}" class="mt-4 border-t pt-4 flex flex-col gap-2">
     <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
-      <label class="block text-sm font-medium text-gray-700">
+      <label class="block text-sm font-medium text-secondary">
         Approval Status
         <select name="can_read" class="w-full mt-1 border rounded px-2 py-1 text-sm">
           <option value="true" {% if assignment.can_read == 'true' %}selected{% endif %}>Active</option>
@@ -690,42 +970,42 @@
         </select>
       </label>
 
-      <label class="block text-sm font-medium text-gray-700">
+      <label class="block text-sm font-medium text-secondary">
         Notes
         <textarea name="notes" class="w-full mt-1 border rounded px-2 py-1 text-sm" rows="2" placeholder="Notes">{{ assignment.notes }}</textarea>
       </label>
     </div>
 
     <div class="flex gap-2 mt-2 justify-end">
-      <button type="submit" class="bg-blue-600 text-white text-sm px-3 py-1 rounded">Save Changes</button>
+      <button type="submit" class="btn btn-primary text-sm px-3 py-1">Save Changes</button>
     </div>
   </form>
 </template>
 
           <template x-if="editMode">
             <form method="POST" action="{{ url_for('doctors.delete_assignment', assignment_id=assignment.id) }}" class="mt-2 flex justify-end">
-              <button type="submit" class="text-red-600 text-sm hover:underline">Remove Assignment</button>
+              <button type="submit" class="link-danger text-sm underline">Remove Assignment</button>
             </form>
           </template>
         </div>
       </li>
       {% else %}
-      <li class="text-gray-500 italic text-center py-4">No facilities assigned yet.</li>
+      <li class="text-muted italic text-center py-4">No facilities assigned yet.</li>
       {% endfor %}
     </ul>
   </div>
 </div>
 
 <div id="addFacilityModal"
-     class="fixed inset-0 z-50 hidden bg-black bg-opacity-50 flex items-center justify-center"
+     class="fixed inset-0 z-50 hidden doctor-modal-backdrop flex items-center justify-center"
      onclick="if(event.target === this) closeAddFacilityModal();">
-  <div class="bg-white rounded-lg shadow-lg w-[90%] max-w-2xl p-6 relative"
+  <div class="modal-surface rounded-lg shadow-lg w-[90%] max-w-2xl p-6 relative border"
        onclick="event.stopPropagation();">
-    <button onclick="closeAddFacilityModal()" class="absolute top-2 right-2 text-2xl font-bold text-gray-500 hover:text-black">×</button>
+    <button onclick="closeAddFacilityModal()" class="absolute top-2 right-2 text-2xl font-bold modal-close">×</button>
     <h3 class="text-xl font-semibold mb-4">Add Facility Assignment</h3>
     <form method="POST" action="{{ url_for('doctors.add_facility_assignment', rad_id=doctor.id) }}" class="space-y-4">
       <div>
-        <label class="block text-sm font-medium text-gray-700 mb-1">Select Facility</label>
+        <label class="block text-sm font-medium text-secondary mb-1">Select Facility</label>
         <select name="facility_id" required class="w-full border rounded px-3 py-2 text-sm select2-facility">
           <option value="">Choose a facility...</option>
           {% for facility in available_facilities %}
@@ -736,7 +1016,7 @@
         </select>
       </div>
       <div>
-        <label class="block text-sm font-medium text-gray-700 mb-1">Approval Status</label>
+        <label class="block text-sm font-medium text-secondary mb-1">Approval Status</label>
         <select name="can_read" required class="w-full border rounded px-3 py-2 text-sm">
           <option value="true">Active</option>
           <option value="pending">Pending</option>
@@ -744,11 +1024,11 @@
         </select>
       </div>
       <div>
-        <label class="block text-sm font-medium text-gray-700 mb-1">Notes</label>
+        <label class="block text-sm font-medium text-secondary mb-1">Notes</label>
         <textarea name="notes" class="w-full border rounded px-3 py-2 text-sm" rows="2" placeholder="Notes"></textarea>
       </div>
       <div class="flex justify-end">
-        <button type="submit" class="bg-blue-600 text-white px-4 py-2 rounded text-sm font-medium">
+        <button type="submit" class="btn btn-primary px-4 py-2 text-sm font-medium">
           Add Assignment
         </button>
       </div>
@@ -803,7 +1083,7 @@ input[type=number]::-webkit-inner-spin-button {
 
   .select2-container--classic .select2-selection--single {
     height: 38px !important;
-    border: 1px solid #d1d5db !important;
+    border: 1px solid var(--doctor-border) !important;
     border-radius: 0.375rem !important;
   }
   .select2-container--classic .select2-selection--single .select2-selection__rendered {
@@ -817,12 +1097,12 @@ input[type=number]::-webkit-inner-spin-button {
     padding: 8px 12px !important;
   }
   .select2-container--classic .select2-results__option--highlighted[aria-selected] {
-    background-color: #2563eb !important;
+    background-color: var(--doctor-button-primary-bg) !important;
   }
 /* Custom Select2 styles */
 .select2-container--classic .select2-selection--single {
   height: 38px !important;
-  border: 1px solid #d1d5db !important;
+  border: 1px solid var(--doctor-border) !important;
   border-radius: 0.375rem !important;
 }
 
@@ -837,8 +1117,8 @@ input[type=number]::-webkit-inner-spin-button {
 
 .select2-container--classic .select2-results__option {
   padding: 8px 12px !important;
-  white-space: normal; 
-  word-break: break-word; 
+  white-space: normal;
+  word-break: break-word;
 }
 
 .select2-dropdown {
@@ -846,25 +1126,25 @@ input[type=number]::-webkit-inner-spin-button {
 }
   </style>
 
-  <div id="delete-confirm-modal" class="fixed inset-0 z-50 hidden bg-black bg-opacity-50 flex items-center justify-center p-4">
-    <div class="bg-white rounded-xl shadow-2xl w-full max-w-md transform transition-all" onclick="event.stopPropagation();">
-      <div class="flex items-center gap-4 p-6 border-b border-gray-200">
-        <div class="flex-shrink-0 w-12 h-12 flex items-center justify-center bg-red-100 text-red-600 rounded-lg text-xl">
+  <div id="delete-confirm-modal" class="fixed inset-0 z-50 hidden doctor-modal-backdrop flex items-center justify-center p-4">
+    <div class="modal-surface rounded-xl shadow-2xl w-full max-w-md transform transition-all border" onclick="event.stopPropagation();">
+      <div class="flex items-center gap-4 p-6 border-b facility-divider">
+        <div class="flex-shrink-0 w-12 h-12 flex items-center justify-center rounded-lg accent-icon accent-icon--red text-xl">
           <i class="fas fa-exclamation-triangle"></i>
         </div>
-        <h3 id="modal-title" class="text-lg font-semibold text-gray-900">Remove Doctor</h3>
-        <button onclick="closeDeleteModal()" class="ml-auto p-2 text-gray-400 hover:text-gray-600 hover:bg-gray-100 rounded-lg transition-colors">
+        <h3 id="modal-title" class="text-lg font-semibold text-primary">Remove Doctor</h3>
+        <button onclick="closeDeleteModal()" class="ml-auto p-2 modal-close rounded-lg transition-colors">
             <i class="fas fa-times"></i>
         </button>
       </div>
       <div class="p-6">
-          <p id="modal-text" class="text-gray-600 mb-4">Are you sure you want to remove this doctor? This action cannot be undone.</p>
-          <div id="modal-info-box" class="bg-red-50 border-l-4 border-red-400 text-red-800 p-3 rounded-r-lg font-medium">
+          <p id="modal-text" class="text-muted mb-4">Are you sure you want to remove this doctor? This action cannot be undone.</p>
+          <div id="modal-info-box" class="alert-danger p-3 rounded-r-lg font-medium">
           </div>
       </div>
-      <div class="flex justify-end gap-3 p-6 bg-gray-50 rounded-b-xl">
-        <button onclick="closeDeleteModal()" class="px-4 py-2 text-gray-700 bg-gray-200 hover:bg-gray-300 rounded-lg font-medium">Cancel</button>
-        <button id="modal-confirm-btn" class="px-4 py-2 bg-red-600 hover:bg-red-700 text-white rounded-lg font-medium inline-flex items-center">
+      <div class="flex justify-end gap-3 p-6 surface-soft rounded-b-xl">
+        <button onclick="closeDeleteModal()" class="px-4 py-2 btn btn-neutral">Cancel</button>
+        <button id="modal-confirm-btn" class="px-4 py-2 btn btn-danger inline-flex items-center">
           <i class="fas fa-trash-alt mr-2"></i><span id="modal-confirm-btn-text">Remove Doctor</span>
         </button>
       </div>
@@ -913,7 +1193,7 @@ input[type=number]::-webkit-inner-spin-button {
         onsubmit="handleRemoveDoctor(event, this)" 
         class="mt-4"
         data-item-name="{{ doctor.name }}">
-    <button type="submit" class="inline-flex items-center gap-2 px-5 py-2 bg-red-600 text-white rounded-lg shadow hover:bg-red-700 transition text-base font-semibold focus:outline-none focus:ring-2 focus:ring-red-400">
+    <button type="submit" class="inline-flex items-center gap-2 px-5 py-2 btn btn-danger shadow transition text-base font-semibold">
       <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/></svg>
       Remove Doctor
     </button>
