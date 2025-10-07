@@ -2,7 +2,220 @@
 {% block title %}General Information{% endblock %}
 
 {% block content %}
-<div class="max-w-6xl mx-auto">
+<style>
+    :root[data-theme="dark"] body {
+        background-color: #0b1120;
+        color: #e2e8f0;
+    }
+
+    :root[data-theme="dark"] .info-page-container {
+        color: #e2e8f0;
+    }
+
+    :root[data-theme="dark"] .info-page-container .page-title {
+        color: #e2e8f0;
+        text-shadow: 0 1px 0 rgba(15, 23, 42, 0.3);
+    }
+
+    :root[data-theme="dark"] .info-page-container .page-subtitle {
+        color: #94a3b8;
+    }
+
+    :root[data-theme="dark"] .info-page-container .info-search-input {
+        background-color: rgba(15, 23, 42, 0.6);
+        border-color: rgba(148, 163, 184, 0.4);
+        color: #e2e8f0;
+        box-shadow: 0 10px 30px rgba(15, 23, 42, 0.35);
+    }
+
+    :root[data-theme="dark"] .info-page-container .info-search-input::placeholder {
+        color: #64748b;
+    }
+
+    :root[data-theme="dark"] .info-page-container .info-search-input:focus {
+        border-color: #60a5fa;
+        outline: none;
+        box-shadow: 0 0 0 4px rgba(37, 99, 235, 0.25);
+    }
+
+    :root[data-theme="dark"] .info-page-container .info-card {
+        background: linear-gradient(145deg, rgba(15, 23, 42, 0.92), rgba(30, 41, 59, 0.92));
+        border-color: rgba(148, 163, 184, 0.35);
+        box-shadow: 0 25px 50px -12px rgba(15, 23, 42, 0.65);
+    }
+
+    :root[data-theme="dark"] .info-page-container .info-card:hover {
+        box-shadow: 0 35px 65px -15px rgba(15, 23, 42, 0.75);
+    }
+
+    :root[data-theme="dark"] .info-page-container .info-card h2,
+    :root[data-theme="dark"] .info-page-container .info-card span,
+    :root[data-theme="dark"] .info-page-container .info-card p {
+        color: inherit;
+    }
+
+    :root[data-theme="dark"] .info-page-container .icon-theme {
+        background: linear-gradient(145deg, rgba(59, 130, 246, 0.2), rgba(147, 197, 253, 0.12));
+        color: #93c5fd;
+    }
+
+    :root[data-theme="dark"] .info-page-container .info-card[data-theme="purple-blue"] .icon-theme {
+        background: linear-gradient(145deg, rgba(192, 132, 252, 0.24), rgba(129, 140, 248, 0.18));
+        color: #c4b5fd;
+    }
+
+    :root[data-theme="dark"] .info-page-container .info-card[data-theme="orange-red"] .icon-theme {
+        background: linear-gradient(145deg, rgba(251, 146, 60, 0.28), rgba(248, 113, 113, 0.18));
+        color: #fcd34d;
+    }
+
+    :root[data-theme="dark"] .info-page-container .info-card[data-theme="green-emerald"] .icon-theme {
+        background: linear-gradient(145deg, rgba(74, 222, 128, 0.22), rgba(16, 185, 129, 0.18));
+        color: #86efac;
+    }
+
+    :root[data-theme="dark"] .info-page-container .info-card[data-theme="indigo-purple"] .icon-theme {
+        background: linear-gradient(145deg, rgba(129, 140, 248, 0.24), rgba(196, 181, 253, 0.16));
+        color: #a5b4fc;
+    }
+
+    :root[data-theme="dark"] .info-page-container .info-card[data-theme="teal-cyan"] .icon-theme {
+        background: linear-gradient(145deg, rgba(20, 184, 166, 0.26), rgba(6, 182, 212, 0.18));
+        color: #5eead4;
+    }
+
+    :root[data-theme="dark"] .info-page-container .info-card[data-theme="pink-rose"] .icon-theme {
+        background: linear-gradient(145deg, rgba(249, 168, 212, 0.25), rgba(244, 114, 182, 0.16));
+        color: #f9a8d4;
+    }
+
+    :root[data-theme="dark"] .info-page-container .info-card[data-theme="amber-yellow"] .icon-theme {
+        background: linear-gradient(145deg, rgba(253, 230, 138, 0.28), rgba(250, 204, 21, 0.18));
+        color: #facc15;
+    }
+
+    :root[data-theme="dark"] .info-page-container .info-card[data-theme="red-pink"] .icon-theme {
+        background: linear-gradient(145deg, rgba(248, 113, 113, 0.28), rgba(244, 114, 182, 0.18));
+        color: #fda4af;
+    }
+
+    :root[data-theme="dark"] .info-page-container .themed-content {
+        background: rgba(30, 41, 59, 0.8);
+        border-color: rgba(59, 130, 246, 0.45);
+        color: #e2e8f0;
+        box-shadow: inset 0 1px 0 rgba(148, 163, 184, 0.15);
+    }
+
+    :root[data-theme="dark"] .info-page-container .info-card[data-theme="orange-red"] .themed-content {
+        border-color: rgba(251, 146, 60, 0.45);
+    }
+
+    :root[data-theme="dark"] .info-page-container .info-card[data-theme="green-emerald"] .themed-content {
+        border-color: rgba(16, 185, 129, 0.45);
+    }
+
+    :root[data-theme="dark"] .info-page-container .info-card[data-theme="indigo-purple"] .themed-content {
+        border-color: rgba(129, 140, 248, 0.45);
+    }
+
+    :root[data-theme="dark"] .info-page-container .info-card[data-theme="teal-cyan"] .themed-content {
+        border-color: rgba(13, 148, 136, 0.45);
+    }
+
+    :root[data-theme="dark"] .info-page-container .info-card[data-theme="pink-rose"] .themed-content {
+        border-color: rgba(236, 72, 153, 0.45);
+    }
+
+    :root[data-theme="dark"] .info-page-container .info-card[data-theme="amber-yellow"] .themed-content {
+        border-color: rgba(217, 119, 6, 0.45);
+    }
+
+    :root[data-theme="dark"] .info-page-container .info-card[data-theme="red-pink"] .themed-content {
+        border-color: rgba(239, 68, 68, 0.45);
+    }
+
+    :root[data-theme="dark"] .info-page-container .info-card .themed-content p {
+        color: #cbd5f5;
+    }
+
+    :root[data-theme="dark"] .info-page-container .info-empty-state-icon {
+        background-color: rgba(30, 41, 59, 0.7);
+    }
+
+    :root[data-theme="dark"] .info-page-container .info-empty-state-text {
+        color: #94a3b8;
+    }
+
+    :root[data-theme="dark"] .info-page-container .info-modal {
+        background: linear-gradient(160deg, rgba(15, 23, 42, 0.96), rgba(30, 41, 59, 0.96));
+        color: #e2e8f0;
+        border: 1px solid rgba(148, 163, 184, 0.2);
+        box-shadow: 0 35px 70px -20px rgba(2, 6, 23, 0.85);
+    }
+
+    :root[data-theme="dark"] .info-page-container .info-modal-header {
+        border-color: rgba(148, 163, 184, 0.2);
+    }
+
+    :root[data-theme="dark"] .info-page-container .info-modal-footer {
+        background-color: rgba(30, 41, 59, 0.8);
+        border-top: 1px solid rgba(148, 163, 184, 0.2);
+    }
+
+    :root[data-theme="dark"] .info-page-container .info-form-field label {
+        color: #cbd5f5;
+    }
+
+    :root[data-theme="dark"] .info-page-container .info-form-field input,
+    :root[data-theme="dark"] .info-page-container .info-form-field select,
+    :root[data-theme="dark"] .info-page-container .info-form-field textarea {
+        background-color: rgba(15, 23, 42, 0.6);
+        border-color: rgba(148, 163, 184, 0.35);
+        color: #e2e8f0;
+        box-shadow: inset 0 1px 0 rgba(15, 23, 42, 0.4);
+    }
+
+    :root[data-theme="dark"] .info-page-container .info-form-field input:focus,
+    :root[data-theme="dark"] .info-page-container .info-form-field select:focus,
+    :root[data-theme="dark"] .info-page-container .info-form-field textarea:focus {
+        border-color: #60a5fa;
+        outline: none;
+        box-shadow: 0 0 0 4px rgba(37, 99, 235, 0.25);
+    }
+
+    :root[data-theme="dark"] .info-page-container .info-action-button {
+        background: linear-gradient(135deg, rgba(59, 130, 246, 0.9), rgba(79, 70, 229, 0.85));
+        color: #f8fafc;
+        border: 1px solid rgba(59, 130, 246, 0.35);
+        box-shadow: 0 15px 35px -10px rgba(37, 99, 235, 0.55);
+    }
+
+    :root[data-theme="dark"] .info-page-container .info-action-button:hover {
+        box-shadow: 0 20px 45px -12px rgba(37, 99, 235, 0.6);
+    }
+
+    :root[data-theme="dark"] .info-page-container .info-secondary-button {
+        background-color: rgba(51, 65, 85, 0.75);
+        color: #cbd5f5;
+        border: 1px solid rgba(148, 163, 184, 0.2);
+    }
+
+    :root[data-theme="dark"] .info-page-container .info-secondary-button:hover {
+        background-color: rgba(71, 85, 105, 0.9);
+    }
+
+    :root[data-theme="dark"] .info-page-container .info-delete-modal-icon {
+        background-color: rgba(248, 113, 113, 0.18);
+        color: #fca5a5;
+    }
+
+    :root[data-theme="dark"] .info-page-container .info-delete-warning {
+        background-color: rgba(239, 68, 68, 0.12);
+        border-color: rgba(248, 113, 113, 0.45);
+        color: #fecaca;
+    }
+</style>
+<div class="max-w-6xl mx-auto info-page-container">
     <div class="mb-8">
         <div class="flex items-center justify-between flex-wrap gap-4 mb-4">
             <div class="flex items-center">
@@ -10,13 +223,13 @@
                     <i class="fas fa-info-circle text-white text-xl"></i>
                 </div>
                 <div>
-                    <h1 class="text-3xl font-bold text-gray-900">General Information</h1>
-                    <p class="text-gray-600">Important information and guidelines for the radiology department</p>
+                    <h1 class="text-3xl font-bold text-gray-900 page-title">General Information</h1>
+                    <p class="text-gray-600 page-subtitle">Important information and guidelines for the radiology department</p>
                 </div>
             </div>
             {% if session.user.role == 'admin' %}
-            <button onclick="openAddModal()" 
-                    class="inline-flex items-center px-6 py-3 bg-gradient-to-r from-blue-600 to-indigo-600 text-white font-medium rounded-lg shadow-lg hover:shadow-xl transform hover:-translate-y-0.5 transition-all duration-200">
+            <button onclick="openAddModal()"
+                    class="inline-flex items-center px-6 py-3 bg-gradient-to-r from-blue-600 to-indigo-600 text-white font-medium rounded-lg shadow-lg hover:shadow-xl transform hover:-translate-y-0.5 transition-all duration-200 info-action-button">
                 <i class="fas fa-plus mr-2"></i>
                 Add New Article
             </button>
@@ -30,14 +243,14 @@
             <input type="text" 
                    id="infoSearch" 
                    placeholder="Search information and guidelines..." 
-                   class="w-full pl-10 pr-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-colors shadow-sm"
+                   class="w-full pl-10 pr-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-colors shadow-sm info-search-input"
                    onkeyup="filterInfo()">
         </div>
     </div>
 
     <div class="grid grid-cols-1 lg:grid-cols-2 gap-6" id="infoSections">
         {% for article in articles %}
-        <section class="bg-white rounded-xl shadow-sm border border-gray-200 p-6 hover:shadow-md transition-shadow info-article" data-id="{{ article.id }}" data-title="{{ article.title }}" data-content="{{ article.content }}" data-category="{{ article.category }}" data-theme="{{ article.theme }}" data-icon="{{ article.icon }}">
+        <section class="bg-white rounded-xl shadow-sm border border-gray-200 p-6 hover:shadow-md transition-shadow info-article info-card" data-id="{{ article.id }}" data-title="{{ article.title }}" data-content="{{ article.content }}" data-category="{{ article.category }}" data-theme="{{ article.theme }}" data-icon="{{ article.icon }}">
             <div class="flex items-start mb-4 justify-between">
                 <div class="flex items-start">
                     {% set icon_class = article.icon %}
@@ -81,7 +294,7 @@
                         {% set content_border = 'border-red-400' %}
                     {% endif %}
                     
-                    <div class="w-10 h-10 bg-gradient-to-r {{ icon_theme }} rounded-lg flex items-center justify-center mr-3 flex-shrink-0">
+                    <div class="w-10 h-10 bg-gradient-to-r {{ icon_theme }} rounded-lg flex items-center justify-center mr-3 flex-shrink-0 icon-theme">
                         <i class="{{ icon_class }}"></i>
                     </div>
                     <div>
@@ -105,14 +318,14 @@
                 {% endif %}
             </div>
             <div class="prose prose-gray max-w-none">
-                <div class="{{ content_bg }} border-l-4 {{ content_border }} p-4 rounded-r-lg">
+                <div class="themed-content {{ content_bg }} border-l-4 {{ content_border }} p-4 rounded-r-lg">
                     <p class="text-gray-700 leading-relaxed" style="white-space: pre-wrap;">{{ article.content }}</p>
                 </div>
             </div>
         </section>
         {% else %}
-        <div class="col-span-full text-center py-12">
-            <div class="w-16 h-16 bg-gray-100 rounded-full flex items-center justify-center mx-auto mb-4">
+        <div class="col-span-full text-center py-12 info-empty-state-text">
+            <div class="w-16 h-16 bg-gray-100 rounded-full flex items-center justify-center mx-auto mb-4 info-empty-state-icon">
                 <i class="fas fa-folder-open text-gray-400 text-xl"></i>
             </div>
             <p class="text-gray-500 font-medium">No articles found</p>
@@ -123,23 +336,23 @@
 </div>
 
 <div id="addModal" class="fixed inset-0 z-50 hidden bg-black bg-opacity-50 flex items-center justify-center p-4" onclick="if(event.target === this) closeAddModal();">
-    <div class="bg-white rounded-xl shadow-2xl w-full max-w-xl max-h-[90vh] overflow-y-auto transform transition-all" onclick="event.stopPropagation();">
-        <div class="flex items-center justify-between p-6 border-b border-gray-200">
+    <div class="bg-white rounded-xl shadow-2xl w-full max-w-xl max-h-[90vh] overflow-y-auto transform transition-all info-modal" onclick="event.stopPropagation();">
+        <div class="flex items-center justify-between p-6 border-b border-gray-200 info-modal-header">
             <h3 class="text-lg font-semibold text-gray-900">Add New Article</h3>
             <button onclick="closeAddModal()" class="p-2 text-gray-400 hover:text-gray-600 hover:bg-gray-100 rounded-lg transition-colors">
                 <i class="fas fa-times"></i>
             </button>
         </div>
         <form method="POST" action="{{ url_for('info.add_article') }}" class="p-6 space-y-4">
-            <div>
+            <div class="info-form-field">
                 <label class="block text-sm font-medium text-gray-700 mb-1">Title</label>
                 <input type="text" name="title" required class="w-full px-4 py-3 border border-gray-300 rounded-lg">
             </div>
-            <div>
+            <div class="info-form-field">
                 <label class="block text-sm font-medium text-gray-700 mb-1">Category</label>
                 <input type="text" name="category" class="w-full px-4 py-3 border border-gray-300 rounded-lg">
             </div>
-            <div>
+            <div class="info-form-field">
                 <label class="block text-sm font-medium text-gray-700 mb-1">Color Theme</label>
                 <select name="theme" class="w-full px-4 py-3 border border-gray-300 rounded-lg">
                     {% for theme in available_themes %}
@@ -147,7 +360,7 @@
                     {% endfor %}
                 </select>
             </div>
-            <div>
+            <div class="info-form-field">
                 <label class="block text-sm font-medium text-gray-700 mb-1">Icon</label>
                 <select name="icon" class="w-full px-4 py-3 border border-gray-300 rounded-lg">
                     {% for icon in available_icons %}
@@ -155,21 +368,21 @@
                     {% endfor %}
                 </select>
             </div>
-            <div>
+            <div class="info-form-field">
                 <label class="block text-sm font-medium text-gray-700 mb-1">Content</label>
                 <textarea name="content" rows="6" required class="w-full px-4 py-3 border border-gray-300 rounded-lg resize-none"></textarea>
             </div>
             <div class="flex justify-end gap-3 pt-2">
-                <button type="button" onclick="closeAddModal()" class="px-4 py-2 text-gray-700 bg-gray-100 rounded-lg">Cancel</button>
-                <button type="submit" class="px-6 py-2 bg-gradient-to-r from-blue-600 to-indigo-600 text-white rounded-lg">Add Article</button>
+                <button type="button" onclick="closeAddModal()" class="px-4 py-2 text-gray-700 bg-gray-100 rounded-lg info-secondary-button">Cancel</button>
+                <button type="submit" class="px-6 py-2 bg-gradient-to-r from-blue-600 to-indigo-600 text-white rounded-lg info-action-button">Add Article</button>
             </div>
         </form>
     </div>
 </div>
 
 <div id="editModal" class="fixed inset-0 z-50 hidden bg-black bg-opacity-50 flex items-center justify-center p-4" onclick="if(event.target === this) closeEditModal();">
-    <div class="bg-white rounded-xl shadow-2xl w-full max-w-xl max-h-[90vh] overflow-y-auto transform transition-all" onclick="event.stopPropagation();">
-        <div class="flex items-center justify-between p-6 border-b border-gray-200">
+    <div class="bg-white rounded-xl shadow-2xl w-full max-w-xl max-h-[90vh] overflow-y-auto transform transition-all info-modal" onclick="event.stopPropagation();">
+        <div class="flex items-center justify-between p-6 border-b border-gray-200 info-modal-header">
             <h3 class="text-lg font-semibold text-gray-900">Edit Article</h3>
             <button onclick="closeEditModal()" class="p-2 text-gray-400 hover:text-gray-600 hover:bg-gray-100 rounded-lg transition-colors">
                 <i class="fas fa-times"></i>
@@ -177,15 +390,15 @@
         </div>
         <form id="editForm" method="POST" class="p-6 space-y-4">
             <input type="hidden" name="id" id="editArticleId">
-            <div>
+            <div class="info-form-field">
                 <label class="block text-sm font-medium text-gray-700 mb-1">Title</label>
                 <input type="text" name="title" id="editTitle" required class="w-full px-4 py-3 border border-gray-300 rounded-lg">
             </div>
-            <div>
+            <div class="info-form-field">
                 <label class="block text-sm font-medium text-gray-700 mb-1">Category</label>
                 <input type="text" name="category" id="editCategory" class="w-full px-4 py-3 border border-gray-300 rounded-lg">
             </div>
-            <div>
+            <div class="info-form-field">
                 <label class="block text-sm font-medium text-gray-700 mb-1">Color Theme</label>
                 <select name="theme" id="editTheme" class="w-full px-4 py-3 border border-gray-300 rounded-lg">
                     {% for theme in available_themes %}
@@ -193,7 +406,7 @@
                     {% endfor %}
                 </select>
             </div>
-            <div>
+            <div class="info-form-field">
                 <label class="block text-sm font-medium text-gray-700 mb-1">Icon</label>
                 <select name="icon" id="editIcon" class="w-full px-4 py-3 border border-gray-300 rounded-lg">
                     {% for icon in available_icons %}
@@ -201,13 +414,13 @@
                     {% endfor %}
                 </select>
             </div>
-            <div>
+            <div class="info-form-field">
                 <label class="block text-sm font-medium text-gray-700 mb-1">Content</label>
                 <textarea name="content" id="editContent" rows="6" required class="w-full px-4 py-3 border border-gray-300 rounded-lg resize-none"></textarea>
             </div>
             <div class="flex justify-end gap-3 pt-2">
-                <button type="button" onclick="closeEditModal()" class="px-4 py-2 text-gray-700 bg-gray-100 rounded-lg">Cancel</button>
-                <button type="submit" class="px-6 py-2 bg-gradient-to-r from-blue-600 to-indigo-600 text-white rounded-lg">Save Changes</button>
+                <button type="button" onclick="closeEditModal()" class="px-4 py-2 text-gray-700 bg-gray-100 rounded-lg info-secondary-button">Cancel</button>
+                <button type="submit" class="px-6 py-2 bg-gradient-to-r from-blue-600 to-indigo-600 text-white rounded-lg info-action-button">Save Changes</button>
             </div>
         </form>
     </div>
@@ -217,9 +430,9 @@
 
 
 <div id="delete-confirm-modal" class="fixed inset-0 z-50 hidden bg-black bg-opacity-50 flex items-center justify-center p-4">
-  <div class="bg-white rounded-xl shadow-2xl w-full max-w-md transform transition-all" onclick="event.stopPropagation();">
-    <div class="flex items-center gap-4 p-6 border-b border-gray-200">
-      <div class="flex-shrink-0 w-12 h-12 flex items-center justify-center bg-red-100 text-red-600 rounded-lg text-xl">
+  <div class="bg-white rounded-xl shadow-2xl w-full max-w-md transform transition-all info-modal" onclick="event.stopPropagation();">
+    <div class="flex items-center gap-4 p-6 border-b border-gray-200 info-modal-header">
+      <div class="flex-shrink-0 w-12 h-12 flex items-center justify-center bg-red-100 text-red-600 rounded-lg text-xl info-delete-modal-icon">
         <i class="fas fa-exclamation-triangle"></i>
       </div>
       <h3 class="text-lg font-semibold text-gray-900">Delete Article</h3>
@@ -231,13 +444,13 @@
             <div class="body-text">
                 <p class="text-gray-900 font-medium">Are you sure you want to delete this article?</p>
                 <p class="text-gray-600 text-sm mt-1">This action cannot be undone.</p>
-                <div id="item-to-delete-info" class="bg-red-50 border-l-4 border-red-400 text-red-800 p-3 rounded-r-lg font-medium">
+                <div id="item-to-delete-info" class="bg-red-50 border-l-4 border-red-400 text-red-800 p-3 rounded-r-lg font-medium info-delete-warning">
                  </div>
             </div>
                     </form>
     </div>
-    <div class="flex justify-end gap-3 p-6 bg-gray-50 rounded-b-xl">
-      <button onclick="closeDeleteModal()" class="px-4 py-2 text-gray-700 bg-gray-200 hover:bg-gray-300 rounded-lg font-medium">Cancel</button>
+    <div class="flex justify-end gap-3 p-6 bg-gray-50 rounded-b-xl info-modal-footer">
+      <button onclick="closeDeleteModal()" class="px-4 py-2 text-gray-700 bg-gray-200 hover:bg-gray-300 rounded-lg font-medium info-secondary-button">Cancel</button>
       <button id="confirm-delete-btn" class="px-4 py-2 bg-red-600 hover:bg-red-700 text-white rounded-lg font-medium inline-flex items-center">
         <i class="fas fa-trash-alt mr-2"></i>Delete Article
       </button>
@@ -336,9 +549,9 @@
             if (!noResultsDiv) {
                 const noResults = document.createElement('div');
                 noResults.id = 'no-results';
-                noResults.className = 'col-span-full text-center py-12';
+                noResults.className = 'col-span-full text-center py-12 info-empty-state-text';
                 noResults.innerHTML = `
-                    <div class="w-16 h-16 bg-gray-100 rounded-full flex items-center justify-center mx-auto mb-4">
+                    <div class="w-16 h-16 bg-gray-100 rounded-full flex items-center justify-center mx-auto mb-4 info-empty-state-icon">
                         <i class="fas fa-search text-gray-400 text-xl"></i>
                     </div>
                     <p class="text-gray-500 font-medium">No articles found</p>

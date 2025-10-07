@@ -2,7 +2,7 @@
 {% block title %}Contact Information{% endblock %}
 
 {% block content %}
-<div class="max-w-6xl mx-auto px-4 py-8">
+<div id="contactsPage" class="max-w-6xl mx-auto px-4 py-8">
     <div class="mb-8">
         <div class="flex items-center mb-4">
             <div class="w-12 h-12 bg-gradient-to-r from-blue-600 to-indigo-600 rounded-xl flex items-center justify-center mr-4">
@@ -54,7 +54,7 @@
     <div class="space-y-8" id="contactSections">
         {% for department in departments %}
         <section class="bg-white rounded-xl shadow-sm border border-gray-200 overflow-hidden department-section" data-department="{{ department }}">
-            <div class="bg-gradient-to-r from-gray-50 to-gray-100 px-6 py-4 border-b border-gray-200">
+            <div class="bg-gradient-to-r from-gray-50 to-gray-100 px-6 py-4 border-b border-gray-200 department-header">
                 <div class="flex items-center justify-between">
                     <div class="flex items-center">
                         <div class="w-10 h-10 bg-gradient-to-r from-blue-100 to-indigo-100 rounded-lg flex items-center justify-center mr-3">
@@ -188,7 +188,7 @@
 </div>
 
 <div id="addContactModal" class="fixed inset-0 z-50 hidden bg-black bg-opacity-50 flex items-center justify-center p-4">
-    <div class="bg-white rounded-xl shadow-2xl w-full max-w-md max-h-[90vh] overflow-y-auto transform transition-all" id="addContactModalContent">
+    <div class="bg-white rounded-xl shadow-2xl w-full max-w-md max-h-[90vh] overflow-y-auto transform transition-all contact-modal-card" id="addContactModalContent">
         <div class="flex items-center justify-between p-6 border-b border-gray-200">
             <div class="flex items-center">
                 <div class="w-8 h-8 bg-gradient-to-r from-blue-500 to-indigo-500 rounded-lg flex items-center justify-center mr-3">
@@ -265,7 +265,7 @@
 </div>
 
 <div id="deleteConfirmModal" class="fixed inset-0 z-50 hidden bg-black bg-opacity-50 flex items-center justify-center p-4">
-    <div class="bg-white rounded-xl shadow-2xl w-full max-w-md max-h-[90vh] overflow-y-auto transform transition-all" id="deleteConfirmModalContent">
+    <div class="bg-white rounded-xl shadow-2xl w-full max-w-md max-h-[90vh] overflow-y-auto transform transition-all contact-modal-card" id="deleteConfirmModalContent">
         <div class="flex items-center justify-between p-6 border-b border-gray-200">
             <div class="flex items-center">
                 <div class="w-8 h-8 bg-gradient-to-r from-red-500 to-pink-500 rounded-lg flex items-center justify-center mr-3">
@@ -304,6 +304,187 @@
 </div>
 
 <style>
+/* Dark mode styles */
+:root[data-theme="dark"] body {
+    background-color: #0f172a;
+    color: #e2e8f0;
+}
+
+[data-theme="dark"] #contactsPage {
+    color-scheme: dark;
+    color: #e2e8f0;
+}
+
+[data-theme="dark"] #contactsPage .text-gray-900,
+[data-theme="dark"] #contactsPage .text-gray-800,
+[data-theme="dark"] #contactsPage .text-gray-700 {
+    color: #f8fafc !important;
+}
+
+[data-theme="dark"] #contactsPage .text-gray-600 {
+    color: #cbd5f5 !important;
+}
+
+[data-theme="dark"] #contactsPage .text-gray-500 {
+    color: #a5b4fc !important;
+}
+
+[data-theme="dark"] #contactsPage .text-gray-400 {
+    color: #94a3b8 !important;
+}
+
+[data-theme="dark"] #contactsPage .bg-white,
+[data-theme="dark"] #contactsPage .bg-gray-50,
+[data-theme="dark"] #contactsPage .bg-gray-100,
+[data-theme="dark"] #contactsPage .department-section,
+[data-theme="dark"] .contact-modal-card {
+    background-color: #111c2f !important;
+    color: #e2e8f0;
+}
+
+[data-theme="dark"] #contactsPage .border-gray-200,
+[data-theme="dark"] #contactsPage .divide-gray-200,
+[data-theme="dark"] #contactsPage .divide-gray-200 > :not([hidden]) ~ :not([hidden]) {
+    border-color: #1f2a3d !important;
+}
+
+[data-theme="dark"] #contactsPage .department-header {
+    background: linear-gradient(90deg, rgba(30, 41, 59, 0.92), rgba(15, 23, 42, 0.92));
+    border-color: #1f2a3d;
+}
+
+[data-theme="dark"] #contactsPage .department-section {
+    box-shadow: 0 20px 45px -22px rgba(15, 23, 42, 0.85);
+}
+
+[data-theme="dark"] #contactsPage thead th {
+    background-color: #0f172a !important;
+    color: #cbd5f5 !important;
+}
+
+[data-theme="dark"] #contactsPage tbody tr {
+    background-color: transparent;
+}
+
+[data-theme="dark"] #contactsPage .contact-row:hover {
+    background-color: rgba(148, 163, 184, 0.12) !important;
+    box-shadow: 0 8px 22px -16px rgba(148, 163, 184, 0.45);
+}
+
+[data-theme="dark"] #contactsPage .department-nav-btn {
+    background-color: rgba(15, 23, 42, 0.8);
+    color: #cbd5f5;
+    border: 1px solid rgba(59, 130, 246, 0.25);
+}
+
+[data-theme="dark"] #contactsPage .department-nav-btn:hover {
+    background-color: rgba(59, 130, 246, 0.15);
+}
+
+[data-theme="dark"] #contactsPage .department-nav-btn.active {
+    background: linear-gradient(to right, #2563eb, #6366f1);
+    color: #f8fafc;
+    box-shadow: 0 20px 32px -24px rgba(99, 102, 241, 0.8);
+    border-color: transparent;
+}
+
+[data-theme="dark"] #contactsPage input,
+[data-theme="dark"] #contactsPage textarea,
+[data-theme="dark"] #contactsPage select {
+    background-color: #0b1627;
+    border-color: #1f2a3d;
+    color: #e2e8f0;
+}
+
+[data-theme="dark"] #contactsPage input::placeholder,
+[data-theme="dark"] #contactsPage textarea::placeholder {
+    color: #64748b;
+}
+
+[data-theme="dark"] .contact-modal-card {
+    border: 1px solid #1f2a3d;
+    box-shadow: 0 24px 60px -30px rgba(15, 23, 42, 0.95);
+}
+
+[data-theme="dark"] #contactsPage .contact-counter {
+    background-color: rgba(59, 130, 246, 0.18) !important;
+    color: #93c5fd !important;
+}
+
+[data-theme="dark"] #contactsPage .bg-gray-100.rounded-full,
+[data-theme="dark"] #contactsPage .bg-gray-100.rounded-lg {
+    background-color: rgba(148, 163, 184, 0.12) !important;
+}
+
+[data-theme="dark"] #contactsPage .hover\:text-blue-600:hover {
+    color: #93c5fd !important;
+}
+
+[data-theme="dark"] #contactsPage .text-green-800 {
+    color: #34d399 !important;
+}
+
+[data-theme="dark"] #contactsPage .bg-green-100 {
+    background-color: rgba(16, 185, 129, 0.18) !important;
+}
+
+[data-theme="dark"] #contactsPage .text-red-700 {
+    color: #fca5a5 !important;
+}
+
+[data-theme="dark"] #contactsPage .bg-red-100 {
+    background-color: rgba(248, 113, 113, 0.18) !important;
+}
+
+[data-theme="dark"] #contactsPage .text-blue-500 {
+    color: #60a5fa !important;
+}
+
+[data-theme="dark"] #contactsPage .bg-gray-200,
+[data-theme="dark"] #contactsPage .hover\:bg-gray-200:hover {
+    background-color: rgba(71, 85, 105, 0.25) !important;
+}
+
+[data-theme="dark"] #contactsPage .hover\:bg-gray-50:hover {
+    background-color: rgba(148, 163, 184, 0.12) !important;
+}
+
+[data-theme="dark"] #contactsPage .hover\:bg-blue-200:hover {
+    background-color: rgba(96, 165, 250, 0.25) !important;
+}
+
+[data-theme="dark"] #contactsPage .hover\:bg-red-200:hover {
+    background-color: rgba(248, 113, 113, 0.25) !important;
+}
+
+[data-theme="dark"] #contactsPage .hover\:shadow-xl:hover,
+[data-theme="dark"] #contactsPage .hover\:shadow-lg:hover {
+    box-shadow: 0 16px 50px -24px rgba(59, 130, 246, 0.65) !important;
+}
+
+[data-theme="dark"] #contactsPage .shadow-lg,
+[data-theme="dark"] #contactsPage .shadow-sm,
+[data-theme="dark"] .contact-modal-card.shadow-2xl {
+    box-shadow: 0 24px 60px -32px rgba(15, 23, 42, 0.9) !important;
+}
+
+[data-theme="dark"] #contactsPage .bg-gray-100 .fas,
+[data-theme="dark"] #contactsPage .text-gray-400 .fas {
+    color: #64748b !important;
+}
+
+[data-theme="dark"] #noResults .bg-gray-100 {
+    background-color: rgba(148, 163, 184, 0.12) !important;
+}
+
+[data-theme="dark"] #noResults .text-gray-500 {
+    color: #cbd5f5 !important;
+}
+
+[data-theme="dark"] #noResults .text-gray-400 {
+    color: #94a3b8 !important;
+}
+
 /* Enhanced hover effects */
 .contact-row:hover {
     transform: translateY(-1px);

@@ -3,20 +3,22 @@
 
 {% block content %}
 
-<div class="bg-white rounded-lg shadow-sm border border-gray-200 p-6 mb-6">
+<div class="audit-page">
+
+<div class="bg-white rounded-lg shadow-sm border border-gray-200 p-6 mb-6 audit-card audit-filters-card">
   <div class="flex items-center justify-between mb-4">
-    <h2 class="text-lg font-semibold text-gray-900">Search Filters</h2>
+    <h2 class="text-lg font-semibold text-gray-900 audit-section-title">Search Filters</h2>
     <div class="flex flex-col md:flex-row space-y-2 md:space-y-0 md:space-x-2">
       <div class="flex items-center space-x-2">
-        <label for="start-date-filter" class="text-sm font-medium text-gray-700 whitespace-nowrap">From:</label>
-        <input type="date" id="start-date-filter" class="px-3 py-2 border rounded-md shadow-sm focus:outline-none focus:ring-2 focus:ring-blue-500 text-sm">
-        <label for="end-date-filter" class="text-sm font-medium text-gray-700 whitespace-nowrap">To:</label>
-        <input type="date" id="end-date-filter" class="px-3 py-2 border rounded-md shadow-sm focus:outline-none focus:ring-2 focus:ring-blue-500 text-sm">
-        <button id="load-date-range" class="px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700 transition-colors text-sm font-medium">
+        <label for="start-date-filter" class="text-sm font-medium text-gray-700 whitespace-nowrap audit-filter-label">From:</label>
+        <input type="date" id="start-date-filter" class="px-3 py-2 border rounded-md shadow-sm focus:outline-none focus:ring-2 focus:ring-blue-500 text-sm audit-input">
+        <label for="end-date-filter" class="text-sm font-medium text-gray-700 whitespace-nowrap audit-filter-label">To:</label>
+        <input type="date" id="end-date-filter" class="px-3 py-2 border rounded-md shadow-sm focus:outline-none focus:ring-2 focus:ring-blue-500 text-sm audit-input">
+        <button id="load-date-range" class="px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700 transition-colors text-sm font-medium audit-primary-button">
           Load
         </button>
       </div>
-      <button id="reset-filters" class="px-4 py-2 bg-gray-100 text-gray-700 rounded-md hover:bg-gray-200 transition-colors text-sm font-medium">
+      <button id="reset-filters" class="px-4 py-2 bg-gray-100 text-gray-700 rounded-md hover:bg-gray-200 transition-colors text-sm font-medium audit-secondary-button">
         Clear All Filters
       </button>
     </div>
@@ -24,127 +26,127 @@
 
   <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
     <div class="space-y-2">
-      <label for="timestamp-filter" class="block text-sm font-medium text-gray-700">
+      <label for="timestamp-filter" class="block text-sm font-medium text-gray-700 audit-filter-label">
         <svg class="inline w-4 h-4 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
           <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z"></path>
         </svg>
         Timestamp
       </label>
-      <input type="text" id="timestamp-filter" placeholder="Search by date/time..." 
-             class="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 text-sm">
+      <input type="text" id="timestamp-filter" placeholder="Search by date/time..."
+             class="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 text-sm audit-input">
     </div>
 
     <div class="space-y-2">
-      <label for="user-filter" class="block text-sm font-medium text-gray-700">
+      <label for="user-filter" class="block text-sm font-medium text-gray-700 audit-filter-label">
         <svg class="inline w-4 h-4 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
           <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z"></path>
         </svg>
         User
       </label>
       <input type="text" id="user-filter" placeholder="Search by user email..."
-             class="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 text-sm">
+             class="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 text-sm audit-input">
     </div>
 
     <div class="space-y-2">
-      <label for="action-filter" class="block text-sm font-medium text-gray-700">
+      <label for="action-filter" class="block text-sm font-medium text-gray-700 audit-filter-label">
         <svg class="inline w-4 h-4 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
           <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 10V3L4 14h7v7l9-11h-7z"></path>
         </svg>
         Action
       </label>
       <input type="text" id="action-filter" placeholder="insert, update, delete..."
-             class="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 text-sm">
+             class="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 text-sm audit-input">
     </div>
 
     <div class="space-y-2">
-      <label for="table-filter" class="block text-sm font-medium text-gray-700">
+      <label for="table-filter" class="block text-sm font-medium text-gray-700 audit-filter-label">
         <svg class="inline w-4 h-4 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
           <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 7v10c0 2.21 3.582 4 8 4s8-1.79 8-4V7M4 7c0 2.21 3.582 4 8 4s8-1.79 8-4M4 7c0-2.21 3.582-4 8-4s8 1.79 8 4"></path>
         </svg>
         Table
       </label>
       <input type="text" id="table-filter" placeholder="Search by table name..."
-             class="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 text-sm">
+             class="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 text-sm audit-input">
     </div>
 
     <div class="space-y-2">
-      <label for="record-filter" class="block text-sm font-medium text-gray-700">
+      <label for="record-filter" class="block text-sm font-medium text-gray-700 audit-filter-label">
         <svg class="inline w-4 h-4 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
           <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M7 7h.01M7 3h5c.512 0 1.024.195 1.414.586l7 7a2 2 0 010 2.828l-7 7a2 2 0 01-2.828 0l-7-7A1.994 1.994 0 013 12V7a4 4 0 014-4z"></path>
         </svg>
         Record ID
       </label>
       <input type="text" id="record-filter" placeholder="Search by record ID..."
-             class="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 text-sm">
+             class="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 text-sm audit-input">
     </div>
 
     <div class="space-y-2">
-      <label for="data-filter" class="block text-sm font-medium text-gray-700">
+      <label for="data-filter" class="block text-sm font-medium text-gray-700 audit-filter-label">
         <svg class="inline w-4 h-4 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
           <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"></path>
         </svg>
         Data Content
       </label>
       <input type="text" id="data-filter" placeholder="Search within data content..."
-             class="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 text-sm">
+             class="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 text-sm audit-input">
     </div>
   </div>
 </div>
 
-<div class="bg-white rounded-lg shadow-sm border border-gray-200 overflow-hidden">
+<div class="bg-white rounded-lg shadow-sm border border-gray-200 overflow-hidden audit-card audit-table-card">
   <div class="overflow-x-auto">
-    <table class="w-full text-sm text-left">
-      <thead class="text-xs text-gray-700 uppercase bg-gray-50 border-b border-gray-200 sticky top-0 z-10">
+    <table class="w-full text-sm text-left audit-table">
+      <thead class="text-xs text-gray-700 uppercase bg-gray-50 border-b border-gray-200 sticky top-0 z-10 audit-table-head">
         <tr>
-          <th class="px-4 py-4 cursor-pointer hover:bg-gray-100 transition-colors sticky left-0 bg-gray-50 z-20" data-sort="timestamp">
+          <th class="px-4 py-4 cursor-pointer hover:bg-gray-100 transition-colors sticky left-0 bg-gray-50 z-20 audit-table-header audit-sticky-cell" data-sort="timestamp">
             <div class="flex items-center">
               Timestamp
-              <span class="ml-2 text-gray-400 sort-indicator">↕</span>
+              <span class="ml-2 text-gray-400 sort-indicator audit-sort-indicator">↕</span>
             </div>
           </th>
-          <th class="px-4 py-4 cursor-pointer hover:bg-gray-100 transition-colors" data-sort="user">
+          <th class="px-4 py-4 cursor-pointer hover:bg-gray-100 transition-colors audit-table-header" data-sort="user">
             <div class="flex items-center">
               User
-              <span class="ml-2 text-gray-400 sort-indicator">↕</span>
+              <span class="ml-2 text-gray-400 sort-indicator audit-sort-indicator">↕</span>
             </div>
           </th>
-          <th class="px-4 py-4 cursor-pointer hover:bg-gray-100 transition-colors" data-sort="action">
+          <th class="px-4 py-4 cursor-pointer hover:bg-gray-100 transition-colors audit-table-header" data-sort="action">
             <div class="flex items-center">
               Action
-              <span class="ml-2 text-gray-400 sort-indicator">↕</span>
+              <span class="ml-2 text-gray-400 sort-indicator audit-sort-indicator">↕</span>
             </div>
           </th>
-          <th class="px-4 py-4 cursor-pointer hover:bg-gray-100 transition-colors" data-sort="table">
+          <th class="px-4 py-4 cursor-pointer hover:bg-gray-100 transition-colors audit-table-header" data-sort="table">
             <div class="flex items-center">
               Table
-              <span class="ml-2 text-gray-400 sort-indicator">↕</span>
+              <span class="ml-2 text-gray-400 sort-indicator audit-sort-indicator">↕</span>
             </div>
           </th>
-          <th class="px-4 py-4 cursor-pointer hover:bg-gray-100 transition-colors" data-sort="record">
+          <th class="px-4 py-4 cursor-pointer hover:bg-gray-100 transition-colors audit-table-header" data-sort="record">
             <div class="flex items-center">
               Record ID
-              <span class="ml-2 text-gray-400 sort-indicator">↕</span>
+              <span class="ml-2 text-gray-400 sort-indicator audit-sort-indicator">↕</span>
             </div>
           </th>
-          <th class="px-4 py-4">Old Data</th>
-          <th class="px-4 py-4">New Data</th>
+          <th class="px-4 py-4 audit-table-header">Old Data</th>
+          <th class="px-4 py-4 audit-table-header">New Data</th>
         </tr>
       </thead>
-      <tbody id="audit-log-body">
+      <tbody id="audit-log-body" class="audit-table-body">
       </tbody>
     </table>
 
-    <div id="no-results" class="hidden p-8 text-center text-gray-500">
-      <svg class="mx-auto h-12 w-12 text-gray-400 mb-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+    <div id="no-results" class="hidden p-8 text-center text-gray-500 audit-empty-state">
+      <svg class="mx-auto h-12 w-12 text-gray-400 mb-4 audit-empty-state-icon" fill="none" stroke="currentColor" viewBox="0 0 24 24">
         <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9.172 16.172a4 4 0 015.656 0M9 12h6m-6-4h6m2 5.291A7.962 7.962 0 0112 15c-2.34 0-4.47.881-6.08 2.33l-.926-.926A9.953 9.953 0 0112 13c2.74 0 5.23 1.1 7.08 2.88l-.926.926A7.963 7.963 0 0112 15z"></path>
       </svg>
       <p class="text-lg font-medium">No matching audit logs found</p>
       <p class="text-sm text-gray-400 mt-1">Try adjusting your search filters</p>
     </div>
 
-    <div id="loading-more" class="hidden p-4 text-center text-gray-500">
+    <div id="loading-more" class="hidden p-4 text-center text-gray-500 audit-loading-state">
       <div class="inline-flex items-center">
-        <svg class="animate-spin -ml-1 mr-3 h-5 w-5 text-gray-500" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+        <svg class="animate-spin -ml-1 mr-3 h-5 w-5 text-gray-500 audit-loading-icon" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
           <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
           <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
         </svg>
@@ -153,70 +155,462 @@
     </div>
   </div>
 
-  <div class="bg-gray-50 px-4 py-3 border-t border-gray-200">
+  <div class="bg-gray-50 px-4 py-3 border-t border-gray-200 audit-card-footer">
     <div class="flex justify-between items-center text-sm text-gray-600">
-      <span id="showing-count">Showing 0 entries</span>
-      <span id="total-count">Total: {{ total_count }} entries</span>
+      <span id="showing-count" class="audit-muted-text">Showing 0 entries</span>
+      <span id="total-count" class="audit-muted-text">Total: {{ total_count }} entries</span>
     </div>
   </div>
 </div>
 
-<div id="data-modal" class="fixed inset-0 bg-black bg-opacity-50 hidden flex items-center justify-center z-50">
-  <div class="bg-white rounded-lg shadow-xl w-11/12 max-w-6xl max-h-[90vh] overflow-hidden">
-    <div class="flex justify-between items-center border-b p-4 bg-gray-50">
-      <h3 class="text-lg font-semibold text-gray-900">Data Comparison</h3>
-      <button onclick="closeModal()" class="text-gray-500 hover:text-gray-700 p-1">
+<div id="data-modal" class="fixed inset-0 bg-black bg-opacity-50 hidden flex items-center justify-center z-50 audit-modal">
+  <div class="bg-white rounded-lg shadow-xl w-11/12 max-w-6xl max-h-[90vh] overflow-hidden audit-modal-panel">
+    <div class="flex justify-between items-center border-b p-4 bg-gray-50 audit-modal-header">
+      <h3 class="text-lg font-semibold text-gray-900 audit-modal-title">Data Comparison</h3>
+      <button onclick="closeModal()" class="text-gray-500 hover:text-gray-700 p-1 audit-modal-close">
         <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
           <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12" />
         </svg>
       </button>
     </div>
-    <div class="p-4 overflow-y-auto max-h-[calc(90vh-8rem)]">
+    <div class="p-4 overflow-y-auto max-h-[calc(90vh-8rem)] audit-modal-body">
       <div class="grid grid-cols-1 lg:grid-cols-2 gap-4">
         <div>
-          <h4 class="text-sm font-semibold mb-3 text-gray-700 flex items-center">
-            <span class="w-3 h-3 bg-red-100 rounded-full mr-2"></span>
+          <h4 class="text-sm font-semibold mb-3 text-gray-700 flex items-center audit-diff-title">
+            <span class="w-3 h-3 bg-red-100 rounded-full mr-2 audit-diff-chip-old"></span>
             Previous Data
           </h4>
-          <pre id="old-data-display" class="json-diff-container bg-gray-50 p-4 rounded border text-xs overflow-auto max-h-96 whitespace-pre-wrap"></pre>
+          <pre id="old-data-display" class="json-diff-container bg-gray-50 p-4 rounded border text-xs overflow-auto max-h-96 whitespace-pre-wrap audit-json-diff"></pre>
         </div>
         <div>
-          <h4 class="text-sm font-semibold mb-3 text-gray-700 flex items-center">
-            <span class="w-3 h-3 bg-green-100 rounded-full mr-2"></span>
+          <h4 class="text-sm font-semibold mb-3 text-gray-700 flex items-center audit-diff-title">
+            <span class="w-3 h-3 bg-green-100 rounded-full mr-2 audit-diff-chip-new"></span>
             Current Data
           </h4>
-          <pre id="new-data-display" class="json-diff-container bg-gray-50 p-4 rounded border text-xs overflow-auto max-h-96 whitespace-pre-wrap"></pre>
+          <pre id="new-data-display" class="json-diff-container bg-gray-50 p-4 rounded border text-xs overflow-auto max-h-96 whitespace-pre-wrap audit-json-diff"></pre>
         </div>
       </div>
     </div>
   </div>
 </div>
 
+</div>
+
 <style>
+  .audit-page {
+    position: relative;
+  }
+
+  .audit-card {
+    transition: background-color 0.3s ease, border-color 0.3s ease, box-shadow 0.3s ease, color 0.3s ease;
+  }
+
+  .audit-shell-dark {
+    background-color: #0f172a !important;
+    box-shadow: 0 35px 70px -25px rgba(15, 23, 42, 0.6) !important;
+    border: 1px solid rgba(51, 65, 85, 0.4) !important;
+    transition: background-color 0.3s ease, border-color 0.3s ease, box-shadow 0.3s ease;
+  }
+
+  .audit-section-title {
+    transition: color 0.3s ease;
+  }
+
+  .audit-filter-label {
+    transition: color 0.3s ease;
+  }
+
+  .audit-input {
+    transition: background-color 0.3s ease, border-color 0.3s ease, color 0.3s ease, box-shadow 0.3s ease;
+    background-color: #ffffff;
+  }
+
+  .audit-input:focus {
+    box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.15);
+  }
+
+  .audit-primary-button {
+    transition: background-color 0.3s ease, box-shadow 0.3s ease;
+    box-shadow: 0 8px 14px rgba(37, 99, 235, 0.2);
+  }
+
+  .audit-primary-button:hover {
+    box-shadow: 0 10px 18px rgba(37, 99, 235, 0.25);
+  }
+
+  .audit-secondary-button {
+    transition: background-color 0.3s ease, color 0.3s ease, border-color 0.3s ease, box-shadow 0.3s ease;
+    border: 1px solid transparent;
+  }
+
+  .audit-secondary-button:hover {
+    box-shadow: 0 6px 12px rgba(148, 163, 184, 0.25);
+  }
+
+  .audit-table {
+    border-collapse: separate;
+    border-spacing: 0;
+  }
+
+  .audit-table-head {
+    transition: background-color 0.3s ease, color 0.3s ease, border-color 0.3s ease;
+  }
+
+  .audit-table-header {
+    transition: color 0.3s ease, background-color 0.3s ease;
+  }
+
+  .audit-sort-indicator {
+    transition: color 0.3s ease;
+  }
+
+  .audit-table-cell {
+    transition: background-color 0.3s ease, border-color 0.3s ease, color 0.3s ease;
+  }
+
+  .audit-row {
+    transition: background-color 0.25s ease, border-color 0.3s ease, box-shadow 0.3s ease;
+  }
+
+  .audit-row.hidden {
+    display: none !important;
+  }
+
+  .audit-row:hover {
+    box-shadow: inset 0 0 0 9999px rgba(148, 163, 184, 0.08);
+  }
+
+  .audit-sticky-cell {
+    transition: background-color 0.3s ease, box-shadow 0.3s ease, color 0.3s ease;
+  }
+
+  .audit-text-primary {
+    transition: color 0.3s ease;
+  }
+
+  .audit-muted-text {
+    transition: color 0.3s ease;
+  }
+
+  .audit-action-pill {
+    transition: background-color 0.3s ease, color 0.3s ease, box-shadow 0.3s ease;
+  }
+
+  .audit-undo-button {
+    transition: background-color 0.3s ease, color 0.3s ease, box-shadow 0.3s ease;
+  }
+
+  .audit-undo-button:hover {
+    box-shadow: 0 8px 14px rgba(234, 179, 8, 0.3);
+  }
+
+  .audit-json-trigger {
+    transition: background-color 0.3s ease, border-color 0.3s ease;
+  }
+
+  .audit-json-preview {
+    transition: background-color 0.3s ease, border-color 0.3s ease, color 0.3s ease;
+  }
+
+  .audit-json-container {
+    transition: color 0.3s ease;
+  }
+
+  .audit-record-chip {
+    transition: background-color 0.3s ease, border-color 0.3s ease, color 0.3s ease;
+  }
+
+  .json-diff-container {
+    font-family: 'Monaco', 'Menlo', 'Ubuntu Mono', monospace;
+    font-size: 12px;
+    line-height: 1.4;
+  }
+
   .highlight-change {
     background-color: #fef3c7 !important;
     padding: 1px 2px;
     border-radius: 2px;
     font-weight: 600;
   }
-  
-  .json-diff-container {
-    font-family: 'Monaco', 'Menlo', 'Ubuntu Mono', monospace;
-    font-size: 12px;
-    line-height: 1.4;
+
+  .audit-card-footer {
+    transition: background-color 0.3s ease, border-color 0.3s ease, color 0.3s ease;
   }
-  
-  .audit-row.hidden {
-    display: none !important;
+
+  .audit-modal {
+    transition: background-color 0.3s ease;
   }
-  
+
+  .audit-modal-panel {
+    transition: background-color 0.3s ease, border-color 0.3s ease, color 0.3s ease, box-shadow 0.3s ease;
+  }
+
+  .audit-modal-header {
+    transition: background-color 0.3s ease, border-color 0.3s ease;
+  }
+
+  .audit-modal-title {
+    transition: color 0.3s ease;
+  }
+
+  .audit-modal-close {
+    transition: color 0.3s ease, background-color 0.3s ease;
+  }
+
+  .audit-diff-title {
+    transition: color 0.3s ease;
+  }
+
+  .audit-diff-chip-old,
+  .audit-diff-chip-new {
+    transition: background-color 0.3s ease, box-shadow 0.3s ease;
+  }
+
+  .audit-json-diff {
+    transition: background-color 0.3s ease, border-color 0.3s ease, color 0.3s ease;
+  }
+
+  .audit-empty-state,
+  .audit-loading-state {
+    transition: color 0.3s ease;
+  }
+
+  .audit-empty-state-icon,
+  .audit-loading-icon {
+    transition: color 0.3s ease;
+  }
+
   .sort-indicator.active {
     color: #3b82f6;
   }
-  
+
   .old-data-cell:hover,
-  .new-data-cell:hover {
+  .new-data-cell:hover,
+  .audit-json-trigger:hover {
     background-color: #f8fafc;
+  }
+
+  [data-theme="dark"] .audit-page {
+    color: #e2e8f0;
+  }
+
+  [data-theme="dark"] .audit-card {
+    background-color: #1f2937 !important;
+    border-color: #374151 !important;
+    box-shadow: 0 20px 45px rgba(15, 23, 42, 0.35);
+  }
+
+  [data-theme="dark"] .audit-section-title {
+    color: #f9fafb !important;
+  }
+
+  [data-theme="dark"] .audit-filter-label {
+    color: #cbd5f5 !important;
+  }
+
+  [data-theme="dark"] .audit-input {
+    background-color: #111827 !important;
+    border-color: #1f2937 !important;
+    color: #e2e8f0 !important;
+  }
+
+  [data-theme="dark"] .audit-input::placeholder {
+    color: #94a3b8;
+  }
+
+  [data-theme="dark"] .audit-input:focus {
+    border-color: #2563eb !important;
+    box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.35) !important;
+  }
+
+  [data-theme="dark"] .audit-primary-button {
+    background-color: #2563eb !important;
+    box-shadow: 0 12px 20px rgba(37, 99, 235, 0.35);
+  }
+
+  [data-theme="dark"] .audit-primary-button:hover {
+    background-color: #1d4ed8 !important;
+  }
+
+  [data-theme="dark"] .audit-secondary-button {
+    background-color: #1f2937 !important;
+    border-color: #374151 !important;
+    color: #e2e8f0 !important;
+    box-shadow: none;
+  }
+
+  [data-theme="dark"] .audit-secondary-button:hover {
+    background-color: #273249 !important;
+    box-shadow: 0 10px 18px rgba(30, 41, 59, 0.35);
+  }
+
+  [data-theme="dark"] .audit-table-head {
+    background-color: #111827 !important;
+    border-color: #1f2937 !important;
+    color: #e5e7eb !important;
+  }
+
+  [data-theme="dark"] .audit-table-header {
+    color: #cbd5f5 !important;
+    background-color: transparent !important;
+  }
+
+  [data-theme="dark"] .audit-sort-indicator {
+    color: #64748b !important;
+  }
+
+  [data-theme="dark"] .audit-table-cell {
+    border-color: #1f2937 !important;
+    color: #e5e7eb !important;
+  }
+
+  [data-theme="dark"] .audit-row {
+    background-color: #0f172a !important;
+    border-color: #1f2937 !important;
+  }
+
+  [data-theme="dark"] .audit-row:hover {
+    background-color: #1f2937 !important;
+    box-shadow: inset 0 0 0 9999px rgba(59, 130, 246, 0.08);
+  }
+
+  [data-theme="dark"] .audit-sticky-cell {
+    background-color: #111827 !important;
+    box-shadow: 12px 0 24px rgba(15, 23, 42, 0.45);
+  }
+
+  [data-theme="dark"] .audit-text-primary {
+    color: #f3f4f6 !important;
+  }
+
+  [data-theme="dark"] .audit-muted-text {
+    color: #94a3b8 !important;
+  }
+
+  [data-theme="dark"] .audit-action-pill {
+    background-color: rgba(96, 165, 250, 0.18) !important;
+    color: #bfdbfe !important;
+  }
+
+  [data-theme="dark"] .audit-action-pill[data-action="insert"] {
+    background-color: rgba(34, 197, 94, 0.18) !important;
+    color: #bbf7d0 !important;
+  }
+
+  [data-theme="dark"] .audit-action-pill[data-action="update"] {
+    background-color: rgba(59, 130, 246, 0.2) !important;
+    color: #bfdbfe !important;
+  }
+
+  [data-theme="dark"] .audit-action-pill[data-action="delete"] {
+    background-color: rgba(248, 113, 113, 0.22) !important;
+    color: #fecaca !important;
+  }
+
+  [data-theme="dark"] .audit-undo-button {
+    background-color: #facc15 !important;
+    color: #111827 !important;
+  }
+
+  [data-theme="dark"] .audit-json-trigger:hover {
+    background-color: rgba(148, 163, 184, 0.1) !important;
+  }
+
+  [data-theme="dark"] .audit-record-chip {
+    background-color: rgba(148, 163, 184, 0.12) !important;
+    color: #cbd5f5 !important;
+    border: 1px solid rgba(148, 163, 184, 0.35) !important;
+  }
+
+  [data-theme="dark"] .audit-json-preview {
+    background-color: #0f172a !important;
+    border-color: #1f2937 !important;
+    color: #e2e8f0 !important;
+  }
+
+  [data-theme="dark"] .highlight-change {
+    background-color: rgba(251, 191, 36, 0.25) !important;
+    color: #fde68a !important;
+  }
+
+  [data-theme="dark"] .audit-card-footer {
+    background-color: #111827 !important;
+    border-color: #1f2937 !important;
+  }
+
+  [data-theme="dark"] .audit-empty-state {
+    color: #94a3b8 !important;
+  }
+
+  [data-theme="dark"] .audit-empty-state-icon {
+    color: #64748b !important;
+  }
+
+  [data-theme="dark"] .audit-empty-state .text-lg {
+    color: #e2e8f0 !important;
+  }
+
+  [data-theme="dark"] .audit-empty-state .text-gray-400 {
+    color: #94a3b8 !important;
+  }
+
+  [data-theme="dark"] .audit-loading-state {
+    color: #94a3b8 !important;
+  }
+
+  [data-theme="dark"] .audit-loading-icon {
+    color: #60a5fa !important;
+  }
+
+  [data-theme="dark"] .audit-modal {
+    background-color: rgba(15, 23, 42, 0.8) !important;
+  }
+
+  [data-theme="dark"] .audit-modal-panel {
+    background-color: #111827 !important;
+    border-color: #1f2937 !important;
+    color: #e2e8f0 !important;
+  }
+
+  [data-theme="dark"] .audit-modal-header {
+    background-color: #1f2937 !important;
+    border-color: #1f2937 !important;
+  }
+
+  [data-theme="dark"] .audit-modal-title {
+    color: #f3f4f6 !important;
+  }
+
+  [data-theme="dark"] .audit-modal-close {
+    color: #e2e8f0 !important;
+  }
+
+  [data-theme="dark"] .audit-modal-close:hover {
+    color: #93c5fd !important;
+  }
+
+  [data-theme="dark"] .audit-diff-title {
+    color: #cbd5f5 !important;
+  }
+
+  [data-theme="dark"] .audit-diff-chip-old {
+    background-color: rgba(248, 113, 113, 0.25) !important;
+  }
+
+  [data-theme="dark"] .audit-diff-chip-new {
+    background-color: rgba(34, 197, 94, 0.25) !important;
+  }
+
+  [data-theme="dark"] .audit-json-diff {
+    background-color: #0f172a !important;
+    border-color: #1f2937 !important;
+    color: #e2e8f0 !important;
+  }
+
+  [data-theme="dark"] .old-data-cell:hover,
+  [data-theme="dark"] .new-data-cell:hover,
+  [data-theme="dark"] .audit-json-trigger:hover {
+    background-color: rgba(148, 163, 184, 0.12) !important;
   }
 </style>
 <script id="initial-logs-data" type="application/json">
@@ -325,6 +719,26 @@
   window.closeModal = function() {
     document.getElementById('data-modal').classList.add('hidden');
   }
+
+  function applyShellTheme(theme) {
+    const auditPage = document.querySelector('.audit-page');
+    if (!auditPage) {
+      return;
+    }
+
+    const shell = auditPage.closest('.bg-white.rounded.shadow');
+    if (!shell) {
+      return;
+    }
+
+    if (theme === 'dark') {
+      shell.classList.add('audit-shell-dark');
+    } else {
+      shell.classList.remove('audit-shell-dark');
+    }
+  }
+
+  applyShellTheme(document.documentElement.getAttribute('data-theme') || 'light');
 
   window.highlightDifferences = function(oldStr, newStr, type) {
     if (oldStr === 'null' || newStr === 'null') {
@@ -467,6 +881,7 @@
   }
   let hasLoaded = false;
   document.addEventListener('DOMContentLoaded', function() {
+    applyShellTheme(document.documentElement.getAttribute('data-theme') || 'light');
     setupInitialDates();
     
     document.getElementById('load-date-range').addEventListener('click', (e) => {
@@ -683,26 +1098,25 @@
   row.className = 'bg-white border-b hover:bg-gray-50 transition-colors audit-row';
 
   row.innerHTML = `
-    <td class="px-4 py-4 whitespace-nowrap timestamp-cell sticky left-0 bg-white z-10">
-      <div class="formatted-timestamp text-sm font-medium text-gray-900" data-raw="${entry.timestamp}">${entry.timestamp}</div>
-      <div class="relative-time text-xs text-gray-500"></div>
+    <td class="px-4 py-4 whitespace-nowrap timestamp-cell sticky left-0 bg-white z-10 audit-table-cell audit-sticky-cell">
+      <div class="formatted-timestamp text-sm font-medium text-gray-900 audit-text-primary" data-raw="${entry.timestamp}">${entry.timestamp}</div>
+      <div class="relative-time text-xs text-gray-500 audit-muted-text"></div>
     </td>
 
-    <td class="px-4 py-4 user-cell">
-      <div class="text-sm text-gray-900">${entry.user_email || '—'}</div>
+    <td class="px-4 py-4 user-cell audit-table-cell">
+      <div class="text-sm text-gray-900 audit-text-primary">${entry.user_email || '—'}</div>
     </td>
 
-    <td class="px-4 py-4 action-cell">
+    <td class="px-4 py-4 action-cell audit-table-cell">
       <div class="flex items-center gap-2">
-        <span class="inline-flex px-2 py-1 text-xs font-semibold rounded-full
-          ${entry.action === 'insert' ? 'bg-green-100 text-green-800' :
+        <span class="inline-flex px-2 py-1 text-xs font-semibold rounded-full audit-action-pill ${entry.action === 'insert' ? 'bg-green-100 text-green-800' :
             entry.action === 'update' ? 'bg-blue-100 text-blue-800' :
             entry.action === 'delete' ? 'bg-red-100 text-red-800' :
-            'bg-gray-100 text-gray-800'}">
+            'bg-gray-100 text-gray-800'}" data-action="${entry.action || ''}">
           ${(entry.action || '').toUpperCase()}
         </span>
         ${isDelete ? `
-          <button class="px-2 py-0.5 text-xs rounded bg-yellow-500 text-white hover:bg-yellow-600 disabled:opacity-50"
+          <button class="px-2 py-0.5 text-xs rounded bg-yellow-500 text-white hover:bg-yellow-600 disabled:opacity-50 audit-undo-button"
                   data-audit-id="${String(entry.id ?? '')}"
                   onclick="undoDelete(this)">
             Undo
@@ -711,34 +1125,34 @@
       </div>
     </td>
 
-    <td class="px-4 py-4 table-cell">
-      <div class="text-sm font-medium text-gray-900">${entry.table_name}</div>
+    <td class="px-4 py-4 table-cell audit-table-cell">
+      <div class="text-sm font-medium text-gray-900 audit-text-primary">${entry.table_name}</div>
     </td>
 
-    <td class="px-4 py-4 record-cell">
-      <div class="text-xs font-mono text-gray-600 bg-gray-50 px-2 py-1 rounded">${entry.record_id}</div>
+    <td class="px-4 py-4 record-cell audit-table-cell">
+      <div class="text-xs font-mono text-gray-600 bg-gray-50 px-2 py-1 rounded audit-record-chip">${entry.record_id}</div>
     </td>
 
-    <td class="px-4 py-4 old-data-cell">
+    <td class="px-4 py-4 old-data-cell audit-table-cell">
       <div
-        class="relative max-w-xs cursor-pointer hover:bg-gray-100 rounded p-1 transition-colors"
+        class="relative max-w-xs cursor-pointer hover:bg-gray-100 rounded p-1 transition-colors audit-json-trigger"
         onclick="openFromElement(this)"
         data-old='${oldDataAttr}'
         data-new='${newDataAttr}'>
-        <div class="old-data-container">
-          <pre class="text-xs text-gray-600 max-h-24 overflow-y-auto bg-gray-50 p-2 rounded border">${oldDataPre}</pre>
+        <div class="old-data-container audit-json-container">
+          <pre class="text-xs text-gray-600 max-h-24 overflow-y-auto bg-gray-50 p-2 rounded border audit-json-preview">${oldDataPre}</pre>
         </div>
       </div>
     </td>
 
-    <td class="px-4 py-4 new-data-cell">
+    <td class="px-4 py-4 new-data-cell audit-table-cell">
       <div
-        class="relative max-w-xs cursor-pointer hover:bg-gray-100 rounded p-1 transition-colors"
+        class="relative max-w-xs cursor-pointer hover:bg-gray-100 rounded p-1 transition-colors audit-json-trigger"
         onclick="openFromElement(this)"
         data-old='${oldDataAttr}'
         data-new='${newDataAttr}'>
-        <div class="new-data-container">
-          <pre class="text-xs text-gray-800 max-h-24 overflow-y-auto bg-gray-50 p-2 rounded border">${newDataPre}</pre>
+        <div class="new-data-container audit-json-container">
+          <pre class="text-xs text-gray-800 max-h-24 overflow-y-auto bg-gray-50 p-2 rounded border audit-json-preview">${newDataPre}</pre>
         </div>
       </div>
     </td>
@@ -765,6 +1179,11 @@
       document.getElementById('showing-count').textContent = `Showing ${Math.min(visibleEntries, totalFiltered)} of ${totalFiltered} entries`;
       document.getElementById('total-count').textContent = `Total: ${totalCount} entries`;
     }
+  });
+
+  document.addEventListener('themechange', function(event) {
+    const theme = event?.detail?.theme || document.documentElement.getAttribute('data-theme') || 'light';
+    applyShellTheme(theme);
   });
 
   window.undoDelete = async function(btn) {
