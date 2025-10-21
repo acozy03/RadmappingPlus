@@ -1260,6 +1260,7 @@ thead.sticky th {
     gap: 0.5rem;
     align-items: flex-start;
     flex-wrap: wrap;
+    width: 100%;
     margin: 0.25rem 0;
     font-weight: 500;
 }
@@ -1275,6 +1276,9 @@ thead.sticky th {
     color: #334155;
     flex: 1 1 0%;
     min-width: 0;
+    white-space: normal;
+    overflow-wrap: anywhere;
+    word-break: break-word;
 }
 
 [data-theme="dark"] .doctor-popup .popup-label,
