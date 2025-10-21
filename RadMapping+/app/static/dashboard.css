@@ -1626,7 +1626,11 @@ thead.sticky th {
 }
 
 [data-theme="dark"] .shifts-page .shadow-sm {
-  box-shadow: var(--shifts-card-shadow) !important;
+  --tw-shadow: var(--shifts-card-shadow);
+  --tw-shadow-colored: var(--shifts-card-shadow);
+  box-shadow: var(--tw-ring-offset-shadow, 0 0 #0000),
+    var(--tw-ring-shadow, 0 0 #0000),
+    var(--tw-shadow) !important;
 }
 
 [data-theme="dark"] .shifts-page .ring-blue-300 {
