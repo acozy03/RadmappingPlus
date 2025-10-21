@@ -1633,6 +1633,14 @@ thead.sticky th {
   --tw-ring-color: rgba(96, 165, 250, 0.55) !important;
 }
 
+[data-theme="dark"] .shifts-page .ring-red-500 {
+  --tw-ring-color: rgba(248, 113, 113, 0.75) !important;
+}
+
+[data-theme="dark"] .shifts-page .ring-green-500 {
+  --tw-ring-color: rgba(74, 222, 128, 0.75) !important;
+}
+
 [data-theme="dark"] .shifts-page .ring-offset-1 {
   --tw-ring-offset-color: rgba(15, 23, 42, 0.95) !important;
 }

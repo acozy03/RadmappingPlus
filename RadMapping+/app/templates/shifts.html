@@ -193,10 +193,9 @@
 }"
 
  class="mb-6 p-4 bg-white rounded-lg shadow-sm border border-gray-200 shifts-filter-panel">
-    <div class="flex flex-col md:flex-row md:items-center md:justify-between space-y-4 md:space-y-0">
-   
-        <span class="text-sm font-medium text-gray-700">Show Sections:</span>
+    <div class="flex flex-col gap-4 md:flex-row md:items-center md:justify-between">
         <div class="flex items-center flex-wrap gap-3">
+            <span class="text-sm font-medium text-gray-700">Show Sections:</span>
             <label class="inline-flex items-center">
                 <input type="checkbox" class="form-checkbox h-4 w-4 text-red-600" checked x-model="showRed" @change="updateFilters()">
                 <span class="ml-2 text-sm text-gray-700">Below 60% Capacity</span>
@@ -209,23 +208,23 @@
                 <input type="checkbox" class="form-checkbox h-4 w-4 text-green-600" checked x-model="showGreen" @change="updateFilters()">
                 <span class="ml-2 text-sm text-gray-700">Above 90% Capacity</span>
             </label>
-            <div class="flex items-center gap-2 flex-wrap">
-              <label for="sort-metric-select" class="text-sm font-medium text-gray-700">Sort By:</label>
-              <select
-                id="sort-metric-select"
-                class="px-2 py-1.5 text-sm border border-blue-200 rounded-md bg-white text-gray-700 focus:outline-none focus:ring-2 focus:ring-blue-300"
-              >
-                <option value="time">Hour</option>
-                <option value="capacity">Capacity Ratio</option>
-              </select>
-              <button
-                id="hour-sort-toggle"
-                type="button"
-                class="px-3 py-1.5 text-sm font-medium bg-blue-100 text-blue-700 rounded-md shadow-sm hover:bg-blue-200 transition-colors shifts-filter-button"
-              >
-                Direction: Ascending
-              </button>
-            </div>
+        </div>
+        <div class="flex items-center gap-2 flex-wrap md:justify-end">
+          <label for="sort-metric-select" class="text-sm font-medium text-gray-700">Sort By:</label>
+          <select
+            id="sort-metric-select"
+            class="px-2 py-1.5 text-sm border border-blue-200 rounded-md bg-white text-gray-700 focus:outline-none focus:ring-2 focus:ring-blue-300"
+          >
+            <option value="time">Hour</option>
+            <option value="capacity">Capacity Ratio</option>
+          </select>
+          <button
+            id="hour-sort-toggle"
+            type="button"
+            class="px-3 py-1.5 text-sm font-medium bg-blue-100 text-blue-700 rounded-md shadow-sm hover:bg-blue-200 transition-colors shifts-filter-button"
+          >
+            Direction: Ascending
+          </button>
         </div>
     </div>
     <div class="mt-4 pt-4 border-t border-gray-200 flex flex-col md:flex-row gap-4">
