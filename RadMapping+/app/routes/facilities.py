@@ -484,21 +484,15 @@ def bulk_update_assignments(facility_id):
 
         old_radiologist_data = supabase.table('radiologists').select('*').eq('id', rad_id).single().execute().data
 
-        reads_stats = 'reads_stats_' + rad_id in request.form
-        reads_routines = 'reads_routines_' + rad_id in request.form
         stipulations = request.form.get(f'stipulations_{rad_id}', '')
         
         new_radiologist_data = {
-            'reads_stats': 'YES' if reads_stats else 'NO',
-            'reads_routines': 'YES' if reads_routines else 'NO',
             'stipulations': stipulations
         }
 
         radiologist_changed = False
         if old_radiologist_data:
-            if old_radiologist_data.get('reads_stats') != new_radiologist_data['reads_stats'] or \
-               old_radiologist_data.get('reads_routines') != new_radiologist_data['reads_routines'] or \
-               old_radiologist_data.get('stipulations') != new_radiologist_data['stipulations']:
+            if old_radiologist_data.get('stipulations') != new_radiologist_data['stipulations']:
                 radiologist_changed = True
         
         if radiologist_changed:
