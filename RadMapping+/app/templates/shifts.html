@@ -92,12 +92,13 @@
   showRed: true,
   showYellow: true,
   showGreen: true,
+  stateQuery: '',
   facilityQuery: '',
   facilityMatches: [],
-  updateFilters: debounce(function () {
+  applyFilters() {
     const normalize = s => s.toLowerCase().replace(/\s+/g, ' ').replace(/\n/g, ' ').trim();
     const facilityQuery = normalize(this.facilityQuery);
-    const stateQuery = normalize(document.getElementById('global-state-search')?.value || '');
+    const stateQuery = normalize(this.stateQuery || '');
 
     document.querySelectorAll('.hour-slot-div').forEach(slotElement => {
       const facilityDataRaw = slotElement.getAttribute('data-facility-doctor-map') || '{}';
@@ -163,6 +164,9 @@
         wrapper.style.display = shouldShow ? '' : 'none';
       });
     }
+  },
+  updateFilters: debounce(function () {
+    this.applyFilters();
   }, 150),
 
   updateStateSuggestions() {
@@ -365,8 +369,7 @@
         "expected": expected,
         "ratio": ratio
       } | tojson | escape }}'
-      class="group rounded-md p-2 md:p-3 shadow-sm border border-gray-300 {{ color_class }} relative cursor-pointer hour-slot-div shifts-slot-card"
-      style="background-color: inherit; min-width: 0;"
+      class="group rounded-md p-2 md:p-3 shadow-sm border border-gray-300 {{ color_class }} relative cursor-pointer hour-slot-div shifts-slot-card min-w-0"
     >
       <div class="flex flex-col md:flex-row md:items-center md:justify-between gap-1 md:gap-0">
         <h4 class="text-xs md:text-sm font-semibold text-gray-800">
@@ -645,6 +648,61 @@
       }
     }
 
+    function getFilterPanelElement() {
+      return document.querySelector('.shifts-filter-panel');
+    }
+
+    function captureFilterState(filterPanel) {
+      if (!filterPanel || !filterPanel.__x || !filterPanel.__x.$data) {
+        return null;
+      }
+
+      const data = filterPanel.__x.$data;
+      return {
+        showRed: data.showRed,
+        showYellow: data.showYellow,
+        showGreen: data.showGreen,
+        stateQuery: data.stateQuery,
+        facilityQuery: data.facilityQuery
+      };
+    }
+
+    function restoreFilterState(filterPanel, state) {
+      if (!filterPanel || !state || !filterPanel.__x || !filterPanel.__x.$data) {
+        return false;
+      }
+
+      const data = filterPanel.__x.$data;
+
+      if (typeof state.showRed === 'boolean') {
+        data.showRed = state.showRed;
+      }
+      if (typeof state.showYellow === 'boolean') {
+        data.showYellow = state.showYellow;
+      }
+      if (typeof state.showGreen === 'boolean') {
+        data.showGreen = state.showGreen;
+      }
+      if (typeof state.stateQuery === 'string') {
+        data.stateQuery = state.stateQuery;
+      }
+      if (typeof state.facilityQuery === 'string') {
+        data.facilityQuery = state.facilityQuery;
+      }
+
+      if (typeof data.applyFilters === 'function') {
+        data.applyFilters();
+        return true;
+      }
+
+      if (typeof data.updateFilters === 'function') {
+        data.updateFilters();
+        return true;
+      }
+
+      return false;
+    }
+
     document.addEventListener('DOMContentLoaded', () => {
       const sortButton = document.getElementById('hour-sort-toggle');
       const sortMetricSelect = document.getElementById('sort-metric-select');
@@ -686,6 +744,9 @@
       };
 
       const sortHourTiles = () => {
+        const filterPanel = getFilterPanelElement();
+        const savedFilterState = captureFilterState(filterPanel);
+
         document.body.classList.add('hour-sort-active');
 
         document.querySelectorAll('.shifts-day-body').forEach(dayBody => {
@@ -713,12 +774,7 @@
           });
         });
 
-        const filterPanel = document.querySelector('.shifts-filter-panel');
-        let filtersApplied = false;
-        if (filterPanel && filterPanel.__x && filterPanel.__x.$data && typeof filterPanel.__x.$data.updateFilters === 'function') {
-          filterPanel.__x.$data.updateFilters();
-          filtersApplied = true;
-        }
+        const filtersApplied = restoreFilterState(filterPanel, savedFilterState);
 
         if (!filtersApplied) {
           document.querySelectorAll('.capacity-section[data-sorted-view="true"]').forEach(section => {
