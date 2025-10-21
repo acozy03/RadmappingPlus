@@ -117,7 +117,7 @@
             </select>
             <button type="button"
                     onclick="resetHourFilter()"
-                    class="bg-blue-600 text-white px-2 py-1 rounded text-sm font-medium hover:bg-blue-700 transition daily-filter-button">
+                    class="bg-blue-700 text-white px-2 py-1 rounded text-sm font-medium hover:bg-blue-700 transition daily-filter-button">
               Reset
             </button>
 
@@ -284,7 +284,7 @@
 
     <div class="doctor-popup-placeholder" data-popup-id="{{ doc.id }}"></div>
 
-    <div class="absolute bottom-2 right-2 text-xs font-medium px-2 py-0.5 rounded-full shadow-sm
+    <div class="absolute bottom-2 right-2 text-xs font-medium px-2 py-0.5 rounded-full
                 {{ 'bg-yellow-200 text-yellow-800' if is_routine else 'bg-purple-100 text-purple-700' }} daily-prn-badge">
       {{ 'PRN ROUTINES' if is_routine else 'PRN' }}
     </div>

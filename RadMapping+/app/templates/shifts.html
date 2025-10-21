@@ -193,7 +193,8 @@
 }"
 
  class="mb-6 p-4 bg-white rounded-lg shadow-sm border border-gray-200 shifts-filter-panel">
-    <div class="flex flex-col md:flex-row md:items-center space-y-4 md:space-y-0 md:space-x-6">
+    <div class="flex flex-col md:flex-row md:items-center md:justify-between space-y-4 md:space-y-0">
+   
         <span class="text-sm font-medium text-gray-700">Show Sections:</span>
         <div class="flex items-center flex-wrap gap-3">
             <label class="inline-flex items-center">
@@ -208,13 +209,23 @@
                 <input type="checkbox" class="form-checkbox h-4 w-4 text-green-600" checked x-model="showGreen" @change="updateFilters()">
                 <span class="ml-2 text-sm text-gray-700">Above 90% Capacity</span>
             </label>
-            <button
-              id="hour-sort-toggle"
-              type="button"
-              class="px-3 py-1.5 text-sm font-medium bg-blue-100 text-blue-700 rounded-md shadow-sm hover:bg-blue-200 transition-colors shifts-filter-button"
-            >
-              Sort Hours: Ascending
-            </button>
+            <div class="flex items-center gap-2 flex-wrap">
+              <label for="sort-metric-select" class="text-sm font-medium text-gray-700">Sort By:</label>
+              <select
+                id="sort-metric-select"
+                class="px-2 py-1.5 text-sm border border-blue-200 rounded-md bg-white text-gray-700 focus:outline-none focus:ring-2 focus:ring-blue-300"
+              >
+                <option value="time">Hour</option>
+                <option value="capacity">Capacity Ratio</option>
+              </select>
+              <button
+                id="hour-sort-toggle"
+                type="button"
+                class="px-3 py-1.5 text-sm font-medium bg-blue-100 text-blue-700 rounded-md shadow-sm hover:bg-blue-200 transition-colors shifts-filter-button"
+              >
+                Direction: Ascending
+              </button>
+            </div>
         </div>
     </div>
     <div class="mt-4 pt-4 border-t border-gray-200 flex flex-col md:flex-row gap-4">
@@ -320,7 +331,12 @@
   {% endfor %}
 
   {% set color_group_name = 'red' if 'red' in color_class else 'yellow' if 'yellow' in color_class else 'green' if 'green' in color_class else 'neutral' %}
-  <div class="relative group" data-sort-time="{{ slot.datetime.isoformat() }}" data-color-group="{{ color_group_name }}">
+  <div
+    class="relative group"
+    data-sort-time="{{ slot.datetime.isoformat() }}"
+    data-color-group="{{ color_group_name }}"
+    data-capacity-ratio="{{ ratio if ratio is not none else '' }}"
+  >
 
     <div
       @click="
@@ -632,19 +648,42 @@
 
     document.addEventListener('DOMContentLoaded', () => {
       const sortButton = document.getElementById('hour-sort-toggle');
+      const sortMetricSelect = document.getElementById('sort-metric-select');
+
       if (!sortButton) {
         return;
       }
 
       let sortDescending = false;
+      let sortMetric = sortMetricSelect ? sortMetricSelect.value : 'time';
 
       const updateButtonLabel = () => {
-        sortButton.textContent = sortDescending ? 'Sort Hours: Descending' : 'Sort Hours: Ascending';
+        sortButton.textContent = sortDescending ? 'Direction: Descending' : 'Direction: Ascending';
       };
 
       const parseSortTime = (value) => {
         const parsed = Date.parse(value);
-        return Number.isNaN(parsed) ? 0 : parsed;
+        return Number.isNaN(parsed) ? null : parsed;
+      };
+
+      const parseCapacityRatio = (value) => {
+        if (value === null || value === undefined || value === '') {
+          return null;
+        }
+        const parsed = Number.parseFloat(value);
+        return Number.isNaN(parsed) ? null : parsed;
+      };
+
+      const getSortValue = (wrapper, metric) => {
+        const fallbackValue = sortDescending ? Number.NEGATIVE_INFINITY : Number.POSITIVE_INFINITY;
+
+        if (metric === 'capacity') {
+          const ratio = parseCapacityRatio(wrapper.getAttribute('data-capacity-ratio'));
+          return ratio === null ? fallbackValue : ratio;
+        }
+
+        const time = parseSortTime(wrapper.getAttribute('data-sort-time'));
+        return time === null ? fallbackValue : time;
       };
 
       const sortHourTiles = () => {
@@ -657,9 +696,9 @@
           }
 
           wrappers.sort((a, b) => {
-            const timeA = parseSortTime(a.getAttribute('data-sort-time'));
-            const timeB = parseSortTime(b.getAttribute('data-sort-time'));
-            return sortDescending ? timeB - timeA : timeA - timeB;
+            const valueA = getSortValue(a, sortMetric);
+            const valueB = getSortValue(b, sortMetric);
+            return sortDescending ? valueB - valueA : valueA - valueB;
           });
 
           let sortedContainer = dayBody.querySelector('.sorted-hour-container');
@@ -698,6 +737,13 @@
         updateButtonLabel();
         sortHourTiles();
       });
+
+      if (sortMetricSelect) {
+        sortMetricSelect.addEventListener('change', (event) => {
+          sortMetric = event.target.value;
+          sortHourTiles();
+        });
+      }
 
       updateButtonLabel();
       sortHourTiles();
