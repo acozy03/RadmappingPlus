@@ -391,6 +391,7 @@ def update_doctor(rad_id):
             "stipulations": request.form.get("stipulations"),
             "reads_routines": request.form.get("reads_routines"),
             "reads_stats": request.form.get("reads_stats"), 
+            "additional_info": request.form.get("additional_info"),
         }
         
         data = {k: v for k, v in data.items() if v is not None}

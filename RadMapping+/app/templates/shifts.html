@@ -129,6 +129,8 @@
     });
 
     // NEW: Filter visibility of capacity sections
+    const sortActive = document.body.classList.contains('hour-sort-active');
+
     document.querySelectorAll('.capacity-section').forEach(section => {
       const isRed = section.classList.contains('bg-red-100');
       const isYellow = section.classList.contains('bg-yellow-100');
@@ -139,8 +141,28 @@
         (isYellow && this.showYellow) ||
         (isGreen && this.showGreen);
 
-      section.style.display = shouldShow ? '' : 'none';
+      if (sortActive && section.dataset.sortedView === 'true') {
+        section.style.display = 'none';
+      } else {
+        section.style.display = shouldShow ? '' : 'none';
+      }
     });
+
+    if (sortActive) {
+      document.querySelectorAll('.sorted-hour-container [data-color-group]').forEach(wrapper => {
+        const colorGroup = wrapper.getAttribute('data-color-group');
+        const isRed = colorGroup === 'red';
+        const isYellow = colorGroup === 'yellow';
+        const isGreen = colorGroup === 'green';
+
+        const shouldShow =
+          (isRed && this.showRed) ||
+          (isYellow && this.showYellow) ||
+          (isGreen && this.showGreen);
+
+        wrapper.style.display = shouldShow ? '' : 'none';
+      });
+    }
   }, 150),
 
   updateStateSuggestions() {
@@ -173,7 +195,7 @@
  class="mb-6 p-4 bg-white rounded-lg shadow-sm border border-gray-200 shifts-filter-panel">
     <div class="flex flex-col md:flex-row md:items-center space-y-4 md:space-y-0 md:space-x-6">
         <span class="text-sm font-medium text-gray-700">Show Sections:</span>
-        <div class="flex items-center space-x-4">
+        <div class="flex items-center flex-wrap gap-3">
             <label class="inline-flex items-center">
                 <input type="checkbox" class="form-checkbox h-4 w-4 text-red-600" checked x-model="showRed" @change="updateFilters()">
                 <span class="ml-2 text-sm text-gray-700">Below 60% Capacity</span>
@@ -186,6 +208,13 @@
                 <input type="checkbox" class="form-checkbox h-4 w-4 text-green-600" checked x-model="showGreen" @change="updateFilters()">
                 <span class="ml-2 text-sm text-gray-700">Above 90% Capacity</span>
             </label>
+            <button
+              id="hour-sort-toggle"
+              type="button"
+              class="px-3 py-1.5 text-sm font-medium bg-blue-100 text-blue-700 rounded-md shadow-sm hover:bg-blue-200 transition-colors shifts-filter-button"
+            >
+              Sort Hours: Ascending
+            </button>
         </div>
     </div>
     <div class="mt-4 pt-4 border-t border-gray-200 flex flex-col md:flex-row gap-4">
@@ -268,7 +297,7 @@
 
             <div class="flex-1 bg-white rounded-b-lg border border-gray-200 p-2 md:p-4 shifts-day-body">
                 {% for color_class, slots_in_color_group in color_grouped_slots.items() %}
-                <div class="mb-4 capacity-section {{ color_class }} rounded-lg p-2 shifts-capacity-section">
+                <div class="mb-4 capacity-section {{ color_class }} rounded-lg p-2 shifts-capacity-section" data-sorted-view="true">
                     <div class="space-y-2">
                         {% for slot in slots_in_color_group %}
   {% set stats = hourly_rvu_stats[slot.datetime] %}
@@ -290,8 +319,9 @@
     }) %}
   {% endfor %}
 
-  <div class="relative group">
-     
+  {% set color_group_name = 'red' if 'red' in color_class else 'yellow' if 'yellow' in color_class else 'green' if 'green' in color_class else 'neutral' %}
+  <div class="relative group" data-sort-time="{{ slot.datetime.isoformat() }}" data-color-group="{{ color_group_name }}">
+
     <div
       @click="
         show = true;
@@ -599,7 +629,80 @@
         calendarDays.appendChild(dayElement);
       }
     }
-    
+
+    document.addEventListener('DOMContentLoaded', () => {
+      const sortButton = document.getElementById('hour-sort-toggle');
+      if (!sortButton) {
+        return;
+      }
+
+      let sortDescending = false;
+
+      const updateButtonLabel = () => {
+        sortButton.textContent = sortDescending ? 'Sort Hours: Descending' : 'Sort Hours: Ascending';
+      };
+
+      const parseSortTime = (value) => {
+        const parsed = Date.parse(value);
+        return Number.isNaN(parsed) ? 0 : parsed;
+      };
+
+      const sortHourTiles = () => {
+        document.body.classList.add('hour-sort-active');
+
+        document.querySelectorAll('.shifts-day-body').forEach(dayBody => {
+          const wrappers = Array.from(dayBody.querySelectorAll('.relative.group[data-sort-time]'));
+          if (!wrappers.length) {
+            return;
+          }
+
+          wrappers.sort((a, b) => {
+            const timeA = parseSortTime(a.getAttribute('data-sort-time'));
+            const timeB = parseSortTime(b.getAttribute('data-sort-time'));
+            return sortDescending ? timeB - timeA : timeA - timeB;
+          });
+
+          let sortedContainer = dayBody.querySelector('.sorted-hour-container');
+          if (!sortedContainer) {
+            sortedContainer = document.createElement('div');
+            sortedContainer.className = 'sorted-hour-container space-y-2';
+            dayBody.appendChild(sortedContainer);
+          }
+
+          sortedContainer.innerHTML = '';
+          wrappers.forEach(wrapper => {
+            sortedContainer.appendChild(wrapper);
+          });
+        });
+
+        const filterPanel = document.querySelector('.shifts-filter-panel');
+        let filtersApplied = false;
+        if (filterPanel && filterPanel.__x && filterPanel.__x.$data && typeof filterPanel.__x.$data.updateFilters === 'function') {
+          filterPanel.__x.$data.updateFilters();
+          filtersApplied = true;
+        }
+
+        if (!filtersApplied) {
+          document.querySelectorAll('.capacity-section[data-sorted-view="true"]').forEach(section => {
+            section.style.display = 'none';
+          });
+
+          document.querySelectorAll('.sorted-hour-container [data-color-group]').forEach(wrapper => {
+            wrapper.style.display = '';
+          });
+        }
+      };
+
+      sortButton.addEventListener('click', () => {
+        sortDescending = !sortDescending;
+        updateButtonLabel();
+        sortHourTiles();
+      });
+
+      updateButtonLabel();
+      sortHourTiles();
+    });
+
     document.addEventListener('DOMContentLoaded', function() {
         document.addEventListener('click', function(event) {
             const calendarPopup = document.getElementById('calendarPopup');

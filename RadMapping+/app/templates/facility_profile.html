@@ -606,92 +606,126 @@
   </div>
 </div>
 
-<div class="flex flex-col md:flex-row gap-8 mt-8">
-  <div class="flex-1 min-w-0">
-   <div class="bg-[var(--doctor-surface)] rounded-lg shadow p-6
-            border border-[var(--doctor-border)]
-            h-full flex flex-col surface-card">
+<div class="mt-8" x-data="{ activeTab: 'contacts' }">
+  <div class="bg-[var(--doctor-surface)] rounded-lg shadow border border-[var(--doctor-border)] surface-card">
+    <!-- Added pb-6 for bottom padding -->
+    <div class="px-6 pt-6 pb-6 border-b border-[var(--doctor-border)]">
+      <!-- Centered and evenly spaced buttons -->
+      <div class="flex justify-center w-full gap-4">
+        <button
+          type="button"
+          class="flex-1 inline-flex justify-center items-center gap-2 px-4 py-3 rounded-lg text-sm font-medium transition text-center"
+          :class="activeTab === 'contacts' 
+            ? 'bg-blue-600 text-white shadow' 
+            : 'bg-[var(--doctor-surface-muted)] text-[var(--doctor-text-secondary)] hover:bg-[var(--doctor-surface-elevated)]'"
+          @click="activeTab = 'contacts'"
+        >
+          Contacts
+          <span class="inline-flex items-center justify-center w-6 h-6 rounded-full text-xs font-semibold"
+            :class="activeTab === 'contacts' 
+              ? 'bg-white/25 text-white' 
+              : 'bg-[var(--doctor-surface)] text-[var(--doctor-text-secondary)]'"
+          >{{ facility_contacts|length }}</span>
+        </button>
 
-      <div class="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 mb-4">
-  <div class="w-full sm:w-1/2 relative">
-    <input
-      type="text"
-      placeholder="Search contacts..."
-      oninput="filterContacts(this.value)"
-      class="w-full border border-gray-300 rounded-lg px-10 py-2 text-sm focus:ring-2 focus:ring-blue-200 focus:border-blue-400 bg-gray-50"
-    />
-    <span class="absolute left-3 top-2.5 text-gray-400 pointer-events-none">
-      <svg class="h-5 w-5" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
-    </span>
-  </div>
-  {% if session.user.role == 'admin' %}
-    <button onclick="openAddContactModal()" class="bg-blue-600 text-white px-4 py-2 rounded text-sm font-medium hover:bg-blue-700 whitespace-nowrap">Add Contact</button>
-  {% endif %}
-</div>
-
-      {% if facility_contacts %}
-        <div class="grid grid-cols-1 gap-4">
-          {% for contact in facility_contacts %}
-            <div class="border border-[var(--doctor-border)] rounded-lg shadow-sm bg-gray-50 p-4 contact-item flex flex-col h-full surface-subtle">
-              <p class="text-[var(--doctor-link)] hover:text-[var(--doctor-link-hover)] font-bold text-xl mb-3 pb-2 border-b searchable">{{ contact.role }}</p>
-              <div class="space-y-2 flex-grow">
-                <div class="whitespace-pre-line searchable">{{ contact.text }}</div>
-              </div>
-              <div class="mt-3 pt-3 border-t flex items-center justify-between">
-                {% if session.user.role == 'admin' %}
-                  <div class="flex gap-2">
-                    <button 
-                      class="bg-blue-100 text-[var(--doctor-link)] hover:text-[var(--doctor-link-hover)] px-3 py-1 rounded hover:bg-blue-200 edit-contact-btn"
-                      data-contact-id="{{ contact.id }}"
-                      data-contact-text="{{ contact.text }}"
-                      data-contact-role="{{ contact.role }}"
-                    >Edit</button>
-                    <button onclick="deleteContact('{{ contact.id }}', '{{ facility.id }}', '{{ contact.role }}')" class="bg-red-100 text-red-700 px-3 py-1 rounded hover:bg-red-200">Delete</button>
-                  </div>
-                {% endif %}
-              </div>
-            </div>
-          {% endfor %}
-        </div>
-      {% else %}
-        <p class="text-gray-500 italic">No contacts available for this facility.</p>
-      {% endif %}
+        <button
+          type="button"
+          class="flex-1 inline-flex justify-center items-center gap-2 px-4 py-3 rounded-lg text-sm font-medium transition text-center"
+          :class="activeTab === 'radiologists' 
+            ? 'bg-blue-600 text-white shadow' 
+            : 'bg-[var(--doctor-surface-muted)] text-[var(--doctor-text-secondary)] hover:bg-[var(--doctor-surface-elevated)]'"
+          @click="activeTab = 'radiologists'"
+        >
+          Assigned Radiologists
+          <span class="inline-flex items-center justify-center w-6 h-6 rounded-full text-xs font-semibold"
+            :class="activeTab === 'radiologists' 
+              ? 'bg-white/25 text-white' 
+              : 'bg-[var(--doctor-surface)] text-[var(--doctor-text-secondary)]'"
+          >{{ doctor_assignments|length }}</span>
+        </button>
+      </div>
     </div>
-  </div>
-  <div class="flex-1 min-w-0">
-    <div class="bg-white rounded-lg shadow p-6 border border-[var(--doctor-border)] h-full flex flex-col surface-card">
-      <div class="flex flex-col sm:flex-row sm:items-center sm:justify-between mb-4 gap-2">
-        <h3 class="text-lg font-semibold">Assigned Radiologists</h3>
-        <div class="flex items-center gap-2 w-full sm:w-auto">
-          <div class="relative w-full sm:w-64">
-            <span class="absolute inset-y-0 left-0 flex items-center pl-3 text-gray-400 pointer-events-none">
+    <div class="p-6">
+      <div x-show="activeTab === 'contacts'" x-cloak>
+        <div class="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 mb-4">
+          <div class="w-full sm:w-1/2 relative">
+            <input
+              type="text"
+              placeholder="Search contacts..."
+              oninput="filterContacts(this.value)"
+              class="w-full border border-gray-300 rounded-lg px-10 py-2 text-sm focus:ring-2 focus:ring-blue-200 focus:border-blue-400 bg-gray-50"
+            />
+            <span class="absolute left-3 top-2.5 text-gray-400 pointer-events-none">
               <svg class="h-5 w-5" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
             </span>
-            <input type="text" class="pl-10 pr-4 py-2 border border-gray-300 rounded-lg shadow-sm focus:ring-2 focus:ring-blue-200 focus:border-blue-400 text-sm w-full bg-gray-50" placeholder="Search radiologists..." oninput="filterRadiologists(this.value)" />
           </div>
           {% if session.user.role == 'admin' %}
-            <button type="button" onclick="openRadiologistModal()" class="bg-blue-600 text-white px-4 py-2 rounded text-sm font-medium hover:bg-blue-700 whitespace-nowrap">Assign Radiologists</button>
-            <button type="button" onclick="openBulkEditAssignmentsModal()" class="bg-yellow-500 text-white px-4 py-2 rounded text-sm font-medium hover:bg-yellow-600 whitespace-nowrap">Edit Assignments</button>
+            <button onclick="openAddContactModal()" class="bg-blue-600 text-white px-4 py-2 rounded text-sm font-medium hover:bg-blue-700 whitespace-nowrap">Add Contact</button>
           {% endif %}
         </div>
+
+        {% if facility_contacts %}
+          <div class="grid grid-cols-1 gap-4">
+            {% for contact in facility_contacts %}
+              <div class="border border-[var(--doctor-border)] rounded-lg shadow-sm bg-gray-50 p-4 contact-item flex flex-col h-full surface-subtle">
+                <p class="text-[var(--doctor-link)] hover:text-[var(--doctor-link-hover)] font-bold text-xl mb-3 pb-2 border-b searchable">{{ contact.role }}</p>
+                <div class="space-y-2 flex-grow">
+                  <div class="whitespace-pre-line searchable">{{ contact.text }}</div>
+                </div>
+                <div class="mt-3 pt-3 border-t flex items-center justify-between">
+                  {% if session.user.role == 'admin' %}
+                    <div class="flex gap-2">
+                      <button
+                        class="bg-blue-100 text-[var(--doctor-link)] hover:text-[var(--doctor-link-hover)] px-3 py-1 rounded hover:bg-blue-200 edit-contact-btn"
+                        data-contact-id="{{ contact.id }}"
+                        data-contact-text="{{ contact.text }}"
+                        data-contact-role="{{ contact.role }}"
+                      >Edit</button>
+                      <button onclick="deleteContact('{{ contact.id }}', '{{ facility.id }}', '{{ contact.role }}')" class="bg-red-100 text-red-700 px-3 py-1 rounded hover:bg-red-200">Delete</button>
+                    </div>
+                  {% endif %}
+                </div>
+              </div>
+            {% endfor %}
+          </div>
+        {% else %}
+          <p class="text-gray-500 italic">No contacts available for this facility.</p>
+        {% endif %}
       </div>
-      {% if doctor_assignments %}
-        <div class="overflow-x-auto">
-          <table class="min-w-full bg-white border border-gray-200 text-sm rounded surface-table">
-            <thead class="bg-gray-100">
-              <tr class="text-left">
-                <th class="px-4 py-2 border-b">Name</th>
-                <th class="px-4 py-2 border-b">Can Read</th>
-                <!-- <th class="px-4 py-2 border-b">Does Stats</th>
-                <th class="px-4 py-2 border-b">Does Routines</th> -->
-                <th class="px-4 py-2 border-b">Stipulations</th>
-                <th class="px-4 py-2 border-b">Notes</th>
-                {% if session.user.role == 'admin' %}
-                <th class="px-4 py-2 border-b">Actions</th>
-                {% endif %}
-              </tr>
-            </thead>
-            <div id="popup-container" class="absolute z-50 hidden"></div>
+
+      <div x-show="activeTab === 'radiologists'" x-cloak>
+        <div class="flex flex-col sm:flex-row sm:items-center sm:justify-between mb-4 gap-2">
+          <h3 class="text-lg font-semibold">Assigned Radiologists</h3>
+          <div class="flex items-center gap-2 w-full sm:w-auto">
+            <div class="relative w-full sm:w-64">
+              <span class="absolute inset-y-0 left-0 flex items-center pl-3 text-gray-400 pointer-events-none">
+                <svg class="h-5 w-5" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
+              </span>
+              <input type="text" class="pl-10 pr-4 py-2 border border-gray-300 rounded-lg shadow-sm focus:ring-2 focus:ring-blue-200 focus:border-blue-400 text-sm w-full bg-gray-50" placeholder="Search radiologists..." oninput="filterRadiologists(this.value)" />
+            </div>
+            {% if session.user.role == 'admin' %}
+              <button type="button" onclick="openRadiologistModal()" class="bg-blue-600 text-white px-4 py-2 rounded text-sm font-medium hover:bg-blue-700 whitespace-nowrap">Assign Radiologists</button>
+              <button type="button" onclick="openBulkEditAssignmentsModal()" class="bg-yellow-500 text-white px-4 py-2 rounded text-sm font-medium hover:bg-yellow-600 whitespace-nowrap">Edit Assignments</button>
+            {% endif %}
+          </div>
+        </div>
+        {% if doctor_assignments %}
+          <div class="overflow-x-auto">
+            <table class="min-w-full bg-white border border-gray-200 text-sm rounded surface-table">
+              <thead class="bg-gray-100">
+                <tr class="text-left">
+                  <th class="px-4 py-2 border-b">Name</th>
+                  <th class="px-4 py-2 border-b">Can Read</th>
+                  <!-- <th class="px-4 py-2 border-b">Does Stats</th>
+                  <th class="px-4 py-2 border-b">Does Routines</th> -->
+                  <th class="px-4 py-2 border-b">Stipulations</th>
+                  <th class="px-4 py-2 border-b">Notes</th>
+                  {% if session.user.role == 'admin' %}
+                  <th class="px-4 py-2 border-b">Actions</th>
+                  {% endif %}
+                </tr>
+              </thead>
+              <div id="popup-container" class="absolute z-50 hidden"></div>
 
 <div id="all-doctor-popups" class="hidden">
   {% for assignment in doctor_assignments %}
@@ -711,19 +745,19 @@
   {% endfor %}
 </div>
 
-            <tbody>
-              {% for assignment in doctor_assignments %}
-              <tr class="bg-white radiologist-item">
-                <td class="px-4 py-2 border-b">
-                <a href="{{ url_for('doctors.doctor_profile', rad_id=assignment.radiologists.id) }}"
-                   target="_blank"
-                   class="text-[var(--doctor-link)] hover:text-[var(--doctor-link-hover)] hover:underline relative"
-                   onmouseenter="showDoctorPopup(event, '{{ assignment.radiologists.id }}')"
-                   onmouseleave="hideDoctorPopup()">
-                  {{ assignment.radiologists.name }}
-                </a>
-                </td>
-                <td class="px-4 py-2 border-b">
+              <tbody>
+                {% for assignment in doctor_assignments %}
+                <tr class="bg-white radiologist-item">
+                  <td class="px-4 py-2 border-b">
+                  <a href="{{ url_for('doctors.doctor_profile', rad_id=assignment.radiologists.id) }}"
+                     target="_blank"
+                     class="text-[var(--doctor-link)] hover:text-[var(--doctor-link-hover)] hover:underline relative"
+                     onmouseenter="showDoctorPopup(event, '{{ assignment.radiologists.id }}')"
+                     onmouseleave="hideDoctorPopup()">
+                    {{ assignment.radiologists.name }}
+                  </a>
+                  </td>
+                  <td class="px-4 py-2 border-b">
   {% if assignment.can_read == "true" %}
     ✅
   {% elif assignment.can_read == "pending" %}
@@ -733,10 +767,10 @@
   {% endif %}
 </td>
 
-                <!-- <td class="px-4 py-2 border-b">{{ "✅" if assignment.radiologists.reads_stats == 'YES' else "❌" }}</td>
-                <td class="px-4 py-2 border-b">{{ "✅" if assignment.radiologists.reads_routines == 'YES' else "❌" }}</td> -->
-                
-                <td class="px-4 py-2 border-b">
+                  <!-- <td class="px-4 py-2 border-b">{{ "✅" if assignment.radiologists.reads_stats == 'YES' else "❌" }}</td>
+                  <td class="px-4 py-2 border-b">{{ "✅" if assignment.radiologists.reads_routines == 'YES' else "❌" }}</td> -->
+
+                  <td class="px-4 py-2 border-b">
   {% set full = assignment.radiologists.stipulations or "—" %}
   {% if full|length > 100 %}
     <div x-data="{ expanded: false }">
@@ -751,28 +785,29 @@
   {% endif %}
 </td>
     <td class="px-4 py-2 border-b">{{ assignment.notes or "—" }}</td>
-                {% if session.user.role == 'admin' %}
-                <td class="px-4 py-2 border-b">
-                  <form action="{{ url_for('facilities.remove_assignment', facility_id=facility.id, assignment_id=assignment.id) }}" 
-                        method="POST" 
-                        style="display: inline;" 
-                        onsubmit="handleFormDelete(event, this)"
-                        data-title="Remove Assignment"
-                        data-item-name="Assignment for {{ assignment.radiologists.name }}">
-                    <button type="submit" class="bg-red-100 text-red-700 px-3 py-1 rounded hover:bg-red-200 text-sm">
-                      Remove
-                    </button>
-                  </form>
-                </td>
-                {% endif %}
-              </tr>
-              {% endfor %}
-            </tbody>
-          </table>
-        </div>
-      {% else %}
-        <p class="text-gray-500 italic">No doctors assigned.</p>
-      {% endif %}
+                  {% if session.user.role == 'admin' %}
+                  <td class="px-4 py-2 border-b">
+                    <form action="{{ url_for('facilities.remove_assignment', facility_id=facility.id, assignment_id=assignment.id) }}"
+                          method="POST"
+                          style="display: inline;"
+                          onsubmit="handleFormDelete(event, this)"
+                          data-title="Remove Assignment"
+                          data-item-name="Assignment for {{ assignment.radiologists.name }}">
+                      <button type="submit" class="bg-red-100 text-red-700 px-3 py-1 rounded hover:bg-red-200 text-sm">
+                        Remove
+                      </button>
+                    </form>
+                  </td>
+                  {% endif %}
+                </tr>
+                {% endfor %}
+              </tbody>
+            </table>
+          </div>
+        {% else %}
+          <p class="text-gray-500 italic">No doctors assigned.</p>
+        {% endif %}
+      </div>
     </div>
   </div>
 </div>

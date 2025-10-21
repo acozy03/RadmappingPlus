@@ -701,6 +701,11 @@
         <input type="text" name="stipulations" value="{{ doctor.stipulations or '' }}" class="input w-full border rounded px-3 py-2 text-sm" />
       </label>
 
+      <label class="block">
+        <span class="font-semibold">Additional Info</span>
+        <textarea name="additional_info" rows="3" class="input w-full border rounded px-3 py-2 text-sm">{{ doctor.additional_info or '' }}</textarea>
+      </label>
+
       <label class="flex items-center space-x-2 mt-4">
         <input type="checkbox" name="active_status" value="true" {% if doctor.active_status %}checked{% endif %} class="form-checkbox h-5 w-5">
         <span class="text-sm font-medium">Active</span>
