@@ -95,6 +95,19 @@
   stateQuery: '',
   facilityQuery: '',
   facilityMatches: [],
+  init() {
+    const reapplyFilters = () => {
+      window.requestAnimationFrame(() => this.applyFilters());
+    };
+
+    document.addEventListener('shifts:refreshFilters', reapplyFilters);
+
+    this.$el.addEventListener('alpine:destroy', () => {
+      document.removeEventListener('shifts:refreshFilters', reapplyFilters);
+    });
+
+    this.$nextTick(() => this.applyFilters());
+  },
   applyFilters() {
     const normalize = s => s.toLowerCase().replace(/\s+/g, ' ').replace(/\n/g, ' ').trim();
     const facilityQuery = normalize(this.facilityQuery);
@@ -648,61 +661,6 @@
       }
     }
 
-    function getFilterPanelElement() {
-      return document.querySelector('.shifts-filter-panel');
-    }
-
-    function captureFilterState(filterPanel) {
-      if (!filterPanel || !filterPanel.__x || !filterPanel.__x.$data) {
-        return null;
-      }
-
-      const data = filterPanel.__x.$data;
-      return {
-        showRed: data.showRed,
-        showYellow: data.showYellow,
-        showGreen: data.showGreen,
-        stateQuery: data.stateQuery,
-        facilityQuery: data.facilityQuery
-      };
-    }
-
-    function restoreFilterState(filterPanel, state) {
-      if (!filterPanel || !state || !filterPanel.__x || !filterPanel.__x.$data) {
-        return false;
-      }
-
-      const data = filterPanel.__x.$data;
-
-      if (typeof state.showRed === 'boolean') {
-        data.showRed = state.showRed;
-      }
-      if (typeof state.showYellow === 'boolean') {
-        data.showYellow = state.showYellow;
-      }
-      if (typeof state.showGreen === 'boolean') {
-        data.showGreen = state.showGreen;
-      }
-      if (typeof state.stateQuery === 'string') {
-        data.stateQuery = state.stateQuery;
-      }
-      if (typeof state.facilityQuery === 'string') {
-        data.facilityQuery = state.facilityQuery;
-      }
-
-      if (typeof data.applyFilters === 'function') {
-        data.applyFilters();
-        return true;
-      }
-
-      if (typeof data.updateFilters === 'function') {
-        data.updateFilters();
-        return true;
-      }
-
-      return false;
-    }
-
     document.addEventListener('DOMContentLoaded', () => {
       const sortButton = document.getElementById('hour-sort-toggle');
       const sortMetricSelect = document.getElementById('sort-metric-select');
@@ -744,9 +702,6 @@
       };
 
       const sortHourTiles = () => {
-        const filterPanel = getFilterPanelElement();
-        const savedFilterState = captureFilterState(filterPanel);
-
         document.body.classList.add('hour-sort-active');
 
         document.querySelectorAll('.shifts-day-body').forEach(dayBody => {
@@ -774,17 +729,9 @@
           });
         });
 
-        const filtersApplied = restoreFilterState(filterPanel, savedFilterState);
-
-        if (!filtersApplied) {
-          document.querySelectorAll('.capacity-section[data-sorted-view="true"]').forEach(section => {
-            section.style.display = 'none';
-          });
-
-          document.querySelectorAll('.sorted-hour-container [data-color-group]').forEach(wrapper => {
-            wrapper.style.display = '';
-          });
-        }
+        window.requestAnimationFrame(() => {
+          document.dispatchEvent(new CustomEvent('shifts:refreshFilters'));
+        });
       };
 
       sortButton.addEventListener('click', () => {
