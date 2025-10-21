@@ -1254,6 +1254,39 @@ thead.sticky th {
     box-shadow: 0 18px 44px rgba(15, 23, 42, 0.12);
 }
 
+.doctor-popup .popup-line,
+.facility-popup .popup-line {
+    display: flex;
+    gap: 0.5rem;
+    align-items: flex-start;
+    flex-wrap: wrap;
+    margin: 0.25rem 0;
+    font-weight: 500;
+}
+
+.doctor-popup .popup-label,
+.facility-popup .popup-label {
+    font-weight: 600;
+    color: #4d7fc4;
+}
+
+.doctor-popup .popup-value,
+.facility-popup .popup-value {
+    color: #334155;
+    flex: 1 1 0%;
+    min-width: 0;
+}
+
+[data-theme="dark"] .doctor-popup .popup-label,
+[data-theme="dark"] .facility-popup .popup-label {
+    color: #bfdbfe;
+}
+
+[data-theme="dark"] .doctor-popup .popup-value,
+[data-theme="dark"] .facility-popup .popup-value {
+    color: #e2e8f0;
+}
+
 
 
 

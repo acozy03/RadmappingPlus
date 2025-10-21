@@ -733,12 +733,12 @@
     <div id="popup-{{ doc.id }}" class="doctor-popup bg-white border p-4 rounded-lg shadow-lg w-[20rem] surface-card">
       <h4 class="font-medium text-lg text-gray-900 mb-2">{{ doc.name }}</h4>
       <div class="space-y-2 text-sm text-left">
-        <p><strong>Phone:</strong> {{ doc.phone or 'N/A' }}</p>
-        <p><strong>Email:</strong> {{ doc.email or 'N/A' }}</p>
-        <p><strong>PACS:</strong> {{ doc.pacs or 'N/A' }}</p>
-        <p><strong>Modalities:</strong> {{ doc.modalities or 'N/A' }}</p>
+        <p class="popup-line"><span class="popup-label">Phone:</span> <span class="popup-value">{{ doc.phone or 'N/A' }}</span></p>
+        <p class="popup-line"><span class="popup-label">Email:</span> <span class="popup-value">{{ doc.email or 'N/A' }}</span></p>
+        <p class="popup-line"><span class="popup-label">PACS:</span> <span class="popup-value">{{ doc.pacs or 'N/A' }}</span></p>
+        <p class="popup-line"><span class="popup-label">Modalities:</span> <span class="popup-value">{{ doc.modalities or 'N/A' }}</span></p>
         {% if doc.schedule_details %}
-          <p><strong>Schedule:</strong> {{ doc.schedule_details }}</p>
+          <p class="popup-line"><span class="popup-label">Schedule:</span> <span class="popup-value">{{ doc.schedule_details }}</span></p>
         {% endif %}
       </div>
     </div>

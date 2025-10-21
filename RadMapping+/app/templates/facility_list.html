@@ -213,22 +213,22 @@
     <span class="text-blue-600 font-semibold">Details →</span>
 
     <div class="facility-popup absolute left-0 top-full mt-2 w-[20rem] bg-white border p-3 rounded shadow-md text-left pointer-events-none opacity-0 transition-opacity duration-150 z-50">
-      <p class="text-sm font-medium">Location: <span class="text-gray-700">{{ facility.location or 'N/A' }}</span></p>
-      <p class="text-sm font-medium">PACS: <span class="text-gray-700">{{ facility.pacs or 'N/A' }}</span></p>
+      <p class="popup-line text-sm"><span class="popup-label">Location:</span> <span class="popup-value">{{ facility.location or 'N/A' }}</span></p>
+      <p class="popup-line text-sm"><span class="popup-label">PACS:</span> <span class="popup-value">{{ facility.pacs or 'N/A' }}</span></p>
       {% set _s = facility.active_status %}
-<p class="text-sm font-medium">
-  Status:
-  <span class="text-gray-700">
-    {% if _s == 'true' %}Active
-    {% elif _s == 'false' %}Inactive
-    {% elif _s == 'hold' %}On Hold
-    {% elif _s == 'pending' %}Pending
-    {% else %}Unknown{% endif %}
-  </span>
-</p>
+      <p class="popup-line text-sm">
+        <span class="popup-label">Status:</span>
+        <span class="popup-value">
+          {% if _s == 'true' %}Active
+          {% elif _s == 'false' %}Inactive
+          {% elif _s == 'hold' %}On Hold
+          {% elif _s == 'pending' %}Pending
+          {% else %}Unknown{% endif %}
+        </span>
+      </p>
 
-      <p class="text-sm font-medium">TAT Definition: <span class="text-gray-700">{{ facility.tat_definition or 'N/A' }}</span></p>
-      <p class="text-sm font-medium">Modalities Period: <span class="text-gray-700">{{ facility.modalities_assignment_period or 'N/A' }}</span></p>
+      <p class="popup-line text-sm"><span class="popup-label">TAT Definition:</span> <span class="popup-value">{{ facility.tat_definition or 'N/A' }}</span></p>
+      <p class="popup-line text-sm"><span class="popup-label">Modalities Period:</span> <span class="popup-value">{{ facility.modalities_assignment_period or 'N/A' }}</span></p>
     </div>
   </li>
   {% endfor %}
@@ -675,11 +675,11 @@ function updateTable(facilities) {
       <span class="text-blue-600 font-semibold">Details →</span>
 
       <div class="facility-popup absolute left-0 top-full mt-2 w-[20rem] bg-white border p-3 rounded shadow-md text-left pointer-events-none opacity-0 transition-opacity duration-150 z-50">
-        <p class="text-sm font-medium">Location: <span class="text-gray-700">${fac.location || 'N/A'}</span></p>
-        <p class="text-sm font-medium">PACS: <span class="text-gray-700">${fac.pacs || 'N/A'}</span></p>
-        <p class="text-sm font-medium">Status: <span class="text-gray-700">${getStatusLabel(fac.active_status)}</span></p>
-        <p class="text-sm font-medium">TAT Definition: <span class="text-gray-700">${fac.tat_definition || 'N/A'}</span></p>
-        <p class="text-sm font-medium">Modalities Period: <span class="text-gray-700">${fac.modalities_assignment_period || 'N/A'}</span></p>
+        <p class="popup-line text-sm"><span class="popup-label">Location:</span> <span class="popup-value">${fac.location || 'N/A'}</span></p>
+        <p class="popup-line text-sm"><span class="popup-label">PACS:</span> <span class="popup-value">${fac.pacs || 'N/A'}</span></p>
+        <p class="popup-line text-sm"><span class="popup-label">Status:</span> <span class="popup-value">${getStatusLabel(fac.active_status)}</span></p>
+        <p class="popup-line text-sm"><span class="popup-label">TAT Definition:</span> <span class="popup-value">${fac.tat_definition || 'N/A'}</span></p>
+        <p class="popup-line text-sm"><span class="popup-label">Modalities Period:</span> <span class="popup-value">${fac.modalities_assignment_period || 'N/A'}</span></p>
       </div>
     `;
 

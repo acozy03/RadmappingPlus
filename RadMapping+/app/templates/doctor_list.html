@@ -117,11 +117,11 @@
       </div>
       <span class="text-blue-600 font-semibold">Details →</span>
       <div class="doctor-popup absolute left-0 top-full mt-2 w-[20rem] bg-white border p-3 rounded shadow-md text-left pointer-events-none opacity-0 transition-opacity duration-150 z-50">
-        <p class="text-sm font-medium">Timezone: <span class="text-gray-700">{{ doc.timezone }}</span></p>
-        <p class="text-sm font-medium">Modalities: <span class="text-gray-700">{{ doc.modalities }}</span></p>
-        <p class="text-sm font-medium">PACS: <span class="text-gray-700">{{ doc.pacs }}</span></p>
-        <p class="text-sm font-medium">Contact: <span class="text-gray-700">{{ doc.email }}</span></p>
-        <p class="text-sm font-medium">Phone: <span class="text-gray-700">{{ doc.phone }}</span></p>
+        <p class="popup-line text-sm"><span class="popup-label">Timezone:</span> <span class="popup-value">{{ doc.timezone or 'N/A' }}</span></p>
+        <p class="popup-line text-sm"><span class="popup-label">Modalities:</span> <span class="popup-value">{{ doc.modalities or 'N/A' }}</span></p>
+        <p class="popup-line text-sm"><span class="popup-label">PACS:</span> <span class="popup-value">{{ doc.pacs or 'N/A' }}</span></p>
+        <p class="popup-line text-sm"><span class="popup-label">Contact:</span> <span class="popup-value">{{ doc.email or 'N/A' }}</span></p>
+        <p class="popup-line text-sm"><span class="popup-label">Phone:</span> <span class="popup-value">{{ doc.phone or 'N/A' }}</span></p>
       </div>
   </li>
   {% endfor %}
@@ -364,11 +364,11 @@ function updateTable(doctors) {
       </div>
       <span class="text-blue-600 font-semibold">Details →</span>
       <div class="doctor-popup absolute left-0 top-full mt-2 w-[20rem] bg-white border p-3 rounded shadow-md text-left pointer-events-none opacity-0 transition-opacity duration-150 z-50">
-        <p class="text-sm font-medium">Timezone: <span class="text-gray-700">${doc.timezone || 'N/A'}</span></p>
-        <p class="text-sm font-medium">Modalities: <span class="text-gray-700">${doc.modalities || 'N/A'}</span></p>
-        <p class="text-sm font-medium">PACS: <span class="text-gray-700">${doc.pacs || 'N/A'}</span></p>
-        <p class="text-sm font-medium">Contact: <span class="text-gray-700">${doc.email || 'N/A'}</span></p>
-        <p class="text-sm font-medium">Phone: <span class="text-gray-700">${doc.phone || 'N/A'}</span></p>
+        <p class="popup-line text-sm"><span class="popup-label">Timezone:</span> <span class="popup-value">${doc.timezone || 'N/A'}</span></p>
+        <p class="popup-line text-sm"><span class="popup-label">Modalities:</span> <span class="popup-value">${doc.modalities || 'N/A'}</span></p>
+        <p class="popup-line text-sm"><span class="popup-label">PACS:</span> <span class="popup-value">${doc.pacs || 'N/A'}</span></p>
+        <p class="popup-line text-sm"><span class="popup-label">Contact:</span> <span class="popup-value">${doc.email || 'N/A'}</span></p>
+        <p class="popup-line text-sm"><span class="popup-label">Phone:</span> <span class="popup-value">${doc.phone || 'N/A'}</span></p>
       </div>
     `;
     

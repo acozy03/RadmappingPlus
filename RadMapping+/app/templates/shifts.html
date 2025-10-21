@@ -233,7 +233,7 @@
             class="px-2 py-1.5 text-sm border border-blue-200 rounded-md bg-white text-gray-700 focus:outline-none focus:ring-2 focus:ring-blue-300"
           >
             <option value="time">Hour</option>
-            <option value="capacity">Capacity Ratio</option>
+            <option value="capacity" selected>Capacity Ratio</option>
           </select>
           <button
             id="hour-sort-toggle"
@@ -670,7 +670,7 @@
       }
 
       let sortDescending = false;
-      let sortMetric = sortMetricSelect ? sortMetricSelect.value : 'time';
+      let sortMetric = sortMetricSelect ? sortMetricSelect.value || 'capacity' : 'capacity';
 
       const updateButtonLabel = () => {
         sortButton.textContent = sortDescending ? 'Direction: Descending' : 'Direction: Ascending';
