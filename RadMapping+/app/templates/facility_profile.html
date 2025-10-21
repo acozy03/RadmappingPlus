@@ -682,8 +682,8 @@
               <tr class="text-left">
                 <th class="px-4 py-2 border-b">Name</th>
                 <th class="px-4 py-2 border-b">Can Read</th>
-                <th class="px-4 py-2 border-b">Does Stats</th>
-                <th class="px-4 py-2 border-b">Does Routines</th>
+                <!-- <th class="px-4 py-2 border-b">Does Stats</th>
+                <th class="px-4 py-2 border-b">Does Routines</th> -->
                 <th class="px-4 py-2 border-b">Stipulations</th>
                 <th class="px-4 py-2 border-b">Notes</th>
                 {% if session.user.role == 'admin' %}
@@ -733,8 +733,8 @@
   {% endif %}
 </td>
 
-                <td class="px-4 py-2 border-b">{{ "✅" if assignment.radiologists.reads_stats == 'YES' else "❌" }}</td>
-                <td class="px-4 py-2 border-b">{{ "✅" if assignment.radiologists.reads_routines == 'YES' else "❌" }}</td>
+                <!-- <td class="px-4 py-2 border-b">{{ "✅" if assignment.radiologists.reads_stats == 'YES' else "❌" }}</td>
+                <td class="px-4 py-2 border-b">{{ "✅" if assignment.radiologists.reads_routines == 'YES' else "❌" }}</td> -->
                 
                 <td class="px-4 py-2 border-b">
   {% set full = assignment.radiologists.stipulations or "—" %}
@@ -892,8 +892,8 @@
             <tr class="text-left">
               <th class="px-4 py-2 border-b">Name</th>
               <th class="px-4 py-2 border-b w-40">Can Read</th>
-              <th class="px-4 py-2 border-b w-32 text-center">Does Stats</th>
-              <th class="px-4 py-2 border-b w-36 text-center">Does Routines</th>
+              <!-- <th class="px-4 py-2 border-b w-32 text-center">Does Stats</th>
+              <th class="px-4 py-2 border-b w-36 text-center">Does Routines</th> -->
               <th class="px-4 py-2 border-b">Stipulations</th>
               <th class="px-4 py-2 border-b">Notes</th>
             </tr>
@@ -910,12 +910,12 @@
                   <option value="withdrawn" {% if assignment.can_read == "withdrawn" %}selected{% endif %}>Withdrawn</option>
                 </select>
               </td>
-              <td class="px-4 py-2 border-b text-center">
+              <!-- <td class="px-4 py-2 border-b text-center">
                 <input type="checkbox" name="reads_stats_{{ assignment.radiologists.id }}" {% if assignment.radiologists.reads_stats == 'YES' %}checked{% endif %} class="h-4 w-4">
               </td>
               <td class="px-4 py-2 border-b text-center">
                 <input type="checkbox" name="reads_routines_{{ assignment.radiologists.id }}" {% if assignment.radiologists.reads_routines == 'YES' %}checked{% endif %} class="h-4 w-4">
-              </td>
+              </td> -->
               <td class="px-4 py-2 border-b">
                 <textarea name="stipulations_{{ assignment.radiologists.id }}" class="w-full border rounded px-2 py-1">{{ assignment.radiologists.stipulations }}</textarea>
               </td>
