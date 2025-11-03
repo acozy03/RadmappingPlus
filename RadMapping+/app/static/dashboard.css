@@ -1491,7 +1491,7 @@ thead.sticky th {
   --shifts-muted: #475569;
   --shifts-accent: #1d4ed8;
   --shifts-border: rgba(148, 163, 184, 0.35);
-  /* --shifts-surface: rgba(255, 255, 255, 0.96);
+  --shifts-surface: rgba(255, 255, 255, 0.96);
   --shifts-surface-alt: rgba(248, 250, 252, 0.92); */
   --shifts-filter-bg: linear-gradient(135deg, rgba(219, 234, 254, 0.95), rgba(224, 231, 255, 0.95));
   --shifts-filter-border: rgba(191, 219, 254, 0.75);

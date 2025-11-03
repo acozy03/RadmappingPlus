@@ -2,6 +2,31 @@
 {% block title %}Capacity Gaps{% endblock %}
 
 {% block content %}
+<script>
+  document.body.classList.add('hour-sort-initializing');
+</script>
+<style>
+  .shifts-loading-skeleton {
+    display: none;
+  }
+
+  body.hour-sort-initializing .shifts-loading-skeleton {
+    display: block;
+  }
+
+  body.hour-sort-initializing .sorted-hour-container {
+    display: none;
+  }
+
+  body.hour-sort-initializing .capacity-section[data-sorted-view="true"],
+  body.hour-sort-active .capacity-section[data-sorted-view="true"] {
+    display: none !important;
+  }
+
+  body.hour-sort-ready .shifts-loading-skeleton {
+    display: none;
+  }
+</style>
 <div x-data="{
     show: false,
     doctors: [],
@@ -39,7 +64,7 @@
                 <span class="font-medium">{{ start_date }} - {{ end_date }}</span>
             </button>
 
-            <div id="calendarPopup" class="hidden absolute top-full left-0 mt-2 bg-white rounded-xl shadow-2xl border border-gray-200 z-50 p-4 min-w-[320px] shifts-calendar">
+            <div id="calendarPopup" class="hidden absolute top-full left-0 mt-2 bg-black rounded-xl shadow-2xl border border-gray-200 z-50 p-4 min-w-[320px] shifts-calendar">
                 <div class="flex items-center justify-between mb-4">
                     <button type="button" onclick="changeMonth(-1)" class="p-2 hover:bg-gray-100 rounded-lg transition-colors shifts-calendar__nav">
                         <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 text-gray-600" fill="none" viewBox="0 0 24 24" stroke="currentColor">
@@ -323,6 +348,12 @@
             {% endif %}
 
             <div class="flex-1 bg-white rounded-b-lg border border-gray-200 p-2 md:p-4 shifts-day-body">
+                <div class="shifts-loading-skeleton space-y-3" aria-hidden="true">
+                    <div class="h-20 rounded-lg bg-gray-200 animate-pulse"></div>
+                    <div class="h-20 rounded-lg bg-gray-200 animate-pulse"></div>
+                    <div class="h-20 rounded-lg bg-gray-200 animate-pulse"></div>
+                </div>
+                <div class="sorted-hour-container space-y-2"></div>
                 {% for color_class, slots_in_color_group in color_grouped_slots.items() %}
                 <div class="mb-4 capacity-section {{ color_class }} rounded-lg p-2 shifts-capacity-section" data-sorted-view="true">
                     <div class="space-y-2">
@@ -666,11 +697,18 @@
       const sortMetricSelect = document.getElementById('sort-metric-select');
 
       if (!sortButton) {
+        document.body.classList.remove('hour-sort-initializing');
+        document.body.classList.add('hour-sort-ready');
         return;
       }
 
       let sortDescending = false;
       let sortMetric = sortMetricSelect ? sortMetricSelect.value || 'capacity' : 'capacity';
+
+      const markSortReady = () => {
+        document.body.classList.remove('hour-sort-initializing');
+        document.body.classList.add('hour-sort-ready');
+      };
 
       const updateButtonLabel = () => {
         sortButton.textContent = sortDescending ? 'Direction: Descending' : 'Direction: Ascending';
@@ -731,6 +769,7 @@
 
         window.requestAnimationFrame(() => {
           document.dispatchEvent(new CustomEvent('shifts:refreshFilters'));
+          markSortReady();
         });
       };
 
