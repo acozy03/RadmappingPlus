@@ -1122,9 +1122,6 @@ def hour_detail():
         for md, states in modality_breakdown.items()
     }
 
-    # Filter to doctors who actually contributed RVUs (as requested)
-    doctor_allocations = [d for d in doctor_allocations if (d.get("contributing_rvus", 0) or 0) > 0]
-
     payload = {
         "date": date_str,
         "hour": hour,
