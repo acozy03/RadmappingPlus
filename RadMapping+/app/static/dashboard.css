@@ -1579,10 +1579,14 @@ thead.sticky th {
   color: var(--shifts-tooltip-text) !important;
 }
 
+
 .shifts-modal {
   background: var(--shifts-modal-bg) !important;
   border: 1px solid var(--shifts-modal-border) !important;
   box-shadow: 0 28px 60px rgba(15, 23, 42, 0.12);
+  /* Constrain modal height within viewport and enable internal scrolling */
+  max-height: 90vh;
+  overflow-y: auto;
 }
 
 [data-theme="dark"] .shifts-page .text-gray-700,
