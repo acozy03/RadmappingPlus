@@ -199,25 +199,242 @@ def shifts():
         for row in (historical_rvu_rows.data or [])
     }
 
-    hourly_rvu_stats = {}
-    for slot in all_hour_slots:
-        slot_dt = slot["datetime"]
+    # --- New effective capacity computation ---
+    # We will estimate per-hour supply by allocating each on-shift doctor's
+    # overall RVU across facility/state/modality demand using their modality mix
+    # and authorization/licensure constraints. Demand source = previous week's
+    # same day+hour facility_capacity_per_hour distribution.
+
+    # 1) Prefetch facility-level demand rows for all prior-week (date,hour) pairs
+    prev_dates = list({d for d, _ in unique_prev_keys})
+    prev_hours = list({h for _, h in unique_prev_keys})
+    fac_rows_res = (
+        supabase
+        .table("facility_capacity_per_hour")
+        .select("date,hour,facility_id,modality,total_rvus")
+        .in_("date", prev_dates if prev_dates else ["1900-01-01"])  # guard empty
+        .in_("hour", prev_hours if prev_hours else [0])
+        .execute()
+    )
+    facility_rows_all = fac_rows_res.data or []
+
+    # Group by (date,hour)
+    fac_by_date_hour = defaultdict(list)
+    all_facility_ids_in_week = set()
+    for r in facility_rows_all:
+        try:
+            key = (r.get("date"), int(r.get("hour")))
+        except Exception:
+            continue
+        fac_by_date_hour[key].append(r)
+        if r.get("facility_id") is not None:
+            all_facility_ids_in_week.add(r.get("facility_id"))
+
+    # Facility metadata for state mapping
+    fac_meta = {}
+    if all_facility_ids_in_week:
+        fac_meta_res = (
+            supabase
+            .table("facilities")
+            .select("id,name,location")
+            .in_("id", list(all_facility_ids_in_week))
+            .execute()
+        )
+        for f in (fac_meta_res.data or []):
+            fac_meta[f.get("id")] = {"name": f.get("name"), "location": f.get("location"), "state": f.get("location")}
+
+    # 2) Prefetch authorizations, certifications, and modality weights for any doctor on this week
+    week_doctor_ids = list({d['id'] for d in doctors_on_shift if d.get('id') is not None})
+
+    # Facility authorizations (only for facilities with demand this week)
+    fac_auth_by_doctor = defaultdict(set)  # doctor_id -> set(facility_id)
+    fac_auth_map = defaultdict(set)        # facility_id -> set(doctor_id)
+    if week_doctor_ids and all_facility_ids_in_week:
+        dfa = (
+            supabase
+            .table("doctor_facility_assignments")
+            .select("radiologist_id,facility_id,can_read")
+            .in_("radiologist_id", week_doctor_ids)
+            .in_("facility_id", list(all_facility_ids_in_week))
+            .execute()
+        )
+        for row in (dfa.data or []):
+            can_read_val = str(row.get("can_read")).strip().lower()
+            if can_read_val in ("true", "1", "t"):
+                rid = row.get("radiologist_id")
+                fid = row.get("facility_id")
+                if rid is not None and fid is not None:
+                    fac_auth_by_doctor[rid].add(fid)
+                    fac_auth_map[fid].add(rid)
+
+    # Certifications by state
+    STATE_NAME_TO_CODE = {
+        'Alabama':'AL','Alaska':'AK','Arizona':'AZ','Arkansas':'AR','California':'CA','Colorado':'CO','Connecticut':'CT','Delaware':'DE','Florida':'FL','Georgia':'GA',
+        'Hawaii':'HI','Idaho':'ID','Illinois':'IL','Indiana':'IN','Iowa':'IA','Kansas':'KS','Kentucky':'KY','Louisiana':'LA','Maine':'ME','Maryland':'MD','Massachusetts':'MA',
+        'Michigan':'MI','Minnesota':'MN','Mississippi':'MS','Missouri':'MO','Montana':'MT','Nebraska':'NE','Nevada':'NV','New Hampshire':'NH','New Jersey':'NJ','New Mexico':'NM',
+        'New York':'NY','North Carolina':'NC','North Dakota':'ND','Ohio':'OH','Oklahoma':'OK','Oregon':'OR','Pennsylvania':'PA','Rhode Island':'RI','South Carolina':'SC',
+        'South Dakota':'SD','Tennessee':'TN','Texas':'TX','Utah':'UT','Vermont':'VT','Virginia':'VA','Washington':'WA','West Virginia':'WV','Wisconsin':'WI','Wyoming':'WY',
+        'Puerto Rico':'PR','District Of Columbia':'DC','District of Columbia':'DC'
+    }
+    def to_state_code(val):
+        if not val:
+            return None
+        s = str(val).strip()
+        if not s:
+            return None
+        if len(s) == 2:
+            return s.upper()
+        return STATE_NAME_TO_CODE.get(s.title(), s.upper())
+
+    alloc_doctor_states = defaultdict(set)  # doctor_id -> set(state_code)
+    if week_doctor_ids:
+        cert_all = (
+            supabase
+            .table("certifications")
+            .select("radiologist_id,state")
+            .in_("radiologist_id", week_doctor_ids)
+            .execute()
+        )
+        for c in (cert_all.data or []):
+            rid = c.get("radiologist_id")
+            st = to_state_code(c.get("state"))
+            if rid is not None and st:
+                alloc_doctor_states[rid].add(st)
+
+    # Modality weights: attempt common table names; fall back to empty
+    modality_weights = {}
+    if week_doctor_ids:
+        def try_fetch_weights(table_name):
+            try:
+                res = (
+                    supabase
+                    .table(table_name)
+                    .select("radiologist_id,modality_weights")
+                    .in_("radiologist_id", week_doctor_ids)
+                    .execute()
+                )
+                return res.data or []
+            except Exception:
+                return []
+
+        weight_rows = []
+        for t in ("radiologist_modality_weights", "modality_weights", "rad_modality_weights"):
+            if not weight_rows:
+                weight_rows = try_fetch_weights(t)
+        for row in weight_rows:
+            rid = row.get("radiologist_id")
+            weights = row.get("modality_weights") or {}
+            # Normalization safety: ensure floats and sum<=1
+            clean = {}
+            total = 0.0
+            for k, v in (weights.items() if isinstance(weights, dict) else []):
+                try:
+                    val = float(v)
+                except Exception:
+                    continue
+                if val < 0:
+                    continue
+                clean[str(k).upper()] = val
+                total += val
+            if total > 0:
+                modality_weights[rid] = {k: (v / total) for k, v in clean.items()}
+
+    # Helper: allocate supply for a given slot
+    def compute_effective_supply(slot_dt):
+        # Demand groups for prior-week same day+hour
         prev_date_str, prev_hour_int = get_prev_week_same_day_and_hour(slot_dt)
         historical_rvu = None
         if prev_date_str is not None:
             historical_rvu = historical_rvu_lookup.get((prev_date_str, prev_hour_int))
+        demand_rows = fac_by_date_hour.get((prev_date_str, prev_hour_int), [])
 
+        # Build group list: (facility_id, state_code, modality, remaining_demand)
+        groups = []
+        for r in demand_rows:
+            fid = r.get("facility_id")
+            mod = (r.get("modality") or "").upper() or None
+            dem = float(r.get("total_rvus") or 0)
+            meta = fac_meta.get(fid, {})
+            st = to_state_code(meta.get("state")) if fid in fac_meta else None
+            if fid is None or dem <= 0:
+                continue
+            groups.append({
+                "fid": fid,
+                "state": st,
+                "mod": mod,
+                "remaining": dem
+            })
+
+        # Prepare doctor list for this slot
         slot_doctors = doctors_by_hour.get(slot_dt, [])
-        current_total_rvu = 0
-        for doc in slot_doctors:
-            rvu_row = rvu_rows.get(doc["id"])
-            if rvu_row:
-                current_total_rvu += get_latest_nonzero_rvu(rvu_row)
 
-        hourly_rvu_stats[slot_dt] = {
-            "historical": historical_rvu,
-            "current": current_total_rvu
-        }
+        # Per-doctor RVU base from monthly averages
+        def doc_rvu(did):
+            rr = rvu_rows.get(did)
+            return get_latest_nonzero_rvu(rr) if rr else 0.0
+
+        # Greedy proportional allocation by modality with capping per group
+        matched_supply = 0.0
+        if not groups or not slot_doctors:
+            return historical_rvu, 0.0
+
+        # Index groups by modality for quick access
+        groups_by_mod = defaultdict(list)
+        for g in groups:
+            groups_by_mod[g["mod"]].append(g)
+
+        for d in slot_doctors:
+            did = d.get("id")
+            if did is None:
+                continue
+            base = float(doc_rvu(did))
+            if base <= 0:
+                continue
+
+            # Determine eligible facilities for this doctor
+            auth_fids = fac_auth_by_doctor.get(did, set())
+            # Determine licensed states
+            lic_states = alloc_doctor_states.get(did, set())
+
+            # Doctor modality distribution; if missing, spread uniformly over modalities present in demand
+            weights = modality_weights.get(did)
+            if not weights:
+                # uniform over present modalities (non-null)
+                mods_present = {g["mod"] for g in groups if g["mod"]}
+                if mods_present:
+                    uniform = 1.0 / len(mods_present)
+                    weights = {m: uniform for m in mods_present}
+                else:
+                    weights = {}
+
+            for mod, frac in weights.items():
+                if frac <= 0:
+                    continue
+                cap_m = base * frac
+                elig = [
+                    g for g in groups_by_mod.get(mod, [])
+                    if g["remaining"] > 0 and (g["fid"] in auth_fids) and (not g["state"] or g["state"] in lic_states)
+                ]
+                if not elig:
+                    continue
+                total_remaining = sum(g["remaining"] for g in elig)
+                if total_remaining <= 0:
+                    continue
+                for g in elig:
+                    share = cap_m * (g["remaining"] / total_remaining)
+                    alloc = min(share, g["remaining"])
+                    if alloc > 0:
+                        g["remaining"] -= alloc
+                        matched_supply += alloc
+
+        return historical_rvu, matched_supply
+
+    # Compute per-slot historical expected and new current (effective supply)
+    hourly_rvu_stats = {}
+    for slot in all_hour_slots:
+        slot_dt = slot["datetime"]
+        hist, eff = compute_effective_supply(slot_dt)
+        hourly_rvu_stats[slot_dt] = {"historical": hist, "current": eff}
 
     weekly_data_by_day_and_color = {} 
     for day, hour_slots in hour_slots_by_day.items():
@@ -539,7 +756,7 @@ def hour_detail():
             if can_read_val == "true" or can_read_val == "1" or can_read_val == "t":
                 rid = row.get("radiologist_id")
                 fid = row.get("facility_id")
-                if rid is not None and fid in fac_auth_map:
+                if rid is not None and fid is not None:
                     fac_auth_map[fid].add(rid)
                     facility_authorized_ids.add(rid)
 
@@ -573,16 +790,16 @@ def hour_detail():
     states_needed = list({to_state_code(fac_meta.get(fid, {}).get("state")) for fid in facility_ids if fac_meta.get(fid, {}).get("state")})
     licensed_ids = set()
     licensed_by_state = defaultdict(set)
-    if doctor_ids and states_needed:
+    if doctor_ids:
+        # Do not filter by state here; certs may be stored as names or codes.
         cert_res = (
             supabase
             .table("certifications")
             .select("radiologist_id,state")
             .in_("radiologist_id", doctor_ids)
-            .in_("state", states_needed)
             .execute()
         )
-        print(f"[hour_detail] certifications rows (filtered to states with demand): {len(cert_res.data or [])}")
+        print(f"[hour_detail] certifications rows: {len(cert_res.data or [])}")
         for c in (cert_res.data or []):
             rid = c.get("radiologist_id")
             st = to_state_code(c.get("state"))
@@ -598,6 +815,44 @@ def hour_detail():
             if rr:
                 supply_licensed += latest_nonzero_rvu(rr)
 
+    # 6) Modality weights for doctors on this hour
+    modality_weights = {}
+    if doctor_ids:
+        def try_fetch_weights(table_name):
+            try:
+                res = (
+                    supabase
+                    .table(table_name)
+                    .select("radiologist_id,modality_weights")
+                    .in_("radiologist_id", doctor_ids)
+                    .execute()
+                )
+                return res.data or []
+            except Exception:
+                return []
+        weight_rows = []
+        for t in ("radiologist_modality_weights", "modality_weights", "rad_modality_weights"):
+            if not weight_rows:
+                weight_rows = try_fetch_weights(t)
+        for row in weight_rows:
+            rid = row.get("radiologist_id")
+            weights = row.get("modality_weights") or {}
+            clean = {}
+            total = 0.0
+            if isinstance(weights, dict):
+                for k, v in weights.items():
+                    try:
+                        val = float(v)
+                    except Exception:
+                        continue
+                    if val < 0:
+                        continue
+                    clean[str(k).upper()] = val
+                    total += val
+            if total > 0:
+                modality_weights[rid] = {k: (v / total) for k, v in clean.items()}
+
+    # Prepare demand groups for allocation and build facility/state breakdowns
     # 6) Assemble facility/state breakdowns
     # Aggregate facilities by facility only; keep per-modality breakdown under each
     facilities_agg = {}
@@ -719,6 +974,118 @@ def hour_detail():
         else:
             fallback_info["scaled_to_expected"] = False
 
+    # 7) Doctor-by-doctor allocation details
+    # Build demand groups: one per (facility, modality), with remaining demand
+    groups = []
+    scale_factor = float(fallback_info.get("scale_factor") or 1.0) if fallback_info.get("used") and fallback_info.get("scaled_to_expected") else 1.0
+    for row in facility_rows:
+        fid = row.get("facility_id")
+        if fid is None:
+            continue
+        mod = (row.get("modality") or "").upper() or None
+        remaining = float(row.get("total_rvus") or 0) * scale_factor
+        meta = fac_meta.get(fid, {})
+        st = to_state_code(meta.get("state"))
+        if remaining <= 0:
+            continue
+        groups.append({
+            "fid": fid,
+            "facility_name": meta.get("name"),
+            "state": st,
+            "mod": mod,
+            "remaining": remaining
+        })
+    # Index groups by modality
+    groups_by_mod = defaultdict(list)
+    for g in groups:
+        groups_by_mod[g["mod"]].append(g)
+
+    doctor_allocations = []
+    ALLOCATION_EPS = 0.05  # hide near-zero allocations in UI
+    matched_supply_detail = 0.0
+    # Helper to get doc base RVU
+    def latest_nonzero_rvu(rr):
+        months = ["dec","nov","oct","sep","aug","jul","jun","may","apr","mar","feb","jan"]
+        for m in months:
+            v = rr.get(m)
+            if v is not None and v != 0:
+                return float(v)
+        return 0.0
+
+    # Iterate doctors on this hour and allocate
+    for d in on_shift:
+        did = d.get("id")
+        name = d.get("name")
+        rr = rvu_rows.get(did) if did is not None else None
+        base = latest_nonzero_rvu(rr) if rr else 0.0
+        doc_weights = modality_weights.get(did)
+        if not doc_weights:
+            mods_present = {g["mod"] for g in groups if g["mod"]}
+            if mods_present:
+                uniform = 1.0 / len(mods_present)
+                doc_weights = {m: uniform for m in mods_present}
+            else:
+                doc_weights = {}
+
+        auth_fids = fac_auth_map  # map exists above: facility_id -> set(doc_ids)
+        lic_states = licensed_by_state
+        allocs = []
+
+        for mod, frac in doc_weights.items():
+            if frac <= 0:
+                continue
+            cap_m = base * frac
+            # Eligible groups for this doctor and modality
+            eligible = []
+            for g in groups_by_mod.get(mod, []):
+                if g["remaining"] <= 0:
+                    continue
+                if did not in auth_fids.get(g["fid"], set()):
+                    continue
+                st = g.get("state")
+                if st and did not in lic_states.get(st, set()):
+                    continue
+                eligible.append(g)
+
+            if not eligible:
+                continue
+            total_rem = sum(g["remaining"] for g in eligible)
+            if total_rem <= 0:
+                continue
+
+            for g in eligible:
+                share = cap_m * (g["remaining"] / total_rem)
+                alloc = min(share, g["remaining"])
+                if alloc > 0:
+                    g["remaining"] -= alloc
+                    matched_supply_detail += alloc
+                    if alloc >= ALLOCATION_EPS:
+                        allocs.append({
+                            "facility_id": g["fid"],
+                            "facility_name": g.get("facility_name"),
+                            "state": g.get("state"),
+                            "modality": mod,
+                            "allocated_rvus": float(alloc)
+                        })
+
+        contributed = float(sum(a.get("allocated_rvus", 0) for a in allocs))
+        doctor_allocations.append({
+            "id": did,
+            "name": name,
+            "base_rvu": base,
+            "contributing_rvus": contributed,
+            "allocations": allocs
+        })
+
+    algorithm_summary = [
+        "Start with prior-week same day/hour facility+modality RVU demand.",
+        "For each on-shift doctor, take latest non-zero monthly RVU as hourly base.",
+        "Split the base by the doctor’s modality weights (normalized).",
+        "Within each modality portion, allocate proportionally across eligible facilities where: authorized for facility AND licensed for facility’s state.",
+        "Cap each facility/modality allocation at remaining demand so supply never exceeds demand.",
+        "Effective supply is the sum of all allocated RVUs across doctors."
+    ]
+
     # Convert breakdown dicts to lists for JSON friendliness
     state_breakdown_list = {
         st: [
@@ -732,6 +1099,9 @@ def hour_detail():
         ]
         for md, states in modality_breakdown.items()
     }
+
+    # Filter to doctors who actually contributed RVUs (as requested)
+    doctor_allocations = [d for d in doctor_allocations if (d.get("contributing_rvus", 0) or 0) > 0]
 
     payload = {
         "date": date_str,
@@ -747,7 +1117,9 @@ def hour_detail():
         "modality_breakdown": modality_breakdown_list,
         "supply_overall_rvus": supply_overall,
         "supply_licensed_rvus": supply_licensed,
-        "supply_facility_authorized_rvus": supply_facility_auth
+        "supply_facility_authorized_rvus": supply_facility_auth,
+        "supply_effective_allocated_rvus": matched_supply_detail,
+        "doctor_allocations": doctor_allocations
     }
     print(f"[hour_detail] response summary: expected={total_expected:.2f}, facilities={len(facilities_payload)}, states={len(by_state_payload)}, on_shift={len(on_shift)}")
     return jsonify(payload)
