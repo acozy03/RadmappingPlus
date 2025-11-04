@@ -1,6 +1,7 @@
 # RadMapping+/app/routes/shifts.py
 
 from flask import Blueprint, render_template, session, request, jsonify
+import json
 from datetime import datetime, timedelta
 from collections import defaultdict
 from app.supabase_client import get_supabase_client
@@ -67,6 +68,28 @@ US_STATES = [
     'South Carolina', 'South Dakota', 'Tennessee', 'Texas', 'Utah', 'Vermont', 'Virginia', 'Washington', 'West Virginia',
     'Wisconsin', 'Wyoming'
 ]
+
+# Study-sized RVU chunks per modality (minimum contribution unit)
+MODALITY_RVU = {
+    "XR": 0.2,
+    "CT": 1.1,
+    "US": 0.5,
+    "MRI": 1.4,
+    "MG": 0.8,
+    "NM": 2.5,
+    "PT": 2.5,
+    "IR": 4.0,
+    "RF": 0.7,
+    "SC": 0.6,
+    "OT": 0.3,
+    "XA": 0.8,
+    "ECG": 0.2,
+}
+
+def modality_chunk(mod):
+    if not mod:
+        return 0.2
+    return float(MODALITY_RVU.get(str(mod).upper(), 0.2))
 
 @shifts_bp.route('/shifts')
 @with_supabase_auth
@@ -403,13 +426,13 @@ def shifts():
         if not groups or not slot_doctors:
             return historical_rvu, 0.0
 
-        # Index groups by modality for quick access
+        # Index groups by modality for quick access and initialize per-group gap
         groups_by_mod = defaultdict(list)
         for g in groups:
+            g["gap"] = float(g.get("base", 0.0))
             groups_by_mod[g["mod"]].append(g)
 
         EPS = 1e-6
-        MAX_PASSES = 5
 
         for d in slot_doctors:
             did = d.get("id")
@@ -436,35 +459,94 @@ def shifts():
                 else:
                     base_weights = {}
 
-            for _ in range(MAX_PASSES):
-                if remaining_cap <= EPS:
-                    break
-                # Active modalities for which this doc has eligible facilities
-                active = {}
-                for mod, frac in base_weights.items():
-                    if frac <= 0:
+            # PASS 1: coverage-first, by gap and in study-sized chunks
+            while remaining_cap > EPS:
+                # Build total gap per modality limited to whole chunks and eligibility
+                gap_by_mod = {}
+                for mod, lst in groups_by_mod.items():
+                    ch = modality_chunk(mod)
+                    if ch <= EPS:
                         continue
-                    elig = [
-                        g for g in groups_by_mod.get(mod, [])
-                        if (g["fid"] in auth_fids) and (not g["state"] or g["state"] in lic_states)
-                    ]
-                    # Distribute proportionally to historical base demand across eligible facilities
-                    tot = sum(g.get("base", 0.0) for g in elig)
-                    if tot > EPS:
-                        active[mod] = {"frac": frac, "elig": elig, "tot": tot}
-                if not active:
+                    gap_sum = 0.0
+                    for g in lst:
+                        if (g["fid"] in auth_fids) and (not g["state"] or g["state"] in lic_states):
+                            gap = float(g.get("gap", 0.0))
+                            if gap + EPS >= ch:
+                                gap_sum += gap
+                    if gap_sum > EPS:
+                        gap_by_mod[mod] = gap_sum
+                if not gap_by_mod:
                     break
-                norm = sum(v["frac"] for v in active.values())
-                if norm <= EPS:
+                # pick modality with largest chunkable gap
+                sel_mod = max(gap_by_mod.keys(), key=lambda m: gap_by_mod[m])
+                ch = modality_chunk(sel_mod)
+                if remaining_cap + EPS < ch:
                     break
-                for mod, meta in active.items():
-                    share_cap = remaining_cap * (meta["frac"] / norm)
-                    for g in meta["elig"]:
-                        # Allow overfilling: allocate by base proportion without capping to remaining demand
-                        alloc = share_cap * ((g.get("base", 0.0)) / meta["tot"]) if meta["tot"] > EPS else 0.0
-                        if alloc > EPS:
-                            matched_supply += alloc
-                            remaining_cap -= alloc
+                # choose facility with max gap within modality that fits a chunk
+                candidates = [
+                    g for g in groups_by_mod.get(sel_mod, [])
+                    if (g["fid"] in auth_fids) and (not g["state"] or g["state"] in lic_states) and (float(g.get("gap", 0.0)) + EPS >= ch)
+                ]
+                if not candidates:
+                    # nothing fits in this modality; remove and continue
+                    del gap_by_mod[sel_mod]
+                    if not gap_by_mod:
+                        break
+                    continue
+                best = max(candidates, key=lambda gg: float(gg.get("gap", 0.0)))
+                best["gap"] = max(0.0, float(best.get("gap", 0.0)) - ch)
+                matched_supply += ch
+                remaining_cap -= ch
+
+            # PASS 2: overflow with coverage-aware round-robin and cap
+            if remaining_cap > EPS:
+                OVERFILL_CAP_R = 1.5  # do not overflow a group beyond 150% coverage
+                # track per-doctor per-group chunk count to avoid spamming one target
+                per_group_chunks = {}
+                MAX_CHUNKS_PER_GROUP_PER_DOC = 3
+                while remaining_cap > EPS:
+                    # gather candidates across all modalities the doctor is eligible for and that fit a chunk
+                    best_g = None
+                    best_score = None
+                    best_ch = 0.0
+                    for mod, lst in groups_by_mod.items():
+                        ch = modality_chunk(mod)
+                        if remaining_cap + EPS < ch:
+                            continue
+                        for g in lst:
+                            if (g["fid"] not in auth_fids) or (g.get("state") and g.get("state") not in lic_states):
+                                continue
+                            base_val = float(g.get("base", 0.0))
+                            if base_val <= EPS:
+                                continue
+                            # coverage so far including any overflow we've sent
+                            over = float(g.get("overfill", 0.0))
+                            gap = float(g.get("gap", 0.0))
+                            covered = max(0.0, base_val - gap) + over
+                            R = covered / max(base_val, EPS)
+                            if R >= OVERFILL_CAP_R - 1e-9:
+                                continue
+                            # per-doctor limit
+                            key = (g["fid"], mod)
+                            if per_group_chunks.get(key, 0) >= MAX_CHUNKS_PER_GROUP_PER_DOC:
+                                continue
+                            # choose the lowest coverage first
+                            score = R
+                            if best_score is None or score < best_score:
+                                best_score = score
+                                best_g = (g, mod)
+                                best_ch = ch
+                    if best_g is None:
+                        break
+                    g, mod = best_g
+                    g["overfill"] = float(g.get("overfill", 0.0)) + best_ch
+                    # Also reduce gap if any remains (keeps coverage monotonic up)
+                    if g.get("gap", 0.0) > 0:
+                        g["gap"] = max(0.0, float(g.get("gap", 0.0)) - best_ch)
+                    matched_supply += best_ch
+                    remaining_cap -= best_ch
+                    key = (g["fid"], mod)
+                    per_group_chunks[key] = per_group_chunks.get(key, 0) + 1
 
         return historical_rvu, matched_supply
 
@@ -1040,7 +1122,7 @@ def hour_detail():
         groups_by_mod[g["mod"]].append(g)
 
     doctor_allocations = []
-    ALLOCATION_EPS = 0.00001  # hide near-zero allocations in UI
+    ALLOCATION_EPS = 0.0  # include all allocations; UI filters small values for display
     matched_supply_detail = 0.0
     # Helper to get doc base RVU
     def latest_nonzero_rvu(rr):
@@ -1051,9 +1133,8 @@ def hour_detail():
                 return float(v)
         return 0.0
 
-    # Iterate doctors on this hour and allocate with rebalancing
+    # Iterate doctors on this hour
     EPS = 1e-6
-    MAX_PASSES = 5
     for d in on_shift:
         did = d.get("id")
         name = d.get("name")
@@ -1074,59 +1155,129 @@ def hour_detail():
         per_key_amounts = {}
         per_key_meta = {}
         remaining_cap = base
-        for _ in range(MAX_PASSES):
-            if remaining_cap <= EPS:
-                break
-            # Active modalities for this doc with eligible facilities (authorization + licensure)
-            active = {}
-            for mod, frac in doc_weights.items():
-                if frac <= 0:
+
+        # PASS 1: coverage-first, chunked by modality RVU
+        while remaining_cap > EPS:
+            # Total chunkable gap per modality for this doctor
+            gap_by_mod = {}
+            for mod, lst in groups_by_mod.items():
+                ch = modality_chunk(mod)
+                if ch <= EPS:
                     continue
-                elig = []
-                tot = 0.0
-                for g in groups_by_mod.get(mod, []):
+                sum_gap = 0.0
+                for g in lst:
                     if did not in auth_fids.get(g["fid"], set()):
                         continue
                     st = g.get("state")
                     if st and did not in lic_states.get(st, set()):
                         continue
-                    elig.append(g)
-                    tot += float(g.get("base", 0.0))
-                if tot > EPS:
-                    active[mod] = {"frac": frac, "elig": elig, "tot": tot}
-            if not active:
+                    gap = float(g.get("remaining", 0.0))
+                    if gap + EPS >= ch:
+                        sum_gap += gap
+                if sum_gap > EPS:
+                    gap_by_mod[mod] = sum_gap
+            if not gap_by_mod:
                 break
-            norm = sum(v["frac"] for v in active.values())
-            if norm <= EPS:
+            sel_mod = max(gap_by_mod.keys(), key=lambda m: gap_by_mod[m])
+            ch = modality_chunk(sel_mod)
+            if remaining_cap + EPS < ch:
                 break
-            for mod, meta in active.items():
-                share_cap = remaining_cap * (meta["frac"] / norm)
-                for g in meta["elig"]:
-                    # Allow overfill: distribute by base proportion without capping to remaining demand
-                    alloc = share_cap * ((g.get("base", 0.0)) / meta["tot"]) if meta["tot"] > EPS else 0.0
-                    if alloc > EPS:
-                        matched_supply_detail += alloc
-                        remaining_cap -= alloc
-                        # Aggregate allocations by (facility, modality)
-                        key = (g["fid"], (mod or ""))
-                        per_key_amounts[key] = per_key_amounts.get(key, 0.0) + float(alloc)
-                        if key not in per_key_meta:
-                            per_key_meta[key] = {
-                                "facility_id": g["fid"],
-                                "facility_name": g.get("facility_name"),
-                                "state": g.get("state"),
-                                "modality": (mod or "")
-                            }
+            # choose facility with max remaining gap in sel_mod
+            cand = []
+            for g in groups_by_mod.get(sel_mod, []):
+                if did not in auth_fids.get(g["fid"], set()):
+                    continue
+                st = g.get("state")
+                if st and did not in lic_states.get(st, set()):
+                    continue
+                if float(g.get("remaining", 0.0)) + EPS >= ch:
+                    cand.append(g)
+            if not cand:
+                del gap_by_mod[sel_mod]
+                if not gap_by_mod:
+                    break
+                continue
+            best = max(cand, key=lambda gg: float(gg.get("remaining", 0.0)))
+            best["remaining"] = max(0.0, float(best.get("remaining", 0.0)) - ch)
+            matched_supply_detail += ch
+            remaining_cap -= ch
+            key = (best["fid"], (sel_mod or ""))
+            per_key_amounts[key] = per_key_amounts.get(key, 0.0) + float(ch)
+            if key not in per_key_meta:
+                per_key_meta[key] = {
+                    "facility_id": best["fid"],
+                    "facility_name": best.get("facility_name"),
+                    "state": best.get("state"),
+                    "modality": (sel_mod or "")
+                }
+
+        # PASS 2: overflow coverage-aware with cap and round-robin
+        if remaining_cap > EPS:
+            OVERFILL_CAP_R = 1.5
+            per_group_chunks = {}
+            MAX_CHUNKS_PER_GROUP_PER_DOC = 3
+            # ensure groups carry overfill marker
+            for lst in groups_by_mod.values():
+                for g in lst:
+                    if "overfill" not in g:
+                        g["overfill"] = 0.0
+            while remaining_cap > EPS:
+                best_pair = None
+                best_score = None
+                best_ch = 0.0
+                for mod, lst in groups_by_mod.items():
+                    ch = modality_chunk(mod)
+                    if remaining_cap + EPS < ch:
+                        continue
+                    for g in lst:
+                        if did not in auth_fids.get(g["fid"], set()):
+                            continue
+                        st = g.get("state")
+                        if st and did not in lic_states.get(st, set()):
+                            continue
+                        base_val = float(g.get("base", 0.0))
+                        if base_val <= EPS:
+                            continue
+                        over = float(g.get("overfill", 0.0))
+                        rem = float(g.get("remaining", 0.0))
+                        covered = max(0.0, base_val - rem) + over
+                        R = covered / max(base_val, EPS)
+                        if R >= OVERFILL_CAP_R - 1e-9:
+                            continue
+                        key = (g["fid"], mod)
+                        if per_group_chunks.get(key, 0) >= MAX_CHUNKS_PER_GROUP_PER_DOC:
+                            continue
+                        score = R
+                        if best_score is None or score < best_score:
+                            best_score = score
+                            best_pair = (g, mod)
+                            best_ch = ch
+                if best_pair is None:
+                    break
+                g, mod = best_pair
+                g["overfill"] = float(g.get("overfill", 0.0)) + best_ch
+                if g.get("remaining", 0.0) > 0:
+                    g["remaining"] = max(0.0, float(g.get("remaining", 0.0)) - best_ch)
+                matched_supply_detail += best_ch
+                remaining_cap -= best_ch
+                key = (g["fid"], (mod or ""))
+                per_key_amounts[key] = per_key_amounts.get(key, 0.0) + float(best_ch)
+                if key not in per_key_meta:
+                    per_key_meta[key] = {
+                        "facility_id": g["fid"],
+                        "facility_name": g.get("facility_name"),
+                        "state": g.get("state"),
+                        "modality": (mod or "")
+                    }
 
         # Materialize aggregated allocations and filter small values
         allocs = []
         for key, amt in per_key_amounts.items():
-            if amt >= ALLOCATION_EPS:
-                meta = per_key_meta.get(key, {})
-                allocs.append({
-                    **meta,
-                    "allocated_rvus": float(amt)
-                })
+            meta = per_key_meta.get(key, {})
+            allocs.append({
+                **meta,
+                "allocated_rvus": float(amt)
+            })
 
         contributed = float(sum(a.get("allocated_rvus", 0.0) for a in allocs))
         doctor_allocations.append({
@@ -1179,5 +1330,19 @@ def hour_detail():
         "supply_effective_allocated_rvus": matched_supply_detail,
         "doctor_allocations": doctor_allocations
     }
+    # Optional debug: log full distribution details
+    dbg = request.args.get('debug')
+    if dbg and str(dbg).lower() in ("1", "true", "yes"): 
+        try:
+            print("[hour_detail][DEBUG] payload doctor_allocations:")
+            print(json.dumps({
+                "date": date_str,
+                "hour": hour,
+                "expected_total": total_expected,
+                "effective_allocated": matched_supply_detail,
+                "allocations": doctor_allocations
+            }, ensure_ascii=False, default=str))
+        except Exception as _e:
+            print(f"[hour_detail][DEBUG] logging error: {_e}")
     print(f"[hour_detail] response summary: expected={total_expected:.2f}, facilities={len(facilities_payload)}, states={len(by_state_payload)}, on_shift={len(on_shift)}")
     return jsonify(payload)

@@ -646,14 +646,14 @@
                 <button class="flex items-center justify-between w-full text-left" @click="open = !open">
                   <div>
                     <a @click.stop :href="(doctors.find(d=>d.id===doc.id)||{}).url" target="_blank" rel="noopener" class="text-sm font-semibold text-blue-800 hover:text-blue-900" x-text="doc.name || ('ID ' + doc.id)"></a>
-                    <span class="ml-2 text-[11px] text-gray-600">Contributing RVUs: <span x-text="(doc.contributing_rvus||0).toFixed(1)"></span></span>
+                    <span class="ml-2 text-[11px] text-gray-600">Contributing RVUs: <span x-text="(() => { const v=(doc.contributing_rvus||0); return Math.abs(v) < 1 ? v.toFixed(3) : v.toFixed(1); })()"></span></span>
                   </div>
                   <span class="text-xs text-gray-500" x-text="open ? '▲' : '▼'"></span>
                 </button>
                 <div class="mt-1 text-[11px]" x-show="open" x-transition>
                   <template x-if="(doc.allocations||[]).length > 0">
                     <div class="space-y-0.5">
-                      <template x-for="al in (doc.allocations || []).filter(a => (a.allocated_rvus||0) >= 0.05)" :key="al.facility_id + '-' + al.modality">
+                      <template x-for="al in (doc.allocations || []).filter(a => (a.allocated_rvus||0) >= 0)" :key="al.facility_id + '-' + al.modality">
                         <div class="flex items-center justify-between">
                           <div class="truncate">
                             <span class="font-medium" x-text="al.facility_name || al.facility_id"></span>
@@ -661,7 +661,7 @@
                             <span class="ml-1 inline-block text-[10px] px-1 py-0.5 rounded bg-blue-50 text-blue-700 border border-blue-200" x-text="al.modality"></span>
                           </div>
                           <div class="shrink-0 text-gray-800">
-                            <span class="text-green-700 font-semibold" x-text="(al.allocated_rvus||0).toFixed(1)"></span>
+                            <span class="text-green-700 font-semibold" x-text="(() => { const v=(al.allocated_rvus||0); return Math.abs(v) < 1 ? v.toFixed(3) : v.toFixed(1); })()"></span>
                           </div>
                         </div>
                       </template>
