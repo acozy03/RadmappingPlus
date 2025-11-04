@@ -218,8 +218,9 @@ def shifts():
     )
     facility_rows_all = fac_rows_res.data or []
 
-    # Group by (date,hour)
+    # Group by (date,hour) and by date (for nearest-hour fallback)
     fac_by_date_hour = defaultdict(list)
+    fac_by_date = defaultdict(list)
     all_facility_ids_in_week = set()
     for r in facility_rows_all:
         try:
@@ -227,6 +228,7 @@ def shifts():
         except Exception:
             continue
         fac_by_date_hour[key].append(r)
+        fac_by_date[r.get("date")].append(r)
         if r.get("facility_id") is not None:
             all_facility_ids_in_week.add(r.get("facility_id"))
 
@@ -347,13 +349,33 @@ def shifts():
         if prev_date_str is not None:
             historical_rvu = historical_rvu_lookup.get((prev_date_str, prev_hour_int))
         demand_rows = fac_by_date_hour.get((prev_date_str, prev_hour_int), [])
+        scale_factor = 1.0
+        if not demand_rows:
+            # nearest hour on same date fallback
+            day_rows = fac_by_date.get(prev_date_str, [])
+            if day_rows:
+                by_hour = defaultdict(list)
+                for r in day_rows:
+                    try:
+                        by_hour[int(r.get("hour"))].append(r)
+                    except Exception:
+                        continue
+                if by_hour:
+                    hours_available = sorted(by_hour.keys())
+                    nearest_hour = min(hours_available, key=lambda h: abs(h - prev_hour_int))
+                    demand_rows = by_hour.get(nearest_hour, [])
+                    # scale distribution to expected total for target hour
+                    hist_total = historical_rvu_lookup.get((prev_date_str, prev_hour_int))
+                    sum_nearest = sum(float(x.get("total_rvus") or 0) for x in demand_rows)
+                    if hist_total is not None and sum_nearest > 0:
+                        scale_factor = float(hist_total) / float(sum_nearest)
 
         # Build group list: (facility_id, state_code, modality, remaining_demand)
         groups = []
         for r in demand_rows:
             fid = r.get("facility_id")
             mod = (r.get("modality") or "").upper() or None
-            dem = float(r.get("total_rvus") or 0)
+            dem = float(r.get("total_rvus") or 0) * scale_factor
             meta = fac_meta.get(fid, {})
             st = to_state_code(meta.get("state")) if fid in fac_meta else None
             if fid is None or dem <= 0:

@@ -494,15 +494,17 @@
     </button>
     <p class="text-sm text-gray-700 mb-2">
   <template x-if="!hourLoading && hourDetail && hourDetail.supply_effective_allocated_rvus !== undefined">
+    <span>
       <span class="text-blue-700 font-semibold" x-text="(hourDetail.supply_effective_allocated_rvus||0).toFixed(1)"></span>
       <span class="text-gray-400">vs</span>
       <span class="text-green-700 font-semibold" x-text="(hourDetail.total_expected_rvus||0).toFixed(1)"></span>
       <span class="text-gray-700 font-medium">(
         <span x-text="(hourDetail.total_expected_rvus>0 ? ((hourDetail.supply_effective_allocated_rvus/hourDetail.total_expected_rvus)*100).toFixed(1) : '0.0') + '%' "></span>
       )</span>
+    </span>
   </template>
   <template x-if="hourLoading || !hourDetail || hourDetail.supply_effective_allocated_rvus === undefined">
-    <>
+    <span>
       <template x-if="doctors.length > 0 && doctors[0].current !== undefined">
         <span class="text-blue-700 font-semibold" x-text="doctors[0].current.toFixed(1)"></span>
       </template>
@@ -521,7 +523,7 @@
           (<span x-text="(doctors[0].ratio * 100).toFixed(1) + '%'"></span>)
         </span>
       </template>
-    </>
+    </span>
   </template>
 </p>
 
