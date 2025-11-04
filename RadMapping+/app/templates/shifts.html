@@ -38,6 +38,12 @@
   [data-theme="dark"] .shifts-modal .text-red-600 {
     color: #f87171; /* red-400 */
   }
+  /* Tooltip in dark mode */
+  [data-theme="dark"] .shifts-modal .group:hover > div {
+    background-color: #111827; /* gray-900 */
+    color: #e5e7eb; /* gray-200 */
+    border-color: #374151; /* gray-700 */
+  }
 </style>
 <div x-data="{
     show: false,
@@ -733,7 +739,7 @@
         <template x-if="!hourLoading && hourDetail && (hourDetail.doctor_allocations||[]).length">
           <div class="space-y-2 max-h-64 overflow-y-auto">
             <template x-for="doc in hourDetail.doctor_allocations" :key="doc.id">
-              <div class="border rounded p-2 bg-white" x-data="{ open: false }">
+              <div class="border rounded p-2 bg-white" x-data="{ open: false, showMix: false }">
                 <button class="flex items-center justify-between w-full text-left" @click="open = !open">
                   <div>
                     <a @click.stop :href="(doctors.find(d=>d.id===doc.id)||{}).url" target="_blank" rel="noopener" class="text-sm font-semibold text-blue-800 hover:text-blue-900" x-text="doc.name || ('ID ' + doc.id)"></a>
@@ -746,6 +752,19 @@
                   </div>
                   <span class="text-xs text-gray-500" x-text="open ? '▲' : '▼'"></span>
                 </button>
+                <template x-if="(doc.modality_weights || []).filter(m => ((m.weight||0) >= 0.005)).length">
+                  <div class="mt-1 flex flex-wrap gap-1">
+                    <template x-for="mw in (doc.modality_weights || [])
+                      .filter(m => ((m.weight||0) >= 0.005))
+                      .slice()
+                      .sort((a,b)=> (b.weight||0)-(a.weight||0))" :key="mw.modality">
+                      <span class="inline-flex items-center gap-1 text-[10px] px-1.5 py-0.5 rounded bg-blue-50 text-blue-700 border border-blue-200">
+                        <span x-text="mw.modality || 'Unknown'"></span>
+                        <span class="text-gray-500" x-text="Math.round((mw.weight||0)*100) + '%' "></span>
+                      </span>
+                    </template>
+                  </div>
+                </template>
                 <div class="mt-1 text-[11px]" x-show="open" x-transition>
                   <template x-if="(doc.allocations||[]).length > 0">
                     <div class="space-y-0.5">

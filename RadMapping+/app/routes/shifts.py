@@ -1280,13 +1280,27 @@ def hour_detail():
             })
 
         contributed = float(sum(a.get("allocated_rvus", 0.0) for a in allocs))
+        # Prepare modality weights list for UI (sorted desc)
+        mw_list = []
+        try:
+            if doc_weights:
+                mw_list = [
+                    {"modality": str(k), "weight": float(v)}
+                    for k, v in doc_weights.items()
+                    if v is not None
+                ]
+                mw_list.sort(key=lambda x: x.get("weight", 0.0), reverse=True)
+        except Exception:
+            mw_list = []
+
         doctor_allocations.append({
             "id": did,
             "name": name,
             "base_rvu": base,
             "contributing_rvus": contributed,
             "unused_rvus": max(0.0, float(base - contributed)),
-            "allocations": allocs
+            "allocations": allocs,
+            "modality_weights": mw_list
         })
 
     algorithm_summary = [
