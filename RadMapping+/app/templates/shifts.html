@@ -26,6 +26,18 @@
   body.hour-sort-ready .shifts-loading-skeleton {
     display: none;
   }
+
+  /* Dark theme adjustments specific to shifts modal */
+  [data-theme="dark"] .shifts-modal a.text-blue-800 {
+    color: #93c5fd; /* blue-300 */
+  }
+  [data-theme="dark"] .shifts-modal a.text-blue-800:hover {
+    color: #60a5fa; /* blue-400 */
+  }
+  /* Soften red emphasis in dark mode for percentage indicators */
+  [data-theme="dark"] .shifts-modal .text-red-600 {
+    color: #f87171; /* red-400 */
+  }
 </style>
 <div x-data="{
     show: false,
@@ -607,7 +619,7 @@
                 <div x-data="{ open: false }" class="text-xs bg-white border rounded">
                   <button @click="open = !open" class="w-full px-2 py-1 flex items-center justify-between">
                     <div class="truncate text-left">
-                      <span class="font-medium" x-text="f.facility_name || f.facility_id"></span>
+                      <span class="font-medium" x-text="f.facility_name || f.facility_id" :title="(f.facility_name || f.facility_id) + (f.state ? ' ('+f.state+')' : '')"></span>
                       <span class="text-gray-500" x-text="f.state ? ' ('+f.state+')' : ''"></span>
                     </div>
                     <div class="ml-2 shrink-0 flex items-center gap-2">
@@ -740,7 +752,7 @@
                       <template x-for="al in (doc.allocations || []).filter(a => (a.allocated_rvus||0) >= 0)" :key="al.facility_id + '-' + al.modality">
                         <div class="flex items-center justify-between">
                           <div class="truncate">
-                            <span class="font-medium" x-text="al.facility_name || al.facility_id"></span>
+                            <span class="font-medium" x-text="al.facility_name || al.facility_id" :title="(al.facility_name || al.facility_id) + (al.state ? ' ('+al.state+')' : '')"></span>
                             <span class="text-gray-500" x-text="al.state ? ' ('+al.state+')' : ''"></span>
                             <span class="ml-1 inline-block text-[10px] px-1 py-0.5 rounded bg-blue-50 text-blue-700 border border-blue-200" x-text="al.modality"></span>
                           </div>
@@ -772,7 +784,7 @@
                   <div x-data="{ open: false }" class="text-xs bg-white border rounded">
                     <button @click="open = !open" class="w-full px-2 py-1 flex items-center justify-between" :title="(f.facility_name || f.facility_id) + (f.state ? ' ('+f.state+')' : '')">
                       <div class="truncate text-left">
-                        <span class="font-medium" x-text="f.facility_name || f.facility_id" :title="f.facility_name || f.facility_id"></span>
+                        <span class="font-medium" x-text="f.facility_name || f.facility_id" :title="(f.facility_name || f.facility_id) + (f.state ? ' ('+f.state+')' : '')"></span>
                         <span class="text-gray-500" x-text="f.state ? ' ('+f.state+')' : ''" :title="f.state ? ('State: '+f.state) : ''"></span>
                       </div>
                       <div class="ml-2 shrink-0 flex items-center gap-2">
