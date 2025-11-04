@@ -370,7 +370,7 @@ def shifts():
                     if hist_total is not None and sum_nearest > 0:
                         scale_factor = float(hist_total) / float(sum_nearest)
 
-        # Build group list: (facility_id, state_code, modality, remaining_demand)
+        # Build group list: (facility_id, state_code, modality, base_demand, remaining_demand)
         groups = []
         for r in demand_rows:
             fid = r.get("facility_id")
@@ -384,6 +384,9 @@ def shifts():
                 "fid": fid,
                 "state": st,
                 "mod": mod,
+                # Keep the original demand as base for proportional distribution,
+                # even if we allow overfilling beyond historical demand.
+                "base": dem,
                 "remaining": dem
             })
 
@@ -436,16 +439,17 @@ def shifts():
             for _ in range(MAX_PASSES):
                 if remaining_cap <= EPS:
                     break
-                # Active modalities for which this doc has eligible remaining demand
+                # Active modalities for which this doc has eligible facilities
                 active = {}
                 for mod, frac in base_weights.items():
                     if frac <= 0:
                         continue
                     elig = [
                         g for g in groups_by_mod.get(mod, [])
-                        if g["remaining"] > EPS and (g["fid"] in auth_fids) and (not g["state"] or g["state"] in lic_states)
+                        if (g["fid"] in auth_fids) and (not g["state"] or g["state"] in lic_states)
                     ]
-                    tot = sum(g["remaining"] for g in elig)
+                    # Distribute proportionally to historical base demand across eligible facilities
+                    tot = sum(g.get("base", 0.0) for g in elig)
                     if tot > EPS:
                         active[mod] = {"frac": frac, "elig": elig, "tot": tot}
                 if not active:
@@ -456,9 +460,9 @@ def shifts():
                 for mod, meta in active.items():
                     share_cap = remaining_cap * (meta["frac"] / norm)
                     for g in meta["elig"]:
-                        alloc = min(share_cap * (g["remaining"] / meta["tot"]), g["remaining"])
+                        # Allow overfilling: allocate by base proportion without capping to remaining demand
+                        alloc = share_cap * ((g.get("base", 0.0)) / meta["tot"]) if meta["tot"] > EPS else 0.0
                         if alloc > EPS:
-                            g["remaining"] -= alloc
                             matched_supply += alloc
                             remaining_cap -= alloc
 
@@ -1010,7 +1014,7 @@ def hour_detail():
             fallback_info["scaled_to_expected"] = False
 
     # 7) Doctor-by-doctor allocation details
-    # Build demand groups: one per (facility, modality), with remaining demand
+    # Build demand groups: one per (facility, modality), with base demand (and track remaining for reference)
     groups = []
     scale_factor = float(fallback_info.get("scale_factor") or 1.0) if fallback_info.get("used") and fallback_info.get("scaled_to_expected") else 1.0
     for row in facility_rows:
@@ -1021,13 +1025,13 @@ def hour_detail():
         remaining = float(row.get("total_rvus") or 0) * scale_factor
         meta = fac_meta.get(fid, {})
         st = to_state_code(meta.get("state"))
-        if remaining <= 0:
-            continue
         groups.append({
             "fid": fid,
             "facility_name": meta.get("name"),
             "state": st,
             "mod": mod,
+            # Preserve original demand as base for proportional distribution
+            "base": remaining,
             "remaining": remaining
         })
     # Index groups by modality
@@ -1036,7 +1040,7 @@ def hour_detail():
         groups_by_mod[g["mod"]].append(g)
 
     doctor_allocations = []
-    ALLOCATION_EPS = 0.05  # hide near-zero allocations in UI
+    ALLOCATION_EPS = 0.00001  # hide near-zero allocations in UI
     matched_supply_detail = 0.0
     # Helper to get doc base RVU
     def latest_nonzero_rvu(rr):
@@ -1066,12 +1070,14 @@ def hour_detail():
 
         auth_fids = fac_auth_map  # map exists above: facility_id -> set(doc_ids)
         lic_states = licensed_by_state
-        allocs = []
+        # Aggregate per (facility_id, modality) to avoid duplicate keys in UI
+        per_key_amounts = {}
+        per_key_meta = {}
         remaining_cap = base
         for _ in range(MAX_PASSES):
             if remaining_cap <= EPS:
                 break
-            # Active modalities for this doc with eligible demand
+            # Active modalities for this doc with eligible facilities (authorization + licensure)
             active = {}
             for mod, frac in doc_weights.items():
                 if frac <= 0:
@@ -1079,15 +1085,13 @@ def hour_detail():
                 elig = []
                 tot = 0.0
                 for g in groups_by_mod.get(mod, []):
-                    if g["remaining"] <= EPS:
-                        continue
                     if did not in auth_fids.get(g["fid"], set()):
                         continue
                     st = g.get("state")
                     if st and did not in lic_states.get(st, set()):
                         continue
                     elig.append(g)
-                    tot += g["remaining"]
+                    tot += float(g.get("base", 0.0))
                 if tot > EPS:
                     active[mod] = {"frac": frac, "elig": elig, "tot": tot}
             if not active:
@@ -1098,21 +1102,33 @@ def hour_detail():
             for mod, meta in active.items():
                 share_cap = remaining_cap * (meta["frac"] / norm)
                 for g in meta["elig"]:
-                    alloc = min(share_cap * (g["remaining"] / meta["tot"]), g["remaining"])
+                    # Allow overfill: distribute by base proportion without capping to remaining demand
+                    alloc = share_cap * ((g.get("base", 0.0)) / meta["tot"]) if meta["tot"] > EPS else 0.0
                     if alloc > EPS:
-                        g["remaining"] -= alloc
                         matched_supply_detail += alloc
                         remaining_cap -= alloc
-                        if alloc >= ALLOCATION_EPS:
-                            allocs.append({
+                        # Aggregate allocations by (facility, modality)
+                        key = (g["fid"], (mod or ""))
+                        per_key_amounts[key] = per_key_amounts.get(key, 0.0) + float(alloc)
+                        if key not in per_key_meta:
+                            per_key_meta[key] = {
                                 "facility_id": g["fid"],
                                 "facility_name": g.get("facility_name"),
                                 "state": g.get("state"),
-                                "modality": mod,
-                                "allocated_rvus": float(alloc)
-                            })
+                                "modality": (mod or "")
+                            }
 
-        contributed = float(sum(a.get("allocated_rvus", 0) for a in allocs))
+        # Materialize aggregated allocations and filter small values
+        allocs = []
+        for key, amt in per_key_amounts.items():
+            if amt >= ALLOCATION_EPS:
+                meta = per_key_meta.get(key, {})
+                allocs.append({
+                    **meta,
+                    "allocated_rvus": float(amt)
+                })
+
+        contributed = float(sum(a.get("allocated_rvus", 0.0) for a in allocs))
         doctor_allocations.append({
             "id": did,
             "name": name,
