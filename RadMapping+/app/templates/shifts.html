@@ -43,7 +43,52 @@
     matchedFacilities: [],
     hoveredFacility: '',
     hourDetail: null,
-    hourLoading: false
+    hourLoading: false,
+    // Units toggle for modal values: 'rvus' or 'cases'
+    units: 'rvus',
+    // Match backend modality RVU chunks for case conversion
+    modalityChunks: {
+      'XR': 0.2,
+      'CT': 1.1,
+      'US': 0.5,
+      'MRI': 1.4,
+      'MG': 0.8,
+      'NM': 2.5,
+      'PT': 2.5,
+      'IR': 4.0,
+      'RF': 0.7,
+      'SC': 0.6,
+      'OT': 0.3,
+      'XA': 0.8,
+      'ECG': 0.2,
+    },
+    chunkFor(mod) {
+      const m = (mod || '').toUpperCase();
+      return this.modalityChunks[m] || 0.2;
+    },
+    toCases(v, mod) {
+      const ch = this.chunkFor(mod);
+      if (!ch || !isFinite(ch) || ch <= 0) return 0;
+      const n = Math.round((Number(v) || 0) / ch);
+      return isFinite(n) ? n : 0;
+    },
+    fmtNumber(v) {
+      const val = Number(v) || 0;
+      return Math.abs(val) < 1 ? val.toFixed(3) : val.toFixed(1);
+    },
+    fmtValue(v, mod) {
+      return this.units === 'rvus' ? this.fmtNumber(v) : String(this.toCases(v, mod));
+    },
+    sumCasesByModality(list) {
+      return (list || []).reduce((t, m) => t + this.toCases(m?.expected_rvus || 0, m?.modality), 0);
+    },
+    totalExpectedCases() {
+      return this.sumCasesByModality(this.hourDetail?.by_modality || []);
+    },
+    totalSupplyCases() {
+      const allocs = (this.hourDetail?.doctor_allocations || []).flatMap(d => d.allocations || []);
+      return allocs.reduce((t, a) => t + this.toCases(a?.allocated_rvus || 0, a?.modality), 0);
+    }
 }"
           x-effect="document.body.classList.toggle(&quot;overflow-hidden&quot;, show)"
      class="shifts-page">
@@ -494,12 +539,33 @@
             aria-label="Close">
       &times;
     </button>
+    <!-- Units toggle -->
+    <div class="absolute top-3 left-4 flex items-center gap-2 text-xs">
+      <span class="text-gray-600">Display:</span>
+      <div class="inline-flex rounded border border-gray-300 overflow-hidden">
+        <button type="button" @click="units='rvus'"
+                :class="units==='rvus' ? 'bg-blue-600 text-white' : 'bg-white text-gray-700'"
+                class="px-2 py-1">RVUs</button>
+        <button type="button" @click="units='cases'"
+                :class="units==='cases' ? 'bg-blue-600 text-white' : 'bg-white text-gray-700'"
+                class="px-2 py-1">Cases</button>
+      </div>
+    </div>
     <p class="text-sm text-gray-700 mb-2">
   <template x-if="!hourLoading && hourDetail && hourDetail.supply_effective_allocated_rvus !== undefined">
     <span>
-      <span class="text-blue-700 font-semibold" x-text="(hourDetail.supply_effective_allocated_rvus||0).toFixed(1)"></span>
-      <span class="text-gray-400">vs</span>
-      <span class="text-green-700 font-semibold" x-text="(hourDetail.total_expected_rvus||0).toFixed(1)"></span>
+      <!-- RVUs view -->
+      <span x-show="units==='rvus'">
+        <span class="text-blue-700 font-semibold" x-text="fmtNumber(hourDetail.supply_effective_allocated_rvus||0)"></span>
+        <span class="text-gray-400">vs</span>
+        <span class="text-green-700 font-semibold" x-text="fmtNumber(hourDetail.total_expected_rvus||0)"></span>
+      </span>
+      <!-- Cases view -->
+      <span x-show="units==='cases'">
+        <span class="text-blue-700 font-semibold" x-text="totalSupplyCases()"></span>
+        <span class="text-gray-400">vs</span>
+        <span class="text-green-700 font-semibold" x-text="totalExpectedCases()"></span>
+      </span>
       <span class="text-gray-700 font-medium">(
         <span x-text="(hourDetail.total_expected_rvus>0 ? ((hourDetail.supply_effective_allocated_rvus/hourDetail.total_expected_rvus)*100).toFixed(1) : '0.0') + '%' "></span>
       )</span>
@@ -545,7 +611,9 @@
                       <span class="text-gray-500" x-text="f.state ? ' ('+f.state+')' : ''"></span>
                     </div>
                     <div class="ml-2 shrink-0 flex items-center gap-2">
-                      <span class="text-green-700 font-semibold" x-text="(f.expected_rvus || 0).toFixed(1)"></span>
+                      <span class="text-green-700 font-semibold" x-text="units==='rvus' 
+                        ? (f.expected_rvus || 0).toFixed(1) 
+                        : (()=>{ const CH={XR:0.2,CT:1.1,US:0.5,MRI:1.4,MG:0.8,NM:2.5,PT:2.5,IR:4.0,RF:0.7,SC:0.6,OT:0.3,XA:0.8,ECG:0.2}; const mods=(f.modalities||[]); return mods.reduce((t,md)=>{ const m=(md.modality||'').toUpperCase(); const ch=CH[m]||0.2; return t + Math.round(((md.expected_rvus||0)/ch)); },0); })()"></span>
                       <span class="text-gray-400">|</span>
                       <span class="text-gray-500" x-text="(hourDetail.total_expected_rvus>0 ? ((f.expected_rvus/hourDetail.total_expected_rvus)*100).toFixed(1)+'%' : '—%')"></span>
                     </div>
@@ -555,7 +623,9 @@
                       <div class="flex items-center justify-between mt-1">
                         <span class="inline-block text-[10px] px-1.5 py-0.5 rounded bg-blue-50 text-blue-700 border border-blue-200" x-text="md.modality"></span>
                         <div class="ml-2 shrink-0 flex items-center gap-2">
-                          <span class="text-green-700 font-semibold" x-text="(md.expected_rvus || 0).toFixed(1)"></span>
+                          <span class="text-green-700 font-semibold" x-text="units==='rvus' 
+                            ? (md.expected_rvus || 0).toFixed(1) 
+                            : (()=>{ const m=(md.modality||'').toUpperCase(); const CH={XR:0.2,CT:1.1,US:0.5,MRI:1.4,MG:0.8,NM:2.5,PT:2.5,IR:4.0,RF:0.7,SC:0.6,OT:0.3,XA:0.8,ECG:0.2}; const ch=CH[m]||0.2; return Math.round(((md.expected_rvus||0)/ch)); })()"></span>
                           <span class="text-gray-400">|</span>
                           <span class="text-gray-500" x-text="(hourDetail.total_expected_rvus>0 ? ((md.expected_rvus/hourDetail.total_expected_rvus)*100).toFixed(1)+'%' : '—%')"></span>
                         </div>
@@ -574,7 +644,9 @@
                   <button @click="open = !open" class="w-full px-2 py-1 flex items-center justify-between">
                     <span class="truncate font-medium" x-text="s.state || 'Unknown'"></span>
                     <div class="ml-2 shrink-0 flex items-center gap-2">
-                      <span class="text-green-700 font-semibold" x-text="(s.expected_rvus || 0).toFixed(1)"></span>
+                      <span class="text-green-700 font-semibold" x-text="units==='rvus' 
+                        ? (s.expected_rvus || 0).toFixed(1) 
+                        : (()=>{ const CH={XR:0.2,CT:1.1,US:0.5,MRI:1.4,MG:0.8,NM:2.5,PT:2.5,IR:4.0,RF:0.7,SC:0.6,OT:0.3,XA:0.8,ECG:0.2}; const br=(hourDetail.state_breakdown[s.state]||[]); return br.reduce((t,md)=>{ const m=(md.modality||'').toUpperCase(); const ch=CH[m]||0.2; return t + Math.round(((md.expected_rvus||0)/ch)); },0); })()"></span>
                       <span class="text-gray-400">|</span>
                       <span class="text-gray-500" x-text="(hourDetail.total_expected_rvus>0 ? ((s.expected_rvus/hourDetail.total_expected_rvus)*100).toFixed(1)+'%' : '—%')"></span>
                     </div>
@@ -584,7 +656,9 @@
                       <div class="flex items-center justify-between mt-1">
                         <span class="inline-block text-[10px] px-1.5 py-0.5 rounded bg-blue-50 text-blue-700 border border-blue-200" x-text="md.modality || 'Unknown'"></span>
                         <div class="ml-2 shrink-0 flex items-center gap-2">
-                          <span class="text-green-700 font-semibold" x-text="(md.expected_rvus || 0).toFixed(1)"></span>
+                          <span class="text-green-700 font-semibold" x-text="units==='rvus' 
+                            ? (md.expected_rvus || 0).toFixed(1) 
+                            : (()=>{ const m=(md.modality||'').toUpperCase(); const CH={XR:0.2,CT:1.1,US:0.5,MRI:1.4,MG:0.8,NM:2.5,PT:2.5,IR:4.0,RF:0.7,SC:0.6,OT:0.3,XA:0.8,ECG:0.2}; const ch=CH[m]||0.2; return Math.round(((md.expected_rvus||0)/ch)); })()"></span>
                           <span class="text-gray-400">|</span>
                           <span class="text-gray-500" x-text="(hourDetail.total_expected_rvus>0 ? ((md.expected_rvus/hourDetail.total_expected_rvus)*100).toFixed(1)+'%' : '—%')"></span>
                         </div>
@@ -603,7 +677,9 @@
                   <button @click="open = !open" class="w-full px-2 py-1 flex items-center justify-between">
                     <span class="inline-block text-[10px] px-1.5 py-0.5 rounded bg-blue-50 text-blue-700 border border-blue-200" x-text="m.modality || 'Unknown'"></span>
                     <div class="ml-2 shrink-0 flex items-center gap-2">
-                      <span class="text-green-700 font-semibold" x-text="(m.expected_rvus || 0).toFixed(1)"></span>
+                      <span class="text-green-700 font-semibold" x-text="units==='rvus' 
+                        ? (m.expected_rvus || 0).toFixed(1) 
+                        : (()=>{ const m2=(m.modality||'').toUpperCase(); const CH={XR:0.2,CT:1.1,US:0.5,MRI:1.4,MG:0.8,NM:2.5,PT:2.5,IR:4.0,RF:0.7,SC:0.6,OT:0.3,XA:0.8,ECG:0.2}; const ch=CH[m2]||0.2; return Math.round(((m.expected_rvus||0)/ch)); })()"></span>
                       <span class="text-gray-400">|</span>
                       <span class="text-gray-500" x-text="(hourDetail.total_expected_rvus>0 ? ((m.expected_rvus/hourDetail.total_expected_rvus)*100).toFixed(1)+'%' : '—%')"></span>
                     </div>
@@ -613,7 +689,9 @@
                       <div class="flex items-center justify-between mt-1">
                         <span class="font-medium" x-text="st.state || 'Unknown'"></span>
                         <div class="ml-2 shrink-0 flex items-center gap-2">
-                          <span class="text-green-700 font-semibold" x-text="(st.expected_rvus || 0).toFixed(1)"></span>
+                          <span class="text-green-700 font-semibold" x-text="units==='rvus' 
+                            ? (st.expected_rvus || 0).toFixed(1) 
+                            : (()=>{ const m3=(m.modality||'').toUpperCase(); const CH={XR:0.2,CT:1.1,US:0.5,MRI:1.4,MG:0.8,NM:2.5,PT:2.5,IR:4.0,RF:0.7,SC:0.6,OT:0.3,XA:0.8,ECG:0.2}; const ch=CH[m3]||0.2; return Math.round(((st.expected_rvus||0)/ch)); })()"></span>
                           <span class="text-gray-400">|</span>
                           <span class="text-gray-500" x-text="(hourDetail.total_expected_rvus>0 ? ((st.expected_rvus/hourDetail.total_expected_rvus)*100).toFixed(1)+'%' : '—%')"></span>
                         </div>
@@ -647,7 +725,12 @@
                 <button class="flex items-center justify-between w-full text-left" @click="open = !open">
                   <div>
                     <a @click.stop :href="(doctors.find(d=>d.id===doc.id)||{}).url" target="_blank" rel="noopener" class="text-sm font-semibold text-blue-800 hover:text-blue-900" x-text="doc.name || ('ID ' + doc.id)"></a>
-                    <span class="ml-2 text-[11px] text-gray-600">Contributing RVUs: <span x-text="(() => { const v=(doc.contributing_rvus||0); return Math.abs(v) < 1 ? v.toFixed(3) : v.toFixed(1); })()"></span></span>
+                    <span class="ml-2 text-[11px] text-gray-600">
+                      <span x-text="units==='rvus' ? 'Contributing RVUs:' : 'Contributing Cases:'"></span>
+                      <span x-text="units==='rvus' 
+                        ? (() => { const v=(doc.contributing_rvus||0); return Math.abs(v) < 1 ? v.toFixed(3) : v.toFixed(1); })() 
+                        : ((doc.allocations||[]).reduce((t,a)=>{ const m=(a.modality||'').toUpperCase(); const CH={XR:0.2,CT:1.1,US:0.5,MRI:1.4,MG:0.8,NM:2.5,PT:2.5,IR:4.0,RF:0.7,SC:0.6,OT:0.3,XA:0.8,ECG:0.2}; const ch=CH[m]||0.2; return t + Math.round(((a.allocated_rvus||0)/ch)); },0))"></span>
+                    </span>
                   </div>
                   <span class="text-xs text-gray-500" x-text="open ? '▲' : '▼'"></span>
                 </button>
@@ -662,7 +745,9 @@
                             <span class="ml-1 inline-block text-[10px] px-1 py-0.5 rounded bg-blue-50 text-blue-700 border border-blue-200" x-text="al.modality"></span>
                           </div>
                           <div class="shrink-0 text-gray-800">
-                            <span class="text-green-700 font-semibold" x-text="(() => { const v=(al.allocated_rvus||0); return Math.abs(v) < 1 ? v.toFixed(3) : v.toFixed(1); })()"></span>
+                            <span class="text-green-700 font-semibold" x-text="units==='rvus' 
+                              ? (() => { const v=(al.allocated_rvus||0); return Math.abs(v) < 1 ? v.toFixed(3) : v.toFixed(1); })() 
+                              : (() => { const m=(al.modality||'').toUpperCase(); const CH={XR:0.2,CT:1.1,US:0.5,MRI:1.4,MG:0.8,NM:2.5,PT:2.5,IR:4.0,RF:0.7,SC:0.6,OT:0.3,XA:0.8,ECG:0.2}; const ch=CH[m]||0.2; return Math.round(((al.allocated_rvus||0)/ch)); })()"></span>
                           </div>
                         </div>
                       </template>
@@ -691,7 +776,9 @@
                         <span class="text-gray-500" x-text="f.state ? ' ('+f.state+')' : ''" :title="f.state ? ('State: '+f.state) : ''"></span>
                       </div>
                       <div class="ml-2 shrink-0 flex items-center gap-2">
-                        <span class="text-green-700 font-semibold" x-text="(f.expected_rvus || 0).toFixed(1)"></span>
+                        <span class="text-green-700 font-semibold" x-text="units==='rvus' 
+                          ? (f.expected_rvus || 0).toFixed(1) 
+                          : (()=>{ const CH={XR:0.2,CT:1.1,US:0.5,MRI:1.4,MG:0.8,NM:2.5,PT:2.5,IR:4.0,RF:0.7,SC:0.6,OT:0.3,XA:0.8,ECG:0.2}; const mods=(f.modalities||[]); return mods.reduce((t,md)=>{ const m=(md.modality||'').toUpperCase(); const ch=CH[m]||0.2; return t + Math.round(((md.expected_rvus||0)/ch)); },0); })()"></span>
                         <span class="text-gray-400">|</span>
                         <span :class="(() => { const sup=(hourDetail.doctor_allocations||[]).flatMap(d=>d.allocations||[]).filter(a=>a.facility_id===f.facility_id).reduce((s,a)=>s+(a.allocated_rvus||0),0); const pct=f.expected_rvus>0? (sup/f.expected_rvus*100):0; return pct<60?'text-red-600':(pct<90?'text-yellow-600':'text-green-700'); })()" x-text="(() => { const sup=(hourDetail.doctor_allocations||[]).flatMap(d=>d.allocations||[]).filter(a=>a.facility_id===f.facility_id).reduce((s,a)=>s+(a.allocated_rvus||0),0); return f.expected_rvus>0 ? ( (sup/f.expected_rvus*100).toFixed(1) + '%') : '—%'; })()"></span>
                       </div>
@@ -701,7 +788,9 @@
                         <div class="flex items-center justify-between mt-1">
                           <span class="inline-block text-[10px] px-1.5 py-0.5 rounded bg-blue-50 text-blue-700 border border-blue-200" x-text="md.modality" :title="(md.modality || 'Unknown') + ' — ' + ((md.expected_rvus||0).toFixed(1)) + ' RVUs'"></span>
                           <div class="ml-2 shrink-0 flex items-center gap-2">
-                            <span class="text-green-700 font-semibold" x-text="(md.expected_rvus || 0).toFixed(1)"></span>
+                            <span class="text-green-700 font-semibold" x-text="units==='rvus' 
+                              ? (md.expected_rvus || 0).toFixed(1) 
+                              : (()=>{ const m=(md.modality||'').toUpperCase(); const CH={XR:0.2,CT:1.1,US:0.5,MRI:1.4,MG:0.8,NM:2.5,PT:2.5,IR:4.0,RF:0.7,SC:0.6,OT:0.3,XA:0.8,ECG:0.2}; const ch=CH[m]||0.2; return Math.round(((md.expected_rvus||0)/ch)); })()"></span>
                             <span class="text-gray-400">|</span>
                             <span :class="(() => { const sup=(hourDetail.doctor_allocations||[]).flatMap(d=>d.allocations||[]).filter(a=>a.facility_id===f.facility_id && a.modality===md.modality).reduce((s,a)=>s+(a.allocated_rvus||0),0); const pct=md.expected_rvus>0? (sup/md.expected_rvus*100):0; return pct<60?'text-red-600':(pct<90?'text-yellow-600':'text-green-700'); })()" x-text="(() => { const sup=(hourDetail.doctor_allocations||[]).flatMap(d=>d.allocations||[]).filter(a=>a.facility_id===f.facility_id && a.modality===md.modality).reduce((s,a)=>s+(a.allocated_rvus||0),0); return md.expected_rvus>0 ? ( (sup/md.expected_rvus*100).toFixed(1) + '%') : '—%'; })()"></span>
                           </div>
@@ -721,7 +810,9 @@
                     <button @click="open = !open" class="w-full px-2 py-1 flex items-center justify-between" :title="(s.state || 'Unknown') + ' — ' + ((s.expected_rvus||0).toFixed(1)) + ' RVUs'">
                       <span class="truncate font-medium" x-text="s.state || 'Unknown'" :title="s.state || 'Unknown'"></span>
                       <div class="ml-2 shrink-0 flex items-center gap-2">
-                        <span class="text-green-700 font-semibold" x-text="(s.expected_rvus || 0).toFixed(1)"></span>
+                        <span class="text-green-700 font-semibold" x-text="units==='rvus' 
+                          ? (s.expected_rvus || 0).toFixed(1) 
+                          : (()=>{ const CH={XR:0.2,CT:1.1,US:0.5,MRI:1.4,MG:0.8,NM:2.5,PT:2.5,IR:4.0,RF:0.7,SC:0.6,OT:0.3,XA:0.8,ECG:0.2}; const br=(hourDetail.state_breakdown[s.state]||[]); return br.reduce((t,md)=>{ const m=(md.modality||'').toUpperCase(); const ch=CH[m]||0.2; return t + Math.round(((md.expected_rvus||0)/ch)); },0); })()"></span>
                         <span class="text-gray-400">|</span>
                         <span :class="(() => { const sup=(hourDetail.doctor_allocations||[]).flatMap(d=>d.allocations||[]).filter(a=>a.state===s.state).reduce((t,a)=>t+(a.allocated_rvus||0),0); const pct=s.expected_rvus>0? (sup/s.expected_rvus*100):0; return pct<60?'text-red-600':(pct<90?'text-yellow-600':'text-green-700'); })()" x-text="(() => { const sup=(hourDetail.doctor_allocations||[]).flatMap(d=>d.allocations||[]).filter(a=>a.state===s.state).reduce((t,a)=>t+(a.allocated_rvus||0),0); return s.expected_rvus>0 ? ((sup/s.expected_rvus*100).toFixed(1)+'%') : '—%'; })()"></span>
                       </div>
@@ -731,7 +822,9 @@
                         <div class="flex items-center justify-between mt-1">
                           <span class="inline-block text-[10px] px-1.5 py-0.5 rounded bg-blue-50 text-blue-700 border border-blue-200" x-text="md.modality || 'Unknown'" :title="(md.modality || 'Unknown') + ' — ' + ((md.expected_rvus||0).toFixed(1)) + ' RVUs'"></span>
                           <div class="ml-2 shrink-0 flex items-center gap-2">
-                            <span class="text-green-700 font-semibold" x-text="(md.expected_rvus || 0).toFixed(1)"></span>
+                            <span class="text-green-700 font-semibold" x-text="units==='rvus' 
+                              ? (md.expected_rvus || 0).toFixed(1) 
+                              : (()=>{ const m=(md.modality||'').toUpperCase(); const CH={XR:0.2,CT:1.1,US:0.5,MRI:1.4,MG:0.8,NM:2.5,PT:2.5,IR:4.0,RF:0.7,SC:0.6,OT:0.3,XA:0.8,ECG:0.2}; const ch=CH[m]||0.2; return Math.round(((md.expected_rvus||0)/ch)); })()"></span>
                             <span class="text-gray-400">|</span>
                           <span :class="(() => { const sup=(hourDetail.doctor_allocations||[]).flatMap(d=>d.allocations||[]).filter(a=>a.state===s.state && a.modality===md.modality).reduce((t,a)=>t+(a.allocated_rvus||0),0); const pct=md.expected_rvus>0? (sup/md.expected_rvus*100):0; return pct<60?'text-red-600':(pct<90?'text-yellow-600':'text-green-700'); })()" x-text="(() => { const sup=(hourDetail.doctor_allocations||[]).flatMap(d=>d.allocations||[]).filter(a=>a.state===s.state && a.modality===md.modality).reduce((t,a)=>t+(a.allocated_rvus||0),0); return md.expected_rvus>0 ? ((sup/md.expected_rvus*100).toFixed(1)+'%') : '—%'; })()"></span>
                           </div>
@@ -751,7 +844,9 @@
                     <button @click="open = !open" class="w-full px-2 py-1 flex items-center justify-between" :title="(m.modality || 'Unknown') + ' — ' + ((m.expected_rvus||0).toFixed(1)) + ' RVUs'">
                       <span class="inline-block text-[10px] px-1.5 py-0.5 rounded bg-blue-50 text-blue-700 border border-blue-200" x-text="m.modality || 'Unknown'" :title="m.modality || 'Unknown'"></span>
                       <div class="ml-2 shrink-0 flex items-center gap-2">
-                        <span class="text-green-700 font-semibold" x-text="(m.expected_rvus || 0).toFixed(1)"></span>
+                        <span class="text-green-700 font-semibold" x-text="units==='rvus' 
+                          ? (m.expected_rvus || 0).toFixed(1) 
+                          : (()=>{ const m2=(m.modality||'').toUpperCase(); const CH={XR:0.2,CT:1.1,US:0.5,MRI:1.4,MG:0.8,NM:2.5,PT:2.5,IR:4.0,RF:0.7,SC:0.6,OT:0.3,XA:0.8,ECG:0.2}; const ch=CH[m2]||0.2; return Math.round(((m.expected_rvus||0)/ch)); })()"></span>
                         <span class="text-gray-400">|</span>
                         <span :class="(() => { const sup=(hourDetail.doctor_allocations||[]).flatMap(d=>d.allocations||[]).filter(a=>a.modality===m.modality).reduce((t,a)=>t+(a.allocated_rvus||0),0); const pct=m.expected_rvus>0? (sup/m.expected_rvus*100):0; return pct<60?'text-red-600':(pct<90?'text-yellow-600':'text-green-700'); })()" x-text="(() => { const sup=(hourDetail.doctor_allocations||[]).flatMap(d=>d.allocations||[]).filter(a=>a.modality===m.modality).reduce((t,a)=>t+(a.allocated_rvus||0),0); return m.expected_rvus>0 ? ((sup/m.expected_rvus*100).toFixed(1)+'%') : '—%'; })()"></span>
                       </div>
@@ -761,7 +856,9 @@
                         <div class="flex items-center justify-between mt-1">
                           <span class="font-medium" x-text="st.state || 'Unknown'" :title="st.state || 'Unknown'"></span>
                           <div class="ml-2 shrink-0 flex items-center gap-2">
-                            <span class="text-green-700 font-semibold" x-text="(st.expected_rvus || 0).toFixed(1)"></span>
+                            <span class="text-green-700 font-semibold" x-text="units==='rvus' 
+                              ? (st.expected_rvus || 0).toFixed(1) 
+                              : (()=>{ const m3=(m.modality||'').toUpperCase(); const CH={XR:0.2,CT:1.1,US:0.5,MRI:1.4,MG:0.8,NM:2.5,PT:2.5,IR:4.0,RF:0.7,SC:0.6,OT:0.3,XA:0.8,ECG:0.2}; const ch=CH[m3]||0.2; return Math.round(((st.expected_rvus||0)/ch)); })()"></span>
                             <span class="text-gray-400">|</span>
                           <span :class="(() => { const sup=(hourDetail.doctor_allocations||[]).flatMap(d=>d.allocations||[]).filter(a=>a.modality===m.modality && a.state===st.state).reduce((t,a)=>t+(a.allocated_rvus||0),0); const pct=st.expected_rvus>0? (sup/st.expected_rvus*100):0; return pct<60?'text-red-600':(pct<90?'text-yellow-600':'text-green-700'); })()" x-text="(() => { const sup=(hourDetail.doctor_allocations||[]).flatMap(d=>d.allocations||[]).filter(a=>a.modality===m.modality && a.state===st.state).reduce((t,a)=>t+(a.allocated_rvus||0),0); return st.expected_rvus>0 ? ((sup/st.expected_rvus*100).toFixed(1)+'%') : '—%'; })()"></span>
                           </div>
