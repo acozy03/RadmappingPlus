@@ -539,61 +539,61 @@
             aria-label="Close">
       &times;
     </button>
-    <!-- Units toggle -->
-    <div class="absolute top-3 left-4 flex items-center gap-2 text-xs">
-      <span class="text-gray-600">Display:</span>
-      <div class="inline-flex rounded border border-gray-300 overflow-hidden">
-        <button type="button" @click="units='rvus'"
-                :class="units==='rvus' ? 'bg-blue-600 text-white' : 'bg-white text-gray-700'"
-                class="px-2 py-1">RVUs</button>
-        <button type="button" @click="units='cases'"
-                :class="units==='cases' ? 'bg-blue-600 text-white' : 'bg-white text-gray-700'"
-                class="px-2 py-1">Cases</button>
+    <div class="mb-2">
+      <div class="text-sm text-gray-700 flex items-center flex-wrap gap-2">
+        <template x-if="!hourLoading && hourDetail && hourDetail.supply_effective_allocated_rvus !== undefined">
+          <span>
+            <!-- RVUs view -->
+            <span x-show="units==='rvus'">
+              <span class="text-blue-700 font-semibold" x-text="fmtNumber(hourDetail.supply_effective_allocated_rvus||0)"></span>
+              <span class="text-gray-400">vs</span>
+              <span class="text-green-700 font-semibold" x-text="fmtNumber(hourDetail.total_expected_rvus||0)"></span>
+            </span>
+            <!-- Cases view -->
+            <span x-show="units==='cases'">
+              <span class="text-blue-700 font-semibold" x-text="totalSupplyCases()"></span>
+              <span class="text-gray-400">vs</span>
+              <span class="text-green-700 font-semibold" x-text="totalExpectedCases()"></span>
+            </span>
+            <span class="text-gray-700 font-medium">(
+              <span x-text="(hourDetail.total_expected_rvus>0 ? ((hourDetail.supply_effective_allocated_rvus/hourDetail.total_expected_rvus)*100).toFixed(1) : '0.0') + '%' "></span>
+            )</span>
+          </span>
+        </template>
+        <template x-if="hourLoading || !hourDetail || hourDetail.supply_effective_allocated_rvus === undefined">
+          <span>
+            <template x-if="doctors.length > 0 && doctors[0].current !== undefined">
+              <span class="text-blue-700 font-semibold" x-text="doctors[0].current.toFixed(1)"></span>
+            </template>
+            <template x-if="doctors.length === 0 || doctors[0].current === undefined">
+              <span class="text-blue-700 font-semibold">—</span>
+            </template>
+            <span class="text-gray-400">vs</span>
+            <template x-if="doctors.length > 0 && doctors[0].expected !== undefined">
+              <span class="text-green-700 font-semibold" x-text="doctors[0].expected.toFixed(1)"></span>
+            </template>
+            <template x-if="doctors.length === 0 || doctors[0].expected === undefined">
+              <span class="text-green-700 font-semibold">—</span>
+            </template>
+            <template x-if="doctors.length > 0 && doctors[0].ratio !== undefined">
+              <span class="text-gray-700 font-medium">
+                (<span x-text="(doctors[0].ratio * 100).toFixed(1) + '%'"></span>)
+              </span>
+            </template>
+          </span>
+        </template>
+      </div>
+      <div class="mt-2">
+        <div class="inline-flex rounded-md border border-blue-200 overflow-hidden shadow-sm">
+          <button type="button" @click="units='rvus'"
+                  :class="units==='rvus' ? 'bg-blue-600 text-white' : 'bg-white text-blue-700 hover:bg-blue-50'"
+                  class="px-2 py-1 text-xs font-medium">RVUs</button>
+          <button type="button" @click="units='cases'"
+                  :class="units==='cases' ? 'bg-blue-600 text-white' : 'bg-white text-blue-700 hover:bg-blue-50'"
+                  class="px-2 py-1 text-xs font-medium">Cases</button>
+        </div>
       </div>
     </div>
-    <p class="text-sm text-gray-700 mb-2">
-  <template x-if="!hourLoading && hourDetail && hourDetail.supply_effective_allocated_rvus !== undefined">
-    <span>
-      <!-- RVUs view -->
-      <span x-show="units==='rvus'">
-        <span class="text-blue-700 font-semibold" x-text="fmtNumber(hourDetail.supply_effective_allocated_rvus||0)"></span>
-        <span class="text-gray-400">vs</span>
-        <span class="text-green-700 font-semibold" x-text="fmtNumber(hourDetail.total_expected_rvus||0)"></span>
-      </span>
-      <!-- Cases view -->
-      <span x-show="units==='cases'">
-        <span class="text-blue-700 font-semibold" x-text="totalSupplyCases()"></span>
-        <span class="text-gray-400">vs</span>
-        <span class="text-green-700 font-semibold" x-text="totalExpectedCases()"></span>
-      </span>
-      <span class="text-gray-700 font-medium">(
-        <span x-text="(hourDetail.total_expected_rvus>0 ? ((hourDetail.supply_effective_allocated_rvus/hourDetail.total_expected_rvus)*100).toFixed(1) : '0.0') + '%' "></span>
-      )</span>
-    </span>
-  </template>
-  <template x-if="hourLoading || !hourDetail || hourDetail.supply_effective_allocated_rvus === undefined">
-    <span>
-      <template x-if="doctors.length > 0 && doctors[0].current !== undefined">
-        <span class="text-blue-700 font-semibold" x-text="doctors[0].current.toFixed(1)"></span>
-      </template>
-      <template x-if="doctors.length === 0 || doctors[0].current === undefined">
-        <span class="text-blue-700 font-semibold">—</span>
-      </template>
-      <span class="text-gray-400">vs</span>
-      <template x-if="doctors.length > 0 && doctors[0].expected !== undefined">
-        <span class="text-green-700 font-semibold" x-text="doctors[0].expected.toFixed(1)"></span>
-      </template>
-      <template x-if="doctors.length === 0 || doctors[0].expected === undefined">
-        <span class="text-green-700 font-semibold">—</span>
-      </template>
-      <template x-if="doctors.length > 0 && doctors[0].ratio !== undefined">
-        <span class="text-gray-700 font-medium">
-          (<span x-text="(doctors[0].ratio * 100).toFixed(1) + '%'"></span>)
-        </span>
-      </template>
-    </span>
-  </template>
-</p>
 
       
       
