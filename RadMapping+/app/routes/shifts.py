@@ -550,8 +550,27 @@ def hour_detail():
             if rr:
                 supply_facility_auth += latest_nonzero_rvu(rr)
 
+    # Helper to normalize facility/cert state values to 2-letter codes
+    STATE_NAME_TO_CODE = {
+        'Alabama':'AL','Alaska':'AK','Arizona':'AZ','Arkansas':'AR','California':'CA','Colorado':'CO','Connecticut':'CT','Delaware':'DE','Florida':'FL','Georgia':'GA',
+        'Hawaii':'HI','Idaho':'ID','Illinois':'IL','Indiana':'IN','Iowa':'IA','Kansas':'KS','Kentucky':'KY','Louisiana':'LA','Maine':'ME','Maryland':'MD','Massachusetts':'MA',
+        'Michigan':'MI','Minnesota':'MN','Mississippi':'MS','Missouri':'MO','Montana':'MT','Nebraska':'NE','Nevada':'NV','New Hampshire':'NH','New Jersey':'NJ','New Mexico':'NM',
+        'New York':'NY','North Carolina':'NC','North Dakota':'ND','Ohio':'OH','Oklahoma':'OK','Oregon':'OR','Pennsylvania':'PA','Rhode Island':'RI','South Carolina':'SC',
+        'South Dakota':'SD','Tennessee':'TN','Texas':'TX','Utah':'UT','Vermont':'VT','Virginia':'VA','Washington':'WA','West Virginia':'WV','Wisconsin':'WI','Wyoming':'WY',
+        'Puerto Rico':'PR','District Of Columbia':'DC','District of Columbia':'DC'
+    }
+    def to_state_code(val):
+        if not val:
+            return None
+        s = str(val).strip()
+        if not s:
+            return None
+        if len(s) == 2:
+            return s.upper()
+        return STATE_NAME_TO_CODE.get(s.title(), s.upper())
+
     # States covered by scheduled doctors
-    states_needed = list({fac_meta.get(fid, {}).get("state") for fid in facility_ids if fac_meta.get(fid, {}).get("state")})
+    states_needed = list({to_state_code(fac_meta.get(fid, {}).get("state")) for fid in facility_ids if fac_meta.get(fid, {}).get("state")})
     licensed_ids = set()
     licensed_by_state = defaultdict(set)
     if doctor_ids and states_needed:
@@ -566,7 +585,7 @@ def hour_detail():
         print(f"[hour_detail] certifications rows (filtered to states with demand): {len(cert_res.data or [])}")
         for c in (cert_res.data or []):
             rid = c.get("radiologist_id")
-            st = c.get("state")
+            st = to_state_code(c.get("state"))
             if rid is not None:
                 licensed_ids.add(rid)
                 if st:
@@ -588,7 +607,7 @@ def hour_detail():
         expected = float(row.get("total_rvus") or 0)
         modality = row.get("modality")
         meta = fac_meta.get(fid, {})
-        state = meta.get("state")
+        state = to_state_code(meta.get("state"))
         state_totals[state] += expected
         if fid not in facilities_agg:
             # Readers count: authorized AND licensed for the facility state
@@ -628,7 +647,7 @@ def hour_detail():
         expected = float(row.get("total_rvus") or 0)
         modality = row.get("modality")
         meta = fac_meta.get(fid, {})
-        state = meta.get("state")
+        state = to_state_code(meta.get("state"))
         key = (state, modality)
         by_state_mod[key] += expected
         if modality:
