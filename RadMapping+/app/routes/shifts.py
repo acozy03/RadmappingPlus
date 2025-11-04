@@ -1,6 +1,6 @@
 # RadMapping+/app/routes/shifts.py
 
-from flask import Blueprint, render_template, session, request
+from flask import Blueprint, render_template, session, request, jsonify
 from datetime import datetime, timedelta
 from collections import defaultdict
 from app.supabase_client import get_supabase_client
@@ -346,3 +346,389 @@ def shifts():
                            datetime=datetime,
                            now=now
 )
+
+
+@shifts_bp.route('/shifts/hour_detail')
+@with_supabase_auth
+def hour_detail():
+    """
+    Returns granular demand for a given date/hour from facility_capacity_per_hour
+    along with scheduled coverage (doctors on shift who can read by facility/state).
+
+    Query params:
+      - date: YYYY-MM-DD
+      - hour: 0-23
+    """
+    supabase = get_supabase_client()
+
+    date_str = request.args.get('date')
+    hour = request.args.get('hour', type=int)
+    if not date_str or hour is None:
+        return jsonify({"error": "Missing date or hour"}), 400
+
+    # 1) Facility-level demand for this hour (EXPECTED = previous week's same day/hour)
+    prev_date_str, prev_hour_int = get_prev_week_same_day_and_hour(
+        datetime.strptime(f"{date_str} {hour:02d}:00:00", "%Y-%m-%d %H:%M:%S")
+    )
+    print(f"[hour_detail] incoming date={date_str} hour={hour}; expected_source date={prev_date_str} hour={prev_hour_int}")
+    fcap_res = (
+        supabase
+        .table("facility_capacity_per_hour")
+        .select("facility_id,total_rvus,modality")
+        .eq("date", prev_date_str)
+        .eq("hour", prev_hour_int)
+        .execute()
+    )
+    facility_rows = fcap_res.data or []
+    print(f"[hour_detail] facility_capacity_per_hour rows: {len(facility_rows)}")
+
+    # Potential fallback: if no rows for the exact hour, try the nearest hour on the same prior-week date,
+    # and scale the distribution to the expected total from capacity_per_hour for the requested hour.
+    fallback_info = {"used": False}
+    if not facility_rows:
+        print("[hour_detail] No facility rows found for expected prior-week HOUR. Attempting nearest-hour fallback on same date…")
+
+        # Fetch day data and group by hour
+        day_res = (
+            supabase
+            .table("facility_capacity_per_hour")
+            .select("facility_id,total_rvus,modality,hour")
+            .eq("date", prev_date_str)
+            .execute()
+        )
+        day_rows = day_res.data or []
+        print(f"[hour_detail] Fallback day rows on {prev_date_str}: {len(day_rows)}")
+
+        by_hour = defaultdict(list)
+        for r in day_rows:
+            try:
+                by_hour[int(r.get("hour"))].append(r)
+            except Exception:
+                continue
+
+        if by_hour:
+            hours_available = sorted(by_hour.keys())
+            nearest_hour = min(hours_available, key=lambda h: abs(h - prev_hour_int))
+            facility_rows = by_hour.get(nearest_hour, [])
+            fallback_info = {"used": True, "source": {"date": prev_date_str, "hour": nearest_hour}, "reason": "nearest_hour_same_date"}
+            print(f"[hour_detail] Fallback using nearest hour {nearest_hour} with {len(facility_rows)} rows.")
+        else:
+            print("[hour_detail] No facility rows for any hour on the prior-week date; returning empty payload.")
+            return jsonify({
+                "date": date_str,
+                "hour": hour,
+                "expected_source": {"date": prev_date_str, "hour": prev_hour_int},
+                "fallback": {"used": False, "reason": "no_rows_on_date"},
+                "total_expected_rvus": 0,
+                "facilities": [],
+                "by_state": [],
+                "supply_overall_rvus": 0,
+                "supply_licensed_rvus": 0,
+                "supply_facility_authorized_rvus": 0
+            })
+
+    facility_ids = list({row["facility_id"] for row in facility_rows if row.get("facility_id")})
+
+    # 2) Facility metadata (name, state/location)
+    fac_meta = {}
+    if facility_ids:
+        fac_res = (
+            supabase
+            .table("facilities")
+            .select("id,name,location")
+            .in_("id", facility_ids)
+            .execute()
+        )
+        for r in (fac_res.data or []):
+            fac_meta[r["id"]] = {"name": r.get("name"), "state": r.get("location")}
+        print(f"[hour_detail] facilities meta fetched: {len(fac_meta)} for {len(facility_ids)} ids")
+
+    # 3) Determine doctors on shift for this specific hour
+    #    Reuse the same logic as the weekly view but constrained to one hour window
+    window_start = datetime.strptime(f"{date_str} {hour:02d}:00:00", "%Y-%m-%d %H:%M:%S")
+    window_end = window_start + timedelta(hours=1)
+
+    sched_q = (
+        supabase
+        .table("monthly_schedule")
+        .select("*, radiologists(*)")
+        .lte("start_date", date_str)
+        .gte("end_date", date_str)
+    )
+    sched_res = sched_q.execute()
+    print(f"[hour_detail] schedule rows in date range: {len(sched_res.data or [])}")
+
+    on_shift = []
+    for entry in (sched_res.data or []):
+        try:
+            if not (entry.get("radiologists") and entry.get("start_time") and entry.get("end_time")):
+                continue
+            doc = entry["radiologists"].copy()
+            start_date = entry.get("start_date") or date_str
+            end_date = entry.get("end_date") or date_str
+            shift_start_dt = datetime.strptime(f"{start_date} {entry['start_time']}", "%Y-%m-%d %H:%M:%S")
+            shift_end_dt = datetime.strptime(f"{end_date} {entry['end_time']}", "%Y-%m-%d %H:%M:%S")
+            if shift_end_dt < shift_start_dt:
+                shift_end_dt += timedelta(days=1)
+
+            break_start_dt = None
+            break_end_dt = None
+            if entry.get("break_start") and entry.get("break_end"):
+                bstart = datetime.strptime(f"{start_date} {entry['break_start']}", "%Y-%m-%d %H:%M:%S")
+                bend = datetime.strptime(f"{start_date} {entry['break_end']}", "%Y-%m-%d %H:%M:%S")
+                if bend < bstart:
+                    bend += timedelta(days=1)
+                break_start_dt, break_end_dt = bstart, bend
+
+            is_on_break = False
+            if break_start_dt and break_end_dt:
+                # Map break times onto the hour window's day
+                bstart_on_day = datetime.combine(window_start.date(), break_start_dt.timetz())
+                bend_on_day = datetime.combine(window_start.date(), break_end_dt.timetz())
+                if bend_on_day < bstart_on_day:
+                    bend_on_day += timedelta(days=1)
+                is_on_break = (bstart_on_day < window_end and bend_on_day > window_start)
+
+            is_on_shift = (shift_start_dt < window_end and shift_end_dt > window_start)
+
+            if is_on_shift and not is_on_break:
+                doc.update({
+                    "_start_dt": shift_start_dt,
+                    "_end_dt": shift_end_dt
+                })
+                on_shift.append(doc)
+        except Exception:
+            continue
+
+    doctor_ids = [d.get("id") for d in on_shift if d.get("id") is not None]
+
+    # 4) RVU supply numbers based on monthly averages (same logic as page)
+    rvu_res = supabase.table("rad_avg_monthly_rvu").select("*").execute()
+    rvu_rows = {row["radiologist_id"]: row for row in (rvu_res.data or [])}
+
+    def latest_nonzero_rvu(rvu_row):
+        months = ["dec", "nov", "oct", "sep", "aug", "jul", "jun", "may", "apr", "mar", "feb", "jan"]
+        for m in months:
+            val = rvu_row.get(m)
+            if val is not None and val != 0:
+                return val
+        return 0
+
+    supply_overall = 0
+    for d in on_shift:
+        rr = rvu_rows.get(d.get("id"))
+        if rr:
+            supply_overall += latest_nonzero_rvu(rr)
+
+    # 5) Facility and state authorization among scheduled doctors
+    facility_authorized_ids = set()
+    from collections import defaultdict as _dd
+    fac_auth_map = _dd(set)
+    if doctor_ids and facility_ids:
+        dfa_res = (
+            supabase
+            .table("doctor_facility_assignments")
+            .select("radiologist_id,facility_id,can_read")
+            .in_("radiologist_id", doctor_ids)
+            .in_("facility_id", facility_ids)
+            .execute()
+        )
+        print(f"[hour_detail] doctor_facility_assignments rows: {len(dfa_res.data or [])}")
+        for row in (dfa_res.data or []):
+            can_read_val = str(row.get("can_read")).strip().lower()
+            if can_read_val == "true" or can_read_val == "1" or can_read_val == "t":
+                rid = row.get("radiologist_id")
+                fid = row.get("facility_id")
+                if rid is not None and fid in fac_auth_map:
+                    fac_auth_map[fid].add(rid)
+                    facility_authorized_ids.add(rid)
+
+    supply_facility_auth = 0
+    for d in on_shift:
+        if d.get("id") in facility_authorized_ids:
+            rr = rvu_rows.get(d.get("id"))
+            if rr:
+                supply_facility_auth += latest_nonzero_rvu(rr)
+
+    # States covered by scheduled doctors
+    states_needed = list({fac_meta.get(fid, {}).get("state") for fid in facility_ids if fac_meta.get(fid, {}).get("state")})
+    licensed_ids = set()
+    licensed_by_state = defaultdict(set)
+    if doctor_ids and states_needed:
+        cert_res = (
+            supabase
+            .table("certifications")
+            .select("radiologist_id,state")
+            .in_("radiologist_id", doctor_ids)
+            .in_("state", states_needed)
+            .execute()
+        )
+        print(f"[hour_detail] certifications rows (filtered to states with demand): {len(cert_res.data or [])}")
+        for c in (cert_res.data or []):
+            rid = c.get("radiologist_id")
+            st = c.get("state")
+            if rid is not None:
+                licensed_ids.add(rid)
+                if st:
+                    licensed_by_state[st].add(rid)
+
+    supply_licensed = 0
+    for d in on_shift:
+        if d.get("id") in licensed_ids:
+            rr = rvu_rows.get(d.get("id"))
+            if rr:
+                supply_licensed += latest_nonzero_rvu(rr)
+
+    # 6) Assemble facility/state breakdowns
+    # Aggregate facilities by facility only; keep per-modality breakdown under each
+    facilities_agg = {}
+    state_totals = defaultdict(float)
+    for row in facility_rows:
+        fid = row.get("facility_id")
+        expected = float(row.get("total_rvus") or 0)
+        modality = row.get("modality")
+        meta = fac_meta.get(fid, {})
+        state = meta.get("state")
+        state_totals[state] += expected
+        if fid not in facilities_agg:
+            # Readers count: authorized AND licensed for the facility state
+            auth_set = fac_auth_map.get(fid, set())
+            lic_set = licensed_by_state.get(state, set()) if state else set()
+            readers_count = len(auth_set & lic_set) if auth_set else 0
+
+            facilities_agg[fid] = {
+                "facility_id": fid,
+                "facility_name": meta.get("name"),
+                "state": state,
+                "expected_rvus": 0.0,
+                "scheduled_reader_count": readers_count,
+                "modalities": {}
+            }
+        facilities_agg[fid]["expected_rvus"] += expected
+        if modality:
+            facilities_agg[fid]["modalities"][modality] = facilities_agg[fid]["modalities"].get(modality, 0.0) + expected
+
+    # Convert modality dicts to lists for JSON friendliness
+    facilities_payload = []
+    for fac in facilities_agg.values():
+        fac_copy = fac.copy()
+        fac_copy["modalities"] = [
+            {"modality": m, "expected_rvus": v} for m, v in fac.get("modalities", {}).items()
+        ]
+        facilities_payload.append(fac_copy)
+
+    # Build state+modality breakdown
+    by_state_mod = defaultdict(float)
+    by_modality_totals = defaultdict(float)
+    by_state_totals = defaultdict(float)
+    state_breakdown = defaultdict(lambda: defaultdict(float))
+    modality_breakdown = defaultdict(lambda: defaultdict(float))
+    for row in facility_rows:
+        fid = row.get("facility_id")
+        expected = float(row.get("total_rvus") or 0)
+        modality = row.get("modality")
+        meta = fac_meta.get(fid, {})
+        state = meta.get("state")
+        key = (state, modality)
+        by_state_mod[key] += expected
+        if modality:
+            by_modality_totals[modality] += expected
+        if state:
+            by_state_totals[state] += expected
+        if state and modality:
+            state_breakdown[state][modality] += expected
+            modality_breakdown[modality][state] += expected
+
+    by_state_payload = []  # legacy: state+modality (no longer used by UI)
+    for (st, mod), total in by_state_mod.items():
+        by_state_payload.append({
+            "state": st,
+            "modality": mod,
+            "expected_rvus": float(total)
+        })
+
+    by_state_merged_payload = [
+        {"state": st, "expected_rvus": float(total)} for st, total in by_state_totals.items()
+    ]
+    by_modality_payload = [
+        {"modality": m, "expected_rvus": float(v)} for m, v in by_modality_totals.items()
+    ]
+
+    # If we used fallback from a different hour, optionally scale to match the expected total
+    # from capacity_per_hour for the requested hour.
+    total_expected = float(sum((float(r.get("total_rvus") or 0) for r in facility_rows)))
+    if fallback_info.get("used"):
+        # Fetch tile expected from capacity_per_hour for prev_date_str/prev_hour_int
+        cap_row = (
+            supabase
+            .table("capacity_per_hour")
+            .select("total_rvus")
+            .eq("date", prev_date_str)
+            .eq("hour", prev_hour_int)
+            .execute()
+        )
+        cap_total = None
+        if cap_row.data:
+            try:
+                cap_total = float((cap_row.data or [{}])[0].get("total_rvus") or 0)
+            except Exception:
+                cap_total = None
+        print(f"[hour_detail] Tile expected (capacity_per_hour) for scaling: {cap_total}")
+        if cap_total is not None and total_expected > 0:
+            scale = cap_total / total_expected
+            print(f"[hour_detail] Applying scale factor {scale:.4f} to fallback facility rows")
+            for f in facilities_payload:
+                f["expected_rvus"] = float(f.get("expected_rvus", 0)) * scale
+                for md in f.get("modalities", []):
+                    md["expected_rvus"] = float(md.get("expected_rvus", 0)) * scale
+            for s in by_state_payload:
+                s["expected_rvus"] = float(s["expected_rvus"]) * scale
+            for s in by_state_merged_payload:
+                s["expected_rvus"] = float(s["expected_rvus"]) * scale
+            for m in by_modality_payload:
+                m["expected_rvus"] = float(m["expected_rvus"]) * scale
+            # Scale breakdown maps
+            for st, mods in state_breakdown.items():
+                for md in list(mods.keys()):
+                    mods[md] = float(mods[md]) * scale
+            for md, states in modality_breakdown.items():
+                for st in list(states.keys()):
+                    states[st] = float(states[st]) * scale
+            total_expected = cap_total
+            fallback_info["scaled_to_expected"] = True
+            fallback_info["scale_factor"] = scale
+        else:
+            fallback_info["scaled_to_expected"] = False
+
+    # Convert breakdown dicts to lists for JSON friendliness
+    state_breakdown_list = {
+        st: [
+            {"modality": md, "expected_rvus": float(val)} for md, val in mods.items()
+        ]
+        for st, mods in state_breakdown.items()
+    }
+    modality_breakdown_list = {
+        md: [
+            {"state": st, "expected_rvus": float(val)} for st, val in states.items()
+        ]
+        for md, states in modality_breakdown.items()
+    }
+
+    payload = {
+        "date": date_str,
+        "hour": hour,
+        "expected_source": {"date": prev_date_str, "hour": prev_hour_int},
+        "fallback": fallback_info,
+        "total_expected_rvus": total_expected,
+        "facilities": facilities_payload,
+        "by_state": by_state_payload,
+        "by_state_merged": by_state_merged_payload,
+        "by_modality": by_modality_payload,
+        "state_breakdown": state_breakdown_list,
+        "modality_breakdown": modality_breakdown_list,
+        "supply_overall_rvus": supply_overall,
+        "supply_licensed_rvus": supply_licensed,
+        "supply_facility_authorized_rvus": supply_facility_auth
+    }
+    print(f"[hour_detail] response summary: expected={total_expected:.2f}, facilities={len(facilities_payload)}, states={len(by_state_payload)}, on_shift={len(on_shift)}")
+    return jsonify(payload)
