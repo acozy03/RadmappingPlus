@@ -395,7 +395,7 @@ def shifts():
             rr = rvu_rows.get(did)
             return get_latest_nonzero_rvu(rr) if rr else 0.0
 
-        # Greedy proportional allocation by modality with capping per group
+        # Multi-pass allocation with rebalancing across modalities
         matched_supply = 0.0
         if not groups or not slot_doctors:
             return historical_rvu, 0.0
@@ -405,6 +405,9 @@ def shifts():
         for g in groups:
             groups_by_mod[g["mod"]].append(g)
 
+        EPS = 1e-6
+        MAX_PASSES = 5
+
         for d in slot_doctors:
             did = d.get("id")
             if did is None:
@@ -413,41 +416,51 @@ def shifts():
             if base <= 0:
                 continue
 
+            remaining_cap = base
+
             # Determine eligible facilities for this doctor
             auth_fids = fac_auth_by_doctor.get(did, set())
             # Determine licensed states
             lic_states = alloc_doctor_states.get(did, set())
 
-            # Doctor modality distribution; if missing, spread uniformly over modalities present in demand
-            weights = modality_weights.get(did)
-            if not weights:
-                # uniform over present modalities (non-null)
+            # Doctor modality distribution; if missing, spread uniformly over present modalities
+            base_weights = modality_weights.get(did)
+            if not base_weights:
                 mods_present = {g["mod"] for g in groups if g["mod"]}
                 if mods_present:
-                    uniform = 1.0 / len(mods_present)
-                    weights = {m: uniform for m in mods_present}
+                    w = 1.0 / len(mods_present)
+                    base_weights = {m: w for m in mods_present}
                 else:
-                    weights = {}
+                    base_weights = {}
 
-            for mod, frac in weights.items():
-                if frac <= 0:
-                    continue
-                cap_m = base * frac
-                elig = [
-                    g for g in groups_by_mod.get(mod, [])
-                    if g["remaining"] > 0 and (g["fid"] in auth_fids) and (not g["state"] or g["state"] in lic_states)
-                ]
-                if not elig:
-                    continue
-                total_remaining = sum(g["remaining"] for g in elig)
-                if total_remaining <= 0:
-                    continue
-                for g in elig:
-                    share = cap_m * (g["remaining"] / total_remaining)
-                    alloc = min(share, g["remaining"])
-                    if alloc > 0:
-                        g["remaining"] -= alloc
-                        matched_supply += alloc
+            for _ in range(MAX_PASSES):
+                if remaining_cap <= EPS:
+                    break
+                # Active modalities for which this doc has eligible remaining demand
+                active = {}
+                for mod, frac in base_weights.items():
+                    if frac <= 0:
+                        continue
+                    elig = [
+                        g for g in groups_by_mod.get(mod, [])
+                        if g["remaining"] > EPS and (g["fid"] in auth_fids) and (not g["state"] or g["state"] in lic_states)
+                    ]
+                    tot = sum(g["remaining"] for g in elig)
+                    if tot > EPS:
+                        active[mod] = {"frac": frac, "elig": elig, "tot": tot}
+                if not active:
+                    break
+                norm = sum(v["frac"] for v in active.values())
+                if norm <= EPS:
+                    break
+                for mod, meta in active.items():
+                    share_cap = remaining_cap * (meta["frac"] / norm)
+                    for g in meta["elig"]:
+                        alloc = min(share_cap * (g["remaining"] / meta["tot"]), g["remaining"])
+                        if alloc > EPS:
+                            g["remaining"] -= alloc
+                            matched_supply += alloc
+                            remaining_cap -= alloc
 
         return historical_rvu, matched_supply
 
@@ -1034,7 +1047,9 @@ def hour_detail():
                 return float(v)
         return 0.0
 
-    # Iterate doctors on this hour and allocate
+    # Iterate doctors on this hour and allocate with rebalancing
+    EPS = 1e-6
+    MAX_PASSES = 5
     for d in on_shift:
         did = d.get("id")
         name = d.get("name")
@@ -1052,43 +1067,50 @@ def hour_detail():
         auth_fids = fac_auth_map  # map exists above: facility_id -> set(doc_ids)
         lic_states = licensed_by_state
         allocs = []
-
-        for mod, frac in doc_weights.items():
-            if frac <= 0:
-                continue
-            cap_m = base * frac
-            # Eligible groups for this doctor and modality
-            eligible = []
-            for g in groups_by_mod.get(mod, []):
-                if g["remaining"] <= 0:
+        remaining_cap = base
+        for _ in range(MAX_PASSES):
+            if remaining_cap <= EPS:
+                break
+            # Active modalities for this doc with eligible demand
+            active = {}
+            for mod, frac in doc_weights.items():
+                if frac <= 0:
                     continue
-                if did not in auth_fids.get(g["fid"], set()):
-                    continue
-                st = g.get("state")
-                if st and did not in lic_states.get(st, set()):
-                    continue
-                eligible.append(g)
-
-            if not eligible:
-                continue
-            total_rem = sum(g["remaining"] for g in eligible)
-            if total_rem <= 0:
-                continue
-
-            for g in eligible:
-                share = cap_m * (g["remaining"] / total_rem)
-                alloc = min(share, g["remaining"])
-                if alloc > 0:
-                    g["remaining"] -= alloc
-                    matched_supply_detail += alloc
-                    if alloc >= ALLOCATION_EPS:
-                        allocs.append({
-                            "facility_id": g["fid"],
-                            "facility_name": g.get("facility_name"),
-                            "state": g.get("state"),
-                            "modality": mod,
-                            "allocated_rvus": float(alloc)
-                        })
+                elig = []
+                tot = 0.0
+                for g in groups_by_mod.get(mod, []):
+                    if g["remaining"] <= EPS:
+                        continue
+                    if did not in auth_fids.get(g["fid"], set()):
+                        continue
+                    st = g.get("state")
+                    if st and did not in lic_states.get(st, set()):
+                        continue
+                    elig.append(g)
+                    tot += g["remaining"]
+                if tot > EPS:
+                    active[mod] = {"frac": frac, "elig": elig, "tot": tot}
+            if not active:
+                break
+            norm = sum(v["frac"] for v in active.values())
+            if norm <= EPS:
+                break
+            for mod, meta in active.items():
+                share_cap = remaining_cap * (meta["frac"] / norm)
+                for g in meta["elig"]:
+                    alloc = min(share_cap * (g["remaining"] / meta["tot"]), g["remaining"])
+                    if alloc > EPS:
+                        g["remaining"] -= alloc
+                        matched_supply_detail += alloc
+                        remaining_cap -= alloc
+                        if alloc >= ALLOCATION_EPS:
+                            allocs.append({
+                                "facility_id": g["fid"],
+                                "facility_name": g.get("facility_name"),
+                                "state": g.get("state"),
+                                "modality": mod,
+                                "allocated_rvus": float(alloc)
+                            })
 
         contributed = float(sum(a.get("allocated_rvus", 0) for a in allocs))
         doctor_allocations.append({
@@ -1096,6 +1118,7 @@ def hour_detail():
             "name": name,
             "base_rvu": base,
             "contributing_rvus": contributed,
+            "unused_rvus": max(0.0, float(base - contributed)),
             "allocations": allocs
         })
 
