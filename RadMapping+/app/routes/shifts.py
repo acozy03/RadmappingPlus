@@ -128,12 +128,22 @@ def shifts():
     query = supabase.table("monthly_schedule") \
         .select("*, radiologists(*)") \
         .lte("start_date", end_date_str) \
-        .gte("end_date", start_date_str) 
+        .gte("end_date", start_date_str)
 
-    shift_res = query.execute()
+    # Paginate to avoid 1000-row default limit
+    batch_size = 1000
+    offset = 0
+    schedule_rows = []
+    while True:
+        res = query.range(offset, offset + batch_size - 1).execute()
+        batch = res.data or []
+        schedule_rows.extend(batch)
+        if len(batch) < batch_size:
+            break
+        offset += batch_size
 
     doctors_on_shift = []
-    for entry in shift_res.data:
+    for entry in schedule_rows:
          if entry.get("radiologists") and entry.get("start_time") and entry.get("end_time"):
             doc = entry["radiologists"]
             
@@ -211,16 +221,41 @@ def shifts():
 
     unique_prev_keys = list({pair for _, pair in prev_dates_hours_map.keys()})
 
-    historical_rvu_rows = supabase.table("capacity_per_hour")\
-        .select("date", "hour", "total_rvus")\
-        .in_("date", [d for d, _ in unique_prev_keys])\
-        .in_("hour", [h for _, h in unique_prev_keys])\
-        .execute()
+    # Paginate capacity_per_hour by date to avoid 1000 row limit
+    cap_dates = [d for d, _ in unique_prev_keys] or ["1900-01-01"]
+    cap_rows_all = []
+    _offset = 0
+    _batch = 1000
+    while True:
+        _res = (
+            supabase
+            .table("capacity_per_hour")
+            .select("date", "hour", "total_rvus")
+            .in_("date", cap_dates)
+            .range(_offset, _offset + _batch - 1)
+            .execute()
+        )
+        _data = _res.data or []
+        cap_rows_all.extend(_data)
+        if len(_data) < _batch:
+            break
+        _offset += _batch
 
-    historical_rvu_lookup = {
-        (row["date"], int(row["hour"])): row["total_rvus"]
-        for row in (historical_rvu_rows.data or [])
-    }
+    historical_rvu_lookup = {}
+    for row in cap_rows_all:
+        d = row.get("date")
+        h = row.get("hour")
+        try:
+            h_int = int(h) if not isinstance(h, (int, float)) else int(h)
+        except Exception:
+            try:
+                hs = str(h).strip()
+                if "." in hs:
+                    hs = hs.split(".")[0]
+                h_int = int(hs)
+            except Exception:
+                continue
+        historical_rvu_lookup[(d, h_int)] = row.get("total_rvus")
 
     # --- New effective capacity computation ---
     # We will estimate per-hour supply by allocating each on-shift doctor's
@@ -231,29 +266,69 @@ def shifts():
     # 1) Prefetch facility-level demand rows for all prior-week (date,hour) pairs
     prev_dates = list({d for d, _ in unique_prev_keys})
     prev_hours = list({h for _, h in unique_prev_keys})
-    fac_rows_res = (
-        supabase
-        .table("facility_capacity_per_hour")
-        .select("date,hour,facility_id,modality,total_rvus")
-        .in_("date", prev_dates if prev_dates else ["1900-01-01"])  # guard empty
-        .in_("hour", prev_hours if prev_hours else [0])
-        .execute()
-    )
-    facility_rows_all = fac_rows_res.data or []
+    # Note: some deployments store the "hour" column as text. Using an IN filter with
+    # integer hours can silently return no rows, which makes weekly tiles show 0 even
+    # though per-hour modal fallback finds day data.
+    # To avoid type-mismatch issues, prefetch by date only and handle hours in-memory.
+    facility_rows_all = []
+    if prev_dates:
+        _offset = 0
+        _batch = 1000
+        while True:
+            _res = (
+                supabase
+                .table("facility_capacity_per_hour")
+                .select("date,hour,facility_id,modality,total_rvus")
+                .in_("date", prev_dates)
+                .range(_offset, _offset + _batch - 1)
+                .execute()
+            )
+            _data = _res.data or []
+            facility_rows_all.extend(_data)
+            if len(_data) < _batch:
+                break
+            _offset += _batch
+
+    # Robust hour parser: handle numeric, zero-padded strings, and float-ish strings
+    def parse_hour(val):
+        try:
+            if isinstance(val, (int, float)):
+                return int(val)
+            s = str(val).strip()
+            if not s:
+                return None
+            if "." in s:
+                s = s.split(".")[0]
+            return int(s)
+        except Exception:
+            return None
 
     # Group by (date,hour) and by date (for nearest-hour fallback)
     fac_by_date_hour = defaultdict(list)
     fac_by_date = defaultdict(list)
     all_facility_ids_in_week = set()
     for r in facility_rows_all:
-        try:
-            key = (r.get("date"), int(r.get("hour")))
-        except Exception:
+        h = parse_hour(r.get("hour"))
+        d = r.get("date")
+        if d is None:
             continue
-        fac_by_date_hour[key].append(r)
-        fac_by_date[r.get("date")].append(r)
+        if h is not None:
+            fac_by_date_hour[(d, h)].append(r)
+        fac_by_date[d].append(r)
         if r.get("facility_id") is not None:
             all_facility_ids_in_week.add(r.get("facility_id"))
+
+    # Optional debug: summarize fetched rows per date
+    dbg = request.args.get('debug')
+    if dbg and str(dbg).lower() in ("1", "true", "yes"):
+        try:
+            from collections import Counter
+            fac_counts = Counter([r.get("date") for r in facility_rows_all])
+            cap_counts = Counter([k[0] for k in historical_rvu_lookup.keys()])
+            print(f"[shifts][DEBUG] facility_capacity_per_hour counts: {dict(fac_counts)}")
+            print(f"[shifts][DEBUG] capacity_per_hour dates present: {sorted(set(cap_counts.elements()))}")
+        except Exception as _e:
+            print(f"[shifts][DEBUG] counting error: {_e}")
 
     # Facility metadata for state mapping
     fac_meta = {}
@@ -379,10 +454,10 @@ def shifts():
             if day_rows:
                 by_hour = defaultdict(list)
                 for r in day_rows:
-                    try:
-                        by_hour[int(r.get("hour"))].append(r)
-                    except Exception:
+                    ph = parse_hour(r.get("hour"))
+                    if ph is None:
                         continue
+                    by_hour[ph].append(r)
                 if by_hour:
                     hours_available = sorted(by_hour.keys())
                     nearest_hour = min(hours_available, key=lambda h: abs(h - prev_hour_int))
@@ -556,6 +631,24 @@ def shifts():
         slot_dt = slot["datetime"]
         hist, eff = compute_effective_supply(slot_dt)
         hourly_rvu_stats[slot_dt] = {"historical": hist, "current": eff}
+
+    # Debug: per-day coverage summary
+    if dbg and str(dbg).lower() in ("1", "true", "yes"):
+        try:
+            for day, slots in hour_slots_by_day.items():
+                tiles = 0
+                with_docs = 0
+                with_demand = 0
+                for slot in slots:
+                    tiles += 1
+                    if doctors_by_hour.get(slot["datetime"]):
+                        with_docs += 1
+                    prev_d, prev_h = get_prev_week_same_day_and_hour(slot["datetime"])
+                    if fac_by_date_hour.get((prev_d, prev_h)) or fac_by_date.get(prev_d):
+                        with_demand += 1
+                print(f"[shifts][DEBUG] {day.isoformat()} tiles={tiles} doctors_hours={with_docs} demand_hours={with_demand}")
+        except Exception as _e:
+            print(f"[shifts][DEBUG] per-day summary error: {_e}")
 
     weekly_data_by_day_and_color = {} 
     for day, hour_slots in hour_slots_by_day.items():

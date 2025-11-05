@@ -52,23 +52,24 @@ def set_session():
         if not email:
             raise ValueError("Email not found on Supabase user")
 
-        # Extract optional profile information for UI enrichment
-        metadata = {}
-        if hasattr(u, "user_metadata") and getattr(u, "user_metadata"):
-            metadata = getattr(u, "user_metadata") or {}
-        elif isinstance(u, dict):
-            metadata = u.get("user_metadata") or {}
+        # ✅ Domain restriction check
+        allowed_domains = {"vestatelemed.com", "vestasolutions.com"}
+        user_domain = email.split("@")[-1].lower()
+        if user_domain not in allowed_domains:
+            logging.warning(f"Unauthorized login attempt from external domain: {email}")
+            session.clear()
+            return jsonify({"error": "Unauthorized domain"}), 403
 
-        full_name = metadata.get("full_name") or metadata.get("name")
+        # Extract optional profile information
+        metadata = getattr(u, "user_metadata", {}) if hasattr(u, "user_metadata") else u.get("user_metadata", {})
+        full_name = metadata.get("full_name") or metadata.get("name") or email.split("@")[0]
         avatar_url = metadata.get("avatar_url") or metadata.get("picture")
-        if not full_name and email:
-            full_name = email.split("@")[0]
     except Exception as e:
         logging.error(f"Failed to fetch/parse user from access_token: {e}")
         session.clear()
         return jsonify({"error": "Invalid token"}), 401
 
-    # Look up role in your users table
+    # Role lookup and session setup...
     role = "user"
     try:
         resp = supabase.table("users").select("role").eq("email", email).single().execute()
@@ -85,6 +86,7 @@ def set_session():
     }
     logging.info(f"Session established for {email} with role={role}")
     return jsonify({"status": "ok", "role": role}), 200
+
 
 
 @auth_bp.route("/logout")
