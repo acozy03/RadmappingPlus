@@ -86,6 +86,11 @@ MODALITY_RVU = {
     "ECG": 0.2,
 }
 
+# Soft-preference tuning: modalities with a weight below this threshold are
+# treated as "last resort" for allocation. We still allow allocating to them
+# if nothing else can take the chunk, but we prefer higher-weight modalities.
+SOFT_WEIGHT_THRESHOLD = 0.01  # 1%
+
 def modality_chunk(mod):
     if not mod:
         return 0.2
@@ -534,7 +539,8 @@ def shifts():
                 else:
                     base_weights = {}
 
-            # PASS 1: coverage-first, by gap and in study-sized chunks
+            # PASS 1: coverage-first with soft modality preferences.
+            # Prefer modalities with higher doctor weight; fall back if none fit.
             while remaining_cap > EPS:
                 # Build total gap per modality limited to whole chunks and eligibility
                 gap_by_mod = {}
@@ -552,8 +558,25 @@ def shifts():
                         gap_by_mod[mod] = gap_sum
                 if not gap_by_mod:
                     break
-                # pick modality with largest chunkable gap
-                sel_mod = max(gap_by_mod.keys(), key=lambda m: gap_by_mod[m])
+                # pick modality using weighted score (gap * weight),
+                # preferring weights >= SOFT_WEIGHT_THRESHOLD first
+                def pick_mod(prefer_threshold=True):
+                    candidates = list(gap_by_mod.keys())
+                    if prefer_threshold:
+                        preferred = [m for m in candidates if (base_weights.get(m, 0.0) >= SOFT_WEIGHT_THRESHOLD)]
+                        if preferred:
+                            candidates = preferred
+                    # score: gap * max(weight, tiny)
+                    def score(m):
+                        w = base_weights.get(m, 0.0)
+                        return gap_by_mod[m] * (w if w > 0 else 1e-9)
+                    return max(candidates, key=score)
+
+                try:
+                    sel_mod = pick_mod(True)
+                except ValueError:
+                    # no candidates after thresholding; fall back to any
+                    sel_mod = pick_mod(False)
                 ch = modality_chunk(sel_mod)
                 if remaining_cap + EPS < ch:
                     break
@@ -573,7 +596,7 @@ def shifts():
                 matched_supply += ch
                 remaining_cap -= ch
 
-            # PASS 2: overflow with coverage-aware round-robin and cap
+            # PASS 2: overflow with coverage-aware round-robin and soft preferences
             if remaining_cap > EPS:
                 OVERFILL_CAP_R = 1.5  # do not overflow a group beyond 150% coverage
                 # track per-doctor per-group chunk count to avoid spamming one target
@@ -581,39 +604,46 @@ def shifts():
                 MAX_CHUNKS_PER_GROUP_PER_DOC = 3
                 while remaining_cap > EPS:
                     # gather candidates across all modalities the doctor is eligible for and that fit a chunk
-                    best_g = None
-                    best_score = None
-                    best_ch = 0.0
-                    for mod, lst in groups_by_mod.items():
-                        ch = modality_chunk(mod)
-                        if remaining_cap + EPS < ch:
-                            continue
-                        for g in lst:
-                            if (g["fid"] not in auth_fids) or (g.get("state") and g.get("state") not in lic_states):
+                    def pick_overflow(allow_low_weight: bool):
+                        best = (None, None, None)
+                        best_score = None
+                        for mod, lst in groups_by_mod.items():
+                            w = base_weights.get(mod, 0.0)
+                            if (w < SOFT_WEIGHT_THRESHOLD) and not allow_low_weight:
                                 continue
-                            base_val = float(g.get("base", 0.0))
-                            if base_val <= EPS:
+                            ch = modality_chunk(mod)
+                            if remaining_cap + EPS < ch:
                                 continue
-                            # coverage so far including any overflow we've sent
-                            over = float(g.get("overfill", 0.0))
-                            gap = float(g.get("gap", 0.0))
-                            covered = max(0.0, base_val - gap) + over
-                            R = covered / max(base_val, EPS)
-                            if R >= OVERFILL_CAP_R - 1e-9:
-                                continue
-                            # per-doctor limit
-                            key = (g["fid"], mod)
-                            if per_group_chunks.get(key, 0) >= MAX_CHUNKS_PER_GROUP_PER_DOC:
-                                continue
-                            # choose the lowest coverage first
-                            score = R
-                            if best_score is None or score < best_score:
-                                best_score = score
-                                best_g = (g, mod)
-                                best_ch = ch
-                    if best_g is None:
+                            for g in lst:
+                                if (g["fid"] not in auth_fids) or (g.get("state") and g.get("state") not in lic_states):
+                                    continue
+                                base_val = float(g.get("base", 0.0))
+                                if base_val <= EPS:
+                                    continue
+                                over = float(g.get("overfill", 0.0))
+                                gap = float(g.get("gap", 0.0))
+                                covered = max(0.0, base_val - gap) + over
+                                R = covered / max(base_val, EPS)
+                                if R >= OVERFILL_CAP_R - 1e-9:
+                                    continue
+                                key = (g["fid"], mod)
+                                if per_group_chunks.get(key, 0) >= MAX_CHUNKS_PER_GROUP_PER_DOC:
+                                    continue
+                                # Prefer lower coverage; tie-break by weight (higher is better)
+                                score = (R, -w)
+                                if best_score is None or score < best_score:
+                                    best_score = score
+                                    best = (g, mod, ch)
+                        return best
+
+                    g = mod = None
+                    # First try with weight threshold
+                    g, mod, best_ch = pick_overflow(False)
+                    if g is None:
+                        # Fallback: allow low-weight modalities as last resort
+                        g, mod, best_ch = pick_overflow(True)
+                    if g is None:
                         break
-                    g, mod = best_g
                     g["overfill"] = float(g.get("overfill", 0.0)) + best_ch
                     # Also reduce gap if any remains (keeps coverage monotonic up)
                     if g.get("gap", 0.0) > 0:
@@ -1249,7 +1279,7 @@ def hour_detail():
         per_key_meta = {}
         remaining_cap = base
 
-        # PASS 1: coverage-first, chunked by modality RVU
+        # PASS 1: coverage-first, chunked by modality RVU (soft modality preferences)
         while remaining_cap > EPS:
             # Total chunkable gap per modality for this doctor
             gap_by_mod = {}
@@ -1271,7 +1301,21 @@ def hour_detail():
                     gap_by_mod[mod] = sum_gap
             if not gap_by_mod:
                 break
-            sel_mod = max(gap_by_mod.keys(), key=lambda m: gap_by_mod[m])
+            # Prefer modalities with higher weight first; if none meet threshold, fall back
+            def _pick_mod(prefer_threshold=True):
+                mods = list(gap_by_mod.keys())
+                if prefer_threshold:
+                    preferred = [m for m in mods if (doc_weights.get(m, 0.0) >= SOFT_WEIGHT_THRESHOLD)]
+                    if preferred:
+                        mods = preferred
+                def _score(m):
+                    w = doc_weights.get(m, 0.0)
+                    return gap_by_mod[m] * (w if w > 0 else 1e-9)
+                return max(mods, key=_score)
+            try:
+                sel_mod = _pick_mod(True)
+            except ValueError:
+                sel_mod = _pick_mod(False)
             ch = modality_chunk(sel_mod)
             if remaining_cap + EPS < ch:
                 break
@@ -1304,7 +1348,7 @@ def hour_detail():
                     "modality": (sel_mod or "")
                 }
 
-        # PASS 2: overflow coverage-aware with cap and round-robin
+        # PASS 2: overflow coverage-aware with cap and round-robin (soft preferences)
         if remaining_cap > EPS:
             OVERFILL_CAP_R = 1.5
             per_group_chunks = {}
@@ -1315,39 +1359,47 @@ def hour_detail():
                     if "overfill" not in g:
                         g["overfill"] = 0.0
             while remaining_cap > EPS:
-                best_pair = None
-                best_score = None
-                best_ch = 0.0
-                for mod, lst in groups_by_mod.items():
-                    ch = modality_chunk(mod)
-                    if remaining_cap + EPS < ch:
-                        continue
-                    for g in lst:
-                        if did not in auth_fids.get(g["fid"], set()):
+                def _pick_overflow(allow_low_weight: bool):
+                    best_g = None
+                    best_mod = None
+                    best_ch = 0.0
+                    best_score = None
+                    for mod, lst in groups_by_mod.items():
+                        w = doc_weights.get(mod, 0.0)
+                        if (w < SOFT_WEIGHT_THRESHOLD) and not allow_low_weight:
                             continue
-                        st = g.get("state")
-                        if st and did not in lic_states.get(st, set()):
+                        ch = modality_chunk(mod)
+                        if remaining_cap + EPS < ch:
                             continue
-                        base_val = float(g.get("base", 0.0))
-                        if base_val <= EPS:
-                            continue
-                        over = float(g.get("overfill", 0.0))
-                        rem = float(g.get("remaining", 0.0))
-                        covered = max(0.0, base_val - rem) + over
-                        R = covered / max(base_val, EPS)
-                        if R >= OVERFILL_CAP_R - 1e-9:
-                            continue
-                        key = (g["fid"], mod)
-                        if per_group_chunks.get(key, 0) >= MAX_CHUNKS_PER_GROUP_PER_DOC:
-                            continue
-                        score = R
-                        if best_score is None or score < best_score:
-                            best_score = score
-                            best_pair = (g, mod)
-                            best_ch = ch
-                if best_pair is None:
+                        for g in lst:
+                            if did not in auth_fids.get(g["fid"], set()):
+                                continue
+                            st = g.get("state")
+                            if st and did not in lic_states.get(st, set()):
+                                continue
+                            base_val = float(g.get("base", 0.0))
+                            if base_val <= EPS:
+                                continue
+                            over = float(g.get("overfill", 0.0))
+                            rem = float(g.get("remaining", 0.0))
+                            covered = max(0.0, base_val - rem) + over
+                            R = covered / max(base_val, EPS)
+                            if R >= OVERFILL_CAP_R - 1e-9:
+                                continue
+                            key = (g["fid"], mod)
+                            if per_group_chunks.get(key, 0) >= MAX_CHUNKS_PER_GROUP_PER_DOC:
+                                continue
+                            score = (R, -w)
+                            if best_score is None or score < best_score:
+                                best_score = score
+                                best_g, best_mod, best_ch = g, mod, ch
+                    return best_g, best_mod, best_ch
+
+                g, mod, best_ch = _pick_overflow(False)
+                if g is None:
+                    g, mod, best_ch = _pick_overflow(True)
+                if g is None:
                     break
-                g, mod = best_pair
                 g["overfill"] = float(g.get("overfill", 0.0)) + best_ch
                 if g.get("remaining", 0.0) > 0:
                     g["remaining"] = max(0.0, float(g.get("remaining", 0.0)) - best_ch)

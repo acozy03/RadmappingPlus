@@ -180,7 +180,7 @@
 
             {% endif %}
           </span>
-          <span class="flex items-center text-sm text-gray-700 relative" style="gap: 0.25rem;">
+          <!-- <span class="flex items-center text-sm text-gray-700 relative" style="gap: 0.25rem;">
             <span class="relative group" style="pointer-events: auto; cursor: pointer;">
               <span class="text-blue-700 font-semibold text-base">
                 {{ (hourly_rvu_stats[slot.datetime]['current'] | round(1)) if hourly_rvu_stats[slot.datetime] and hourly_rvu_stats[slot.datetime]['current'] is not none else '—' }}
@@ -233,7 +233,7 @@
                 </span>
               {% endif %}
             {% endif %}
-          </span>
+          </span> -->
         </h4>
 
 {% set slot_doctors = doctors_by_hour.get(slot.datetime, []) %}
@@ -268,7 +268,7 @@
           <span class="text-gray-700">{{ doc.modalities }}</span>
         </div>
       {% endif %}
-      <span class="font-semibold text-gray-800">RVU:</span>
+      <!-- <span class="font-semibold text-gray-800">RVU:</span>
       <span class="text-gray-800">
         {% set doc_rvu = None %}
         {% if doc.id in rvu_rows %}
@@ -279,7 +279,7 @@
         {% else %}
           —
         {% endif %}
-      </span>
+      </span> -->
     </div>
 
     <div class="doctor-popup-placeholder" data-popup-id="{{ doc.id }}"></div>
@@ -324,7 +324,7 @@
                 <span class="text-gray-700">{{ doc.modalities }}</span>
               </div>
             {% endif %}
-            <span class="font-semibold text-gray-800">RVU:</span>
+            <!-- <span class="font-semibold text-gray-800">RVU:</span>
             <span class="text-gray-800 ">
               {% set doc_rvu = None %}
               {% if doc.id in rvu_rows %}
@@ -335,7 +335,7 @@
               {% else %}
                 —
               {% endif %}
-            </span>
+            </span> -->
           </div>
           <div class="doctor-popup-placeholder" data-popup-id="{{ doc.id }}"></div>
           <div class="shift-badge absolute bottom-2 right-2 text-xs font-medium px-2 py-0.5 rounded-full shadow-sm daily-shift-badge"></div>
