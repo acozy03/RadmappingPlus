@@ -73,6 +73,8 @@
     hourLoading: false,
     // What-if simulation: per-doctor base RVU overrides (temporary)
     baseOverrides: {},
+    // What-if panel collapsed/expanded state
+    whatIfOpen: true,
     // Units toggle for modal values: 'rvus' or 'cases'
     units: 'rvus',
     // Match backend modality RVU chunks for case conversion
@@ -631,32 +633,36 @@
     
     <!-- What-if base RVU overrides (temporary; triggers recomputation) -->
     <div class="mt-2 mb-3 p-2 rounded border border-blue-200 bg-blue-50 text-xs text-blue-900 whatif-panel">
-      <div class="flex items-center justify-between gap-2">
+      <!-- Clickable header toggles the panel like a dropdown -->
+      <button type="button" class="w-full flex items-center justify-between gap-2" @click="whatIfOpen = !whatIfOpen">
         <div class="font-medium whatif-title">What-if base RVUs (not saved)</div>
-        <div class="flex gap-2">
+        <span class="text-gray-500"> <span x-text="whatIfOpen ? 'Hide' : 'Show'"></span> ▾</span>
+      </button>
+      <div x-show="whatIfOpen" x-transition>
+        <div class="mt-2 flex gap-2">
           <button class="px-2 py-1 rounded bg-white border border-blue-300 hover:bg-blue-100"
                   @click="hourLoading=true; fetch('{{ url_for("shifts.hour_detail") }}', {method:'POST', headers:{'Content-Type':'application/json'}, body: JSON.stringify({date, hour: Number((hourDetail&&hourDetail.hour)||0), base_overrides: baseOverrides})}).then(r=>r.json()).then(d=>{hourDetail=d;}).finally(()=>{hourLoading=false;})">
             Recalculate
           </button>
           <button class="px-2 py-1 rounded bg-white border border-gray-300 hover:bg-gray-100" @click="baseOverrides = {}">Clear</button>
         </div>
+        <template x-if="!hourLoading && hourDetail && (hourDetail.doctor_allocations||[]).length">
+          <div class="mt-2 grid grid-cols-1 sm:grid-cols-2 gap-2">
+            <template x-for="doc in hourDetail.doctor_allocations" :key="doc.id">
+              <label class="flex items-center justify-between gap-2 bg-white rounded border border-blue-100 px-2 py-1">
+                <span class="truncate" :title="doc.name" x-text="doc.name || ('ID ' + doc.id)"></span>
+                <span class="flex items-center gap-1">
+                  <input type="number" step="0.1" min="0" class="w-20 px-2 py-1 border rounded text-gray-800"
+                         :placeholder="String((doc.base_rvu||0).toFixed(1))"
+                         :value="baseOverrides[doc.id] ?? ''"
+                         @input="(e)=>{ let v = Number(e.target.value); if(!isFinite(v) || v<0){ v=0; } if(e.target.value===''){ delete baseOverrides[doc.id]; } else { baseOverrides[doc.id] = v; e.target.value = String(v); } }">
+                  <span class="text-gray-500">RVU</span>
+                </span>
+              </label>
+            </template>
+          </div>
+        </template>
       </div>
-      <template x-if="!hourLoading && hourDetail && (hourDetail.doctor_allocations||[]).length">
-        <div class="mt-2 grid grid-cols-1 sm:grid-cols-2 gap-2">
-          <template x-for="doc in hourDetail.doctor_allocations" :key="doc.id">
-            <label class="flex items-center justify-between gap-2 bg-white rounded border border-blue-100 px-2 py-1">
-              <span class="truncate" :title="doc.name" x-text="doc.name || ('ID ' + doc.id)"></span>
-              <span class="flex items-center gap-1">
-                <input type="number" step="0.1" min="0" class="w-20 px-2 py-1 border rounded text-gray-800"
-                       :placeholder="String((doc.base_rvu||0).toFixed(1))"
-                       :value="baseOverrides[doc.id] ?? ''"
-                       @input="(e)=>{ let v = Number(e.target.value); if(!isFinite(v) || v<0){ v=0; } if(e.target.value===''){ delete baseOverrides[doc.id]; } else { baseOverrides[doc.id] = v; e.target.value = String(v); } }">
-                <span class="text-gray-500">RVU</span>
-              </span>
-            </label>
-          </template>
-        </div>
-      </template>
     </div>
     <template x-if="false">
       <div class="mt-2 grid grid-cols-1 md:grid-cols-3 gap-2">
