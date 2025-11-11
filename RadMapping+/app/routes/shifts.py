@@ -809,7 +809,7 @@ def shifts():
 )
 
 
-@shifts_bp.route('/shifts/hour_detail')
+@shifts_bp.route('/shifts/hour_detail', methods=["GET", "POST"])
 @with_supabase_auth
 def hour_detail():
     """
@@ -822,8 +822,36 @@ def hour_detail():
     """
     supabase = get_supabase_client()
 
-    date_str = request.args.get('date')
-    hour = request.args.get('hour', type=int)
+    # Accept both GET query params and POSTed JSON for simulations/overrides
+    base_overrides = {}
+    if request.method == "POST":
+        payload = request.get_json(silent=True) or {}
+        date_str = payload.get('date')
+        hour = payload.get('hour')
+        try:
+            hour = int(hour) if hour is not None else None
+        except Exception:
+            hour = None
+        bo = payload.get('base_overrides') or {}
+        # Normalize override keys to str for consistent lookups
+        if isinstance(bo, dict):
+            try:
+                base_overrides = {str(k): float(v) for k, v in bo.items() if v is not None}
+            except Exception:
+                base_overrides = {str(k): v for k, v in bo.items()}
+    else:
+        date_str = request.args.get('date')
+        hour = request.args.get('hour', type=int)
+        # Optional overrides via query string as JSON: overrides={"doc_id": 0}
+        try:
+            import json as _json
+            q_over = request.args.get('overrides')
+            if q_over:
+                d = _json.loads(q_over)
+                if isinstance(d, dict):
+                    base_overrides = {str(k): float(v) for k, v in d.items() if v is not None}
+        except Exception:
+            base_overrides = {}
     if not date_str or hour is None:
         return jsonify({"error": "Missing date or hour"}), 400
 
@@ -1262,7 +1290,17 @@ def hour_detail():
         did = d.get("id")
         name = d.get("name")
         rr = rvu_rows.get(did) if did is not None else None
-        base = latest_nonzero_rvu(rr) if rr else 0.0
+        original_base = latest_nonzero_rvu(rr) if rr else 0.0
+        base = original_base
+        # Apply temporary simulation override if provided (no upper clamp per request)
+        if did is not None and str(did) in base_overrides:
+            try:
+                ov = float(base_overrides[str(did)])
+                if not (ov >= 0):
+                    ov = 0.0
+                base = max(0.0, ov)
+            except Exception:
+                base = original_base
         doc_weights = modality_weights.get(did)
         if not doc_weights:
             mods_present = {g["mod"] for g in groups if g["mod"]}
@@ -1442,6 +1480,7 @@ def hour_detail():
             "id": did,
             "name": name,
             "base_rvu": base,
+            "original_base_rvu": original_base,
             "contributing_rvus": contributed,
             "unused_rvus": max(0.0, float(base - contributed)),
             "allocations": allocs,
@@ -1476,6 +1515,7 @@ def hour_detail():
         "hour": hour,
         "expected_source": {"date": prev_date_str, "hour": prev_hour_int},
         "fallback": fallback_info,
+        "applied_overrides": base_overrides,
         "total_expected_rvus": total_expected,
         "facilities": facilities_payload,
         "by_state": by_state_payload,
