@@ -44,6 +44,15 @@ def get_prev_week_same_day_and_hour(dt):
 
 # Helper: Get latest non-zero monthly RVU for a doctor
 DAY_KEYS = ["mon", "tue", "wed", "thu", "fri", "sat", "sun"]
+DAY_NAME_COLUMNS = {
+    "monday": "modality_weights_monday",
+    "tuesday": "modality_weights_tuesday",
+    "wednesday": "modality_weights_wednesday",
+    "thursday": "modality_weights_thursday",
+    "friday": "modality_weights_friday",
+    "saturday": "modality_weights_saturday",
+    "sunday": "modality_weights_sunday",
+}
 
 
 def weekday_key(dt):
@@ -51,6 +60,56 @@ def weekday_key(dt):
         return DAY_KEYS[dt.weekday()]
     except Exception:
         return None
+
+
+def weekday_name(dt):
+    try:
+        return dt.strftime("%A").lower()
+    except Exception:
+        return None
+
+
+def normalize_modality_weights(weights):
+    if not isinstance(weights, dict):
+        return {}
+    clean = {}
+    total = 0.0
+    for k, v in weights.items():
+        try:
+            val = float(v)
+        except Exception:
+            continue
+        if val < 0:
+            continue
+        clean[str(k).upper()] = val
+        total += val
+    if total > 0:
+        return {k: (v / total) for k, v in clean.items()}
+    return {}
+
+
+def extract_modality_weights(row):
+    day_weights = {}
+    if not isinstance(row, dict):
+        return day_weights
+    fallback = normalize_modality_weights(row.get("modality_weights") or {})
+    if fallback:
+        day_weights["_fallback"] = fallback
+    for day_name, column in DAY_NAME_COLUMNS.items():
+        parsed = normalize_modality_weights(row.get(column) or {})
+        if parsed:
+            day_weights[day_name] = parsed
+    return day_weights
+
+
+def get_doc_modality_weights(weight_map, doc_id, dt):
+    if doc_id is None:
+        return {}
+    doc_entry = weight_map.get(doc_id, {}) or {}
+    day_key = weekday_name(dt)
+    if day_key and doc_entry.get(day_key):
+        return doc_entry[day_key]
+    return doc_entry.get("_fallback", {})
 
 
 def get_daily_rvu_value(rvu_row, dt=None):
@@ -434,18 +493,31 @@ def shifts():
     # Modality weights: attempt common table names; fall back to empty
     modality_weights = {}
     if week_doctor_ids:
+        day_columns_str = ",".join(DAY_NAME_COLUMNS.values())
+
         def try_fetch_weights(table_name):
+            columns = f"radiologist_id,{day_columns_str},modality_weights"
             try:
                 res = (
                     supabase
                     .table(table_name)
-                    .select("radiologist_id,modality_weights")
+                    .select(columns)
                     .in_("radiologist_id", week_doctor_ids)
                     .execute()
                 )
                 return res.data or []
             except Exception:
-                return []
+                try:
+                    res = (
+                        supabase
+                        .table(table_name)
+                        .select("radiologist_id,modality_weights")
+                        .in_("radiologist_id", week_doctor_ids)
+                        .execute()
+                    )
+                    return res.data or []
+                except Exception:
+                    return []
 
         weight_rows = []
         for t in ("radiologist_modality_weights", "modality_weights", "rad_modality_weights"):
@@ -453,21 +525,11 @@ def shifts():
                 weight_rows = try_fetch_weights(t)
         for row in weight_rows:
             rid = row.get("radiologist_id")
-            weights = row.get("modality_weights") or {}
-            # Normalization safety: ensure floats and sum<=1
-            clean = {}
-            total = 0.0
-            for k, v in (weights.items() if isinstance(weights, dict) else []):
-                try:
-                    val = float(v)
-                except Exception:
-                    continue
-                if val < 0:
-                    continue
-                clean[str(k).upper()] = val
-                total += val
-            if total > 0:
-                modality_weights[rid] = {k: (v / total) for k, v in clean.items()}
+            if rid is None:
+                continue
+            parsed = extract_modality_weights(row)
+            if parsed:
+                modality_weights[rid] = parsed
 
     # Helper: allocate supply for a given slot
     def compute_effective_supply(slot_dt):
@@ -555,7 +617,7 @@ def shifts():
             lic_states = alloc_doctor_states.get(did, set())
 
             # Doctor modality distribution; if missing, spread uniformly over present modalities
-            base_weights = modality_weights.get(did)
+            base_weights = get_doc_modality_weights(modality_weights, did, slot_dt)
             if not base_weights:
                 mods_present = {g["mod"] for g in groups if g["mod"]}
                 if mods_present:
@@ -1110,39 +1172,42 @@ def hour_detail():
     # 6) Modality weights for doctors on this hour
     modality_weights = {}
     if doctor_ids:
+        day_columns_str = ",".join(DAY_NAME_COLUMNS.values())
+
         def try_fetch_weights(table_name):
+            columns = f"radiologist_id,{day_columns_str},modality_weights"
             try:
                 res = (
                     supabase
                     .table(table_name)
-                    .select("radiologist_id,modality_weights")
+                    .select(columns)
                     .in_("radiologist_id", doctor_ids)
                     .execute()
                 )
                 return res.data or []
             except Exception:
-                return []
+                try:
+                    res = (
+                        supabase
+                        .table(table_name)
+                        .select("radiologist_id,modality_weights")
+                        .in_("radiologist_id", doctor_ids)
+                        .execute()
+                    )
+                    return res.data or []
+                except Exception:
+                    return []
         weight_rows = []
         for t in ("radiologist_modality_weights", "modality_weights", "rad_modality_weights"):
             if not weight_rows:
                 weight_rows = try_fetch_weights(t)
         for row in weight_rows:
             rid = row.get("radiologist_id")
-            weights = row.get("modality_weights") or {}
-            clean = {}
-            total = 0.0
-            if isinstance(weights, dict):
-                for k, v in weights.items():
-                    try:
-                        val = float(v)
-                    except Exception:
-                        continue
-                    if val < 0:
-                        continue
-                    clean[str(k).upper()] = val
-                    total += val
-            if total > 0:
-                modality_weights[rid] = {k: (v / total) for k, v in clean.items()}
+            if rid is None:
+                continue
+            parsed = extract_modality_weights(row)
+            if parsed:
+                modality_weights[rid] = parsed
 
     # Prepare demand groups for allocation and build facility/state breakdowns
     # 6) Assemble facility/state breakdowns
@@ -1316,7 +1381,7 @@ def hour_detail():
                 base = max(0.0, ov)
             except Exception:
                 base = original_base
-        doc_weights = modality_weights.get(did)
+        doc_weights = get_doc_modality_weights(modality_weights, did, window_start)
         if not doc_weights:
             mods_present = {g["mod"] for g in groups if g["mod"]}
             if mods_present:
