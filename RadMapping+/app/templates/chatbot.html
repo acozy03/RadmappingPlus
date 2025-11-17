@@ -188,15 +188,12 @@ async function sendMessage(event) {
     const data = await response.json();
 
     removeLoadingMessage();
-
+    
     if (data.error) {
       addMessage(`I encountered an error: ${data.error}. Please try rephrasing your question.`, 'assistant');
     } else {
-      addMessage(data.response, 'assistant');
+      addMessage(data.output.reply, 'assistant');
       
-      if (data.sql_query) { 
-        addMessage(`Here's the SQL query I used:\n\`\`\`sql\n${data.sql_query}\n\`\`\``, 'assistant');
-      }
     }
   } catch (error) {
     removeLoadingMessage();

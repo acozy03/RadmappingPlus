@@ -55,6 +55,9 @@ def chat():
         "request_id": str(uuid.uuid4()),
         "received_at": datetime.utcnow().isoformat() + "Z",
         "source": "flask-app",
+        "fast": True,
+        "slow": False,
+        "radmapping": True,
         "ip": request.headers.get("x-forwarded-for", request.remote_addr),
         "user_agent": request.headers.get("user-agent", ""),
     }
@@ -72,18 +75,24 @@ import pandas as pd
 
 @chat_bp.post("/chat/fabric/capacity-yesterday")
 def ingest_fabric_studies_yesterday():
-    # Simple API key check (use a better auth method if you prefer)
     try:
-        rows = request.get_json(force=True)
+        data = request.get_json(force=True)
+        print("📥 Ingest request received from Fabric.", data)
+
+        rows = data.get("output")
+
         if not isinstance(rows, list):
-            return jsonify({"ok": False, "error": "Body must be a JSON array of rows"}), 400
+            return jsonify({"ok": False, "error": "Body must contain 'output' as an array of rows"}), 400
 
         print(f"📥 Received {len(rows)} rows from Fabric.")
         load_rows_to_capacity_tables(rows)
+
         return jsonify({"ok": True, "count": len(rows)}), 200
+
     except Exception as e:
         print("❌ Ingest failed:", e)
         return jsonify({"ok": False, "error": str(e)}), 500
+
     
 
 
