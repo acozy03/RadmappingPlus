@@ -93,13 +93,37 @@ def search_doctors():
         'per_page': per_page
     })
 
-@with_supabase_auth
-def get_latest_monthly_rvu_column(row):
-    month_order = ["dec", "nov", "oct", "sep", "aug", "jul", "jun", "may", "apr", "mar", "feb", "jan"]  # Reverse order for latest first
-    for month in month_order:
-        if row.get(month) is not None:
-            if row.get(month) != 0:
-                return month, row[month]
+DAY_KEYS = ["mon", "tue", "wed", "thu", "fri", "sat", "sun"]
+
+
+def weekday_key(dt):
+    try:
+        return DAY_KEYS[dt.weekday()]
+    except Exception:
+        return None
+
+
+def get_latest_daily_rvu(row, dt=None):
+    if not row:
+        return None, None
+
+    key = weekday_key(dt) if dt else None
+    if key:
+        try:
+            val = float(row.get(key)) if row.get(key) is not None else None
+            if val and val != 0:
+                return key, val
+        except Exception:
+            pass
+
+    for k in DAY_KEYS:
+        try:
+            val = float(row.get(k)) if row.get(k) is not None else None
+        except Exception:
+            continue
+        if val and val != 0:
+            return k, val
+
     return None, None
 
 
@@ -176,19 +200,30 @@ def doctor_profile(rad_id):
     assigned_facility_ids = {assignment["facilities"]["id"] for assignment in assigned_facilities}
     available_facilities = [fac for fac in all_facilities if fac["id"] not in assigned_facility_ids]
 
-    rvu_rows = supabase.table("rad_avg_monthly_rvu") \
-        .select("*") \
-        .eq("radiologist_id", rad_id) \
-        .limit(1) \
-        .execute() \
+    rvu_rows = (
+        supabase
+        .table("rad_avg_daily_rvu")
+        .select("*")
+        .eq("radiologist_id", rad_id)
+        .limit(1)
+        .execute()
         .data
+    )
 
     rvu_row = rvu_rows[0] if rvu_rows else None
 
     if rvu_row:
-        latest_rvu_col, rvu = get_latest_monthly_rvu_column(rvu_row)
+        latest_rvu_col, rvu = get_latest_daily_rvu(rvu_row, now)
     else:
-        latest_rvu_col, rvu = None, None  
+        latest_rvu_col, rvu = None, None
+
+    daily_rvus = []
+    for key, label in zip(DAY_KEYS, ["Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday", "Sunday"]):
+        try:
+            val = float(rvu_row.get(key)) if rvu_row and rvu_row.get(key) is not None else 0.0
+        except Exception:
+            val = 0.0
+        daily_rvus.append({"key": key, "label": label, "value": val})
 
 
 
@@ -211,7 +246,9 @@ def doctor_profile(rad_id):
         doctor_specialty=doctor_specialty,
         doctor_specialties=doctor_specialties,
         rvu=rvu,
-        latest_rvu_col=latest_rvu_col
+        latest_rvu_col=latest_rvu_col,
+        daily_rvus=daily_rvus,
+        rvu_row=rvu_row
     )
 
 @doctors_bp.route('/doctors/<string:rad_id>/update_schedule', methods=["POST"])
@@ -396,42 +433,37 @@ def update_doctor(rad_id):
         
         data = {k: v for k, v in data.items() if v is not None}
         
-        rvu_val = request.form.get("rvu_score", "").strip()
-        rvu_month = request.form.get("rvu_month", "").strip().lower()
+        daily_inputs = {k: request.form.get(f"rvu_{k}", "").strip() for k in DAY_KEYS}
 
-        if rvu_month in ("", "none", None):
-            rvu_month = datetime.now().strftime("%b").lower()
-
-        old_rvu_data_res = supabase.table("rad_avg_monthly_rvu").select("*").eq("radiologist_id", rad_id).limit(1).execute()
-        old_rvu_data = old_rvu_data_res.data[0] if old_rvu_data_res.data else None
-        
-        current_rvu = float(rvu_val) if rvu_val else None
-        old_rvu_val = old_rvu_data.get(rvu_month) if old_rvu_data else None
-
-        if current_rvu is not None and current_rvu != old_rvu_val:
+        if any(val != "" for val in daily_inputs.values()):
             rad_info = supabase.table("radiologists").select("name").eq("id", rad_id).single().execute()
             rad_name = rad_info.data["name"] if rad_info.data else None
 
-            if not old_rvu_data:
-                supabase.table("rad_avg_monthly_rvu").insert({
-                    "radiologist_id": rad_id,
-                    "name": rad_name
-                }).execute()
-                old_rvu_data = None  
-          
-            rvu_payload = {
-                "radiologist_id": rad_id,
-                "name": rad_name,
-                rvu_month: float(rvu_val)
-            }
-           
-            rvu_res = supabase.table("rad_avg_monthly_rvu").upsert(rvu_payload, on_conflict="radiologist_id").execute()
+            old_rvu_res = (
+                supabase
+                .table("rad_avg_daily_rvu")
+                .select("*")
+                .eq("radiologist_id", rad_id)
+                .limit(1)
+                .execute()
+            )
+            old_rvu_data = old_rvu_res.data[0] if old_rvu_res.data else None
+
+            rvu_payload = {"radiologist_id": rad_id, "name": rad_name}
+            for key in DAY_KEYS:
+                raw_val = daily_inputs.get(key)
+                try:
+                    rvu_payload[key] = float(raw_val) if raw_val not in (None, "") else 0.0
+                except Exception:
+                    rvu_payload[key] = 0.0
+
+            rvu_res = supabase.table("rad_avg_daily_rvu").upsert(rvu_payload, on_conflict="radiologist_id").execute()
 
             if not hasattr(rvu_res, "error"):
                 log_audit_action(
                     supabase=supabase,
                     action="upsert",
-                    table_name="rad_avg_monthly_rvu",
+                    table_name="rad_avg_daily_rvu",
                     record_id=rad_id,
                     user_email=session.get("user", {}).get("email", "unknown"),
                     old_data=old_rvu_data,
@@ -508,7 +540,7 @@ def remove_doctor(rad_id):
     supabase = get_supabase_client()
     old_data = supabase.table('radiologists').select('*').eq('id', rad_id).single().execute().data
     res = supabase.table('radiologists').delete().eq('id', rad_id).execute()
-    supabase.table('rad_avg_monthly_rvu').delete().eq('radiologist_id', rad_id).execute()
+    supabase.table('rad_avg_daily_rvu').delete().eq('radiologist_id', rad_id).execute()
     if not hasattr(res, "error"):
         log_audit_action(
             supabase=supabase,

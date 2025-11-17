@@ -597,10 +597,21 @@
 </span>
 
   <div>
-    <div class="text-xs label-title font-semibold uppercase">RVU Score</div>
-<div class="text-base font-medium text-primary">
-  {{ rvu | round(1) if rvu is not none else '—' }}
-</div>
+    <div class="text-xs label-title font-semibold uppercase">Avg Daily RVUs</div>
+    <div class="text-base font-medium text-primary">
+      {% if daily_rvus %}
+        <div class="grid grid-cols-2 gap-x-4 gap-y-1 text-sm">
+          {% for day in daily_rvus %}
+            <div class="flex items-center justify-between">
+              <span class="text-secondary">{{ day.label }}</span>
+              <span class="font-semibold">{{ day.value | round(2) }}</span>
+            </div>
+          {% endfor %}
+        </div>
+      {% else %}
+        —
+      {% endif %}
+    </div>
 
   </div>
 </div>
@@ -690,11 +701,17 @@
 
 
 
-      <label class="block">
-        <span class="font-semibold">RVU</span>
-        <input type="number" name="rvu_score" value="{{ rvu or '' }}" class="input w-full border rounded px-3 py-2 text-sm" />
-        <input type="hidden" name="rvu_month" value="{{ latest_rvu_col }}">
-      </label>
+      <div class="block">
+        <span class="font-semibold">Average Daily RVUs</span>
+        <div class="grid grid-cols-1 sm:grid-cols-2 gap-3 mt-2">
+          {% for day in daily_rvus %}
+            <label class="flex flex-col">
+              <span class="text-sm text-secondary">{{ day.label }}</span>
+              <input type="number" step="0.01" name="rvu_{{ day.key }}" value="{{ day.value or '' }}" class="input w-full border rounded px-3 py-2 text-sm" />
+            </label>
+          {% endfor %}
+        </div>
+      </div>
 
       <label class="block">
         <span class="font-semibold">Stipulations</span>

@@ -43,13 +43,38 @@ def get_prev_week_same_day_and_hour(dt):
 #     return chosen.date().isoformat(), hour
 
 # Helper: Get latest non-zero monthly RVU for a doctor
-def get_latest_nonzero_rvu(rvu_row):
-    months = ["dec", "nov", "oct", "sep", "aug", "jul", "jun", "may", "apr", "mar", "feb", "jan"]
-    for m in months:
-        val = rvu_row.get(m)
-        if val is not None and val != 0:
+DAY_KEYS = ["mon", "tue", "wed", "thu", "fri", "sat", "sun"]
+
+
+def weekday_key(dt):
+    try:
+        return DAY_KEYS[dt.weekday()]
+    except Exception:
+        return None
+
+
+def get_daily_rvu_value(rvu_row, dt=None):
+    if not rvu_row:
+        return 0.0
+
+    key = weekday_key(dt) if dt else None
+    if key:
+        try:
+            val = float(rvu_row.get(key)) if rvu_row.get(key) is not None else None
+            if val and val != 0:
+                return val
+        except Exception:
+            pass
+
+    for k in DAY_KEYS:
+        try:
+            val = float(rvu_row.get(k)) if rvu_row.get(k) is not None else None
+        except Exception:
+            continue
+        if val and val != 0:
             return val
-    return 0
+
+    return 0.0
 
 def get_rvu_bg_color_class(ratio):
     if ratio is not None:
@@ -213,7 +238,7 @@ def shifts():
                     doctors_by_hour[slot_start].append(doc)
 
 
-    rvu_res = supabase.table("rad_avg_monthly_rvu").select("*").execute()
+    rvu_res = supabase.table("rad_avg_daily_rvu").select("*").execute()
     rvu_rows = {row["radiologist_id"]: row for row in (rvu_res.data or [])}
 
     all_hour_slots = [slot for day_slots in hour_slots_by_day.values() for slot in day_slots]
@@ -499,7 +524,7 @@ def shifts():
         # Per-doctor RVU base from monthly averages
         def doc_rvu(did):
             rr = rvu_rows.get(did)
-            return get_latest_nonzero_rvu(rr) if rr else 0.0
+            return get_daily_rvu_value(rr, slot_dt) if rr else 0.0
 
         # Multi-pass allocation with rebalancing across modalities
         matched_supply = 0.0
@@ -991,17 +1016,12 @@ def hour_detail():
 
     doctor_ids = [d.get("id") for d in on_shift if d.get("id") is not None]
 
-    # 4) RVU supply numbers based on monthly averages (same logic as page)
-    rvu_res = supabase.table("rad_avg_monthly_rvu").select("*").execute()
+    # 4) RVU supply numbers based on daily averages (same logic as page)
+    rvu_res = supabase.table("rad_avg_daily_rvu").select("*").execute()
     rvu_rows = {row["radiologist_id"]: row for row in (rvu_res.data or [])}
 
     def latest_nonzero_rvu(rvu_row):
-        months = ["dec", "nov", "oct", "sep", "aug", "jul", "jun", "may", "apr", "mar", "feb", "jan"]
-        for m in months:
-            val = rvu_row.get(m)
-            if val is not None and val != 0:
-                return val
-        return 0
+        return get_daily_rvu_value(rvu_row, window_start)
 
     supply_overall = 0
     for d in on_shift:
@@ -1277,12 +1297,7 @@ def hour_detail():
     matched_supply_detail = 0.0
     # Helper to get doc base RVU
     def latest_nonzero_rvu(rr):
-        months = ["dec","nov","oct","sep","aug","jul","jun","may","apr","mar","feb","jan"]
-        for m in months:
-            v = rr.get(m)
-            if v is not None and v != 0:
-                return float(v)
-        return 0.0
+        return get_daily_rvu_value(rr, window_start)
 
     # Iterate doctors on this hour
     EPS = 1e-6
