@@ -589,25 +589,43 @@
   </div>
 </div>
 
-<div class="flex items-center space-x-3">
-<span class="inline-flex items-center justify-center w-8 h-8 accent-icon accent-icon--rose rounded-full">
-  <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 17l6-6 4 4 8-8M5 21h14" />
-  </svg>
-</span>
+<div class="flex items-center space-x-3" x-data="{ showRvus: false }">
+  <span class="inline-flex items-center justify-center w-8 h-8 accent-icon accent-icon--rose rounded-full">
+    <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+      <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 17l6-6 4 4 8-8M5 21h14" />
+    </svg>
+  </span>
 
   <div>
     <div class="text-xs label-title font-semibold uppercase">Avg Daily RVUs</div>
     <div class="text-base font-medium text-primary">
       {% if daily_rvus %}
-        <div class="grid grid-cols-2 gap-x-4 gap-y-1 text-sm">
-          {% for day in daily_rvus %}
-            <div class="flex items-center justify-between">
-              <span class="text-secondary">{{ day.label }}</span>
-              <span class="font-semibold">{{ day.value | round(2) }}</span>
-            </div>
-          {% endfor %}
+        {% set rvu_stats = namespace(total=0, count=0) %}
+        {% for day in daily_rvus %}
+          {% if day.value is not none %}
+            {% set rvu_stats.total = rvu_stats.total + day.value %}
+            {% set rvu_stats.count = rvu_stats.count + 1 %}
+          {% endif %}
+        {% endfor %}
+        {% set rvu_average = (rvu_stats.total / rvu_stats.count) if rvu_stats.count > 0 else None %}
+
+        <div class="flex items-center gap-2">
+          <span class="font-semibold">{{ rvu_average is not none and (rvu_average | round(2)) or '—' }}</span>
+          <button type="button" class="text-sm link-primary underline" @click="showRvus = !showRvus">
+            <span x-show="!showRvus">View breakdown</span>
+            <span x-show="showRvus">Hide breakdown</span>
+          </button>
         </div>
+        <template x-if="showRvus">
+          <div class="grid grid-cols-2 gap-x-4 gap-y-1 text-sm mt-3">
+            {% for day in daily_rvus %}
+              <div class="flex items-center justify-between">
+                <span class="text-secondary">{{ day.label }}</span>
+                <span class="font-semibold">{{ day.value | round(2) }}</span>
+              </div>
+            {% endfor %}
+          </div>
+        </template>
       {% else %}
         —
       {% endif %}
