@@ -210,6 +210,19 @@
     color: #cbd5f5 !important;
   }
 
+  .helix-badge {
+    background-color: #dcfce7;
+    color: #166534;
+    border: 1px solid #34d399;
+  }
+
+  [data-theme="dark"] .helix-badge,
+  .dark .helix-badge {
+    background-color: rgba(52, 211, 153, 0.2);
+    color: #bbf7d0;
+    border-color: #34d399;
+  }
+
   .facility-profile .surface-card,
   #addContactModal .surface-card,
   #editContactModal .surface-card,
@@ -397,10 +410,10 @@
         <h2 class="text-3xl font-bold text-blue-800 text-center sm:text-left mb-2 sm:mb-0 flex-1">
           {{ facility.name }}
           {% if facility.id in helix_facility_ids %}
-            <span title="HELIX Facility" class="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium bg-green-100 text-green-800 ml-2">HELIX</span>
+            <span title="HELIX Facility" class="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium ml-2 helix-badge">HELIX</span>
           {% endif %}
           {% if facility.id in prioritized_facility_ids %}
-            <span title="Prioritized Facility" class="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium bg-purple-100 text-purple-800 ml-2">PRIO</span>
+            <span title="Prioritized Facility" class="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium bg-purple-100 text-purple-700 ml-2">PRIO</span>
           {% endif %}
         </h2>
         {% if session.user.role == 'admin' %}
