@@ -288,10 +288,16 @@ def load_rows_to_capacity_tables(rows: list[dict]):
 
 
 def _load_df_to_capacity_tables_core(df: pd.DataFrame):
-    rvus_by_hour: dict[tuple[date, int], float] = defaultdict(float)
-    hours_by_date: dict[date, set[int]] = defaultdict(set)
+    """
+    Core ingestion logic.
+
+    IMPORTANT: capacity_per_hour is now derived strictly as the sum of
+    facility_capacity_per_hour across all facilities/mods for each (date, hour).
+    """
+    # Facility-level aggregation
     fac_mod_rvus: dict[tuple[date, int, str, str], float] = defaultdict(float)
-    fac_hours_to_delete: dict[date, dict[str, set[int]]] = defaultdict(lambda: defaultdict(set))
+    # Tracks which (date, hour) slots we touched (with matched facilities)
+    hours_by_date: dict[date, set[int]] = defaultdict(set)
 
     # ✅ Load facilities & candidate names once
     all_fac_names, exact_by_norm, candidate_names = fetch_facilities_all()
@@ -299,7 +305,7 @@ def _load_df_to_capacity_tables_core(df: pd.DataFrame):
 
     fuzzy_hits, fuzzy_misses = [], []
 
-    # Main loop: aggregate everything in memory, then write once.
+    # Main loop: aggregate facility-level RVUs
     for idx, row in df.iterrows():
         try:
             month_num = int(row.get("Date - Month"))
@@ -327,20 +333,6 @@ def _load_df_to_capacity_tables_core(df: pd.DataFrame):
 
             rvu = float(MODALITY_RVU.get(can_mod, 0.0))
 
-            if DEBUG_CAPACITY_LOG:
-                print(
-                    f"[ROW {idx}] AGG_INPUT | "
-                    f"source_date={year}-{month_num:02d}-{day:02d} "
-                    f"raw_rec={received_raw!r} "
-                    f"→ est_date={est_date}, est_hour={est_hour}, "
-                    f"modality={can_mod}, rvu={rvu}"
-                )
-
-            # Global aggregation
-            rvus_by_hour[(est_date, est_hour)] += rvu
-            hours_by_date[est_date].add(est_hour)
-
-
             excel_fac_name = row.get("Facility Name")
             if pd.isna(excel_fac_name) or not str(excel_fac_name).strip():
                 fuzzy_misses.append({
@@ -355,28 +347,8 @@ def _load_df_to_capacity_tables_core(df: pd.DataFrame):
                 str(excel_fac_name), all_fac_names, exact_by_norm, cache, candidate_names
             )
 
-            if facility_uuid:
-                # facility + modality aggregation
-                fac_mod_rvus[(est_date, est_hour, facility_uuid, can_mod)] += rvu
-                fac_hours_to_delete[est_date][facility_uuid].add(est_hour)
-
-                # Update cache on good decisions
-                if decision in {"cache", "exact", "fuzzy_auto", "fuzzy_soft"}:
-                    key = norm_text(str(excel_fac_name))
-                    if key not in cache:
-                        cache[key] = facility_uuid
-                        append_cache(str(excel_fac_name), facility_uuid)
-
-                if decision in {"fuzzy_auto", "fuzzy_soft"}:
-                    fuzzy_hits.append({
-                        "row": idx,
-                        "excel_name": str(excel_fac_name),
-                        "matched_db_name": matched_name,
-                        "score": score,
-                        "decision": decision,
-                        "facility_id": facility_uuid,
-                    })
-            else:
+            if not facility_uuid:
+                # No facility match → no contribution to facility or global totals.
                 fuzzy_misses.append({
                     "row": idx,
                     "excel_name": str(excel_fac_name),
@@ -384,10 +356,48 @@ def _load_df_to_capacity_tables_core(df: pd.DataFrame):
                     "score": score,
                     "reason": "Rejected < threshold or no match",
                 })
+                continue
+
+            # Facility + modality aggregation
+            fac_mod_rvus[(est_date, est_hour, facility_uuid, can_mod)] += rvu
+            hours_by_date[est_date].add(est_hour)
+
+            # Update cache on good decisions
+            if decision in {"cache", "exact", "fuzzy_auto", "fuzzy_soft"}:
+                key = norm_text(str(excel_fac_name))
+                if key not in cache:
+                    cache[key] = facility_uuid
+                    append_cache(str(excel_fac_name), facility_uuid)
+
+            if decision in {"fuzzy_auto", "fuzzy_soft"}:
+                fuzzy_hits.append({
+                    "row": idx,
+                    "excel_name": str(excel_fac_name),
+                    "matched_db_name": matched_name,
+                    "score": score,
+                    "decision": decision,
+                    "facility_id": facility_uuid,
+                })
+
+            if DEBUG_CAPACITY_LOG:
+                print(
+                    f"[ROW {idx}] FAC_AGG | "
+                    f"source_date={year}-{month_num:02d}-{day:02d} "
+                    f"raw_rec={received_raw!r} "
+                    f"→ est_date={est_date}, est_hour={est_hour}, "
+                    f"facility={facility_uuid}, modality={can_mod}, rvu={rvu}"
+                )
 
         except Exception as e:
             print(f"[!] Skipping row {idx} due to error: {e}")
             continue
+
+    # ---------------------------
+    # Derive global rvus_by_hour from facility aggregates
+    # ---------------------------
+    rvus_by_hour: dict[tuple[date, int], float] = defaultdict(float)
+    for (est_date_, est_hour, facility_id, modality), total_rvus in fac_mod_rvus.items():
+        rvus_by_hour[(est_date_, est_hour)] += total_rvus
 
     # ---------------------------
     # Global deletes / inserts
@@ -416,29 +426,29 @@ def _load_df_to_capacity_tables_core(df: pd.DataFrame):
                 f"hour={row_obj['hour']} total_rvus={row_obj['total_rvus']}"
             )
 
-
     if global_rows:
-        supabase.table("capacity_per_hour").insert(global_rows).execute()
+        res = supabase.table("capacity_per_hour").insert(global_rows).execute()
         print(f"✅ (global) Inserted {len(global_rows)} capacity_per_hour rows")
+        if getattr(res, "error", None):
+            print("⚠️ capacity_per_hour insert error:", res.error)
 
     # ---------------------------
     # Facility deletes / inserts
     # ---------------------------
-    for est_date_, fac_hours in fac_hours_to_delete.items():
-        for facility_id, hours in fac_hours.items():
-            hours_list = sorted(hours)
-            print(
-                f"🧹 (facility) Deleting date={est_date_}, "
-                f"facility={facility_id}, hours={hours_list} (all modalities)"
-            )
-            supabase.table("facility_capacity_per_hour") \
-                .delete() \
-                .eq("date", str(est_date_)) \
-                .eq("facility_id", facility_id) \
-                .in_("hour", hours_list) \
-                .execute()
+    # Delete ALL facilities for any (date, hour) we touched
+    for est_date_, hours in hours_by_date.items():
+        hours_list = sorted(hours)
+        print(
+            f"🧹 (facility) Deleting ALL facilities for date={est_date_}, "
+            f"hours={hours_list}"
+        )
+        supabase.table("facility_capacity_per_hour") \
+            .delete() \
+            .eq("date", str(est_date_)) \
+            .in_("hour", hours_list) \
+            .execute()
 
-    # ✅ Batch insert for facility_capacity_per_hour
+    # Batch insert for facility_capacity_per_hour
     facility_rows = [
         {
             "date": str(est_date_),
@@ -452,8 +462,10 @@ def _load_df_to_capacity_tables_core(df: pd.DataFrame):
     ]
 
     if facility_rows:
-        supabase.table("facility_capacity_per_hour").insert(facility_rows).execute()
+        res = supabase.table("facility_capacity_per_hour").insert(facility_rows).execute()
         print(f"✅ (facility) Inserted {len(facility_rows)} facility_capacity_per_hour rows")
+        if getattr(res, "error", None):
+            print("⚠️ facility_capacity_per_hour insert error:", res.error)
 
     # ---------------------------
     # Fuzzy logs
@@ -464,5 +476,3 @@ def _load_df_to_capacity_tables_core(df: pd.DataFrame):
         pd.DataFrame(fuzzy_misses).to_csv(MISSES_CSV, index=False)
 
     print("\n🎯 Done. Global + facility-by-modality tables updated.\n")
-
-

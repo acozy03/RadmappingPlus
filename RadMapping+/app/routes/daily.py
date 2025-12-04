@@ -344,32 +344,32 @@ def daily():
 
     dates_list = list({d for d, _ in prev_date_hour_pairs})
     hours_list = list({h for _, h in prev_date_hour_pairs})
-    capacity_res = supabase.table("capacity_per_hour").select("date", "hour", "total_rvus") \
-        .in_("date", dates_list).in_("hour", hours_list).execute()
+    # capacity_res = supabase.table("capacity_per_hour").select("date", "hour", "total_rvus") \
+    #     .in_("date", dates_list).in_("hour", hours_list).execute()
 
-    capacity_lookup = {
-        (row["date"], int(row["hour"])): row["total_rvus"]
-        for row in (capacity_res.data or [])
-    }
+    # capacity_lookup = {
+    #     (row["date"], int(row["hour"])): row["total_rvus"]
+    #     for row in (capacity_res.data or [])
+    # }
 
-    rvu_rows = {
-        row["radiologist_id"]: row
-        for row in (supabase.table("rad_avg_monthly_rvu").select("*").execute().data or [])
-    }
+    # rvu_rows = {
+    #     row["radiologist_id"]: row
+    #     for row in (supabase.table("rad_avg_monthly_rvu").select("*").execute().data or [])
+    # }
 
-    hourly_rvu_stats = {}
-    for slot in hour_slots:
-        dt = slot["datetime"]
-        d, h = get_prev_week_same_day_and_hour(dt)
-        historical_rvu = capacity_lookup.get((d, h)) if d else None
-        current_total_rvu = sum(
-            get_latest_nonzero_rvu(rvu_rows.get(doc_info["id"], {}))
-            for doc_info in doctors_by_hour.get(dt, [])
-        )
-        hourly_rvu_stats[dt] = {
-            "historical": historical_rvu,
-            "current": current_total_rvu
-        }
+    # hourly_rvu_stats = {}
+    # for slot in hour_slots:
+    #     dt = slot["datetime"]
+    #     d, h = get_prev_week_same_day_and_hour(dt)
+    #     historical_rvu = capacity_lookup.get((d, h)) if d else None
+    #     # current_total_rvu = sum(
+    #     #     get_latest_nonzero_rvu(rvu_rows.get(doc_info["id"], {}))
+    #     #     for doc_info in doctors_by_hour.get(dt, [])
+    #     # )
+    #     hourly_rvu_stats[dt] = {
+    #         "historical": historical_rvu,
+    #         # "current": current_total_rvu
+    #     }
 
     return render_template("daily.html",
         user=user,
@@ -392,9 +392,9 @@ def daily():
             'UTC': +5,
             'KST': +13
         }.get(request.args.get("timezone", "EST"), 0),
-        hourly_rvu_stats=hourly_rvu_stats,
-        rvu_rows=rvu_rows,
-        get_latest_nonzero_rvu=get_latest_nonzero_rvu,
+        # hourly_rvu_stats=hourly_rvu_stats,
+        # rvu_rows=rvu_rows,
+        # get_latest_nonzero_rvu=get_latest_nonzero_rvu,
         unique_doctors={doc["id"]: doc for doc in doctors_on_shift if doc.get("id")}
     )
 
