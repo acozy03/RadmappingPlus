@@ -10,6 +10,8 @@ facilities_bp = Blueprint('facilities', __name__)
 supabase = get_supabase_client()
 _cached_prioritized_facility_ids = None
 _last_prioritized_fetch_time = 0
+_cached_helix_facility_ids = None
+_last_helix_fetch_time = 0
 CACHE_EXPIRATION_SECONDS = 300
 
 def _get_prioritized_facility_ids_cached(supabase_client):
@@ -23,6 +25,18 @@ def _get_prioritized_facility_ids_cached(supabase_client):
         _last_prioritized_fetch_time = current_time
     return _cached_prioritized_facility_ids
 
+
+def _get_helix_facility_ids_cached(supabase_client):
+    global _cached_helix_facility_ids, _last_helix_fetch_time
+
+    current_time = time.time()
+    if _cached_helix_facility_ids is None or (current_time - _last_helix_fetch_time > CACHE_EXPIRATION_SECONDS):
+        print("Refreshing HELIX facility IDs cache...")
+        helix_res = supabase_client.table("helix_facilities").select("facility_id").execute()
+        _cached_helix_facility_ids = {p["facility_id"] for p in (helix_res.data or [])}
+        _last_helix_fetch_time = current_time
+    return _cached_helix_facility_ids
+
 @facilities_bp.route('/facilities')
 @with_supabase_auth
 def facilities():
@@ -33,6 +47,7 @@ def facilities():
     status = request.args.get('status', 'active')
 
     prioritized_facility_ids = _get_prioritized_facility_ids_cached(supabase)
+    helix_facility_ids = _get_helix_facility_ids_cached(supabase)
 
     user_email = session["user"]["email"]
     pinned_res = supabase.table("pinned_facilities") \
@@ -55,21 +70,25 @@ def facilities():
 
     pinned_facilities_list = []
     prioritized_facilities_list = []
+    helix_facilities_list = []
     unprioritized_facilities_list = []
 
     for fac in all_facilities_from_db_raw:
         if fac["id"] in pinned_facility_ids:
             pinned_facilities_list.append(fac)
+        elif fac["id"] in helix_facility_ids:
+            helix_facilities_list.append(fac)
         elif fac["id"] in prioritized_facility_ids:
             prioritized_facilities_list.append(fac)
         else:
             unprioritized_facilities_list.append(fac)
 
     pinned_facilities_list.sort(key=lambda f: f["name"].lower())
+    helix_facilities_list.sort(key=lambda f: f["name"].lower())
     prioritized_facilities_list.sort(key=lambda f: f["name"].lower())
     unprioritized_facilities_list.sort(key=lambda f: f["name"].lower())
 
-    sorted_facilities = pinned_facilities_list + prioritized_facilities_list + unprioritized_facilities_list
+    sorted_facilities = pinned_facilities_list + helix_facilities_list + prioritized_facilities_list + unprioritized_facilities_list
     total_count = len(sorted_facilities)
 
     visible_facilities = sorted_facilities[offset:offset + per_page]
@@ -80,6 +99,7 @@ def facilities():
                          current_page=page,
                          per_page=per_page,
                          prioritized_facility_ids=list(prioritized_facility_ids),
+                         helix_facility_ids=list(helix_facility_ids),
                          pinned_facility_ids=list(pinned_facility_ids))
 
 @facilities_bp.route('/facilities/search', methods=["GET"])
@@ -102,6 +122,7 @@ def search_facilities():
 
     start_time_cache = time.time()
     prioritized_facility_ids = _get_prioritized_facility_ids_cached(supabase)
+    helix_facility_ids = _get_helix_facility_ids_cached(supabase)
     print(f"Time to fetch prioritized IDs (cached): {time.time() - start_time_cache:.4f}s")
     
     user_email = session["user"]["email"]
@@ -155,21 +176,25 @@ def search_facilities():
     
     pinned_matching_facilities_meta = []
     prioritized_matching_facilities_meta = []
+    helix_matching_facilities_meta = []
     unprioritized_matching_facilities_meta = []
     
     for fac_meta in all_matching_meta:
         if fac_meta["id"] in pinned_facility_ids:
             pinned_matching_facilities_meta.append(fac_meta)
+        elif fac_meta["id"] in helix_facility_ids:
+            helix_matching_facilities_meta.append(fac_meta)
         elif fac_meta["id"] in prioritized_facility_ids:
             prioritized_matching_facilities_meta.append(fac_meta)
         else:
             unprioritized_matching_facilities_meta.append(fac_meta)
 
     pinned_matching_facilities_meta.sort(key=lambda f: f["name"].lower())
+    helix_matching_facilities_meta.sort(key=lambda f: f["name"].lower())
     prioritized_matching_facilities_meta.sort(key=lambda f: f["name"].lower())
     unprioritized_matching_facilities_meta.sort(key=lambda f: f["name"].lower())
 
-    sorted_matching_facilities_meta = pinned_matching_facilities_meta + prioritized_matching_facilities_meta + unprioritized_matching_facilities_meta
+    sorted_matching_facilities_meta = pinned_matching_facilities_meta + helix_matching_facilities_meta + prioritized_matching_facilities_meta + unprioritized_matching_facilities_meta
     
     total_count = len(sorted_matching_facilities_meta)
     print(f"Time for Python-side prioritization and sorting: {time.time() - start_time_sort:.4f}s")
@@ -283,14 +308,64 @@ def prioritize_facilities():
         )
         return jsonify({'success': False, 'error': str(e)}), 500
 
+
+@facilities_bp.route('/facilities/helix', methods=['POST'])
+@with_supabase_auth
+@admin_required
+def set_helix_facilities():
+    supabase = get_supabase_client()
+    data = request.get_json()
+    facility_ids_to_mark = data.get('facility_ids', [])
+
+    if not isinstance(facility_ids_to_mark, list):
+        return jsonify({'success': False, 'error': 'Invalid input: facility_ids must be a list.'}), 400
+
+    try:
+        supabase.table("helix_facilities").delete().neq("id", "00000000-0000-0000-0000-000000000000").execute()
+
+        if facility_ids_to_mark:
+            helix_rows = [{
+                "id": str(uuid.uuid4()),
+                "facility_id": fac_id
+            } for fac_id in facility_ids_to_mark]
+
+            supabase.table("helix_facilities").insert(helix_rows).execute()
+
+        global _cached_helix_facility_ids, _last_helix_fetch_time
+        _cached_helix_facility_ids = None
+        _last_helix_fetch_time = 0
+
+        log_audit_action(
+            supabase=supabase,
+            action="update",
+            table_name="helix_facilities",
+            record_id="global_helix_update",
+            user_email=session.get("user", {}).get("email", "unknown"),
+            old_data={"helix_facility_ids_before_update": None},
+            new_data={"helix_facility_ids_after_update": facility_ids_to_mark}
+        )
+
+        return jsonify({'success': True}), 200
+    except Exception as e:
+        log_audit_action(
+            supabase=supabase,
+            action="error",
+            table_name="helix_facilities",
+            record_id="global_helix_error",
+            user_email=session.get("user", {}).get("email", "unknown"),
+            old_data=None,
+            new_data={"error_message": str(e), "requested_ids": facility_ids_to_mark}
+        )
+        return jsonify({'success': False, 'error': str(e)}), 500
+
 @facilities_bp.route('/facilities/<string:facility_id>')
 @with_supabase_auth
 def facility_profile(facility_id):
     supabase = get_supabase_client()
     fac = supabase.table("facilities").select("*").eq("id", facility_id).single().execute().data
 
-    prioritized_res = supabase.table("prioritized_facilities").select("facility_id").execute()
-    prioritized_facility_ids = {p["facility_id"] for p in (prioritized_res.data or [])}
+    prioritized_facility_ids = _get_prioritized_facility_ids_cached(supabase)
+    helix_facility_ids = _get_helix_facility_ids_cached(supabase)
 
 
     assignment_res = supabase.table("doctor_facility_assignments") \
@@ -341,7 +416,8 @@ def facility_profile(facility_id):
         doctor_assignments=sorted_assignments,
         facility_contacts=contacts,
         available_radiologists=available_radiologists,
-        prioritized_facility_ids=list(prioritized_facility_ids) 
+        prioritized_facility_ids=list(prioritized_facility_ids),
+        helix_facility_ids=list(helix_facility_ids)
     )
 
 

@@ -78,6 +78,9 @@
   <h2 class="text-2xl font-semibold">Facilities</h2>
   <div class="flex gap-2">
   {% if session.user.role == 'admin' %}
+    <button onclick="openHelixModal()" class="bg-green-600 text-white px-4 py-2 rounded hover:bg-green-700">
+      HELIX Facilities
+    </button>
     <button onclick="openPrioritizeModal()" class="bg-purple-600 text-white px-4 py-2 rounded hover:bg-purple-700">
       Prioritize Facilities
     </button>
@@ -201,6 +204,9 @@
         <div class="flex items-center gap-1">
             {% if facility.id in pinned_facility_ids %}
               <span title="Pinned Facility" class="text-yellow-500 text-base">⭐</span>
+            {% endif %}
+            {% if facility.id in helix_facility_ids %}
+              <span title="HELIX Facility" class="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium bg-green-100 text-green-800 mr-2">HELIX</span>
             {% endif %}
             {% if facility.id in prioritized_facility_ids %}
               <span title="Prioritized Facility" class="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium bg-purple-100 text-purple-800 mr-2">PRIO</span>
@@ -354,6 +360,48 @@
   </div>
 </div>
 
+<div id="helixModal" class="fixed inset-0 z-50 hidden bg-black bg-opacity-50 flex items-center justify-center">
+  <div class="bg-white rounded-lg shadow-lg w-[90%] max-w-4xl p-6 relative max-h-[90vh] overflow-y-auto" id="helixModalContent">
+    <div class="flex justify-between items-center mb-4">
+      <h3 class="text-lg font-semibold">HELIX Facilities</h3>
+      <button onclick="closeHelixModal()" class="text-gray-500 hover:text-gray-700">
+        <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12" />
+        </svg>
+      </button>
+    </div>
+    <div class="mb-4">
+      <p class="text-gray-600">Select facilities to designate as HELIX.</p>
+      <p class="text-sm text-gray-500">HELIX facilities will be highlighted and appear above prioritized facilities for all users.</p>
+    </div>
+    <div class="flex justify-between items-center mb-4">
+      <div class="flex-1 mr-4">
+        <input type="text"
+               id="helixModalSearch"
+               class="w-full border rounded px-3 py-2"
+               placeholder="Search facilities..."
+               oninput="filterHelixModalFacilities()">
+      </div>
+      <div class="flex items-center gap-4">
+        <span id="helixCounter" class="text-sm font-medium">0 selected</span>
+        <button onclick="resetHelixSelections()" class="px-3 py-1 text-sm border border-red-500 text-red-500 rounded hover:bg-red-50">
+          Clear All
+        </button>
+      </div>
+    </div>
+    <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 max-h-[60vh] overflow-y-auto" id="helixFacilitiesList">
+    </div>
+    <div class="mt-4 flex justify-end gap-2">
+      <button onclick="closeHelixModal()" class="px-4 py-2 border rounded hover:bg-gray-100">
+        Cancel
+      </button>
+      <button onclick="saveHelixFacilities()" class="px-4 py-2 bg-green-600 text-white rounded hover:bg-green-700">
+        Save HELIX
+      </button>
+    </div>
+  </div>
+</div>
+
 <div id="pinFacilitiesModal" class="fixed inset-0 z-50 hidden bg-black bg-opacity-50 flex items-center justify-center">
   <div class="bg-white rounded-lg shadow-lg w-[90%] max-w-4xl p-6 relative max-h-[90vh] overflow-y-auto" id="pinFacilitiesModalContent">
     <div class="flex justify-between items-center mb-4">
@@ -406,6 +454,7 @@ let totalCount = parseInt("{{ total_count }}", 10);
 let searchTimeout;
 let currentStatusFilter = 'active';
 const PRIORITIZED_FACILITIES = {{ prioritized_facility_ids|tojson }};
+const HELIX_FACILITIES = {{ helix_facility_ids|tojson }};
 const PINNED_FACILITIES = {{ pinned_facility_ids|tojson }};
 let allFacilitiesData = [];
 
@@ -652,6 +701,7 @@ function updateTable(facilities) {
   facilities.forEach(fac => {
     const isPinned = PINNED_FACILITIES.includes(fac.id);
     const isPrioritized = PRIORITIZED_FACILITIES.includes(fac.id);
+    const isHelix = HELIX_FACILITIES.includes(fac.id);
     const statusDot = getStatusDotClass(fac.active_status);
 
     const li = document.createElement('li');
@@ -666,6 +716,7 @@ function updateTable(facilities) {
         <div>
           <div class="flex items-center gap-1">
             ${isPinned ? '<span title="Pinned Facility" class="text-yellow-500 text-base">⭐</span>' : ''}
+            ${isHelix ? '<span title="HELIX Facility" class="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium bg-green-100 text-green-800 mr-2">HELIX</span>' : ''}
             ${isPrioritized ? '<span title="Prioritized Facility" class="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium bg-purple-100 text-purple-800 mr-2">PRIO</span>' : ''}
             <p class="text-lg font-medium name">${fac.name}</p>
           </div>
@@ -738,14 +789,33 @@ function closePrioritizeModal() {
   document.getElementById('prioritizeModal').classList.add('hidden');
 }
 
+function openHelixModal() {
+  document.getElementById('helixModal').classList.remove('hidden');
+  fetchAllFacilitiesForHelix();
+}
+
+function closeHelixModal() {
+  document.getElementById('helixModal').classList.add('hidden');
+}
+
 function fetchAllFacilitiesForPrioritization() {
-    fetch(`/radmapping/facilities/search?search_name=&state=&status=all&fetch_all=true`) 
+    fetch(`/radmapping/facilities/search?search_name=&state=&status=all&fetch_all=true`)
         .then(response => response.json())
         .then(data => {
             allFacilitiesData = data.facilities;
             populatePrioritizeChecklist();
         })
         .catch(error => console.error('Error fetching all facilities for prioritization:', error));
+}
+
+function fetchAllFacilitiesForHelix() {
+    fetch(`/radmapping/facilities/search?search_name=&state=&status=all&fetch_all=true`)
+        .then(response => response.json())
+        .then(data => {
+            allFacilitiesData = data.facilities;
+            populateHelixChecklist();
+        })
+        .catch(error => console.error('Error fetching all facilities for HELIX selection:', error));
 }
 
 
@@ -826,6 +896,83 @@ function savePrioritizedFacilities() {
   });
 }
 
+function populateHelixChecklist() {
+  const checklist = document.getElementById('helixFacilitiesList');
+  checklist.innerHTML = '';
+
+  allFacilitiesData.forEach(facility => {
+    const isHelix = HELIX_FACILITIES.includes(facility.id);
+    const checkboxDiv = document.createElement('div');
+    checkboxDiv.className = 'flex items-center gap-2 p-2 border rounded hover:bg-gray-50 facility-item';
+    checkboxDiv.innerHTML = `
+      <input type="checkbox"
+             id="helix-${facility.id}"
+             class="helix-checkbox form-checkbox h-5 w-5 text-green-600"
+             data-facility-id="${facility.id}"
+             data-facility-name="${facility.name.toLowerCase()}"
+             onchange="updateHelixCounter()"
+             ${isHelix ? 'checked' : ''}>
+      <label for="helix-${facility.id}" class="flex-1 cursor-pointer">
+        ${facility.name}
+        ${isHelix ? '<span title="Currently HELIX" class="inline-flex items-center px-4 py-0.5 rounded-full text-xs font-medium bg-green-100 text-green-800 mr-2">HELIX</span>' : ''}
+      </label>
+    `;
+    checklist.appendChild(checkboxDiv);
+  });
+  updateHelixCounter();
+}
+
+function updateHelixCounter() {
+  const checkedBoxes = document.querySelectorAll('.helix-checkbox:checked');
+  const counter = document.getElementById('helixCounter');
+  counter.textContent = `${checkedBoxes.length} selected`;
+}
+
+function resetHelixSelections() {
+  if (confirm('Are you sure you want to remove all facilities from HELIX?')) {
+    document.querySelectorAll('.helix-checkbox').forEach(box => {
+      box.checked = false;
+    });
+    updateHelixCounter();
+  }
+}
+
+function filterHelixModalFacilities() {
+  const searchTerm = document.getElementById('helixModalSearch').value.toLowerCase();
+  const facilityItems = document.querySelectorAll('#helixFacilitiesList .facility-item');
+
+  facilityItems.forEach(item => {
+    const label = item.querySelector('label');
+    const name = label ? label.textContent.toLowerCase() : '';
+    item.style.display = name.includes(searchTerm) ? '' : 'none';
+  });
+}
+
+function saveHelixFacilities() {
+  const checkboxes = document.querySelectorAll('.helix-checkbox:checked');
+  const facilityIds = Array.from(checkboxes).map(cb => cb.dataset.facilityId);
+
+  fetch('/radmapping/facilities/helix', {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json',
+    },
+    body: JSON.stringify({ facility_ids: facilityIds })
+  })
+  .then(response => response.json())
+  .then(data => {
+    if (data.success) {
+      window.location.reload();
+    } else {
+      alert('Error saving HELIX facilities: ' + data.error);
+    }
+  })
+  .catch(error => {
+    console.error('Error:', error);
+    alert('Error saving HELIX facilities');
+  });
+}
+
 </script>
 
 <style>
@@ -839,7 +986,7 @@ function savePrioritizedFacilities() {
   border-color: #2563eb;
 }
 
-#addFacilityModal, #prioritizeModal {
+#addFacilityModal, #prioritizeModal, #helixModal {
   backdrop-filter: blur(4px);
 }
 #prioritizeFacilitiesList .facility-item label,
