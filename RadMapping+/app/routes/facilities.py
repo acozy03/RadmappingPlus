@@ -70,25 +70,21 @@ def facilities():
 
     pinned_facilities_list = []
     prioritized_facilities_list = []
-    helix_facilities_list = []
     unprioritized_facilities_list = []
 
     for fac in all_facilities_from_db_raw:
         if fac["id"] in pinned_facility_ids:
             pinned_facilities_list.append(fac)
-        elif fac["id"] in helix_facility_ids:
-            helix_facilities_list.append(fac)
         elif fac["id"] in prioritized_facility_ids:
             prioritized_facilities_list.append(fac)
         else:
             unprioritized_facilities_list.append(fac)
 
     pinned_facilities_list.sort(key=lambda f: f["name"].lower())
-    helix_facilities_list.sort(key=lambda f: f["name"].lower())
     prioritized_facilities_list.sort(key=lambda f: f["name"].lower())
     unprioritized_facilities_list.sort(key=lambda f: f["name"].lower())
 
-    sorted_facilities = pinned_facilities_list + helix_facilities_list + prioritized_facilities_list + unprioritized_facilities_list
+    sorted_facilities = pinned_facilities_list + prioritized_facilities_list + unprioritized_facilities_list
     total_count = len(sorted_facilities)
 
     visible_facilities = sorted_facilities[offset:offset + per_page]
@@ -176,25 +172,21 @@ def search_facilities():
     
     pinned_matching_facilities_meta = []
     prioritized_matching_facilities_meta = []
-    helix_matching_facilities_meta = []
     unprioritized_matching_facilities_meta = []
     
     for fac_meta in all_matching_meta:
         if fac_meta["id"] in pinned_facility_ids:
             pinned_matching_facilities_meta.append(fac_meta)
-        elif fac_meta["id"] in helix_facility_ids:
-            helix_matching_facilities_meta.append(fac_meta)
         elif fac_meta["id"] in prioritized_facility_ids:
             prioritized_matching_facilities_meta.append(fac_meta)
         else:
             unprioritized_matching_facilities_meta.append(fac_meta)
 
     pinned_matching_facilities_meta.sort(key=lambda f: f["name"].lower())
-    helix_matching_facilities_meta.sort(key=lambda f: f["name"].lower())
     prioritized_matching_facilities_meta.sort(key=lambda f: f["name"].lower())
     unprioritized_matching_facilities_meta.sort(key=lambda f: f["name"].lower())
 
-    sorted_matching_facilities_meta = pinned_matching_facilities_meta + helix_matching_facilities_meta + prioritized_matching_facilities_meta + unprioritized_matching_facilities_meta
+    sorted_matching_facilities_meta = pinned_matching_facilities_meta + prioritized_matching_facilities_meta + unprioritized_matching_facilities_meta
     
     total_count = len(sorted_matching_facilities_meta)
     print(f"Time for Python-side prioritization and sorting: {time.time() - start_time_sort:.4f}s")
