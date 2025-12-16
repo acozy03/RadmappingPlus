@@ -20,44 +20,86 @@
   </div>
 </div>
 
-<script type="module">
-  import { createClient } from "https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/+esm";
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<script>
+  console.log("[login] script loaded");
 
   const SUPABASE_URL = "{{ SUPABASE_URL }}";
   const SUPABASE_KEY = "{{ SUPABASE_KEY }}"; // anon only
-  const NEXT_URL = {{ next_url|tojson }};    // safer than |e for JS strings
+  const NEXT_URL = {{ next_url|tojson }};
+  const statusEl = document.querySelector("p.text-sm.text-gray-600");
 
-  const supabase = createClient(SUPABASE_URL, SUPABASE_KEY);
-
-  // 1) If we already have a session (returning from Google), finalize on server.
-  const { data: { session } } = await supabase.auth.getSession();
-
-  if (!session?.access_token) {
-    // 2) No session yet → kick off Google OAuth (auto-redirect)
-    await supabase.auth.signInWithOAuth({
-      provider: "google",
-      options: {
-  redirectTo: `${window.location.origin}/auth/login?next=${encodeURIComponent(NEXT_URL || "/")}`,
-},
-
-    });
-  } else {
-    // 3) Have session → sync with backend using only the access token
-    const res = await fetch("/auth/session", {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      credentials: "include",
-      body: JSON.stringify({ access_token: session.access_token }),
-    });
-
-    if (res.ok) {
-      window.location.href = NEXT_URL || "/";
-    } else {
-      // If backend sync fails, sign out and bounce to start fresh
-      await supabase.auth.signOut();
-      alert("Failed to sync session with the server. Please try again.");
-      window.location.href = "/auth/login";
-    }
+  function setStatus(msg) {
+    console.log("[login]", msg);
+    if (statusEl) statusEl.textContent = msg;
   }
+
+  // ✅ Use global client from UMD build – no +esm, no wrapper.mjs
+  const supabase = window.supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
+  console.log("[login] Supabase client created:", !!supabase, SUPABASE_URL);
+
+  (async function main() {
+    try {
+      // 1) Try to exchange ?code=... in URL for a session
+      const { data: exchData, error: exchError } =
+        await supabase.auth.exchangeCodeForSession(window.location.href);
+      console.log("[login] exchangeCodeForSession:", { exchData, exchError });
+
+      if (exchError) {
+        if (exchError.message?.includes("AuthSessionMissingCodeError")) {
+          console.log("[login] No auth code yet, just checking session.");
+        } else {
+          console.warn("[login] Non-fatal exchange error:", exchError);
+        }
+      }
+
+      // 2) Check for a session (existing or just created)
+      const { data, error } = await supabase.auth.getSession();
+      console.log("[login] getSession result:", { data, error });
+
+      const session = data?.session;
+
+      if (!session?.access_token) {
+        // 3) No session → start Google OAuth
+        setStatus("Redirecting to Google for sign-in…");
+        await supabase.auth.signInWithOAuth({
+          provider: "google",
+          options: {
+            redirectTo: `${window.location.origin}/auth/login?next=${encodeURIComponent(
+              NEXT_URL || "/"
+            )}`,
+          },
+        });
+        return; // browser navigates away
+      }
+
+      // 4) Have session → sync to Flask backend
+      setStatus("Finalizing login on server…");
+
+      const res = await fetch("/auth/session", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        credentials: "include",
+        body: JSON.stringify({ access_token: session.access_token }),
+      });
+
+      console.log("[login] /auth/session status:", res.status);
+
+      if (res.ok) {
+        setStatus("Login successful, redirecting…");
+        window.location.href = NEXT_URL || "/";
+      } else {
+        const text = await res.text();
+        console.error("[login] Backend sync failed:", res.status, text);
+        await supabase.auth.signOut();
+        alert("Failed to sync session with the server. Please try again.");
+        window.location.href = "/auth/login";
+      }
+    } catch (err) {
+      console.error("[login] Fatal error in login script:", err);
+      setStatus("Unexpected error while logging in. Check console or contact admin.");
+    }
+  })();
 </script>
+
 {% endblock %}
