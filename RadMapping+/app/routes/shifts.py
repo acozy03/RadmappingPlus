@@ -44,17 +44,6 @@ def get_prev_week_same_day_and_hour(dt):
 
 # Helper: Get latest non-zero monthly RVU for a doctor
 DAY_KEYS = ["mon", "tue", "wed", "thu", "fri", "sat", "sun"]
-DAY_NAME_COLUMNS = {
-    "monday": "modality_weights_monday",
-    "tuesday": "modality_weights_tuesday",
-    "wednesday": "modality_weights_wednesday",
-    "thursday": "modality_weights_thursday",
-    "friday": "modality_weights_friday",
-    "saturday": "modality_weights_saturday",
-    "sunday": "modality_weights_sunday",
-}
-
-
 def weekday_key(dt):
     try:
         return DAY_KEYS[dt.weekday()]
@@ -95,10 +84,6 @@ def extract_modality_weights(row):
     fallback = normalize_modality_weights(row.get("modality_weights") or {})
     if fallback:
         day_weights["_fallback"] = fallback
-    for day_name, column in DAY_NAME_COLUMNS.items():
-        parsed = normalize_modality_weights(row.get(column) or {})
-        if parsed:
-            day_weights[day_name] = parsed
     return day_weights
 
 
@@ -493,31 +478,18 @@ def shifts():
     # Modality weights: attempt common table names; fall back to empty
     modality_weights = {}
     if week_doctor_ids:
-        day_columns_str = ",".join(DAY_NAME_COLUMNS.values())
-
         def try_fetch_weights(table_name):
-            columns = f"radiologist_id,{day_columns_str},modality_weights"
             try:
                 res = (
                     supabase
                     .table(table_name)
-                    .select(columns)
+                    .select("radiologist_id,modality_weights")
                     .in_("radiologist_id", week_doctor_ids)
                     .execute()
                 )
                 return res.data or []
             except Exception:
-                try:
-                    res = (
-                        supabase
-                        .table(table_name)
-                        .select("radiologist_id,modality_weights")
-                        .in_("radiologist_id", week_doctor_ids)
-                        .execute()
-                    )
-                    return res.data or []
-                except Exception:
-                    return []
+                return []
 
         weight_rows = []
         for t in ("radiologist_modality_weights", "modality_weights", "rad_modality_weights"):
@@ -1172,31 +1144,18 @@ def hour_detail():
     # 6) Modality weights for doctors on this hour
     modality_weights = {}
     if doctor_ids:
-        day_columns_str = ",".join(DAY_NAME_COLUMNS.values())
-
         def try_fetch_weights(table_name):
-            columns = f"radiologist_id,{day_columns_str},modality_weights"
             try:
                 res = (
                     supabase
                     .table(table_name)
-                    .select(columns)
+                    .select("radiologist_id,modality_weights")
                     .in_("radiologist_id", doctor_ids)
                     .execute()
                 )
                 return res.data or []
             except Exception:
-                try:
-                    res = (
-                        supabase
-                        .table(table_name)
-                        .select("radiologist_id,modality_weights")
-                        .in_("radiologist_id", doctor_ids)
-                        .execute()
-                    )
-                    return res.data or []
-                except Exception:
-                    return []
+                return []
         weight_rows = []
         for t in ("radiologist_modality_weights", "modality_weights", "rad_modality_weights"):
             if not weight_rows:

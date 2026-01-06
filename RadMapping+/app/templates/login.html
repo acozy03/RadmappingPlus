@@ -35,14 +35,14 @@
   }
 
   // ✅ Use global client from UMD build – no +esm, no wrapper.mjs
-  const supabase = window.supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
-  console.log("[login] Supabase client created:", !!supabase, SUPABASE_URL);
+  const supabaseClient = window.supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
+  console.log("[login] Supabase client created:", !!supabaseClient, SUPABASE_URL);
 
   (async function main() {
     try {
       // 1) Try to exchange ?code=... in URL for a session
       const { data: exchData, error: exchError } =
-        await supabase.auth.exchangeCodeForSession(window.location.href);
+        await supabaseClient.auth.exchangeCodeForSession(window.location.href);
       console.log("[login] exchangeCodeForSession:", { exchData, exchError });
 
       if (exchError) {
@@ -54,7 +54,7 @@
       }
 
       // 2) Check for a session (existing or just created)
-      const { data, error } = await supabase.auth.getSession();
+      const { data, error } = await supabaseClient.auth.getSession();
       console.log("[login] getSession result:", { data, error });
 
       const session = data?.session;
@@ -62,7 +62,7 @@
       if (!session?.access_token) {
         // 3) No session → start Google OAuth
         setStatus("Redirecting to Google for sign-in…");
-        await supabase.auth.signInWithOAuth({
+        await supabaseClient.auth.signInWithOAuth({
           provider: "google",
           options: {
             redirectTo: `${window.location.origin}/auth/login?next=${encodeURIComponent(
@@ -91,7 +91,7 @@
       } else {
         const text = await res.text();
         console.error("[login] Backend sync failed:", res.status, text);
-        await supabase.auth.signOut();
+        await supabaseClient.auth.signOut();
         alert("Failed to sync session with the server. Please try again.");
         window.location.href = "/auth/login";
       }

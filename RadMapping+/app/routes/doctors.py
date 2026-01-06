@@ -540,7 +540,6 @@ def remove_doctor(rad_id):
     supabase = get_supabase_client()
     old_data = supabase.table('radiologists').select('*').eq('id', rad_id).single().execute().data
     res = supabase.table('radiologists').delete().eq('id', rad_id).execute()
-    supabase.table('rad_avg_daily_rvu').delete().eq('radiologist_id', rad_id).execute()
     if not hasattr(res, "error"):
         log_audit_action(
             supabase=supabase,
