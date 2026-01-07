@@ -168,19 +168,14 @@ def adjusted_rvu_from_metrics(base_rvu, volatility, weights, distribution_mode):
         vol_val = float(volatility or 0)
     except Exception:
         vol_val = 0.0
-    avg_rvu_per_case = compute_avg_rvu_per_case(weights)
-    if not avg_rvu_per_case or avg_rvu_per_case <= 0:
-        return max(0.0, base_val)
-    cases = base_val / avg_rvu_per_case
     mode = (distribution_mode or "normal").lower()
     if mode == "worst":
-        cases_adjusted = cases - vol_val
+        adjusted_rvu = max(0.0, base_val - vol_val)
     elif mode == "best":
-        cases_adjusted = cases + vol_val
+        adjusted_rvu = base_val + vol_val
     else:
-        cases_adjusted = cases
-    cases_adjusted = max(0.0, cases_adjusted)
-    return cases_adjusted * avg_rvu_per_case
+        adjusted_rvu = base_val
+    return adjusted_rvu
 
 def get_rvu_bg_color_class(ratio):
     if ratio is not None:
