@@ -11,8 +11,7 @@ from app.supabase_helper import fetch_all_rows
 
 shifts_bp = Blueprint('shifts', __name__)
 def get_prev_week_same_day_and_hour(dt):
-    prev_week_dt = dt - timedelta(weeks=1)
-    return prev_week_dt.date().isoformat(), prev_week_dt.hour
+    return dt.date().isoformat(), dt.hour
 
 # not being used 
 # def get_prev_month_same_dow_and_hour(dt):
@@ -397,10 +396,10 @@ def shifts():
     # --- New effective capacity computation ---
     # We will estimate per-hour supply by allocating each on-shift doctor's
     # overall RVU across state/modality demand using their modality mix
-    # and licensure constraints. Demand source = previous week's
-    # same day+hour capacity_per_hour_breakdown distribution.
+    # and licensure constraints. Demand source = same day+hour
+    # capacity_per_hour_breakdown distribution.
 
-    # 1) Prefetch state/modality demand rows for all prior-week (date,hour) pairs
+    # 1) Prefetch state/modality demand rows for all (date,hour) pairs
     prev_dates = list({d for d, _ in unique_prev_keys})
     prev_hours = list({h for _, h in unique_prev_keys})
     # Note: some deployments store the "hour" column as text. Using an IN filter with
@@ -531,7 +530,7 @@ def shifts():
 
     # Helper: allocate supply for a given slot
     def compute_effective_supply(slot_dt):
-        # Demand groups for prior-week same day+hour
+        # Demand groups for same day+hour
         prev_date_str, prev_hour_int = get_prev_week_same_day_and_hour(slot_dt)
         historical_rvu = None
         if prev_date_str is not None:
@@ -956,7 +955,7 @@ def hour_detail():
     if distribution_mode not in ("worst", "normal", "best"):
         distribution_mode = "normal"
 
-    # 1) State/modality demand for this hour (EXPECTED = previous week's same day/hour)
+    # 1) State/modality demand for this hour (EXPECTED = same day/hour)
     prev_date_str, prev_hour_int = get_prev_week_same_day_and_hour(
         datetime.strptime(f"{date_str} {hour:02d}:00:00", "%Y-%m-%d %H:%M:%S")
     )
@@ -972,11 +971,11 @@ def hour_detail():
     breakdown_rows = breakdown_res.data or []
     print(f"[hour_detail] capacity_per_hour_breakdown rows: {len(breakdown_rows)}")
 
-    # Potential fallback: if no rows for the exact hour, try the nearest hour on the same prior-week date,
+    # Potential fallback: if no rows for the exact hour, try the nearest hour on the same date,
     # and scale the distribution to the expected total from capacity_per_hour for the requested hour.
     fallback_info = {"used": False}
     if not breakdown_rows:
-        print("[hour_detail] No breakdown rows found for expected prior-week HOUR. Attempting nearest-hour fallback on same date…")
+        print("[hour_detail] No breakdown rows found for expected HOUR. Attempting nearest-hour fallback on same date…")
 
         # Fetch day data and group by hour
         day_res = (
@@ -1003,7 +1002,7 @@ def hour_detail():
             fallback_info = {"used": True, "source": {"date": prev_date_str, "hour": nearest_hour}, "reason": "nearest_hour_same_date"}
             print(f"[hour_detail] Fallback using nearest hour {nearest_hour} with {len(breakdown_rows)} rows.")
         else:
-            print("[hour_detail] No breakdown rows for any hour on the prior-week date; returning empty payload.")
+            print("[hour_detail] No breakdown rows for any hour on the date; returning empty payload.")
             return jsonify({
                 "date": date_str,
                 "hour": hour,
@@ -1189,6 +1188,8 @@ def hour_detail():
     modality_breakdown = defaultdict(lambda: defaultdict(float))
     for row in breakdown_rows:
         expected = float(row.get("total_rvus") or 0)
+        if expected <= 0:
+            continue
         modality = row.get("modality")
         state = to_state_code(row.get("state"))
         key = (state, modality)
@@ -1203,6 +1204,8 @@ def hour_detail():
 
     by_state_payload = []  # legacy: state+modality (no longer used by UI)
     for (st, mod), total in by_state_mod.items():
+        if total <= 0:
+            continue
         by_state_payload.append({
             "state": st,
             "modality": mod,
@@ -1211,9 +1214,11 @@ def hour_detail():
 
     by_state_merged_payload = [
         {"state": st, "expected_rvus": float(total)} for st, total in by_state_totals.items()
+        if total > 0
     ]
     by_modality_payload = [
         {"modality": m, "expected_rvus": float(v)} for m, v in by_modality_totals.items()
+        if v > 0
     ]
 
     # If we used fallback from a different hour, optionally scale to match the expected total
@@ -1483,7 +1488,7 @@ def hour_detail():
         })
 
     algorithm_summary = [
-        "Start with prior-week same day/hour state+modality RVU demand.",
+        "Start with same day/hour state+modality RVU demand.",
         "For each on-shift doctor, take latest non-zero monthly RVU as hourly base.",
         "Split the base by the doctor’s modality weights (normalized).",
         "Within each modality portion, allocate across states where the doctor is licensed.",
