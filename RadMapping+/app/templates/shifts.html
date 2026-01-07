@@ -77,6 +77,8 @@
     whatIfOpen: true,
     // Units toggle for modal values: 'rvus' or 'cases'
     units: 'rvus',
+    // Distribution mode for volatility adjustments
+    distributionMode: 'normal',
     // Match backend modality RVU chunks for case conversion
     modalityChunks: {
       'XR': 0.2,
@@ -489,7 +491,7 @@
         try {
           console.log('[shifts] Fetch hour_detail', { date: _date, hour: _hour, url });
         } catch {}
-        fetch(url)
+        fetch(url + '&distribution_mode=' + encodeURIComponent(distributionMode))
           .then(r => {
             try { console.log('[shifts] hour_detail status', r.status); } catch {}
             if (!r.ok) throw new Error('HTTP '+r.status);
@@ -615,7 +617,7 @@
           </span>
         </template>
       </div>
-      <div class="mt-2">
+      <div class="mt-2 flex flex-wrap items-center gap-2">
         <div class="inline-flex rounded-md border border-blue-200 overflow-hidden shadow-sm">
           <button type="button" @click="units='rvus'"
                   :class="units==='rvus' ? 'bg-blue-600 text-white' : 'bg-white text-blue-700 hover:bg-blue-50'"
@@ -624,6 +626,16 @@
                   :class="units==='cases' ? 'bg-blue-600 text-white' : 'bg-white text-blue-700 hover:bg-blue-50'"
                   class="px-2 py-1 text-xs font-medium">Cases</button>
         </div>
+        <label class="flex items-center gap-2 text-xs text-gray-700">
+          <span class="font-medium">Distribution</span>
+          <select class="border border-gray-300 rounded px-2 py-1 text-xs"
+                  x-model="distributionMode"
+                  @change="hourLoading=true; fetch('{{ url_for("shifts.hour_detail") }}', {method:'POST', headers:{'Content-Type':'application/json'}, body: JSON.stringify({date, hour: Number((hourDetail&&hourDetail.hour)||0), base_overrides: baseOverrides, distribution_mode: distributionMode})}).then(r=>r.json()).then(d=>{hourDetail=d;}).finally(()=>{hourLoading=false;})">
+            <option value="worst">Worst</option>
+            <option value="normal">Normal</option>
+            <option value="best">Best</option>
+          </select>
+        </label>
       </div>
     </div>
 
@@ -641,7 +653,7 @@
       <div x-show="whatIfOpen" x-transition>
         <div class="mt-2 flex gap-2">
           <button class="px-2 py-1 rounded bg-white border border-blue-300 hover:bg-blue-100"
-                  @click="hourLoading=true; fetch('{{ url_for("shifts.hour_detail") }}', {method:'POST', headers:{'Content-Type':'application/json'}, body: JSON.stringify({date, hour: Number((hourDetail&&hourDetail.hour)||0), base_overrides: baseOverrides})}).then(r=>r.json()).then(d=>{hourDetail=d;}).finally(()=>{hourLoading=false;})">
+                  @click="hourLoading=true; fetch('{{ url_for("shifts.hour_detail") }}', {method:'POST', headers:{'Content-Type':'application/json'}, body: JSON.stringify({date, hour: Number((hourDetail&&hourDetail.hour)||0), base_overrides: baseOverrides, distribution_mode: distributionMode})}).then(r=>r.json()).then(d=>{hourDetail=d;}).finally(()=>{hourLoading=false;})">
             Recalculate
           </button>
           <button class="px-2 py-1 rounded bg-white border border-gray-300 hover:bg-gray-100" @click="baseOverrides = {}">Clear</button>

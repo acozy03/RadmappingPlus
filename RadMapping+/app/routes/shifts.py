@@ -120,6 +120,69 @@ def get_daily_rvu_value(rvu_row, dt=None):
 
     return 0.0
 
+
+def uniform_modality_weights():
+    if not MODALITY_RVU:
+        return {}
+    count = len(MODALITY_RVU.keys())
+    if count <= 0:
+        return {}
+    weight = 1.0 / count
+    return {mod: weight for mod in MODALITY_RVU.keys()}
+
+
+def derive_demand_modality_weights(demand_rows):
+    totals = defaultdict(float)
+    for row in demand_rows:
+        mod = (row.get("modality") or "").upper()
+        if not mod:
+            continue
+        try:
+            totals[mod] += float(row.get("total_rvus") or 0)
+        except Exception:
+            continue
+    normalized = normalize_modality_weights(totals)
+    return normalized
+
+
+def compute_avg_rvu_per_case(weights):
+    if not weights:
+        return 0.0
+    avg = 0.0
+    for mod, weight in weights.items():
+        try:
+            w = float(weight)
+        except Exception:
+            continue
+        if w <= 0:
+            continue
+        avg += w * float(MODALITY_RVU.get(str(mod).upper(), 0))
+    return avg
+
+
+def adjusted_rvu_from_metrics(base_rvu, volatility, weights, distribution_mode):
+    try:
+        base_val = float(base_rvu or 0)
+    except Exception:
+        base_val = 0.0
+    try:
+        vol_val = float(volatility or 0)
+    except Exception:
+        vol_val = 0.0
+    avg_rvu_per_case = compute_avg_rvu_per_case(weights)
+    if not avg_rvu_per_case or avg_rvu_per_case <= 0:
+        return max(0.0, base_val)
+    cases = base_val / avg_rvu_per_case
+    mode = (distribution_mode or "normal").lower()
+    if mode == "worst":
+        cases_adjusted = cases - vol_val
+    elif mode == "best":
+        cases_adjusted = cases + vol_val
+    else:
+        cases_adjusted = cases
+    cases_adjusted = max(0.0, cases_adjusted)
+    return cases_adjusted * avg_rvu_per_case
+
 def get_rvu_bg_color_class(ratio):
     if ratio is not None:
         if ratio <= 0.6:
@@ -282,8 +345,8 @@ def shifts():
                     doctors_by_hour[slot_start].append(doc)
 
 
-    rvu_res = supabase.table("rad_avg_daily_rvu").select("*").execute()
-    rvu_rows = {row["radiologist_id"]: row for row in (rvu_res.data or [])}
+    metrics_res = supabase.table("rad_metrics").select("radiologist_id,rvu,volatility").execute()
+    metrics_rows = {row["radiologist_id"]: row for row in (metrics_res.data or [])}
 
     all_hour_slots = [slot for day_slots in hour_slots_by_day.values() for slot in day_slots]
 
@@ -556,9 +619,23 @@ def shifts():
         slot_doctors = doctors_by_hour.get(slot_dt, [])
 
         # Per-doctor RVU base from monthly averages
+        demand_modality_weights = derive_demand_modality_weights(demand_rows)
+        uniform_weights = uniform_modality_weights()
+
         def doc_rvu(did):
-            rr = rvu_rows.get(did)
-            return get_daily_rvu_value(rr, slot_dt) if rr else 0.0
+            rr = metrics_rows.get(did, {})
+            try:
+                base_rvu = float(rr.get("rvu") or 0)
+            except Exception:
+                base_rvu = 0.0
+            try:
+                volatility = float(rr.get("volatility") or 0)
+            except Exception:
+                volatility = 0.0
+            conversion_weights = get_doc_modality_weights(modality_weights, did, slot_dt)
+            if not conversion_weights:
+                conversion_weights = demand_modality_weights or uniform_weights
+            return adjusted_rvu_from_metrics(base_rvu, volatility, conversion_weights, "normal")
 
         # Multi-pass allocation with rebalancing across modalities
         matched_supply = 0.0
@@ -883,6 +960,7 @@ def hour_detail():
 
     # Accept both GET query params and POSTed JSON for simulations/overrides
     base_overrides = {}
+    distribution_mode = "normal"
     if request.method == "POST":
         payload = request.get_json(silent=True) or {}
         date_str = payload.get('date')
@@ -892,6 +970,7 @@ def hour_detail():
         except Exception:
             hour = None
         bo = payload.get('base_overrides') or {}
+        distribution_mode = payload.get("distribution_mode") or "normal"
         # Normalize override keys to str for consistent lookups
         if isinstance(bo, dict):
             try:
@@ -901,6 +980,7 @@ def hour_detail():
     else:
         date_str = request.args.get('date')
         hour = request.args.get('hour', type=int)
+        distribution_mode = request.args.get("distribution_mode") or "normal"
         # Optional overrides via query string as JSON: overrides={"doc_id": 0}
         try:
             import json as _json
@@ -913,6 +993,10 @@ def hour_detail():
             base_overrides = {}
     if not date_str or hour is None:
         return jsonify({"error": "Missing date or hour"}), 400
+
+    distribution_mode = str(distribution_mode or "normal").lower()
+    if distribution_mode not in ("worst", "normal", "best"):
+        distribution_mode = "normal"
 
     # 1) Facility-level demand for this hour (EXPECTED = previous week's same day/hour)
     prev_date_str, prev_hour_int = get_prev_week_same_day_and_hour(
@@ -1050,18 +1134,55 @@ def hour_detail():
 
     doctor_ids = [d.get("id") for d in on_shift if d.get("id") is not None]
 
-    # 4) RVU supply numbers based on daily averages (same logic as page)
-    rvu_res = supabase.table("rad_avg_daily_rvu").select("*").execute()
-    rvu_rows = {row["radiologist_id"]: row for row in (rvu_res.data or [])}
+    # 4) RVU supply numbers based on metrics (same logic as page)
+    metrics_res = supabase.table("rad_metrics").select("radiologist_id,rvu,volatility").execute()
+    metrics_rows = {row["radiologist_id"]: row for row in (metrics_res.data or [])}
 
-    def latest_nonzero_rvu(rvu_row):
-        return get_daily_rvu_value(rvu_row, window_start)
+    # 5) Modality weights for doctors on this hour
+    modality_weights = {}
+    if doctor_ids:
+        def try_fetch_weights(table_name):
+            try:
+                res = (
+                    supabase
+                    .table(table_name)
+                    .select("radiologist_id,modality_weights")
+                    .in_("radiologist_id", doctor_ids)
+                    .execute()
+                )
+                return res.data or []
+            except Exception:
+                return []
+        weight_rows = []
+        for t in ("radiologist_modality_weights", "modality_weights", "rad_modality_weights"):
+            if not weight_rows:
+                weight_rows = try_fetch_weights(t)
+        for row in weight_rows:
+            rid = row.get("radiologist_id")
+            if rid is None:
+                continue
+            parsed = extract_modality_weights(row)
+            if parsed:
+                modality_weights[rid] = parsed
+
+    def latest_nonzero_rvu(rvu_row, weights, distribution_mode):
+        if not rvu_row:
+            return 0.0
+        base_rvu = rvu_row.get("rvu") if rvu_row is not None else 0
+        volatility = rvu_row.get("volatility") if rvu_row is not None else 0
+        return adjusted_rvu_from_metrics(base_rvu, volatility, weights, distribution_mode)
+
+    demand_modality_weights = derive_demand_modality_weights(facility_rows)
+    uniform_weights = uniform_modality_weights()
 
     supply_overall = 0
     for d in on_shift:
-        rr = rvu_rows.get(d.get("id"))
-        if rr:
-            supply_overall += latest_nonzero_rvu(rr)
+        did = d.get("id")
+        conversion_weights = get_doc_modality_weights(modality_weights, did, window_start)
+        if not conversion_weights:
+            conversion_weights = demand_modality_weights or uniform_weights
+        rr = metrics_rows.get(did)
+        supply_overall += latest_nonzero_rvu(rr, conversion_weights, distribution_mode)
 
     # 5) Facility and state authorization among scheduled doctors
     facility_authorized_ids = set()
@@ -1089,9 +1210,12 @@ def hour_detail():
     supply_facility_auth = 0
     for d in on_shift:
         if d.get("id") in facility_authorized_ids:
-            rr = rvu_rows.get(d.get("id"))
-            if rr:
-                supply_facility_auth += latest_nonzero_rvu(rr)
+            did = d.get("id")
+            conversion_weights = get_doc_modality_weights(modality_weights, did, window_start)
+            if not conversion_weights:
+                conversion_weights = demand_modality_weights or uniform_weights
+            rr = metrics_rows.get(did)
+            supply_facility_auth += latest_nonzero_rvu(rr, conversion_weights, distribution_mode)
 
     # Helper to normalize facility/cert state values to 2-letter codes
     STATE_NAME_TO_CODE = {
@@ -1137,36 +1261,12 @@ def hour_detail():
     supply_licensed = 0
     for d in on_shift:
         if d.get("id") in licensed_ids:
-            rr = rvu_rows.get(d.get("id"))
-            if rr:
-                supply_licensed += latest_nonzero_rvu(rr)
-
-    # 6) Modality weights for doctors on this hour
-    modality_weights = {}
-    if doctor_ids:
-        def try_fetch_weights(table_name):
-            try:
-                res = (
-                    supabase
-                    .table(table_name)
-                    .select("radiologist_id,modality_weights")
-                    .in_("radiologist_id", doctor_ids)
-                    .execute()
-                )
-                return res.data or []
-            except Exception:
-                return []
-        weight_rows = []
-        for t in ("radiologist_modality_weights", "modality_weights", "rad_modality_weights"):
-            if not weight_rows:
-                weight_rows = try_fetch_weights(t)
-        for row in weight_rows:
-            rid = row.get("radiologist_id")
-            if rid is None:
-                continue
-            parsed = extract_modality_weights(row)
-            if parsed:
-                modality_weights[rid] = parsed
+            did = d.get("id")
+            conversion_weights = get_doc_modality_weights(modality_weights, did, window_start)
+            if not conversion_weights:
+                conversion_weights = demand_modality_weights or uniform_weights
+            rr = metrics_rows.get(did)
+            supply_licensed += latest_nonzero_rvu(rr, conversion_weights, distribution_mode)
 
     # Prepare demand groups for allocation and build facility/state breakdowns
     # 6) Assemble facility/state breakdowns
@@ -1320,16 +1420,21 @@ def hour_detail():
     ALLOCATION_EPS = 0.0  # include all allocations; UI filters small values for display
     matched_supply_detail = 0.0
     # Helper to get doc base RVU
-    def latest_nonzero_rvu(rr):
-        return get_daily_rvu_value(rr, window_start)
+    def latest_nonzero_rvu(rr, weights, distribution_mode):
+        if not rr:
+            return 0.0
+        return adjusted_rvu_from_metrics(rr.get("rvu"), rr.get("volatility"), weights, distribution_mode)
 
     # Iterate doctors on this hour
     EPS = 1e-6
     for d in on_shift:
         did = d.get("id")
         name = d.get("name")
-        rr = rvu_rows.get(did) if did is not None else None
-        original_base = latest_nonzero_rvu(rr) if rr else 0.0
+        rr = metrics_rows.get(did) if did is not None else None
+        conversion_weights = get_doc_modality_weights(modality_weights, did, window_start)
+        if not conversion_weights:
+            conversion_weights = demand_modality_weights or uniform_weights
+        original_base = latest_nonzero_rvu(rr, conversion_weights, distribution_mode)
         base = original_base
         # Apply temporary simulation override if provided (no upper clamp per request)
         if did is not None and str(did) in base_overrides:
@@ -1337,7 +1442,7 @@ def hour_detail():
                 ov = float(base_overrides[str(did)])
                 if not (ov >= 0):
                     ov = 0.0
-                base = max(0.0, ov)
+                base = adjusted_rvu_from_metrics(ov, rr.get("volatility") if rr else 0.0, conversion_weights, distribution_mode)
             except Exception:
                 base = original_base
         doc_weights = get_doc_modality_weights(modality_weights, did, window_start)
