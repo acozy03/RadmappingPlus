@@ -676,115 +676,9 @@
         </template>
       </div>
     </div>
-    <template x-if="false">
-      <div class="mt-2 grid grid-cols-1 md:grid-cols-3 gap-2">
-          <div>
-            <h4 class="text-xs font-semibold text-gray-700 mb-1">By Facility</h4>
-            <div class="max-h-36 overflow-y-auto space-y-1">
-              <template x-for="f in hourDetail.facilities" :key="f.facility_id">
-                <div x-data="{ open: false }" class="text-xs bg-white border rounded">
-                  <button @click="open = !open" class="w-full px-2 py-1 flex items-center justify-between">
-                    <div class="truncate text-left">
-                      <span class="font-medium" x-text="f.facility_name || f.facility_id" :title="(f.facility_name || f.facility_id) + (f.state ? ' ('+f.state+')' : '')"></span>
-                      <span class="text-gray-500" x-text="f.state ? ' ('+f.state+')' : ''"></span>
-                    </div>
-                    <div class="ml-2 shrink-0 flex items-center gap-2">
-                      <span class="text-green-700 font-semibold" x-text="units==='rvus' 
-                        ? (f.expected_rvus || 0).toFixed(1) 
-                        : (()=>{ const CH={XR:0.2,CT:1.1,US:0.5,MRI:1.4,MG:0.8,NM:2.5,PT:2.5,IR:4.0,RF:0.7,SC:0.6,OT:0.3,XA:0.8,ECG:0.2}; const mods=(f.modalities||[]); return mods.reduce((t,md)=>{ const m=(md.modality||'').toUpperCase(); const ch=CH[m]||0.2; return t + Math.round(((md.expected_rvus||0)/ch)); },0); })()"></span>
-                      <span class="text-gray-400">|</span>
-                      <span class="text-gray-500" x-text="(hourDetail.total_expected_rvus>0 ? ((f.expected_rvus/hourDetail.total_expected_rvus)*100).toFixed(1)+'%' : '—%')"></span>
-                    </div>
-                  </button>
-                  <div x-show="open" x-transition class="px-2 pb-2">
-                    <template x-for="md in (f.modalities || [])" :key="md.modality">
-                      <div class="flex items-center justify-between mt-1">
-                        <span class="inline-block text-[10px] px-1.5 py-0.5 rounded bg-blue-50 text-blue-700 border border-blue-200" x-text="md.modality"></span>
-                        <div class="ml-2 shrink-0 flex items-center gap-2">
-                          <span class="text-green-700 font-semibold" x-text="units==='rvus' 
-                            ? (md.expected_rvus || 0).toFixed(1) 
-                            : (()=>{ const m=(md.modality||'').toUpperCase(); const CH={XR:0.2,CT:1.1,US:0.5,MRI:1.4,MG:0.8,NM:2.5,PT:2.5,IR:4.0,RF:0.7,SC:0.6,OT:0.3,XA:0.8,ECG:0.2}; const ch=CH[m]||0.2; return Math.round(((md.expected_rvus||0)/ch)); })()"></span>
-                          <span class="text-gray-400">|</span>
-                          <span class="text-gray-500" x-text="(hourDetail.total_expected_rvus>0 ? ((md.expected_rvus/hourDetail.total_expected_rvus)*100).toFixed(1)+'%' : '—%')"></span>
-                        </div>
-                      </div>
-                    </template>
-                  </div>
-                </div>
-              </template>
-            </div>
-          </div>
-          <div>
-            <h4 class="text-xs font-semibold text-gray-700 mb-1">By State</h4>
-            <div class="max-h-36 overflow-y-auto space-y-1">
-              <template x-for="s in hourDetail.by_state_merged" :key="s.state">
-                <div x-data="{ open: false }" class="text-xs bg-white border rounded">
-                  <button @click="open = !open" class="w-full px-2 py-1 flex items-center justify-between">
-                    <span class="truncate font-medium" x-text="s.state || 'Unknown'"></span>
-                    <div class="ml-2 shrink-0 flex items-center gap-2">
-                      <span class="text-green-700 font-semibold" x-text="units==='rvus' 
-                        ? (s.expected_rvus || 0).toFixed(1) 
-                        : (()=>{ const CH={XR:0.2,CT:1.1,US:0.5,MRI:1.4,MG:0.8,NM:2.5,PT:2.5,IR:4.0,RF:0.7,SC:0.6,OT:0.3,XA:0.8,ECG:0.2}; const br=(hourDetail.state_breakdown[s.state]||[]); return br.reduce((t,md)=>{ const m=(md.modality||'').toUpperCase(); const ch=CH[m]||0.2; return t + Math.round(((md.expected_rvus||0)/ch)); },0); })()"></span>
-                      <span class="text-gray-400">|</span>
-                      <span class="text-gray-500" x-text="(hourDetail.total_expected_rvus>0 ? ((s.expected_rvus/hourDetail.total_expected_rvus)*100).toFixed(1)+'%' : '—%')"></span>
-                    </div>
-                  </button>
-                  <div x-show="open" x-transition class="px-2 pb-2">
-                    <template x-for="md in (hourDetail.state_breakdown[s.state] || [])" :key="md.modality">
-                      <div class="flex items-center justify-between mt-1">
-                        <span class="inline-block text-[10px] px-1.5 py-0.5 rounded bg-blue-50 text-blue-700 border border-blue-200" x-text="md.modality || 'Unknown'"></span>
-                        <div class="ml-2 shrink-0 flex items-center gap-2">
-                          <span class="text-green-700 font-semibold" x-text="units==='rvus' 
-                            ? (md.expected_rvus || 0).toFixed(1) 
-                            : (()=>{ const m=(md.modality||'').toUpperCase(); const CH={XR:0.2,CT:1.1,US:0.5,MRI:1.4,MG:0.8,NM:2.5,PT:2.5,IR:4.0,RF:0.7,SC:0.6,OT:0.3,XA:0.8,ECG:0.2}; const ch=CH[m]||0.2; return Math.round(((md.expected_rvus||0)/ch)); })()"></span>
-                          <span class="text-gray-400">|</span>
-                          <span class="text-gray-500" x-text="(hourDetail.total_expected_rvus>0 ? ((md.expected_rvus/hourDetail.total_expected_rvus)*100).toFixed(1)+'%' : '—%')"></span>
-                        </div>
-                      </div>
-                    </template>
-                  </div>
-                </div>
-              </template>
-            </div>
-          </div>
-          <div>
-            <h4 class="text-xs font-semibold text-gray-700 mb-1">By Modality</h4>
-            <div class="max-h-36 overflow-y-auto space-y-1">
-              <template x-for="m in hourDetail.by_modality" :key="m.modality">
-                <div x-data="{ open: false }" class="text-xs bg-white border rounded">
-                  <button @click="open = !open" class="w-full px-2 py-1 flex items-center justify-between">
-                    <span class="inline-block text-[10px] px-1.5 py-0.5 rounded bg-blue-50 text-blue-700 border border-blue-200" x-text="m.modality || 'Unknown'"></span>
-                    <div class="ml-2 shrink-0 flex items-center gap-2">
-                      <span class="text-green-700 font-semibold" x-text="units==='rvus' 
-                        ? (m.expected_rvus || 0).toFixed(1) 
-                        : (()=>{ const m2=(m.modality||'').toUpperCase(); const CH={XR:0.2,CT:1.1,US:0.5,MRI:1.4,MG:0.8,NM:2.5,PT:2.5,IR:4.0,RF:0.7,SC:0.6,OT:0.3,XA:0.8,ECG:0.2}; const ch=CH[m2]||0.2; return Math.round(((m.expected_rvus||0)/ch)); })()"></span>
-                      <span class="text-gray-400">|</span>
-                      <span class="text-gray-500" x-text="(hourDetail.total_expected_rvus>0 ? ((m.expected_rvus/hourDetail.total_expected_rvus)*100).toFixed(1)+'%' : '—%')"></span>
-                    </div>
-                  </button>
-                  <div x-show="open" x-transition class="px-2 pb-2">
-                    <template x-for="st in (hourDetail.modality_breakdown[m.modality] || [])" :key="st.state">
-                      <div class="flex items-center justify-between mt-1">
-                        <span class="font-medium" x-text="st.state || 'Unknown'"></span>
-                        <div class="ml-2 shrink-0 flex items-center gap-2">
-                          <span class="text-green-700 font-semibold" x-text="units==='rvus' 
-                            ? (st.expected_rvus || 0).toFixed(1) 
-                            : (()=>{ const m3=(m.modality||'').toUpperCase(); const CH={XR:0.2,CT:1.1,US:0.5,MRI:1.4,MG:0.8,NM:2.5,PT:2.5,IR:4.0,RF:0.7,SC:0.6,OT:0.3,XA:0.8,ECG:0.2}; const ch=CH[m3]||0.2; return Math.round(((st.expected_rvus||0)/ch)); })()"></span>
-                          <span class="text-gray-400">|</span>
-                          <span class="text-gray-500" x-text="(hourDetail.total_expected_rvus>0 ? ((st.expected_rvus/hourDetail.total_expected_rvus)*100).toFixed(1)+'%' : '—%')"></span>
-                        </div>
-                      </div>
-                    </template>
-                  </div>
-                </div>
-              </template>
-            </div>
-          </div>
-      </div>
-    </template>
-    <template x-if="!hourLoading && hourDetail && (!hourDetail.facilities || hourDetail.facilities.length === 0)">
+    <template x-if="!hourLoading && hourDetail && (!hourDetail.total_expected_rvus || hourDetail.total_expected_rvus <= 0)">
       <div class="mt-2 text-xs text-gray-500">
-        No facility-level demand records were found for the expected prior-week hour.
+        No state/modality demand records were found for the expected prior-week hour.
       </div>
     </template>
     <p class="text-sm text-gray-500 mb-2">
@@ -828,11 +722,10 @@
                 <div class="mt-1 text-[11px]" x-show="open" x-transition>
                   <template x-if="(doc.allocations||[]).length > 0">
                     <div class="space-y-0.5">
-                      <template x-for="al in (doc.allocations || []).filter(a => (a.allocated_rvus||0) >= 0)" :key="al.facility_id + '-' + al.modality">
+                      <template x-for="al in (doc.allocations || []).filter(a => (a.allocated_rvus||0) >= 0)" :key="(al.state || 'unknown') + '-' + al.modality">
                         <div class="flex items-center justify-between">
                           <div class="truncate">
-                            <span class="font-medium" x-text="al.facility_name || al.facility_id" :title="(al.facility_name || al.facility_id) + (al.state ? ' ('+al.state+')' : '')"></span>
-                            <span class="text-gray-500" x-text="al.state ? ' ('+al.state+')' : ''"></span>
+                            <span class="font-medium" x-text="al.state || 'Unknown state'" :title="al.state || 'Unknown state'"></span>
                             <span class="ml-1 inline-block text-[10px] px-1 py-0.5 rounded bg-blue-50 text-blue-700 border border-blue-200" x-text="al.modality"></span>
                           </div>
                           <div class="shrink-0 text-gray-800">
@@ -853,46 +746,9 @@
           <div class="text-xs text-gray-500">No doctors contributed RVUs for this hour.</div>
         </template>
         
-        <!-- Facility/State/Modality breakdown moved below the doctor list -->
-        <template x-if="!hourLoading && hourDetail && hourDetail.facilities">
-          <div class="mt-3 grid grid-cols-1 md:grid-cols-3 gap-2">
-            <div>
-              <h4 class="text-xs font-semibold text-gray-700 mb-1">By Facility</h4>
-              <div class="max-h-36 overflow-y-auto space-y-1">
-                <template x-for="f in hourDetail.facilities" :key="f.facility_id">
-                  <div x-data="{ open: false }" class="text-xs bg-white border rounded">
-                    <button @click="open = !open" class="w-full px-2 py-1 flex items-center justify-between" :title="(f.facility_name || f.facility_id) + (f.state ? ' ('+f.state+')' : '')">
-                      <div class="truncate text-left">
-                        <span class="font-medium" x-text="f.facility_name || f.facility_id" :title="(f.facility_name || f.facility_id) + (f.state ? ' ('+f.state+')' : '')"></span>
-                        <span class="text-gray-500" x-text="f.state ? ' ('+f.state+')' : ''" :title="f.state ? ('State: '+f.state) : ''"></span>
-                      </div>
-                      <div class="ml-2 shrink-0 flex items-center gap-2">
-                        <span class="text-green-700 font-semibold" x-text="units==='rvus' 
-                          ? (f.expected_rvus || 0).toFixed(1) 
-                          : (()=>{ const CH={XR:0.2,CT:1.1,US:0.5,MRI:1.4,MG:0.8,NM:2.5,PT:2.5,IR:4.0,RF:0.7,SC:0.6,OT:0.3,XA:0.8,ECG:0.2}; const mods=(f.modalities||[]); return mods.reduce((t,md)=>{ const m=(md.modality||'').toUpperCase(); const ch=CH[m]||0.2; return t + Math.round(((md.expected_rvus||0)/ch)); },0); })()"></span>
-                        <span class="text-gray-400">|</span>
-                        <span :class="(() => { const sup=(hourDetail.doctor_allocations||[]).flatMap(d=>d.allocations||[]).filter(a=>a.facility_id===f.facility_id).reduce((s,a)=>s+(a.allocated_rvus||0),0); const pct=f.expected_rvus>0? (sup/f.expected_rvus*100):0; return pct<60?'text-red-600':(pct<90?'text-yellow-600':'text-green-700'); })()" x-text="(() => { const sup=(hourDetail.doctor_allocations||[]).flatMap(d=>d.allocations||[]).filter(a=>a.facility_id===f.facility_id).reduce((s,a)=>s+(a.allocated_rvus||0),0); return f.expected_rvus>0 ? ( (sup/f.expected_rvus*100).toFixed(1) + '%') : '—%'; })()"></span>
-                      </div>
-                    </button>
-                    <div x-show="open" x-transition class="px-2 pb-2">
-                      <template x-for="md in (f.modalities || [])" :key="md.modality">
-                        <div class="flex items-center justify-between mt-1">
-                          <span class="inline-block text-[10px] px-1.5 py-0.5 rounded bg-blue-50 text-blue-700 border border-blue-200" x-text="md.modality" :title="(md.modality || 'Unknown') + ' — ' + ((md.expected_rvus||0).toFixed(1)) + ' RVUs'"></span>
-                          <div class="ml-2 shrink-0 flex items-center gap-2">
-                            <span class="text-green-700 font-semibold" x-text="units==='rvus' 
-                              ? (md.expected_rvus || 0).toFixed(1) 
-                              : (()=>{ const m=(md.modality||'').toUpperCase(); const CH={XR:0.2,CT:1.1,US:0.5,MRI:1.4,MG:0.8,NM:2.5,PT:2.5,IR:4.0,RF:0.7,SC:0.6,OT:0.3,XA:0.8,ECG:0.2}; const ch=CH[m]||0.2; return Math.round(((md.expected_rvus||0)/ch)); })()"></span>
-                            <span class="text-gray-400">|</span>
-                            <span :class="(() => { const sup=(hourDetail.doctor_allocations||[]).flatMap(d=>d.allocations||[]).filter(a=>a.facility_id===f.facility_id && a.modality===md.modality).reduce((s,a)=>s+(a.allocated_rvus||0),0); const pct=md.expected_rvus>0? (sup/md.expected_rvus*100):0; return pct<60?'text-red-600':(pct<90?'text-yellow-600':'text-green-700'); })()" x-text="(() => { const sup=(hourDetail.doctor_allocations||[]).flatMap(d=>d.allocations||[]).filter(a=>a.facility_id===f.facility_id && a.modality===md.modality).reduce((s,a)=>s+(a.allocated_rvus||0),0); return md.expected_rvus>0 ? ( (sup/md.expected_rvus*100).toFixed(1) + '%') : '—%'; })()"></span>
-                          </div>
-                        </div>
-                      </template>
-                    </div>
-                  </div>
-                </template>
-              </div>
-            </div>
-
+        <!-- State/Modality breakdown moved below the doctor list -->
+        <template x-if="!hourLoading && hourDetail">
+          <div class="mt-3 grid grid-cols-1 md:grid-cols-2 gap-2">
             <div>
               <h4 class="text-xs font-semibold text-gray-700 mb-1">By State</h4>
               <div class="max-h-36 overflow-y-auto space-y-1">
@@ -962,9 +818,9 @@
             </div>
           </div>
         </template>
-        <template x-if="!hourLoading && hourDetail && (!hourDetail.facilities || hourDetail.facilities.length === 0)">
+        <template x-if="!hourLoading && hourDetail && (!hourDetail.total_expected_rvus || hourDetail.total_expected_rvus <= 0)">
           <div class="mt-3 text-xs text-gray-500">
-            No facility-level demand records were found for the expected prior-week hour.
+            No state/modality demand records were found for the expected prior-week hour.
           </div>
         </template>
         <div class="mt-4 grid grid-cols-1 md:grid-cols-2 gap-6">

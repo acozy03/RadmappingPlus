@@ -396,32 +396,32 @@ def shifts():
 
     # --- New effective capacity computation ---
     # We will estimate per-hour supply by allocating each on-shift doctor's
-    # overall RVU across facility/state/modality demand using their modality mix
-    # and authorization/licensure constraints. Demand source = previous week's
-    # same day+hour facility_capacity_per_hour distribution.
+    # overall RVU across state/modality demand using their modality mix
+    # and licensure constraints. Demand source = previous week's
+    # same day+hour capacity_per_hour_breakdown distribution.
 
-    # 1) Prefetch facility-level demand rows for all prior-week (date,hour) pairs
+    # 1) Prefetch state/modality demand rows for all prior-week (date,hour) pairs
     prev_dates = list({d for d, _ in unique_prev_keys})
     prev_hours = list({h for _, h in unique_prev_keys})
     # Note: some deployments store the "hour" column as text. Using an IN filter with
     # integer hours can silently return no rows, which makes weekly tiles show 0 even
     # though per-hour modal fallback finds day data.
     # To avoid type-mismatch issues, prefetch by date only and handle hours in-memory.
-    facility_rows_all = []
+    breakdown_rows_all = []
     if prev_dates:
         _offset = 0
         _batch = 1000
         while True:
             _res = (
                 supabase
-                .table("facility_capacity_per_hour")
-                .select("date,hour,facility_id,modality,total_rvus")
+                .table("capacity_per_hour_breakdown")
+                .select("date,hour,state,modality,total_rvus")
                 .in_("date", prev_dates)
                 .range(_offset, _offset + _batch - 1)
                 .execute()
             )
             _data = _res.data or []
-            facility_rows_all.extend(_data)
+            breakdown_rows_all.extend(_data)
             if len(_data) < _batch:
                 break
             _offset += _batch
@@ -441,68 +441,31 @@ def shifts():
             return None
 
     # Group by (date,hour) and by date (for nearest-hour fallback)
-    fac_by_date_hour = defaultdict(list)
-    fac_by_date = defaultdict(list)
-    all_facility_ids_in_week = set()
-    for r in facility_rows_all:
+    breakdown_by_date_hour = defaultdict(list)
+    breakdown_by_date = defaultdict(list)
+    for r in breakdown_rows_all:
         h = parse_hour(r.get("hour"))
         d = r.get("date")
         if d is None:
             continue
         if h is not None:
-            fac_by_date_hour[(d, h)].append(r)
-        fac_by_date[d].append(r)
-        if r.get("facility_id") is not None:
-            all_facility_ids_in_week.add(r.get("facility_id"))
+            breakdown_by_date_hour[(d, h)].append(r)
+        breakdown_by_date[d].append(r)
 
     # Optional debug: summarize fetched rows per date
     dbg = request.args.get('debug')
     if dbg and str(dbg).lower() in ("1", "true", "yes"):
         try:
             from collections import Counter
-            fac_counts = Counter([r.get("date") for r in facility_rows_all])
+            fac_counts = Counter([r.get("date") for r in breakdown_rows_all])
             cap_counts = Counter([k[0] for k in historical_rvu_lookup.keys()])
-            print(f"[shifts][DEBUG] facility_capacity_per_hour counts: {dict(fac_counts)}")
+            print(f"[shifts][DEBUG] capacity_per_hour_breakdown counts: {dict(fac_counts)}")
             print(f"[shifts][DEBUG] capacity_per_hour dates present: {sorted(set(cap_counts.elements()))}")
         except Exception as _e:
             print(f"[shifts][DEBUG] counting error: {_e}")
 
-    # Facility metadata for state mapping
-    fac_meta = {}
-    if all_facility_ids_in_week:
-        fac_meta_res = (
-            supabase
-            .table("facilities")
-            .select("id,name,location")
-            .in_("id", list(all_facility_ids_in_week))
-            .execute()
-        )
-        for f in (fac_meta_res.data or []):
-            fac_meta[f.get("id")] = {"name": f.get("name"), "location": f.get("location"), "state": f.get("location")}
-
     # 2) Prefetch authorizations, certifications, and modality weights for any doctor on this week
     week_doctor_ids = list({d['id'] for d in doctors_on_shift if d.get('id') is not None})
-
-    # Facility authorizations (only for facilities with demand this week)
-    fac_auth_by_doctor = defaultdict(set)  # doctor_id -> set(facility_id)
-    fac_auth_map = defaultdict(set)        # facility_id -> set(doctor_id)
-    if week_doctor_ids and all_facility_ids_in_week:
-        dfa = (
-            supabase
-            .table("doctor_facility_assignments")
-            .select("radiologist_id,facility_id,can_read")
-            .in_("radiologist_id", week_doctor_ids)
-            .in_("facility_id", list(all_facility_ids_in_week))
-            .execute()
-        )
-        for row in (dfa.data or []):
-            can_read_val = str(row.get("can_read")).strip().lower()
-            if can_read_val in ("true", "1", "t"):
-                rid = row.get("radiologist_id")
-                fid = row.get("facility_id")
-                if rid is not None and fid is not None:
-                    fac_auth_by_doctor[rid].add(fid)
-                    fac_auth_map[fid].add(rid)
 
     # Certifications by state
     STATE_NAME_TO_CODE = {
@@ -573,11 +536,11 @@ def shifts():
         historical_rvu = None
         if prev_date_str is not None:
             historical_rvu = historical_rvu_lookup.get((prev_date_str, prev_hour_int))
-        demand_rows = fac_by_date_hour.get((prev_date_str, prev_hour_int), [])
+        demand_rows = breakdown_by_date_hour.get((prev_date_str, prev_hour_int), [])
         scale_factor = 1.0
         if not demand_rows:
             # nearest hour on same date fallback
-            day_rows = fac_by_date.get(prev_date_str, [])
+            day_rows = breakdown_by_date.get(prev_date_str, [])
             if day_rows:
                 by_hour = defaultdict(list)
                 for r in day_rows:
@@ -595,18 +558,15 @@ def shifts():
                     if hist_total is not None and sum_nearest > 0:
                         scale_factor = float(hist_total) / float(sum_nearest)
 
-        # Build group list: (facility_id, state_code, modality, base_demand, remaining_demand)
+        # Build group list: (state_code, modality, base_demand, remaining_demand)
         groups = []
         for r in demand_rows:
-            fid = r.get("facility_id")
             mod = (r.get("modality") or "").upper() or None
             dem = float(r.get("total_rvus") or 0) * scale_factor
-            meta = fac_meta.get(fid, {})
-            st = to_state_code(meta.get("state")) if fid in fac_meta else None
-            if fid is None or dem <= 0:
+            st = to_state_code(r.get("state"))
+            if dem <= 0:
                 continue
             groups.append({
-                "fid": fid,
                 "state": st,
                 "mod": mod,
                 # Keep the original demand as base for proportional distribution,
@@ -660,8 +620,6 @@ def shifts():
 
             remaining_cap = base
 
-            # Determine eligible facilities for this doctor
-            auth_fids = fac_auth_by_doctor.get(did, set())
             # Determine licensed states
             lic_states = alloc_doctor_states.get(did, set())
 
@@ -686,7 +644,7 @@ def shifts():
                         continue
                     gap_sum = 0.0
                     for g in lst:
-                        if (g["fid"] in auth_fids) and (not g["state"] or g["state"] in lic_states):
+                        if not g["state"] or g["state"] in lic_states:
                             gap = float(g.get("gap", 0.0))
                             if gap + EPS >= ch:
                                 gap_sum += gap
@@ -716,10 +674,10 @@ def shifts():
                 ch = modality_chunk(sel_mod)
                 if remaining_cap + EPS < ch:
                     break
-                # choose facility with max gap within modality that fits a chunk
+                # choose group with max gap within modality that fits a chunk
                 candidates = [
                     g for g in groups_by_mod.get(sel_mod, [])
-                    if (g["fid"] in auth_fids) and (not g["state"] or g["state"] in lic_states) and (float(g.get("gap", 0.0)) + EPS >= ch)
+                    if (not g["state"] or g["state"] in lic_states) and (float(g.get("gap", 0.0)) + EPS >= ch)
                 ]
                 if not candidates:
                     # nothing fits in this modality; remove and continue
@@ -751,7 +709,7 @@ def shifts():
                             if remaining_cap + EPS < ch:
                                 continue
                             for g in lst:
-                                if (g["fid"] not in auth_fids) or (g.get("state") and g.get("state") not in lic_states):
+                                if g.get("state") and g.get("state") not in lic_states:
                                     continue
                                 base_val = float(g.get("base", 0.0))
                                 if base_val <= EPS:
@@ -762,7 +720,7 @@ def shifts():
                                 R = covered / max(base_val, EPS)
                                 if R >= OVERFILL_CAP_R - 1e-9:
                                     continue
-                                key = (g["fid"], mod)
+                                key = (g["state"], mod)
                                 if per_group_chunks.get(key, 0) >= MAX_CHUNKS_PER_GROUP_PER_DOC:
                                     continue
                                 # Prefer lower coverage; tie-break by weight (higher is better)
@@ -786,7 +744,7 @@ def shifts():
                         g["gap"] = max(0.0, float(g.get("gap", 0.0)) - best_ch)
                     matched_supply += best_ch
                     remaining_cap -= best_ch
-                    key = (g["fid"], mod)
+                    key = (g["state"], mod)
                     per_group_chunks[key] = per_group_chunks.get(key, 0) + 1
 
         return historical_rvu, matched_supply
@@ -810,7 +768,7 @@ def shifts():
                     if doctors_by_hour.get(slot["datetime"]):
                         with_docs += 1
                     prev_d, prev_h = get_prev_week_same_day_and_hour(slot["datetime"])
-                    if fac_by_date_hour.get((prev_d, prev_h)) or fac_by_date.get(prev_d):
+                    if breakdown_by_date_hour.get((prev_d, prev_h)) or breakdown_by_date.get(prev_d):
                         with_demand += 1
                 print(f"[shifts][DEBUG] {day.isoformat()} tiles={tiles} doctors_hours={with_docs} demand_hours={with_demand}")
         except Exception as _e:
@@ -949,8 +907,8 @@ def shifts():
 @with_supabase_auth
 def hour_detail():
     """
-    Returns granular demand for a given date/hour from facility_capacity_per_hour
-    along with scheduled coverage (doctors on shift who can read by facility/state).
+    Returns granular demand for a given date/hour from capacity_per_hour_breakdown
+    along with scheduled coverage (doctors on shift who can read by state).
 
     Query params:
       - date: YYYY-MM-DD
@@ -998,33 +956,33 @@ def hour_detail():
     if distribution_mode not in ("worst", "normal", "best"):
         distribution_mode = "normal"
 
-    # 1) Facility-level demand for this hour (EXPECTED = previous week's same day/hour)
+    # 1) State/modality demand for this hour (EXPECTED = previous week's same day/hour)
     prev_date_str, prev_hour_int = get_prev_week_same_day_and_hour(
         datetime.strptime(f"{date_str} {hour:02d}:00:00", "%Y-%m-%d %H:%M:%S")
     )
     print(f"[hour_detail] incoming date={date_str} hour={hour}; expected_source date={prev_date_str} hour={prev_hour_int}")
-    fcap_res = (
+    breakdown_res = (
         supabase
-        .table("facility_capacity_per_hour")
-        .select("facility_id,total_rvus,modality")
+        .table("capacity_per_hour_breakdown")
+        .select("state,total_rvus,modality")
         .eq("date", prev_date_str)
         .eq("hour", prev_hour_int)
         .execute()
     )
-    facility_rows = fcap_res.data or []
-    print(f"[hour_detail] facility_capacity_per_hour rows: {len(facility_rows)}")
+    breakdown_rows = breakdown_res.data or []
+    print(f"[hour_detail] capacity_per_hour_breakdown rows: {len(breakdown_rows)}")
 
     # Potential fallback: if no rows for the exact hour, try the nearest hour on the same prior-week date,
     # and scale the distribution to the expected total from capacity_per_hour for the requested hour.
     fallback_info = {"used": False}
-    if not facility_rows:
-        print("[hour_detail] No facility rows found for expected prior-week HOUR. Attempting nearest-hour fallback on same date…")
+    if not breakdown_rows:
+        print("[hour_detail] No breakdown rows found for expected prior-week HOUR. Attempting nearest-hour fallback on same date…")
 
         # Fetch day data and group by hour
         day_res = (
             supabase
-            .table("facility_capacity_per_hour")
-            .select("facility_id,total_rvus,modality,hour")
+            .table("capacity_per_hour_breakdown")
+            .select("state,total_rvus,modality,hour")
             .eq("date", prev_date_str)
             .execute()
         )
@@ -1041,39 +999,27 @@ def hour_detail():
         if by_hour:
             hours_available = sorted(by_hour.keys())
             nearest_hour = min(hours_available, key=lambda h: abs(h - prev_hour_int))
-            facility_rows = by_hour.get(nearest_hour, [])
+            breakdown_rows = by_hour.get(nearest_hour, [])
             fallback_info = {"used": True, "source": {"date": prev_date_str, "hour": nearest_hour}, "reason": "nearest_hour_same_date"}
-            print(f"[hour_detail] Fallback using nearest hour {nearest_hour} with {len(facility_rows)} rows.")
+            print(f"[hour_detail] Fallback using nearest hour {nearest_hour} with {len(breakdown_rows)} rows.")
         else:
-            print("[hour_detail] No facility rows for any hour on the prior-week date; returning empty payload.")
+            print("[hour_detail] No breakdown rows for any hour on the prior-week date; returning empty payload.")
             return jsonify({
                 "date": date_str,
                 "hour": hour,
                 "expected_source": {"date": prev_date_str, "hour": prev_hour_int},
                 "fallback": {"used": False, "reason": "no_rows_on_date"},
                 "total_expected_rvus": 0,
-                "facilities": [],
                 "by_state": [],
+                "by_state_merged": [],
+                "by_modality": [],
+                "state_breakdown": {},
+                "modality_breakdown": {},
                 "supply_overall_rvus": 0,
                 "supply_licensed_rvus": 0,
-                "supply_facility_authorized_rvus": 0
+                "supply_effective_allocated_rvus": 0,
+                "doctor_allocations": []
             })
-
-    facility_ids = list({row["facility_id"] for row in facility_rows if row.get("facility_id")})
-
-    # 2) Facility metadata (name, state/location)
-    fac_meta = {}
-    if facility_ids:
-        fac_res = (
-            supabase
-            .table("facilities")
-            .select("id,name,location")
-            .in_("id", facility_ids)
-            .execute()
-        )
-        for r in (fac_res.data or []):
-            fac_meta[r["id"]] = {"name": r.get("name"), "state": r.get("location")}
-        print(f"[hour_detail] facilities meta fetched: {len(fac_meta)} for {len(facility_ids)} ids")
 
     # 3) Determine doctors on shift for this specific hour
     #    Reuse the same logic as the weekly view but constrained to one hour window
@@ -1172,7 +1118,7 @@ def hour_detail():
         volatility = rvu_row.get("volatility") if rvu_row is not None else 0
         return adjusted_rvu_from_metrics(base_rvu, volatility, weights, distribution_mode)
 
-    demand_modality_weights = derive_demand_modality_weights(facility_rows)
+    demand_modality_weights = derive_demand_modality_weights(breakdown_rows)
     uniform_weights = uniform_modality_weights()
 
     supply_overall = 0
@@ -1184,40 +1130,7 @@ def hour_detail():
         rr = metrics_rows.get(did)
         supply_overall += latest_nonzero_rvu(rr, conversion_weights, distribution_mode)
 
-    # 5) Facility and state authorization among scheduled doctors
-    facility_authorized_ids = set()
-    from collections import defaultdict as _dd
-    fac_auth_map = _dd(set)
-    if doctor_ids and facility_ids:
-        dfa_res = (
-            supabase
-            .table("doctor_facility_assignments")
-            .select("radiologist_id,facility_id,can_read")
-            .in_("radiologist_id", doctor_ids)
-            .in_("facility_id", facility_ids)
-            .execute()
-        )
-        print(f"[hour_detail] doctor_facility_assignments rows: {len(dfa_res.data or [])}")
-        for row in (dfa_res.data or []):
-            can_read_val = str(row.get("can_read")).strip().lower()
-            if can_read_val == "true" or can_read_val == "1" or can_read_val == "t":
-                rid = row.get("radiologist_id")
-                fid = row.get("facility_id")
-                if rid is not None and fid is not None:
-                    fac_auth_map[fid].add(rid)
-                    facility_authorized_ids.add(rid)
-
-    supply_facility_auth = 0
-    for d in on_shift:
-        if d.get("id") in facility_authorized_ids:
-            did = d.get("id")
-            conversion_weights = get_doc_modality_weights(modality_weights, did, window_start)
-            if not conversion_weights:
-                conversion_weights = demand_modality_weights or uniform_weights
-            rr = metrics_rows.get(did)
-            supply_facility_auth += latest_nonzero_rvu(rr, conversion_weights, distribution_mode)
-
-    # Helper to normalize facility/cert state values to 2-letter codes
+    # Helper to normalize state values to 2-letter codes
     STATE_NAME_TO_CODE = {
         'Alabama':'AL','Alaska':'AK','Arizona':'AZ','Arkansas':'AR','California':'CA','Colorado':'CO','Connecticut':'CT','Delaware':'DE','Florida':'FL','Georgia':'GA',
         'Hawaii':'HI','Idaho':'ID','Illinois':'IL','Indiana':'IN','Iowa':'IA','Kansas':'KS','Kentucky':'KY','Louisiana':'LA','Maine':'ME','Maryland':'MD','Massachusetts':'MA',
@@ -1237,7 +1150,6 @@ def hour_detail():
         return STATE_NAME_TO_CODE.get(s.title(), s.upper())
 
     # States covered by scheduled doctors
-    states_needed = list({to_state_code(fac_meta.get(fid, {}).get("state")) for fid in facility_ids if fac_meta.get(fid, {}).get("state")})
     licensed_ids = set()
     licensed_by_state = defaultdict(set)
     if doctor_ids:
@@ -1268,57 +1180,17 @@ def hour_detail():
             rr = metrics_rows.get(did)
             supply_licensed += latest_nonzero_rvu(rr, conversion_weights, distribution_mode)
 
-    # Prepare demand groups for allocation and build facility/state breakdowns
-    # 6) Assemble facility/state breakdowns
-    # Aggregate facilities by facility only; keep per-modality breakdown under each
-    facilities_agg = {}
-    state_totals = defaultdict(float)
-    for row in facility_rows:
-        fid = row.get("facility_id")
-        expected = float(row.get("total_rvus") or 0)
-        modality = row.get("modality")
-        meta = fac_meta.get(fid, {})
-        state = to_state_code(meta.get("state"))
-        state_totals[state] += expected
-        if fid not in facilities_agg:
-            # Readers count: authorized AND licensed for the facility state
-            auth_set = fac_auth_map.get(fid, set())
-            lic_set = licensed_by_state.get(state, set()) if state else set()
-            readers_count = len(auth_set & lic_set) if auth_set else 0
-
-            facilities_agg[fid] = {
-                "facility_id": fid,
-                "facility_name": meta.get("name"),
-                "state": state,
-                "expected_rvus": 0.0,
-                "scheduled_reader_count": readers_count,
-                "modalities": {}
-            }
-        facilities_agg[fid]["expected_rvus"] += expected
-        if modality:
-            facilities_agg[fid]["modalities"][modality] = facilities_agg[fid]["modalities"].get(modality, 0.0) + expected
-
-    # Convert modality dicts to lists for JSON friendliness
-    facilities_payload = []
-    for fac in facilities_agg.values():
-        fac_copy = fac.copy()
-        fac_copy["modalities"] = [
-            {"modality": m, "expected_rvus": v} for m, v in fac.get("modalities", {}).items()
-        ]
-        facilities_payload.append(fac_copy)
-
-    # Build state+modality breakdown
+    # Prepare demand groups for allocation and build state breakdowns
+    # 6) Assemble state breakdowns
     by_state_mod = defaultdict(float)
     by_modality_totals = defaultdict(float)
     by_state_totals = defaultdict(float)
     state_breakdown = defaultdict(lambda: defaultdict(float))
     modality_breakdown = defaultdict(lambda: defaultdict(float))
-    for row in facility_rows:
-        fid = row.get("facility_id")
+    for row in breakdown_rows:
         expected = float(row.get("total_rvus") or 0)
         modality = row.get("modality")
-        meta = fac_meta.get(fid, {})
-        state = to_state_code(meta.get("state"))
+        state = to_state_code(row.get("state"))
         key = (state, modality)
         by_state_mod[key] += expected
         if modality:
@@ -1346,7 +1218,7 @@ def hour_detail():
 
     # If we used fallback from a different hour, optionally scale to match the expected total
     # from capacity_per_hour for the requested hour.
-    total_expected = float(sum((float(r.get("total_rvus") or 0) for r in facility_rows)))
+    total_expected = float(sum((float(r.get("total_rvus") or 0) for r in breakdown_rows)))
     if fallback_info.get("used"):
         # Fetch tile expected from capacity_per_hour for prev_date_str/prev_hour_int
         cap_row = (
@@ -1366,11 +1238,7 @@ def hour_detail():
         print(f"[hour_detail] Tile expected (capacity_per_hour) for scaling: {cap_total}")
         if cap_total is not None and total_expected > 0:
             scale = cap_total / total_expected
-            print(f"[hour_detail] Applying scale factor {scale:.4f} to fallback facility rows")
-            for f in facilities_payload:
-                f["expected_rvus"] = float(f.get("expected_rvus", 0)) * scale
-                for md in f.get("modalities", []):
-                    md["expected_rvus"] = float(md.get("expected_rvus", 0)) * scale
+            print(f"[hour_detail] Applying scale factor {scale:.4f} to fallback breakdown rows")
             for s in by_state_payload:
                 s["expected_rvus"] = float(s["expected_rvus"]) * scale
             for s in by_state_merged_payload:
@@ -1391,20 +1259,14 @@ def hour_detail():
             fallback_info["scaled_to_expected"] = False
 
     # 7) Doctor-by-doctor allocation details
-    # Build demand groups: one per (facility, modality), with base demand (and track remaining for reference)
+    # Build demand groups: one per (state, modality), with base demand (and track remaining for reference)
     groups = []
     scale_factor = float(fallback_info.get("scale_factor") or 1.0) if fallback_info.get("used") and fallback_info.get("scaled_to_expected") else 1.0
-    for row in facility_rows:
-        fid = row.get("facility_id")
-        if fid is None:
-            continue
+    for row in breakdown_rows:
         mod = (row.get("modality") or "").upper() or None
         remaining = float(row.get("total_rvus") or 0) * scale_factor
-        meta = fac_meta.get(fid, {})
-        st = to_state_code(meta.get("state"))
+        st = to_state_code(row.get("state"))
         groups.append({
-            "fid": fid,
-            "facility_name": meta.get("name"),
             "state": st,
             "mod": mod,
             # Preserve original demand as base for proportional distribution
@@ -1454,9 +1316,8 @@ def hour_detail():
             else:
                 doc_weights = {}
 
-        auth_fids = fac_auth_map  # map exists above: facility_id -> set(doc_ids)
         lic_states = licensed_by_state
-        # Aggregate per (facility_id, modality) to avoid duplicate keys in UI
+        # Aggregate per (state, modality) to avoid duplicate keys in UI
         per_key_amounts = {}
         per_key_meta = {}
         remaining_cap = base
@@ -1471,8 +1332,6 @@ def hour_detail():
                     continue
                 sum_gap = 0.0
                 for g in lst:
-                    if did not in auth_fids.get(g["fid"], set()):
-                        continue
                     st = g.get("state")
                     if st and did not in lic_states.get(st, set()):
                         continue
@@ -1501,11 +1360,9 @@ def hour_detail():
             ch = modality_chunk(sel_mod)
             if remaining_cap + EPS < ch:
                 break
-            # choose facility with max remaining gap in sel_mod
+            # choose group with max remaining gap in sel_mod
             cand = []
             for g in groups_by_mod.get(sel_mod, []):
-                if did not in auth_fids.get(g["fid"], set()):
-                    continue
                 st = g.get("state")
                 if st and did not in lic_states.get(st, set()):
                     continue
@@ -1520,12 +1377,10 @@ def hour_detail():
             best["remaining"] = max(0.0, float(best.get("remaining", 0.0)) - ch)
             matched_supply_detail += ch
             remaining_cap -= ch
-            key = (best["fid"], (sel_mod or ""))
+            key = (best["state"], (sel_mod or ""))
             per_key_amounts[key] = per_key_amounts.get(key, 0.0) + float(ch)
             if key not in per_key_meta:
                 per_key_meta[key] = {
-                    "facility_id": best["fid"],
-                    "facility_name": best.get("facility_name"),
                     "state": best.get("state"),
                     "modality": (sel_mod or "")
                 }
@@ -1554,8 +1409,6 @@ def hour_detail():
                         if remaining_cap + EPS < ch:
                             continue
                         for g in lst:
-                            if did not in auth_fids.get(g["fid"], set()):
-                                continue
                             st = g.get("state")
                             if st and did not in lic_states.get(st, set()):
                                 continue
@@ -1568,7 +1421,7 @@ def hour_detail():
                             R = covered / max(base_val, EPS)
                             if R >= OVERFILL_CAP_R - 1e-9:
                                 continue
-                            key = (g["fid"], mod)
+                            key = (g["state"], mod)
                             if per_group_chunks.get(key, 0) >= MAX_CHUNKS_PER_GROUP_PER_DOC:
                                 continue
                             score = (R, -w)
@@ -1587,12 +1440,10 @@ def hour_detail():
                     g["remaining"] = max(0.0, float(g.get("remaining", 0.0)) - best_ch)
                 matched_supply_detail += best_ch
                 remaining_cap -= best_ch
-                key = (g["fid"], (mod or ""))
+                key = (g["state"], (mod or ""))
                 per_key_amounts[key] = per_key_amounts.get(key, 0.0) + float(best_ch)
                 if key not in per_key_meta:
                     per_key_meta[key] = {
-                        "facility_id": g["fid"],
-                        "facility_name": g.get("facility_name"),
                         "state": g.get("state"),
                         "modality": (mod or "")
                     }
@@ -1632,11 +1483,11 @@ def hour_detail():
         })
 
     algorithm_summary = [
-        "Start with prior-week same day/hour facility+modality RVU demand.",
+        "Start with prior-week same day/hour state+modality RVU demand.",
         "For each on-shift doctor, take latest non-zero monthly RVU as hourly base.",
         "Split the base by the doctor’s modality weights (normalized).",
-        "Within each modality portion, allocate proportionally across eligible facilities where: authorized for facility AND licensed for facility’s state.",
-        "Cap each facility/modality allocation at remaining demand so supply never exceeds demand.",
+        "Within each modality portion, allocate across states where the doctor is licensed.",
+        "Cap each state/modality allocation at remaining demand so supply never exceeds demand.",
         "Effective supply is the sum of all allocated RVUs across doctors."
     ]
 
@@ -1661,7 +1512,6 @@ def hour_detail():
         "fallback": fallback_info,
         "applied_overrides": base_overrides,
         "total_expected_rvus": total_expected,
-        "facilities": facilities_payload,
         "by_state": by_state_payload,
         "by_state_merged": by_state_merged_payload,
         "by_modality": by_modality_payload,
@@ -1669,7 +1519,6 @@ def hour_detail():
         "modality_breakdown": modality_breakdown_list,
         "supply_overall_rvus": supply_overall,
         "supply_licensed_rvus": supply_licensed,
-        "supply_facility_authorized_rvus": supply_facility_auth,
         "supply_effective_allocated_rvus": matched_supply_detail,
         "doctor_allocations": doctor_allocations
     }
@@ -1687,5 +1536,5 @@ def hour_detail():
             }, ensure_ascii=False, default=str))
         except Exception as _e:
             print(f"[hour_detail][DEBUG] logging error: {_e}")
-    print(f"[hour_detail] response summary: expected={total_expected:.2f}, facilities={len(facilities_payload)}, states={len(by_state_payload)}, on_shift={len(on_shift)}")
+    print(f"[hour_detail] response summary: expected={total_expected:.2f}, states={len(by_state_payload)}, on_shift={len(on_shift)}")
     return jsonify(payload)
