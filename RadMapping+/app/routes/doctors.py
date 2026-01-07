@@ -93,40 +93,6 @@ def search_doctors():
         'per_page': per_page
     })
 
-DAY_KEYS = ["mon", "tue", "wed", "thu", "fri", "sat", "sun"]
-
-
-def weekday_key(dt):
-    try:
-        return DAY_KEYS[dt.weekday()]
-    except Exception:
-        return None
-
-
-def get_latest_daily_rvu(row, dt=None):
-    if not row:
-        return None, None
-
-    key = weekday_key(dt) if dt else None
-    if key:
-        try:
-            val = float(row.get(key)) if row.get(key) is not None else None
-            if val and val != 0:
-                return key, val
-        except Exception:
-            pass
-
-    for k in DAY_KEYS:
-        try:
-            val = float(row.get(k)) if row.get(k) is not None else None
-        except Exception:
-            continue
-        if val and val != 0:
-            return k, val
-
-    return None, None
-
-
 @doctors_bp.route('/doctors/<string:rad_id>')
 @with_supabase_auth
 def doctor_profile(rad_id):
@@ -200,32 +166,19 @@ def doctor_profile(rad_id):
     assigned_facility_ids = {assignment["facilities"]["id"] for assignment in assigned_facilities}
     available_facilities = [fac for fac in all_facilities if fac["id"] not in assigned_facility_ids]
 
-    rvu_rows = (
+    metrics_rows = (
         supabase
-        .table("rad_avg_daily_rvu")
-        .select("*")
+        .table("rad_metrics")
+        .select("rvu, volatility")
         .eq("radiologist_id", rad_id)
         .limit(1)
         .execute()
         .data
     )
 
-    rvu_row = rvu_rows[0] if rvu_rows else None
-
-    if rvu_row:
-        latest_rvu_col, rvu = get_latest_daily_rvu(rvu_row, now)
-    else:
-        latest_rvu_col, rvu = None, None
-
-    daily_rvus = []
-    for key, label in zip(DAY_KEYS, ["Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday", "Sunday"]):
-        try:
-            val = float(rvu_row.get(key)) if rvu_row and rvu_row.get(key) is not None else 0.0
-        except Exception:
-            val = 0.0
-        daily_rvus.append({"key": key, "label": label, "value": val})
-
-
+    metrics_row = metrics_rows[0] if metrics_rows else None
+    rvu = metrics_row.get("rvu") if metrics_row else None
+    volatility = metrics_row.get("volatility") if metrics_row else None
 
     return render_template("doctor_profile.html",
         doctor=doctor,
@@ -246,9 +199,7 @@ def doctor_profile(rad_id):
         doctor_specialty=doctor_specialty,
         doctor_specialties=doctor_specialties,
         rvu=rvu,
-        latest_rvu_col=latest_rvu_col,
-        daily_rvus=daily_rvus,
-        rvu_row=rvu_row
+        volatility=volatility
     )
 
 @doctors_bp.route('/doctors/<string:rad_id>/update_schedule', methods=["POST"])
@@ -433,42 +384,43 @@ def update_doctor(rad_id):
         
         data = {k: v for k, v in data.items() if v is not None}
         
-        daily_inputs = {k: request.form.get(f"rvu_{k}", "").strip() for k in DAY_KEYS}
+        old_metrics_res = (
+            supabase
+            .table("rad_metrics")
+            .select("radiologist_id, rvu, volatility")
+            .eq("radiologist_id", rad_id)
+            .limit(1)
+            .execute()
+        )
+        old_metrics_data = old_metrics_res.data[0] if old_metrics_res.data else None
+        raw_rvu = request.form.get("rvu", "").strip()
+        raw_volatility = request.form.get("volatility", "").strip()
+        try:
+            rvu_value = float(raw_rvu) if raw_rvu not in (None, "") else 0.0
+        except Exception:
+            rvu_value = 0.0
+        try:
+            volatility_value = float(raw_volatility) if raw_volatility not in (None, "") else 0.0
+        except Exception:
+            volatility_value = 0.0
 
-        if any(val != "" for val in daily_inputs.values()):
-            rad_info = supabase.table("radiologists").select("name").eq("id", rad_id).single().execute()
-            rad_name = rad_info.data["name"] if rad_info.data else None
+        metrics_payload = {
+            "radiologist_id": rad_id,
+            "rvu": rvu_value,
+            "volatility": volatility_value,
+        }
 
-            old_rvu_res = (
-                supabase
-                .table("rad_avg_daily_rvu")
-                .select("*")
-                .eq("radiologist_id", rad_id)
-                .limit(1)
-                .execute()
+        metrics_res = supabase.table("rad_metrics").upsert(metrics_payload, on_conflict="radiologist_id").execute()
+        if not hasattr(metrics_res, "error"):
+            log_audit_action(
+                supabase=supabase,
+                action="upsert",
+                table_name="rad_metrics",
+                record_id=rad_id,
+                user_email=session.get("user", {}).get("email", "unknown"),
+                old_data=old_metrics_data,
+                new_data=metrics_payload
             )
-            old_rvu_data = old_rvu_res.data[0] if old_rvu_res.data else None
-
-            rvu_payload = {"radiologist_id": rad_id, "name": rad_name}
-            for key in DAY_KEYS:
-                raw_val = daily_inputs.get(key)
-                try:
-                    rvu_payload[key] = float(raw_val) if raw_val not in (None, "") else 0.0
-                except Exception:
-                    rvu_payload[key] = 0.0
-
-            rvu_res = supabase.table("rad_avg_daily_rvu").upsert(rvu_payload, on_conflict="radiologist_id").execute()
-
-            if not hasattr(rvu_res, "error"):
-                log_audit_action(
-                    supabase=supabase,
-                    action="upsert",
-                    table_name="rad_avg_daily_rvu",
-                    record_id=rad_id,
-                    user_email=session.get("user", {}).get("email", "unknown"),
-                    old_data=old_rvu_data,
-                    new_data=rvu_payload
-                )
 
         # New logic to check for changes before logging the main doctor update
         profile_changed = False
