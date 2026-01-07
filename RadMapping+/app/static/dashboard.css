@@ -1628,6 +1628,17 @@ thead.sticky th {
 [data-theme="dark"] .shifts-page .bg-gray-200 {
   background-color: rgba(51, 65, 85, 0.65) !important;
 }
+.shifts-page .bg-red-100 {
+  background-color: rgb(255, 0, 0) !important;
+}
+
+ .shifts-page .bg-red-50 {
+  background-color: rgba(206, 17, 17, 0.281) !important;
+}
+
+.shifts-page .bg-red-200 {
+  background-color: rgba(248, 113, 113, 0.3) !important;
+}
 
 [data-theme="dark"] .shifts-page .bg-blue-100,
 [data-theme="dark"] .shifts-page .hover\:bg-blue-100:hover,
@@ -1644,7 +1655,15 @@ thead.sticky th {
 }
 
 [data-theme="dark"] .shifts-page .bg-red-100 {
-  background-color: rgba(248, 113, 113, 0.2) !important;
+  background-color: rgb(255, 0, 0) !important;
+}
+
+[data-theme="dark"] .shifts-page .bg-red-50 {
+  background-color: rgba(116, 27, 27, 0.568) !important;
+}
+
+[data-theme="dark"] .shifts-page .bg-red-200 {
+  background-color: rgba(248, 113, 113, 0.3) !important;
 }
 
 [data-theme="dark"] .shifts-page .bg-yellow-100 {

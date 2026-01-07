@@ -179,9 +179,11 @@ def adjusted_rvu_from_metrics(base_rvu, volatility, weights, distribution_mode):
 
 def get_rvu_bg_color_class(ratio):
     if ratio is not None:
-        if ratio <= 0.6:
-            return 'bg-red-100'
-        elif ratio <= 0.9:
+        if ratio < 0.5:
+            return 'bg-red-50'
+        elif ratio < 0.7:
+            return 'bg-red-200'
+        elif ratio <= 1.0:
             return 'bg-yellow-100'
         else:
             return 'bg-green-100'

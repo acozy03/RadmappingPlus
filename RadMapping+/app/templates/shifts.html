@@ -195,6 +195,7 @@
 
 {# Filter Controls #}
 <div x-data="{
+  showDeepRed: true,
   showRed: true,
   showYellow: true,
   showGreen: true,
@@ -252,11 +253,13 @@
     const sortActive = document.body.classList.contains('hour-sort-active');
 
     document.querySelectorAll('.capacity-section').forEach(section => {
-      const isRed = section.classList.contains('bg-red-100');
+      const isDeepRed = section.classList.contains('bg-red-50');
+      const isRed = section.classList.contains('bg-red-200');
       const isYellow = section.classList.contains('bg-yellow-100');
       const isGreen = section.classList.contains('bg-green-100');
 
       const shouldShow =
+        (isDeepRed && this.showDeepRed) ||
         (isRed && this.showRed) ||
         (isYellow && this.showYellow) ||
         (isGreen && this.showGreen);
@@ -271,11 +274,13 @@
     if (sortActive) {
       document.querySelectorAll('.sorted-hour-container [data-color-group]').forEach(wrapper => {
         const colorGroup = wrapper.getAttribute('data-color-group');
+        const isDeepRed = colorGroup === 'deep-red';
         const isRed = colorGroup === 'red';
         const isYellow = colorGroup === 'yellow';
         const isGreen = colorGroup === 'green';
 
         const shouldShow =
+          (isDeepRed && this.showDeepRed) ||
           (isRed && this.showRed) ||
           (isYellow && this.showYellow) ||
           (isGreen && this.showGreen);
@@ -320,16 +325,20 @@
         <div class="flex items-center flex-wrap gap-3">
             <span class="text-sm font-medium text-gray-700">Show Sections:</span>
             <label class="inline-flex items-center">
-                <input type="checkbox" class="form-checkbox h-4 w-4 text-red-600" checked x-model="showRed" @change="updateFilters()">
-                <span class="ml-2 text-sm text-gray-700">Below 60% Capacity</span>
+                <input type="checkbox" class="form-checkbox h-4 w-4 text-red-700" checked x-model="showRed" @change="updateFilters()">
+                <span class="ml-2 text-sm text-gray-700">Below 50% Capacity</span>
+            </label>
+            <label class="inline-flex items-center">
+                <input type="checkbox" class="form-checkbox h-4 w-4 text-red-500" checked x-model="showDeepRed" @change="updateFilters()">
+                <span class="ml-2 text-sm text-gray-700">50-70% Capacity</span>
             </label>
             <label class="inline-flex items-center">
                 <input type="checkbox" class="form-checkbox h-4 w-4 text-yellow-500" checked x-model="showYellow" @change="updateFilters()">
-                <span class="ml-2 text-sm text-gray-700">60-90% Capacity</span>
+                <span class="ml-2 text-sm text-gray-700">70-100% Capacity</span>
             </label>
             <label class="inline-flex items-center">
                 <input type="checkbox" class="form-checkbox h-4 w-4 text-green-600" checked x-model="showGreen" @change="updateFilters()">
-                <span class="ml-2 text-sm text-gray-700">Above 90% Capacity</span>
+                <span class="ml-2 text-sm text-gray-700">Above 100% Capacity</span>
             </label>
         </div>
         <div class="flex items-center gap-2 flex-wrap md:justify-end">
@@ -459,7 +468,7 @@
     }) %}
   {% endfor %}
 
-  {% set color_group_name = 'red' if 'red' in color_class else 'yellow' if 'yellow' in color_class else 'green' if 'green' in color_class else 'neutral' %}
+  {% set color_group_name = 'deep-red' if 'bg-red-200' in color_class else 'red' if 'bg-red-50' in color_class else 'yellow' if 'yellow' in color_class else 'green' if 'green' in color_class else 'neutral' %}
   <div
     class="relative group"
     data-sort-time="{{ slot.datetime.isoformat() }}"
