@@ -410,17 +410,36 @@ def update_doctor(rad_id):
             "volatility": volatility_value,
         }
 
-        metrics_res = supabase.table("rad_metrics").upsert(metrics_payload, on_conflict="radiologist_id").execute()
-        if not hasattr(metrics_res, "error"):
-            log_audit_action(
-                supabase=supabase,
-                action="upsert",
-                table_name="rad_metrics",
-                record_id=rad_id,
-                user_email=session.get("user", {}).get("email", "unknown"),
-                old_data=old_metrics_data,
-                new_data=metrics_payload
+        if old_metrics_data:
+            metrics_res = (
+                supabase
+                .table("rad_metrics")
+                .update(metrics_payload)
+                .eq("radiologist_id", rad_id)
+                .execute()
             )
+            if not hasattr(metrics_res, "error"):
+                log_audit_action(
+                    supabase=supabase,
+                    action="update",
+                    table_name="rad_metrics",
+                    record_id=rad_id,
+                    user_email=session.get("user", {}).get("email", "unknown"),
+                    old_data=old_metrics_data,
+                    new_data=metrics_payload
+                )
+        else:
+            metrics_res = supabase.table("rad_metrics").insert(metrics_payload).execute()
+            if not hasattr(metrics_res, "error"):
+                log_audit_action(
+                    supabase=supabase,
+                    action="insert",
+                    table_name="rad_metrics",
+                    record_id=rad_id,
+                    user_email=session.get("user", {}).get("email", "unknown"),
+                    old_data=None,
+                    new_data=metrics_payload
+                )
 
         # New logic to check for changes before logging the main doctor update
         profile_changed = False
