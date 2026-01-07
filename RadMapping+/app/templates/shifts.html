@@ -626,6 +626,11 @@
           </span>
         </template>
       </div>
+      <p class="text-sm text-gray-500 mt-1">
+        <span x-text="date"></span>
+        &nbsp;&mdash;&nbsp;
+        <span x-text="time"></span>
+      </p>
       <div class="mt-2 flex flex-wrap items-center gap-2">
         <div class="inline-flex rounded-md border border-blue-200 overflow-hidden shadow-sm">
           <button type="button" @click="units='rvus'"
@@ -635,7 +640,7 @@
                   :class="units==='cases' ? 'bg-blue-600 text-white' : 'bg-white text-blue-700 hover:bg-blue-50'"
                   class="px-2 py-1 text-xs font-medium">Cases</button>
         </div>
-        <label class="flex items-center gap-2 text-xs text-gray-700">
+        <label class="flex items-center gap-2 text-xs text-gray-700 ml-auto">
           <span class="font-medium">Distribution</span>
           <select class="border border-gray-300 rounded px-2 py-1 text-xs"
                   x-model="distributionMode"
@@ -690,13 +695,6 @@
         No state/modality demand records were found for the expected prior-week hour.
       </div>
     </template>
-    <p class="text-sm text-gray-500 mb-2">
-        <span x-text="date"></span>
-        &nbsp;&mdash;&nbsp;
-        <span x-text="time"></span>
-      </p>
-    
-      
     </h2>
         <!-- Doctor allocations (expand on doctor name; only > 0.0 entries) -->
         <template x-if="!hourLoading && hourDetail && (hourDetail.doctor_allocations||[]).length">
