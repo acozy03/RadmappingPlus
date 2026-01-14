@@ -726,7 +726,7 @@
           </div>
         </div>
         {% if doctor_assignments %}
-          <div class="overflow-x-auto">
+          <div class="overflow-x-auto" x-data="{ activeAssignmentId: null, savingAssignmentId: null }">
             <table class="min-w-full bg-white border border-gray-200 text-sm rounded surface-table">
               <thead class="bg-gray-100">
                 <tr class="text-left">
@@ -774,45 +774,104 @@
                   </a>
                   </td>
                   <td class="px-4 py-2 border-b">
-  {% if assignment.can_read == "true" %}
-    ✅
-  {% elif assignment.can_read == "pending" %}
-    ⏳
-  {% else %}
-    ❌
-  {% endif %}
-</td>
+                    <div x-show="activeAssignmentId !== '{{ assignment.id }}'" x-cloak>
+                      {% if assignment.can_read == "true" %}
+                        ✅
+                      {% elif assignment.can_read == "pending" %}
+                        ⏳
+                      {% elif assignment.can_read == "withdrawn" %}
+                        🚫
+                      {% else %}
+                        ❌
+                      {% endif %}
+                    </div>
+                    {% if session.user.role == 'admin' %}
+                    <div x-show="activeAssignmentId === '{{ assignment.id }}'" x-cloak>
+                      <select name="can_read" form="assignment-edit-{{ assignment.id }}" class="w-full border rounded px-2 py-1 text-sm">
+                        <option value="true" {% if assignment.can_read == "true" %}selected{% endif %}>Active</option>
+                        <option value="pending" {% if assignment.can_read == "pending" %}selected{% endif %}>Pending</option>
+                        <option value="false" {% if assignment.can_read == "false" %}selected{% endif %}>Inactive</option>
+                        <option value="withdrawn" {% if assignment.can_read == "withdrawn" %}selected{% endif %}>Withdrawn</option>
+                      </select>
+                    </div>
+                    {% endif %}
+                  </td>
 
                   <!-- <td class="px-4 py-2 border-b">{{ "✅" if assignment.radiologists.reads_stats == 'YES' else "❌" }}</td>
                   <td class="px-4 py-2 border-b">{{ "✅" if assignment.radiologists.reads_routines == 'YES' else "❌" }}</td> -->
 
                   <td class="px-4 py-2 border-b">
-  {% set full = assignment.radiologists.stipulations or "—" %}
-  {% if full|length > 100 %}
-    <div x-data="{ expanded: false }">
-      <div x-show="!expanded">{{ full[:100] }}... <button @click="expanded = true" class="text-[var(--doctor-link)] hover:text-[var(--doctor-link-hover)] underline text-sm">Show More</button></div>
-      <div x-show="expanded">
-        <div class="whitespace-pre-line">{{ full }}</div>
-        <button @click="expanded = false" class="text-[var(--doctor-link)] hover:text-[var(--doctor-link-hover)] underline text-sm">Show Less</button>
-      </div>
-    </div>
-  {% else %}
-    <div class="whitespace-pre-line">{{ full }}</div>
-  {% endif %}
-</td>
-    <td class="px-4 py-2 border-b">{{ assignment.notes or "—" }}</td>
+                    <div x-show="activeAssignmentId !== '{{ assignment.id }}'" x-cloak>
+                      {% set full = assignment.radiologists.stipulations or "—" %}
+                      {% if full|length > 100 %}
+                        <div x-data="{ expanded: false }">
+                          <div x-show="!expanded">{{ full[:100] }}... <button @click="expanded = true" class="text-[var(--doctor-link)] hover:text-[var(--doctor-link-hover)] underline text-sm">Show More</button></div>
+                          <div x-show="expanded">
+                            <div class="whitespace-pre-line">{{ full }}</div>
+                            <button @click="expanded = false" class="text-[var(--doctor-link)] hover:text-[var(--doctor-link-hover)] underline text-sm">Show Less</button>
+                          </div>
+                        </div>
+                      {% else %}
+                        <div class="whitespace-pre-line">{{ full }}</div>
+                      {% endif %}
+                    </div>
+                    {% if session.user.role == 'admin' %}
+                    <div x-show="activeAssignmentId === '{{ assignment.id }}'" x-cloak>
+                      <textarea name="stipulations" form="assignment-edit-{{ assignment.id }}" class="w-full border rounded px-2 py-1 text-sm" rows="3">{{ assignment.radiologists.stipulations }}</textarea>
+                    </div>
+                    {% endif %}
+                  </td>
+                  <td class="px-4 py-2 border-b">
+                    <div x-show="activeAssignmentId !== '{{ assignment.id }}'" x-cloak>
+                      {{ assignment.notes or "—" }}
+                    </div>
+                    {% if session.user.role == 'admin' %}
+                    <div x-show="activeAssignmentId === '{{ assignment.id }}'" x-cloak>
+                      <textarea name="notes" form="assignment-edit-{{ assignment.id }}" class="w-full border rounded px-2 py-1 text-sm" rows="2">{{ assignment.notes }}</textarea>
+                    </div>
+                    {% endif %}
+                  </td>
                   {% if session.user.role == 'admin' %}
                   <td class="px-4 py-2 border-b">
+                    <div class="flex flex-wrap gap-2 items-center">
+                      <button type="button"
+                              class="bg-blue-100 text-blue-700 px-3 py-1 rounded hover:bg-blue-200 text-sm disabled:opacity-50 disabled:cursor-not-allowed"
+                              @click="activeAssignmentId = activeAssignmentId === '{{ assignment.id }}' ? null : '{{ assignment.id }}'"
+                              :disabled="activeAssignmentId && activeAssignmentId !== '{{ assignment.id }}'">
+                        Edit
+                      </button>
+                      <form id="assignment-edit-{{ assignment.id }}"
+                            action="{{ url_for('facilities.update_assignment', facility_id=facility.id, assignment_id=assignment.id) }}"
+                            method="POST"
+                            class="inline-flex gap-2"
+                            x-on:submit="savingAssignmentId = '{{ assignment.id }}'">
+                        <button type="submit"
+                                class="bg-green-600 text-white px-3 py-1 rounded text-sm hover:bg-green-700 disabled:opacity-50 disabled:cursor-not-allowed"
+                                x-show="activeAssignmentId === '{{ assignment.id }}'"
+                                x-cloak
+                                :disabled="savingAssignmentId === '{{ assignment.id }}'">
+                          <span x-show="savingAssignmentId !== '{{ assignment.id }}'">Save</span>
+                          <span x-show="savingAssignmentId === '{{ assignment.id }}'">Saving...</span>
+                        </button>
+                        <button type="button"
+                                class="bg-gray-200 text-gray-700 px-3 py-1 rounded text-sm hover:bg-gray-300"
+                                x-show="activeAssignmentId === '{{ assignment.id }}'"
+                                x-cloak
+                                @click="activeAssignmentId = null">
+                          Cancel
+                        </button>
+                      </form>
                     <form action="{{ url_for('facilities.remove_assignment', facility_id=facility.id, assignment_id=assignment.id) }}"
                           method="POST"
                           style="display: inline;"
                           onsubmit="handleFormDelete(event, this)"
                           data-title="Remove Assignment"
                           data-item-name="Assignment for {{ assignment.radiologists.name }}">
-                      <button type="submit" class="bg-red-100 text-red-700 px-3 py-1 rounded hover:bg-red-200 text-sm">
-                        Remove
-                      </button>
+                        <button type="submit" class="bg-red-100 text-red-700 px-3 py-1 rounded hover:bg-red-200 text-sm">
+                          Remove
+                        </button>
                     </form>
+                    </div>
                   </td>
                   {% endif %}
                 </tr>

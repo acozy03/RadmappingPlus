@@ -885,7 +885,7 @@
     }
     </script>
     
-<div id="facilityModal" x-data="{ editMode: false, expanded: {} }"
+<div id="facilityModal" x-data="{ activeAssignmentId: null, expanded: {}, savingAssignmentId: null }"
      class="fixed inset-0 z-50 hidden doctor-modal-backdrop flex items-center justify-center"
      onclick="if(event.target === this) closeFacilityModal();">
   <div class="modal-surface rounded-lg  w-[98%] max-w-5xl max-h-[90vh] overflow-y-auto p-8 relative border"
@@ -907,8 +907,6 @@
       <input type="text" placeholder="Search facilities..." oninput="filterFacilities(this.value)" class="w-full mr-4 px-3 py-2 border rounded text-sm">
       <div class="flex gap-2">
         {% if session.user.role == 'admin' %}
-          <button x-show="!editMode" @click="editMode = true" class="btn btn-warning px-4 py-2 text-sm font-medium">Edit Assignments</button>
-          <button x-show="editMode" @click="editMode = false" class="btn btn-neutral px-4 py-2 text-sm font-medium">Cancel Edit</button>
           <button onclick="openAddFacilityModal()" class="btn btn-primary px-4 py-2 text-sm font-medium">Add Facility</button>
         {% endif %}
       </div>
@@ -917,7 +915,7 @@
     <ul id="facilityList" class="space-y-4 text-sm">
       {% for assignment in assigned_facilities %}
       <li class="facility-item border rounded-lg p-4">
-        <div :class="editMode ? '{{ 'border-status-active' if assignment.facilities.active_status == 'true' else 'border-status-inactive' }}' : 'facility-divider'" class="flex flex-col gap-2 border rounded-lg p-3">
+        <div :class="activeAssignmentId === '{{ assignment.id }}' ? '{{ 'border-status-active' if assignment.facilities.active_status == 'true' else 'border-status-inactive' }}' : 'facility-divider'" class="flex flex-col gap-2 border rounded-lg p-3">
           <div class="flex items-center justify-between">
             <div class="flex items-center gap-3">
               <span class="inline-flex items-center justify-center w-8 h-8 accent-icon accent-icon--indigo rounded-full">
@@ -951,9 +949,16 @@
               </div>
             </div>
 
+            {% if session.user.role == 'admin' %}
             <div class="flex items-center gap-2">
-
+              <button type="button"
+                      class="btn btn-warning px-3 py-1 text-xs font-medium disabled:opacity-50 disabled:cursor-not-allowed"
+                      @click="activeAssignmentId = activeAssignmentId === '{{ assignment.id }}' ? null : '{{ assignment.id }}'"
+                      :disabled="activeAssignmentId && activeAssignmentId !== '{{ assignment.id }}'">
+                Edit
+              </button>
             </div>
+            {% endif %}
           </div>
 
           <div class="mt-2 border-t pt-2 facility-divider">
@@ -981,8 +986,13 @@
             </div>
           </div>
 
-<template x-if="editMode">
-  <form method="POST" action="{{ url_for('doctors.update_assignment', assignment_id=assignment.id) }}" class="mt-4 border-t pt-4 flex flex-col gap-2">
+{% if session.user.role == 'admin' %}
+  <form method="POST"
+        action="{{ url_for('doctors.update_assignment', assignment_id=assignment.id) }}"
+        class="mt-4 border-t pt-4 flex flex-col gap-2"
+        x-show="activeAssignmentId === '{{ assignment.id }}'"
+        x-cloak
+        x-on:submit="savingAssignmentId = '{{ assignment.id }}'">
     <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
       <label class="block text-sm font-medium text-secondary">
         Approval Status
@@ -1000,16 +1010,26 @@
     </div>
 
     <div class="flex gap-2 mt-2 justify-end">
-      <button type="submit" class="btn btn-primary text-sm px-3 py-1">Save Changes</button>
+      <button type="button" class="btn btn-neutral text-sm px-3 py-1" @click="activeAssignmentId = null">Cancel</button>
+      <button type="submit"
+              class="btn btn-primary text-sm px-3 py-1 disabled:opacity-50 disabled:cursor-not-allowed"
+              :disabled="savingAssignmentId === '{{ assignment.id }}'">
+        <span x-show="savingAssignmentId !== '{{ assignment.id }}'">Save Changes</span>
+        <span x-show="savingAssignmentId === '{{ assignment.id }}'">Saving...</span>
+      </button>
     </div>
   </form>
-</template>
+{% endif %}
 
-          <template x-if="editMode">
-            <form method="POST" action="{{ url_for('doctors.delete_assignment', assignment_id=assignment.id) }}" class="mt-2 flex justify-end">
+          {% if session.user.role == 'admin' %}
+            <form method="POST"
+                  action="{{ url_for('doctors.delete_assignment', assignment_id=assignment.id) }}"
+                  class="mt-2 flex justify-end"
+                  x-show="activeAssignmentId === '{{ assignment.id }}'"
+                  x-cloak>
               <button type="submit" class="link-danger text-sm underline">Remove Assignment</button>
             </form>
-          </template>
+          {% endif %}
         </div>
       </li>
       {% else %}

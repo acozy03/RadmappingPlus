@@ -1655,7 +1655,7 @@ thead.sticky th {
 }
 
 [data-theme="dark"] .shifts-page .bg-red-100 {
-  background-color: rgb(255, 0, 0) !important;
+  background-color: rgba(134, 49, 49, 0.356) !important;
 }
 
 [data-theme="dark"] .shifts-page .bg-red-50 {
