@@ -404,6 +404,42 @@
     background-color: var(--doctor-surface-soft);
   }
 
+  .doctor-profile-page .detail-grid {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr);
+    background-color: var(--doctor-surface);
+    border: 1px solid var(--doctor-border);
+    border-radius: 0.75rem;
+    overflow: hidden;
+  }
+
+  .doctor-profile-page .detail-item {
+    padding: 1rem 1.5rem;
+    border-bottom: 1px solid var(--doctor-border);
+  }
+
+  .doctor-profile-page .detail-item:last-child {
+    border-bottom: none;
+  }
+
+  @media (min-width: 640px) {
+    .doctor-profile-page .detail-grid {
+      grid-template-columns: repeat(2, minmax(0, 1fr));
+    }
+
+    .doctor-profile-page .detail-item {
+      border-bottom: 1px solid var(--doctor-border);
+    }
+
+    .doctor-profile-page .detail-item:nth-child(odd) {
+      border-right: 1px solid var(--doctor-border);
+    }
+
+    .doctor-profile-page .detail-item:nth-last-child(-n + 2) {
+      border-bottom: none;
+    }
+  }
+
   .doctor-profile-page .alert-danger {
     background-color: var(--doctor-alert-danger-bg);
     border-left: 4px solid var(--doctor-alert-danger-border);
@@ -449,204 +485,113 @@
   </div>
 
   <div x-show="!editing" class="mb-8">
-    <div class="surface-card rounded-lg p-6 border grid grid-cols-1 sm:grid-cols-2 gap-6">
-      <div class="flex items-center space-x-3">
-        <span class="inline-flex items-center justify-center w-8 h-8 accent-icon rounded-full">
-          <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M16 12a4 4 0 01-8 0m8 0a4 4 0 00-8 0m8 0V8a4 4 0 00-8 0v4m8 0v4a4 4 0 01-8 0v-4" /></svg>
-        </span>
-        <div>
-          <div class="text-xs label-title font-semibold uppercase">Email</div>
-          <div class="text-base font-medium text-primary">{{ doctor.email }}</div>
-        </div>
+    <div class="detail-grid">
+      <div class="detail-item">
+        <div class="text-xs label-title font-semibold uppercase">Email</div>
+        <div class="text-base font-medium text-primary">{{ doctor.email }}</div>
       </div>
-      <div class="flex items-center space-x-3">
-        <span class="inline-flex items-center justify-center w-8 h-8 accent-icon accent-icon--green rounded-full">
-          <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 5h2l.4 2M7 13h10l4-8H5.4M7 13l-1.35 2.7A2 2 0 007.52 19h8.96a2 2 0 001.87-2.3L17 13M7 13V6a1 1 0 011-1h6a1 1 0 011 1v7" /></svg>
-        </span>
-        <div>
-          <div class="text-xs label-title font-semibold uppercase">Phone</div>
-          <div class="text-base font-medium text-primary">{{ doctor.phone }}</div>
-        </div>
+      <div class="detail-item">
+        <div class="text-xs label-title font-semibold uppercase">Phone</div>
+        <div class="text-base font-medium text-primary">{{ doctor.phone }}</div>
       </div>
-      <div class="flex items-center space-x-3">
-        <span class="inline-flex items-center justify-center w-8 h-8 accent-icon accent-icon--purple rounded-full">
-          <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 17v-2a2 2 0 012-2h2a2 2 0 012 2v2m-6 0a2 2 0 002 2h2a2 2 0 002-2m-6 0V7a2 2 0 012-2h2a2 2 0 012 2v10" /></svg>
-        </span>
-        <div>
-          <div class="text-xs label-title font-semibold uppercase">PACS</div>
-          <div class="text-base font-medium text-primary">{{ doctor.pacs }}</div>
-        </div>
+      <div class="detail-item">
+        <div class="text-xs label-title font-semibold uppercase">PACS</div>
+        <div class="text-base font-medium text-primary">{{ doctor.pacs }}</div>
       </div>
-      <div class="flex items-center space-x-3">
-        <span class="inline-flex items-center justify-center w-8 h-8 accent-icon accent-icon--yellow rounded-full">
-          <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" /></svg>
-        </span>
-        <div>
-          <div class="text-xs label-title font-semibold uppercase">Primary Method</div>
-          <div class="text-base font-medium text-primary">{{ doctor.primary_contact_method }}</div>
-        </div>
+      <div class="detail-item">
+        <div class="text-xs label-title font-semibold uppercase">Primary Method</div>
+        <div class="text-base font-medium text-primary">{{ doctor.primary_contact_method }}</div>
       </div>
-      <div class="flex items-center space-x-3">
-        <span class="inline-flex items-center justify-center w-8 h-8 accent-icon accent-icon--pink rounded-full">
-          <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 18a4 4 0 008 0m-8 0V7a4 4 0 018 0v11m-8 0a4 4 0 008 0" /></svg>
-        </span>
-        <div>
-          <div class="text-xs label-title font-semibold uppercase">Modalities</div>
-          <div class="text-base font-medium text-primary">{{ doctor.modalities or "—" }}</div>
-        </div>
+      <div class="detail-item">
+        <div class="text-xs label-title font-semibold uppercase">Modalities</div>
+        <div class="text-base font-medium text-primary">{{ doctor.modalities or "—" }}</div>
       </div>
-      <div class="flex items-center space-x-3">
-        <span class="inline-flex items-center justify-center w-8 h-8 accent-icon accent-icon--indigo rounded-full">
-          <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4l3 3m6 0a9 9 0 11-18 0 9 9 0 0118 0z" /></svg>
-        </span>
-        <div>
-          <div class="text-xs label-title font-semibold uppercase">Timezone</div>
-          <div class="text-base font-medium text-primary">{{ doctor.timezone or "—" }}</div>
-        </div>
+      <div class="detail-item">
+        <div class="text-xs label-title font-semibold uppercase">Timezone</div>
+        <div class="text-base font-medium text-primary">{{ doctor.timezone or "—" }}</div>
       </div>
-      <div class="flex items-center space-x-3">
-        <span class="inline-flex items-center justify-center w-8 h-8 accent-icon accent-icon--cyan rounded-full">
-          <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 14l9-5-9-5-9 5 9 5zm0 0v6m0 0H6m6 0h6" /></svg>
-        </span>
-        <div>
-          <div class="text-xs label-title font-semibold uppercase">Fellowship</div>
-          {% if doctor_specialty %}
-            <div class="text-base font-medium text-primary">{{ doctor_specialty }}</div>
-          {% else %}
-            <div class="text-soft italic">No Fellowship</div>
-          {% endif %}
-        </div>
+      <div class="detail-item">
+        <div class="text-xs label-title font-semibold uppercase">Fellowship</div>
+        {% if doctor_specialty %}
+          <div class="text-base font-medium text-primary">{{ doctor_specialty }}</div>
+        {% else %}
+          <div class="text-soft italic">No Fellowship</div>
+        {% endif %}
       </div>
       {% if doctor_specialties and doctor_specialties|length > 0 %}
-      <div class="flex items-center space-x-3">
-        <span class="inline-flex items-center justify-center w-8 h-8 accent-icon accent-icon--orange rounded-full">
-          <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11.049 2.927c.3-.921 1.603-.921 1.902 0l2.036 6.29a1 1 0 00.95.69h6.631c.969 0 1.371 1.24.588 1.81l-5.37 3.905a1 1 0 00-.364 1.118l2.036 6.29c.3.921-.755 1.688-1.54 1.118l-5.37-3.905a1 1 0 00-1.176 0l-5.37 3.905c-.784.57-1.838-.197-1.54-1.118l2.036-6.29a1 1 0 00-.364-1.118L2.342 11.717c-.783-.57-.38-1.81.588-1.81h6.631a1 1 0 00.95-.69l2.036-6.29z" /></svg>
-        </span>
-        <div>
-          <div class="text-xs label-title font-semibold uppercase">Specialties</div>
-          <div class="flex flex-wrap gap-2 mt-1">
- <div x-data="{ showAll: false }" class="flex flex-wrap gap-2 mt-1">
-  {% for spec in doctor_specialties %}
-    <span
-      class="inline-block px-2 py-1 rounded text-xs font-semibold surface-subtle text-primary"
-      x-show="showAll || {{ loop.index }} <= 5"
-      x-transition
-    >
-      {{ spec.name }}
-    </span>
-  {% endfor %}
-  {% if doctor_specialties|length > 5 %}
-    <button
-      class="link-primary text-xs font-semibold ml-1 underline"
-      @click="showAll = !showAll"
-      x-text="showAll ? 'Show Less' : 'Show More'">
-    </button>
-  {% endif %}
-</div>
-
+      <div class="detail-item">
+        <div class="text-xs label-title font-semibold uppercase">Specialties</div>
+        <div class="flex flex-wrap gap-2 mt-1">
+          <div x-data="{ showAll: false }" class="flex flex-wrap gap-2 mt-1">
+            {% for spec in doctor_specialties %}
+              <span
+                class="inline-block px-2 py-1 rounded text-xs font-semibold surface-subtle text-primary"
+                x-show="showAll || {{ loop.index }} <= 5"
+                x-transition
+              >
+                {{ spec.name }}
+              </span>
+            {% endfor %}
+            {% if doctor_specialties|length > 5 %}
+              <button
+                class="link-primary text-xs font-semibold ml-1 underline"
+                @click="showAll = !showAll"
+                x-text="showAll ? 'Show Less' : 'Show More'">
+              </button>
+            {% endif %}
           </div>
         </div>
       </div>
       {% else %}
-      <div class="flex items-center space-x-3">
-        <span class="inline-flex items-center justify-center w-8 h-8 accent-icon accent-icon--orange rounded-full">
-          <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11.049 2.927c.3-.921 1.603-.921 1.902 0l2.036 6.29a1 1 0 00.95.69h6.631c.969 0 1.371 1.24.588 1.81l-5.37 3.905a1 1 0 00-.364 1.118l2.036 6.29c.3.921-.755 1.688-1.54 1.118l-5.37-3.905a1 1 0 00-1.176 0l-5.37 3.905c-.784.57-1.838-.197-1.54-1.118l2.036-6.29a1 1 0 00-.364-1.118L2.342 11.717c-.783-.57-.38-1.81.588-1.81h6.631a1 1 0 00.95-.69l2.036-6.29z" /></svg>
-        </span>
-        <div>
-          <div class="text-xs label-title font-semibold uppercase">Specialties</div>
-          <div class="text-soft italic">No Specialties</div>
+      <div class="detail-item">
+        <div class="text-xs label-title font-semibold uppercase">Specialties</div>
+        <div class="text-soft italic">No Specialties</div>
+      </div>
+      {% endif %}
+      <div class="detail-item">
+        <div class="text-xs label-title font-semibold uppercase">Reads Stats</div>
+        <div class="text-base font-medium text-primary">
+          {{ doctor.reads_stats or '—' }}
         </div>
       </div>
-      
-      {% endif %}
-      <div class="flex items-center space-x-3">
-  <span class="inline-flex items-center justify-center w-8 h-8 accent-icon accent-icon--emerald rounded-full">
-    <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-      <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 6h16M4 10h16M4 14h10M4 18h6"/>
-    </svg>
-  </span>
-  <div>
-    <div class="text-xs label-title font-semibold uppercase">Reads Stats</div>
-    <div class="text-base font-medium text-primary">
-      {{ doctor.reads_stats or '—' }}
-
-    </div>
-  </div>
-</div>
-
-<div class="flex items-center space-x-3">
-  <span class="inline-flex items-center justify-center w-8 h-8 accent-icon rounded-full">
-    <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-      <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 17v-2h6v2a2 2 0 002 2H7a2 2 0 002-2zM9 11h6m-6-4h6M5 3h14a2 2 0 012 2v16a2 2 0 01-2 2H5a2 2 0 01-2-2V5a2 2 0 012-2z"/>
-    </svg>
-  </span>
-  <div>
-    <div class="text-xs label-title font-semibold uppercase">Reads Routine</div>
-    <div class="text-base font-medium text-primary">
-      {{ doctor.reads_routines or '—' }}
-
-    </div>
-  </div>
-</div>
-
-<div class="flex items-center space-x-3">
-  <span class="inline-flex items-center justify-center w-8 h-8 accent-icon accent-icon--rose rounded-full">
-    <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-      <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 17l6-6 4 4 8-8M5 21h14" />
-    </svg>
-  </span>
-
-  <div>
-    <div class="text-xs label-title font-semibold uppercase">RVU</div>
-    <div class="text-base font-medium text-primary">
-      <span class="font-semibold">{{ rvu is not none and (rvu | round(2)) or '—' }}</span>
-    </div>
-
-  </div>
-</div>
-
-<div class="flex items-center space-x-3">
-  <span class="inline-flex items-center justify-center w-8 h-8 accent-icon accent-icon--purple rounded-full">
-    <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-      <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
-    </svg>
-  </span>
-  <div>
-    <div class="text-xs label-title font-semibold uppercase">Volatility</div>
-    <div class="text-base font-medium text-primary">
-      <span class="font-semibold">{{ volatility is not none and (volatility | round(2)) or '—' }}</span>
-    </div>
-  </div>
-</div>
-
-<div class="flex items-center space-x-3">
-  <span class="inline-flex items-center justify-center w-8 h-8 accent-icon accent-icon--red rounded-full">
-    <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-      <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
-        d="M9 5h6m-6 4h6m-4 4h4m-4 4h4M9 7h.01M4 6a2 2 0 012-2h1.4a1 1 0 00.8-.4l.6-.8A1 1 0 0110 2h4a1 1 0 01.8.4l.6.8a1 1 0 00.8.4H18a2 2 0 012 2v14a2 2 0 01-2 2H6a2 2 0 01-2-2V6z"/>
-    </svg>
-  </span>
-  <div x-data="{ expanded: false }">
-    <div class="text-xs label-title font-semibold uppercase">Stipulations</div>
-    <div class="text-base font-medium text-primary">
-      {% set full_text = doctor.stipulations or '—' %}
-      {% if full_text|length > 50 %}
-        <template x-if="!expanded">
-          <span>
-            {{ full_text[:50] }}... <a href="#" @click.prevent="expanded = true" class="link-primary underline">Show More</a>
-          </span>
-        </template>
-        <template x-if="expanded">
-          <span>
-            {{ full_text }} <a href="#" @click.prevent="expanded = false" class="link-primary underline">Show less</a>
-          </span>
-        </template>
-      {% else %}
-        {{ full_text }}
-      {% endif %}
-    </div>
-  </div>
-</div>
+      <div class="detail-item">
+        <div class="text-xs label-title font-semibold uppercase">Reads Routine</div>
+        <div class="text-base font-medium text-primary">
+          {{ doctor.reads_routines or '—' }}
+        </div>
+      </div>
+      <div class="detail-item">
+        <div class="text-xs label-title font-semibold uppercase">RVU</div>
+        <div class="text-base font-medium text-primary">
+          <span class="font-semibold">{{ rvu is not none and (rvu | round(2)) or '—' }}</span>
+        </div>
+      </div>
+      <div class="detail-item">
+        <div class="text-xs label-title font-semibold uppercase">Volatility</div>
+        <div class="text-base font-medium text-primary">
+          <span class="font-semibold">{{ volatility is not none and (volatility | round(2)) or '—' }}</span>
+        </div>
+      </div>
+      <div class="detail-item" x-data="{ expanded: false }">
+        <div class="text-xs label-title font-semibold uppercase">Stipulations</div>
+        <div class="text-base font-medium text-primary">
+          {% set full_text = doctor.stipulations or '—' %}
+          {% if full_text|length > 50 %}
+            <template x-if="!expanded">
+              <span>
+                {{ full_text[:50] }}... <a href="#" @click.prevent="expanded = true" class="link-primary underline">Show More</a>
+              </span>
+            </template>
+            <template x-if="expanded">
+              <span>
+                {{ full_text }} <a href="#" @click.prevent="expanded = false" class="link-primary underline">Show less</a>
+              </span>
+            </template>
+          {% else %}
+            {{ full_text }}
+          {% endif %}
+        </div>
+      </div>
 
 
     </div>

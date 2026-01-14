@@ -305,6 +305,42 @@
     border-color: var(--doctor-border) !important;
   }
 
+  .facility-profile .detail-grid {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr);
+    background-color: var(--doctor-surface);
+    border: 1px solid var(--doctor-border);
+    border-radius: 0.75rem;
+    overflow: hidden;
+  }
+
+  .facility-profile .detail-item {
+    padding: 1rem 1.5rem;
+    border-bottom: 1px solid var(--doctor-border);
+  }
+
+  .facility-profile .detail-item:last-child {
+    border-bottom: none;
+  }
+
+  @media (min-width: 640px) {
+    .facility-profile .detail-grid {
+      grid-template-columns: repeat(2, minmax(0, 1fr));
+    }
+
+    .facility-profile .detail-item {
+      border-bottom: 1px solid var(--doctor-border);
+    }
+
+    .facility-profile .detail-item:nth-child(odd) {
+      border-right: 1px solid var(--doctor-border);
+    }
+
+    .facility-profile .detail-item:nth-last-child(-n + 2) {
+      border-bottom: none;
+    }
+  }
+
   .facility-profile .surface-table,
   #bulkEditAssignmentsModal .surface-table {
     background-color: var(--doctor-surface) !important;
@@ -427,133 +463,96 @@
     </div>
 
   <div x-show="!editing" class="mb-8">
-    <div class="bg-white rounded-lg shadow p-6 border grid grid-cols-1 sm:grid-cols-2 gap-6 surface-card">
-      <div class="flex items-center space-x-3">
-        <span class="inline-flex items-center justify-center w-8 h-8 bg-blue-100 text-blue-600 rounded-full text-lg">📍</span>
-        <div>
-          <div class="text-xs text-gray-500 font-semibold uppercase">Location</div>
-          <div class="text-base font-medium text-gray-900">{{ facility.location }}</div>
+    <div class="detail-grid surface-card">
+      <div class="detail-item">
+        <div class="text-xs text-gray-500 font-semibold uppercase">Location</div>
+        <div class="text-base font-medium text-gray-900">{{ facility.location }}</div>
+      </div>
+      <div class="detail-item">
+        <div class="text-xs text-gray-500 font-semibold uppercase">Account POC</div>
+        <div class="text-base font-medium text-gray-900">{{ facility.account_poc }}</div>
+      </div>
+      <div class="detail-item">
+        <div class="text-xs text-gray-500 font-semibold uppercase">PACS</div>
+        <div class="text-base font-medium text-gray-900">{{ facility.pacs }}</div>
+      </div>
+      <div class="detail-item">
+        <div class="text-xs text-gray-500 font-semibold uppercase">TAT Definition</div>
+        <div class="text-base font-medium text-gray-900">{{ facility.tat_definition }}</div>
+      </div>
+      <div class="detail-item">
+        <div class="text-xs text-gray-500 font-semibold uppercase">Assignment Period</div>
+        <div class="text-base font-medium text-gray-900">{{ facility.modalities_assignment_period }}</div>
+      </div>
+      <div class="detail-item">
+        <div class="text-xs text-gray-500 font-semibold uppercase">Assignment Modalities</div>
+        <div class="text-base font-medium text-gray-900">{{ facility.modalities or '' }}</div>
+      </div>
+      <div class="detail-item" x-data="{ expanded: false }">
+        <div class="text-xs text-gray-500 font-semibold uppercase">QA Criteria</div>
+        <div class="text-base font-medium text-gray-900">
+          {% set full_text = facility.qa_criteria or '—' %}
+          {% if full_text|length > 50 %}
+            <template x-if="!expanded">
+              <span>
+                {{ full_text[:50] }}... <a href="#" @click.prevent="expanded = true" class="text-blue-600 hover:underline">Show More</a>
+              </span>
+            </template>
+            <template x-if="expanded">
+              <span>
+                {{ full_text }} <a href="#" @click.prevent="expanded = false" class="text-blue-600 hover:underline">Show less</a>
+              </span>
+            </template>
+          {% else %}
+            {{ full_text }}
+          {% endif %}
         </div>
       </div>
-      <div class="flex items-center space-x-3">
-        <span class="inline-flex items-center justify-center w-8 h-8 bg-pink-100 text-purple-600 rounded-full text-lg">📞</span>
-        <div>
-          <div class="text-xs text-gray-500 font-semibold uppercase">Account POC</div>
-          <div class="text-base font-medium text-gray-900">{{ facility.account_poc }}</div>
+      <div class="detail-item" x-data="{ expanded: false }">
+        <div class="text-xs text-gray-500 font-semibold uppercase">Monitoring</div>
+        <div class="text-base font-medium text-gray-900">
+          {% set full_text = facility.monitoring or '—' %}
+          {% if full_text|length > 50 %}
+            <template x-if="!expanded">
+              <span>
+                {{ full_text[:50] }}... <a href="#" @click.prevent="expanded = true" class="text-blue-600 hover:underline">Show More</a>
+              </span>
+            </template>
+            <template x-if="expanded">
+              <span>
+                {{ full_text }} <a href="#" @click.prevent="expanded = false" class="text-blue-600 hover:underline">Show less</a>
+              </span>
+            </template>
+          {% else %}
+            {{ full_text }}
+          {% endif %}
         </div>
       </div>
-      <div class="flex items-center space-x-3">
-        <span class="inline-flex items-center justify-center w-8 h-8 bg-purple-100 text-purple-600 rounded-full text-lg">💾</span>
-        <div>
-          <div class="text-xs text-gray-500 font-semibold uppercase">PACS</div>
-          <div class="text-base font-medium text-gray-900">{{ facility.pacs }}</div>
+      <div class="detail-item" x-data="{ expanded: false }">
+        <div class="text-xs text-gray-500 font-semibold uppercase">Additional Info / Comments</div>
+        <div class="text-base font-medium text-gray-900">
+          {% set full_text = facility.additional_info or '—' %}
+          {% if full_text|length > 50 %}
+            <template x-if="!expanded">
+              <span>
+                {{ full_text[:50] }}... <a href="#" @click.prevent="expanded = true" class="text-blue-600 hover:underline">Show More</a>
+              </span>
+            </template>
+            <template x-if="expanded">
+              <span>
+                {{ full_text }} <a href="#" @click.prevent="expanded = false" class="text-blue-600 hover:underline">Show less</a>
+              </span>
+            </template>
+          {% else %}
+            {{ full_text }}
+          {% endif %}
         </div>
       </div>
-      <div class="flex items-center space-x-3">
-        <span class="inline-flex items-center justify-center w-8 h-8 bg-yellow-100 text-yellow-600 rounded-full text-lg">⏱️</span>
-        <div>
-          <div class="text-xs text-gray-500 font-semibold uppercase">TAT Definition</div>
-          <div class="text-base font-medium text-gray-900">{{ facility.tat_definition }}</div>
+      <div class="detail-item">
+        <div class="text-xs text-gray-500 font-semibold uppercase">Status</div>
+        <div class="text-base font-medium {% if facility.active_status == 'true' %}text-green-700{% elif facility.active_status == 'false' %}text-red-700{% elif facility.active_status == 'hold' %}text-blue-700% {elif facility.active_status == 'pending' %}text-black-700{% endif %}">
+          {% if facility.active_status == 'true' %}Active{% elif facility.active_status == 'false' %}Inactive{% elif facility.active_status == 'hold' %}Hold{% elif facility.active_status == 'pending' %}Pending{% endif %}
         </div>
-      </div>
-      
-      <div class="flex items-center space-x-3">
-        <span class="inline-flex items-center justify-center w-8 h-8 bg-pink-100 text-pink-600 rounded-full text-lg">🧬</span>
-        <div>
-          <div class="text-xs text-gray-500 font-semibold uppercase">Assignment Period</div>
-          <div class="text-base font-medium text-gray-900">{{ facility.modalities_assignment_period }}</div>
-        </div>
-      </div>
-      <div class="flex items-center space-x-3">
-        <span class="inline-flex items-center justify-center w-8 h-8 bg-pink-100 text-pink-600 rounded-full text-lg">🔢</span>
-        <div>
-          <div class="text-xs text-gray-500 font-semibold uppercase">Assignment Modalities</div>
-          <div class="text-base font-medium text-gray-900">{{ facility.modalities or '' }}</div>
-        </div>
-      </div>
-      <div class="flex items-center space-x-3">
-        <span class="inline-flex items-center justify-center w-8 h-8 bg-green-100 text-pink-600 rounded-full text-lg">🚑</span>
-          <div x-data="{ expanded: false }">
-    <div class="text-xs text-gray-500 font-semibold uppercase">QA Criteria</div>
-    <div class="text-base font-medium text-gray-900">
-      {% set full_text = facility.qa_criteria or '—' %}
-      {% if full_text|length > 50 %}
-        <template x-if="!expanded">
-          <span>
-            {{ full_text[:50] }}... <a href="#" @click.prevent="expanded = true" class="text-blue-600 hover:underline">Show More</a>
-          </span>
-        </template>
-        <template x-if="expanded">
-          <span>
-            {{ full_text }} <a href="#" @click.prevent="expanded = false" class="text-blue-600 hover:underline">Show less</a>
-          </span>
-        </template>
-      {% else %}
-        {{ full_text }}
-      {% endif %}
-    </div>
-  </div>
-      </div>
-      <div class="flex items-center space-x-3">
-        <span class="inline-flex items-center justify-center w-8 h-8 bg-blue-100 text-pink-600 rounded-full text-lg">⚕️</span>
-              <div x-data="{ expanded: false }">
-    <div class="text-xs text-gray-500 font-semibold uppercase">Monitoring</div>
-    <div class="text-base font-medium text-gray-900">
-      {% set full_text = facility.monitoring or '—' %}
-      {% if full_text|length > 50 %}
-        <template x-if="!expanded">
-          <span>
-            {{ full_text[:50] }}... <a href="#" @click.prevent="expanded = true" class="text-blue-600 hover:underline">Show More</a>
-          </span>
-        </template>
-        <template x-if="expanded">
-          <span>
-            {{ full_text }} <a href="#" @click.prevent="expanded = false" class="text-blue-600 hover:underline">Show less</a>
-          </span>
-        </template>
-      {% else %}
-        {{ full_text }}
-      {% endif %}
-    </div>
-  </div> 
-  </div>
-
-   <div class="flex items-center space-x-3">
-        <span class="inline-flex items-center justify-center w-8 h-8 bg-gray-100 text-pink-600 rounded-full text-lg">ⓘ</span>
-              <div x-data="{ expanded: false }">
-    <div class="text-xs text-gray-500 font-semibold uppercase">Additional Info / Comments</div>
-    <div class="text-base font-medium text-gray-900">
-      {% set full_text = facility.additional_info or '—' %}
-      {% if full_text|length > 50 %}
-        <template x-if="!expanded">
-          <span>
-            {{ full_text[:50] }}... <a href="#" @click.prevent="expanded = true" class="text-blue-600 hover:underline">Show More</a>
-          </span>
-        </template>
-        <template x-if="expanded">
-          <span>
-            {{ full_text }} <a href="#" @click.prevent="expanded = false" class="text-blue-600 hover:underline">Show less</a>
-          </span>
-        </template>
-      {% else %}
-        {{ full_text }}
-      {% endif %}
-    </div>
-  </div> 
-  </div>
-
-  <div class="flex items-center space-x-3">
-        <span class="inline-flex items-center justify-center w-8 h-8 rounded-full text-lg
-          {% if facility.active_status == 'true' %}bg-green-100 text-green-600{% elif facility.active_status == 'false' %}bg-red-100 text-red-600{% elif facility.active_status == 'hold' %}bg-blue-100 text-blue-600{% elif facility.active_status == 'pending' %}bg-yellow-100 text-black-600{% endif %}">
-          {% if facility.active_status == 'true' %}✅{% elif facility.active_status == 'false' %}❌{% elif facility.active_status == 'hold' %}⏳{% elif facility.active_status == 'pending' %}⏳{% endif %}
-        </span>
-        <div>
-          <div class="text-xs text-gray-500 font-semibold uppercase">Status</div>
-          <div class="text-base font-medium {% if facility.active_status == 'true' %}text-green-700{% elif facility.active_status == 'false' %}text-red-700{% elif facility.active_status == 'hold' %}text-blue-700% {elif facility.active_status == 'pending' %}text-black-700{% endif %}">
-            {% if facility.active_status == 'true' %}Active{% elif facility.active_status == 'false' %}Inactive{% elif facility.active_status == 'hold' %}Hold{% elif facility.active_status == 'pending' %}Pending{% endif %}
-          </div>
-        </div>
-        
       </div>
     </div>
   </div>
