@@ -233,6 +233,8 @@ def shifts():
     supabase = get_supabase_client()
     
     date_str = request.args.get('date')
+    tz_offset = request.args.get('tz_offset')
+    print(f"Shifts date param: {date_str}, tz_offset: {tz_offset}")
     if date_str:
         now = datetime.strptime(date_str, '%Y-%m-%d')
     else:

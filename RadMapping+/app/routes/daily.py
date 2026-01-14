@@ -48,16 +48,18 @@ def daily():
     user = session.get("user")
 
     date_str = request.args.get("date", None)
+    tz_offset = request.args.get("tz_offset")
+    print(f"Daily date param: {date_str}, tz_offset: {tz_offset}")
 
     try:
         today_date = (
             datetime.strptime(date_str, "%Y-%m-%d").date()
             if date_str else
-            datetime.now(timezone.utc).date()
+            datetime.now().date()
         )
     except Exception as e:
         print(f"Invalid date_str format: {e}. Defaulting to today.")
-        today_date = datetime.now(timezone.utc).date()
+        today_date = datetime.now().date()
 
     today = today_date.strftime("%Y-%m-%d")
     prev_date = (today_date - timedelta(days=1)).strftime("%Y-%m-%d")
