@@ -214,6 +214,9 @@ MODALITY_RVU = {
     "ECG": 0.2,
 }
 
+# Feature flag: global coverage filters are disabled on initial shifts load.
+COVERAGE_FILTERS_ENABLED = False
+
 # Soft-preference tuning: modalities with a weight below this threshold are
 # treated as "last resort" for allocation. We still allow allocating to them
 # if nothing else can take the chunk, but we prefer higher-weight modalities.
@@ -805,98 +808,106 @@ def shifts():
     sorted_days = sorted(weekly_data_by_day_and_color.keys())
     sorted_weekly_data_by_day_and_color = {day: weekly_data_by_day_and_color[day] for day in sorted_days}
 
-    doctor_ids = list({doc['id'] for doc in doctors_on_shift})
-    cert_res = supabase.table("certifications").select("radiologist_id,state").in_("radiologist_id", doctor_ids).execute()
-    certifications = cert_res.data or []
-    doctor_states = {}
-    for cert in certifications:
-        rid = str(cert['radiologist_id']).strip()  
-        state = cert['state']
-        if rid not in doctor_states:
-            doctor_states[rid] = set()
-        if state:
-            doctor_states[rid].add(state.strip().title())  
+    template_payload = {
+        "weekly_data_by_day_and_color": sorted_weekly_data_by_day_and_color,
+        "hourly_rvu_stats": hourly_rvu_stats,
+        "start_date": start_of_week.strftime("%B %d, %Y"),
+        "end_date": end_of_week.strftime("%B %d, %Y"),
+        "prev_week_start": prev_week_start,
+        "next_week_start": next_week_start,
+        "doctors_by_hour": doctors_by_hour,
+        "coverage_filters_enabled": COVERAGE_FILTERS_ENABLED,
+        "datetime": datetime,
+        "now": now
+    }
 
-    uncovered_states_by_hour = {}
-    for slot in all_hour_slots:
-        slot_doctors = doctors_by_hour.get(slot['datetime'], [])
-        covered_states = set()
-        for doc in slot_doctors:
-            doc_id = str(doc['id']).strip()  # Ensure string and trimmed
-            covered_states.update(doctor_states.get(doc_id, set()))
-        uncovered = sorted(set(US_STATES) - covered_states)
-        uncovered_states_by_hour[slot['datetime'].isoformat()] = uncovered
+    if COVERAGE_FILTERS_ENABLED:
+        doctor_ids = list({doc['id'] for doc in doctors_on_shift})
+        cert_res = supabase.table("certifications").select("radiologist_id,state").in_("radiologist_id", doctor_ids).execute()
+        certifications = cert_res.data or []
+        doctor_states = {}
+        for cert in certifications:
+            rid = str(cert['radiologist_id']).strip()
+            state = cert['state']
+            if rid not in doctor_states:
+                doctor_states[rid] = set()
+            if state:
+                doctor_states[rid].add(state.strip().title())
 
-    covered_states_by_hour = {}
-    for slot in all_hour_slots:
-        uncovered = uncovered_states_by_hour[slot['datetime'].isoformat()]
-        covered = sorted(set(US_STATES) - set(uncovered))
-        covered_states_by_hour[slot['datetime'].isoformat()] = covered
+        uncovered_states_by_hour = {}
+        for slot in all_hour_slots:
+            slot_doctors = doctors_by_hour.get(slot['datetime'], [])
+            covered_states = set()
+            for doc in slot_doctors:
+                doc_id = str(doc['id']).strip()  # Ensure string and trimmed
+                covered_states.update(doctor_states.get(doc_id, set()))
+            uncovered = sorted(set(US_STATES) - covered_states)
+            uncovered_states_by_hour[slot['datetime'].isoformat()] = uncovered
 
-    state_doctor_map_by_hour = {}
-    for slot in all_hour_slots:
-        slot_dt = slot['datetime']
-        slot_doctors = doctors_by_hour.get(slot_dt, []) 
-        state_doctor_map = {}
+        covered_states_by_hour = {}
+        for slot in all_hour_slots:
+            uncovered = uncovered_states_by_hour[slot['datetime'].isoformat()]
+            covered = sorted(set(US_STATES) - set(uncovered))
+            covered_states_by_hour[slot['datetime'].isoformat()] = covered
 
-        for doc in slot_doctors:
-            doc_states = doctor_states.get(str(doc['id']).strip(), set())
-            for state in doc_states:
-                name = doc.get('name')
-                if name:
-                    state_doctor_map.setdefault(state, []).append(str(name).strip())
+        state_doctor_map_by_hour = {}
+        for slot in all_hour_slots:
+            slot_dt = slot['datetime']
+            slot_doctors = doctors_by_hour.get(slot_dt, [])
+            state_doctor_map = {}
 
-        state_doctor_map_by_hour[slot_dt.isoformat()] = state_doctor_map
+            for doc in slot_doctors:
+                doc_states = doctor_states.get(str(doc['id']).strip(), set())
+                for state in doc_states:
+                    name = doc.get('name')
+                    if name:
+                        state_doctor_map.setdefault(state, []).append(str(name).strip())
 
+            state_doctor_map_by_hour[slot_dt.isoformat()] = state_doctor_map
 
-    facility_assignments_data = fetch_all_rows("doctor_facility_assignments", "radiologist_id, can_read, facilities(name)")
+        facility_assignments_data = fetch_all_rows(
+            "doctor_facility_assignments",
+            "radiologist_id, can_read, facilities(name)"
+        )
 
-    facility_map = defaultdict(list)
-    for row in facility_assignments_data:
-        if str(row.get("can_read")).strip().lower() != "true":
-            continue 
+        facility_map = defaultdict(list)
+        for row in facility_assignments_data:
+            if str(row.get("can_read")).strip().lower() != "true":
+                continue
 
-        rad_id = str(row["radiologist_id"]).strip()
-        facility_name = row.get("facilities", {}).get("name")
-        if rad_id and facility_name:
-            facility_map[rad_id].append(facility_name.strip())
+            rad_id = str(row["radiologist_id"]).strip()
+            facility_name = row.get("facilities", {}).get("name")
+            if rad_id and facility_name:
+                facility_map[rad_id].append(facility_name.strip())
 
-    all_facilities_res = supabase.table("facilities").select("name").execute()
-    all_facility_names = sorted([
-        f["name"].strip() for f in (all_facilities_res.data or []) if f.get("name")
-    ])
+        all_facilities_res = supabase.table("facilities").select("name").execute()
+        all_facility_names = sorted([
+            f["name"].strip() for f in (all_facilities_res.data or []) if f.get("name")
+        ])
 
-    facility_doctor_map_by_hour = {}
-    for slot in all_hour_slots:
-        slot_dt = slot["datetime"]
-        slot_doctors = doctors_by_hour.get(slot_dt, [])
-        fac_map = defaultdict(list)
+        facility_doctor_map_by_hour = {}
+        for slot in all_hour_slots:
+            slot_dt = slot["datetime"]
+            slot_doctors = doctors_by_hour.get(slot_dt, [])
+            fac_map = defaultdict(list)
 
-        for doc in slot_doctors:
-            doc_id = str(doc["id"]).strip()
-            doc_name = doc.get("name", "").strip()
-            for fac in facility_map.get(doc_id, []):
-                fac_map[fac].append(doc_name)
+            for doc in slot_doctors:
+                doc_id = str(doc["id"]).strip()
+                doc_name = doc.get("name", "").strip()
+                for fac in facility_map.get(doc_id, []):
+                    fac_map[fac].append(doc_name)
 
-        complete_map = {fac: fac_map.get(fac, []) for fac in all_facility_names}
-        facility_doctor_map_by_hour[slot_dt.isoformat()] = complete_map
+            complete_map = {fac: fac_map.get(fac, []) for fac in all_facility_names}
+            facility_doctor_map_by_hour[slot_dt.isoformat()] = complete_map
 
+        template_payload.update({
+            "uncovered_states_by_hour": uncovered_states_by_hour,
+            "covered_states_by_hour": covered_states_by_hour,
+            "state_doctor_map_by_hour": state_doctor_map_by_hour,
+            "facility_doctor_map_by_hour": facility_doctor_map_by_hour
+        })
 
-    return render_template('shifts.html', 
-                           weekly_data_by_day_and_color=sorted_weekly_data_by_day_and_color, 
-                           hourly_rvu_stats=hourly_rvu_stats,
-                           start_date=start_of_week.strftime("%B %d, %Y"),
-                           end_date=end_of_week.strftime("%B %d, %Y"), 
-                           prev_week_start=prev_week_start,
-                           next_week_start=next_week_start,
-                           doctors_by_hour=doctors_by_hour,
-                           uncovered_states_by_hour=uncovered_states_by_hour,
-                           covered_states_by_hour=covered_states_by_hour,
-                           state_doctor_map_by_hour=state_doctor_map_by_hour,
-                           facility_doctor_map_by_hour=facility_doctor_map_by_hour,
-                           datetime=datetime,
-                           now=now
-)
+    return render_template('shifts.html', **template_payload)
 
 
 @shifts_bp.route('/shifts/hour_detail', methods=["GET", "POST"])
@@ -1148,6 +1159,7 @@ def hour_detail():
     # States covered by scheduled doctors
     licensed_ids = set()
     licensed_by_state = defaultdict(set)
+    cert_rows = []
     if doctor_ids:
         # Do not filter by state here; certs may be stored as names or codes.
         cert_res = (
@@ -1157,14 +1169,62 @@ def hour_detail():
             .in_("radiologist_id", doctor_ids)
             .execute()
         )
-        print(f"[hour_detail] certifications rows: {len(cert_res.data or [])}")
-        for c in (cert_res.data or []):
+        cert_rows = cert_res.data or []
+        print(f"[hour_detail] certifications rows: {len(cert_rows)}")
+        for c in cert_rows:
             rid = c.get("radiologist_id")
             st = to_state_code(c.get("state"))
             if rid is not None:
                 licensed_ids.add(rid)
                 if st:
                     licensed_by_state[st].add(rid)
+
+    doctor_states_display = defaultdict(set)
+    for cert in cert_rows:
+        rid = str(cert.get("radiologist_id")).strip()
+        state = cert.get("state")
+        if rid and state:
+            doctor_states_display[rid].add(str(state).strip().title())
+
+    covered_states_set = set()
+    state_doctor_map = defaultdict(list)
+    for doc in on_shift:
+        doc_id = str(doc.get("id", "")).strip()
+        doc_name = doc.get("name", "").strip()
+        for state in doctor_states_display.get(doc_id, set()):
+            covered_states_set.add(state)
+            if doc_name:
+                state_doctor_map[state].append(doc_name)
+
+    uncovered_states = sorted(set(US_STATES) - covered_states_set)
+    covered_states = sorted(set(US_STATES) - set(uncovered_states))
+
+    facility_assignments_data = fetch_all_rows(
+        "doctor_facility_assignments",
+        "radiologist_id, can_read, facilities(name)"
+    )
+    facility_map = defaultdict(list)
+    for row in facility_assignments_data:
+        if str(row.get("can_read")).strip().lower() != "true":
+            continue
+        rad_id = str(row.get("radiologist_id", "")).strip()
+        facility_name = row.get("facilities", {}).get("name")
+        if rad_id and facility_name:
+            facility_map[rad_id].append(str(facility_name).strip())
+
+    all_facilities_res = supabase.table("facilities").select("name").execute()
+    all_facility_names = sorted([
+        f["name"].strip() for f in (all_facilities_res.data or []) if f.get("name")
+    ])
+
+    fac_map = defaultdict(list)
+    for doc in on_shift:
+        doc_id = str(doc.get("id", "")).strip()
+        doc_name = doc.get("name", "").strip()
+        for fac in facility_map.get(doc_id, []):
+            fac_map[fac].append(doc_name)
+
+    facility_doctor_map = {fac: fac_map.get(fac, []) for fac in all_facility_names}
 
     supply_licensed = 0
     for d in on_shift:
@@ -1519,6 +1579,10 @@ def hour_detail():
         "by_modality": by_modality_payload,
         "state_breakdown": state_breakdown_list,
         "modality_breakdown": modality_breakdown_list,
+        "covered_states": covered_states,
+        "uncovered_states": uncovered_states,
+        "state_doctor_map": dict(state_doctor_map),
+        "facility_doctor_map": facility_doctor_map,
         "supply_overall_rvus": supply_overall,
         "supply_licensed_rvus": supply_licensed,
         "supply_effective_allocated_rvus": matched_supply_detail,
