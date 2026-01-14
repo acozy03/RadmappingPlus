@@ -833,44 +833,53 @@
                   </td>
                   {% if session.user.role == 'admin' %}
                   <td class="px-4 py-2 border-b">
-                    <div class="flex flex-wrap gap-2 items-center">
+                    <div class="flex flex-nowrap gap-2 items-center">
                       <button type="button"
-                              class="bg-blue-100 text-blue-700 px-3 py-1 rounded hover:bg-blue-200 text-sm disabled:opacity-50 disabled:cursor-not-allowed"
+                              class="inline-flex h-9 w-9 items-center justify-center rounded bg-blue-100 text-blue-700 hover:bg-blue-200 text-sm disabled:opacity-50 disabled:cursor-not-allowed"
+                              title="Edit assignment"
+                              aria-label="Edit assignment"
                               @click="activeAssignmentId = activeAssignmentId === '{{ assignment.id }}' ? null : '{{ assignment.id }}'"
                               :disabled="activeAssignmentId && activeAssignmentId !== '{{ assignment.id }}'">
-                        Edit
+                        <i class="fas fa-edit"></i>
                       </button>
                       <form id="assignment-edit-{{ assignment.id }}"
                             action="{{ url_for('facilities.update_assignment', facility_id=facility.id, assignment_id=assignment.id) }}"
                             method="POST"
-                            class="inline-flex gap-2"
+                            class="inline-flex gap-2 flex-nowrap"
                             x-on:submit="savingAssignmentId = '{{ assignment.id }}'">
                         <button type="submit"
-                                class="bg-green-600 text-white px-3 py-1 rounded text-sm hover:bg-green-700 disabled:opacity-50 disabled:cursor-not-allowed"
+                                class="inline-flex h-9 w-9 items-center justify-center rounded bg-green-600 text-white text-sm hover:bg-green-700 disabled:opacity-50 disabled:cursor-not-allowed"
                                 x-show="activeAssignmentId === '{{ assignment.id }}'"
                                 x-cloak
-                                :disabled="savingAssignmentId === '{{ assignment.id }}'">
-                          <span x-show="savingAssignmentId !== '{{ assignment.id }}'">Save</span>
-                          <span x-show="savingAssignmentId === '{{ assignment.id }}'">Saving...</span>
+                                :disabled="savingAssignmentId === '{{ assignment.id }}'"
+                                title="Save assignment"
+                                aria-label="Save assignment">
+                          <span x-show="savingAssignmentId !== '{{ assignment.id }}'"><i class="fas fa-save"></i></span>
+                          <span x-show="savingAssignmentId === '{{ assignment.id }}'"><i class="fas fa-spinner fa-spin"></i></span>
                         </button>
                         <button type="button"
-                                class="bg-gray-200 text-gray-700 px-3 py-1 rounded text-sm hover:bg-gray-300"
+                                class="inline-flex h-9 w-9 items-center justify-center rounded bg-gray-200 text-gray-700 text-sm hover:bg-gray-300"
                                 x-show="activeAssignmentId === '{{ assignment.id }}'"
                                 x-cloak
-                                @click="activeAssignmentId = null">
-                          Cancel
+                                @click="activeAssignmentId = null"
+                                title="Cancel edit"
+                                aria-label="Cancel edit">
+                          <i class="fas fa-times"></i>
                         </button>
                       </form>
-                    <form action="{{ url_for('facilities.remove_assignment', facility_id=facility.id, assignment_id=assignment.id) }}"
-                          method="POST"
-                          style="display: inline;"
-                          onsubmit="handleFormDelete(event, this)"
-                          data-title="Remove Assignment"
-                          data-item-name="Assignment for {{ assignment.radiologists.name }}">
-                        <button type="submit" class="bg-red-100 text-red-700 px-3 py-1 rounded hover:bg-red-200 text-sm">
-                          Remove
+                      <form action="{{ url_for('facilities.remove_assignment', facility_id=facility.id, assignment_id=assignment.id) }}"
+                            method="POST"
+                            style="display: inline;"
+                            onsubmit="handleFormDelete(event, this)"
+                            data-title="Remove Assignment"
+                            data-item-name="Assignment for {{ assignment.radiologists.name }}">
+                        <button type="submit"
+                                class="inline-flex h-9 w-9 items-center justify-center rounded bg-red-100 text-red-700 hover:bg-red-200 text-sm"
+                                title="Remove assignment"
+                                aria-label="Remove assignment">
+                          <i class="fas fa-trash"></i>
                         </button>
-                    </form>
+                      </form>
                     </div>
                   </td>
                   {% endif %}
