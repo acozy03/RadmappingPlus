@@ -754,12 +754,7 @@
     <button onclick="closeCertModal()" class="absolute top-2 right-2 text-2xl font-bold modal-close">×</button>
 
     <h3 class="text-xl font-semibold mb-4 flex items-center gap-2">
-      <span class="inline-flex items-center justify-center w-8 h-8 accent-icon accent-icon--green rounded-full">
-        <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
-                d="M12 8v4l3 3m6 0a9 9 0 11-18 0 9 9 0 0118 0z" />
-        </svg>
-      </span>
+      
       Licenses for {{ doctor.name }}
     </h3>
 
@@ -839,12 +834,7 @@
     <button onclick="closeFacilityModal()" class="absolute top-2 right-2 text-2xl font-bold modal-close">×</button>
 
     <h3 class="text-xl font-semibold mb-4 flex items-center gap-2">
-      <span class="inline-flex items-center justify-center w-8 h-8 accent-icon accent-icon--purple rounded-full">
-        <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
-                d="M9 17v-2a2 2 0 012-2h2a2 2 0 012 2v2m-6 0a2 2 0 002 2h2a2 2 0 002-2m-6 0V7a2 2 0 012-2h2a2 2 0 012 2v10" />
-        </svg>
-      </span>
+      
       Facilities for {{ doctor.name }}
     </h3>
 
@@ -852,7 +842,7 @@
       <input type="text" placeholder="Search facilities..." oninput="filterFacilities(this.value)" class="w-full mr-4 px-3 py-2 border rounded text-sm">
       <div class="flex gap-2">
         {% if session.user.role == 'admin' %}
-          <button onclick="openAddFacilityModal()" class="btn btn-primary px-4 py-2 text-sm font-medium">Add Facility</button>
+          <button onclick="openAddFacilityModal()" class="btn btn-primary px-4 py-2 max-h-[3rem] text-sm font-medium">+</button>
         {% endif %}
       </div>
     </div>
@@ -863,10 +853,7 @@
         <div :class="activeAssignmentId === '{{ assignment.id }}' ? '{{ 'border-status-active' if assignment.facilities.active_status == 'true' else 'border-status-inactive' }}' : 'facility-divider'" class="flex flex-col gap-2 border rounded-lg p-3">
           <div class="flex items-center justify-between">
             <div class="flex items-center gap-3">
-              <span class="inline-flex items-center justify-center w-8 h-8 accent-icon accent-icon--indigo rounded-full">
-                <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4l3 3m6 0a9 9 0 11-18 0 9 9 0 0118 0z"/>
-                </svg>
+              
               </span>
               <div>
 <div class="font-semibold text-primary">{{ assignment.facilities.name }}</div>
