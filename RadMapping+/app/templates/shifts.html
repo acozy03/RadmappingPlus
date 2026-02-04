@@ -447,7 +447,7 @@
 
 <div class="overflow-x-auto">
     <div class="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-5 xl:grid-cols-7 gap-4 px-2 py-2">
-        {% set today_date = namespace(value=(datetime.utcnow().date())) %}
+        {% set today_date = namespace(value=(datetime.now().date())) %}
 
         {% for day, color_grouped_slots in weekly_data_by_day_and_color.items() %}
         {% set is_today = (day == today_date.value) %}

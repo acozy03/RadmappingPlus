@@ -344,8 +344,8 @@ def daily():
         if d:
             prev_date_hour_pairs.add((d, h))
 
-    dates_list = list({d for d, _ in prev_date_hour_pairs})
-    hours_list = list({h for _, h in prev_date_hour_pairs})
+    # dates_list = list({d for d, _ in prev_date_hour_pairs})
+    # hours_list = list({h for _, h in prev_date_hour_pairs})
     # capacity_res = supabase.table("capacity_per_hour").select("date", "hour", "total_rvus") \
     #     .in_("date", dates_list).in_("hour", hours_list).execute()
 
@@ -419,12 +419,12 @@ def get_prev_month_same_dow_and_hour(dt):
 def get_latest_nonzero_rvu(rvu_row):
     for m in ["dec", "nov", "oct", "sep", "aug", "jul", "jun", "may", "apr", "mar", "feb", "jan"]:
         val = rvu_row.get(m)
-        if val: return val
+        if val:
+            return val
     return 0
 
 @daily_bp.route("/daily/schedule-sync", methods=["POST"])
 def sync_schedule():
-    from flask import current_app
     token = request.headers.get("Authorization")
     sheet_name = request.json.get("sheet_name")
 
