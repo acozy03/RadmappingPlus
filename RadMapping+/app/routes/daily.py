@@ -48,8 +48,7 @@ def daily():
     user = session.get("user")
 
     date_str = request.args.get("date", None)
-    tz_offset = request.args.get("tz_offset")
-    print(f"Daily date param: {date_str}, tz_offset: {tz_offset}")
+    print(f"Daily date param: {date_str}")
 
     try:
         today_date = (

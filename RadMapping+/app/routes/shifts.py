@@ -1,12 +1,11 @@
 # RadMapping+/app/routes/shifts.py
 
-from flask import Blueprint, render_template, session, request, jsonify
+from flask import Blueprint, render_template, request, jsonify
 import json
 from datetime import datetime, timedelta
 from collections import defaultdict
 from app.supabase_client import get_supabase_client
 from app.middleware import with_supabase_auth
-from calendar import monthrange
 from app.supabase_helper import fetch_all_rows
 
 shifts_bp = Blueprint('shifts', __name__)
@@ -233,8 +232,7 @@ def shifts():
     supabase = get_supabase_client()
     
     date_str = request.args.get('date')
-    tz_offset = request.args.get('tz_offset')
-    print(f"Shifts date param: {date_str}, tz_offset: {tz_offset}")
+    print(f"Shifts date param: {date_str}")
     if date_str:
         now = datetime.strptime(date_str, '%Y-%m-%d')
     else:
@@ -403,7 +401,6 @@ def shifts():
 
     # 1) Prefetch state/modality demand rows for all (date,hour) pairs
     prev_dates = list({d for d, _ in unique_prev_keys})
-    prev_hours = list({h for _, h in unique_prev_keys})
     # Note: some deployments store the "hour" column as text. Using an IN filter with
     # integer hours can silently return no rows, which makes weekly tiles show 0 even
     # though per-hour modal fallback finds day data.
@@ -475,7 +472,7 @@ def shifts():
         'Michigan':'MI','Minnesota':'MN','Mississippi':'MS','Missouri':'MO','Montana':'MT','Nebraska':'NE','Nevada':'NV','New Hampshire':'NH','New Jersey':'NJ','New Mexico':'NM',
         'New York':'NY','North Carolina':'NC','North Dakota':'ND','Ohio':'OH','Oklahoma':'OK','Oregon':'OR','Pennsylvania':'PA','Rhode Island':'RI','South Carolina':'SC',
         'South Dakota':'SD','Tennessee':'TN','Texas':'TX','Utah':'UT','Vermont':'VT','Virginia':'VA','Washington':'WA','District of Columbia':'DC','West Virginia':'WV','Wisconsin':'WI','Wyoming':'WY',
-        'Puerto Rico':'PR','District Of Columbia':'DC','District of Columbia':'DC'
+        'Puerto Rico':'PR','District Of Columbia':'DC'
     }
     def to_state_code(val):
         if not val:
@@ -1146,7 +1143,7 @@ def hour_detail():
         'Michigan':'MI','Minnesota':'MN','Mississippi':'MS','Missouri':'MO','Montana':'MT','Nebraska':'NE','Nevada':'NV','New Hampshire':'NH','New Jersey':'NJ','New Mexico':'NM',
         'New York':'NY','North Carolina':'NC','North Dakota':'ND','Ohio':'OH','Oklahoma':'OK','Oregon':'OR','Pennsylvania':'PA','Rhode Island':'RI','South Carolina':'SC',
         'South Dakota':'SD','Tennessee':'TN','Texas':'TX','Utah':'UT','Vermont':'VT','Virginia':'VA','Washington':'WA','District of Columbia':'DC','West Virginia':'WV','Wisconsin':'WI','Wyoming':'WY',
-        'Puerto Rico':'PR','District Of Columbia':'DC','District of Columbia':'DC'
+        'Puerto Rico':'PR','District Of Columbia':'DC'
     }
     def to_state_code(val):
         if not val:
@@ -1343,7 +1340,6 @@ def hour_detail():
         groups_by_mod[g["mod"]].append(g)
 
     doctor_allocations = []
-    ALLOCATION_EPS = 0.0  # include all allocations; UI filters small values for display
     matched_supply_detail = 0.0
     # Helper to get doc base RVU
     def latest_nonzero_rvu(rr, weights, distribution_mode):
@@ -1545,15 +1541,6 @@ def hour_detail():
             "allocations": allocs,
             "modality_weights": mw_list
         })
-
-    algorithm_summary = [
-        "Start with same day/hour state+modality RVU demand.",
-        "For each on-shift doctor, take latest non-zero monthly RVU as hourly base.",
-        "Split the base by the doctor’s modality weights (normalized).",
-        "Within each modality portion, allocate across states where the doctor is licensed.",
-        "Cap each state/modality allocation at remaining demand so supply never exceeds demand.",
-        "Effective supply is the sum of all allocated RVUs across doctors."
-    ]
 
     # Convert breakdown dicts to lists for JSON friendliness
     state_breakdown_list = {

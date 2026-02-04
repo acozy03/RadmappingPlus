@@ -4,24 +4,6 @@
 
 {% block content %}
 
-  <script>
-    (() => {
-      const url = new URL(window.location.href);
-      if (url.searchParams.has('date')) {
-        return;
-      }
-      const now = new Date();
-      const localDate = [
-        now.getFullYear(),
-        String(now.getMonth() + 1).padStart(2, '0'),
-        String(now.getDate()).padStart(2, '0')
-      ].join('-');
-      url.searchParams.set('date', localDate);
-      url.searchParams.set('tz_offset', String(now.getTimezoneOffset()));
-      window.location.replace(url.toString());
-    })();
-  </script>
-
   <script type="application/json" id="doctors-by-timezone">
     {{ doctors_by_timezone | tojson | safe }}
   </script>
