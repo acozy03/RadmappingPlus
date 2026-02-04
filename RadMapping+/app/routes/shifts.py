@@ -262,7 +262,10 @@ def shifts():
             current_hour += timedelta(hours=1)
         current_day += timedelta(days=1)
     query = supabase.table("monthly_schedule") \
-        .select("*, radiologists(*)") \
+        .select(
+            "start_date,end_date,start_time,end_time,break_start,break_end,"
+            "radiologists(id,name)"
+        ) \
         .lte("start_date", end_date_str) \
         .gte("end_date", start_date_str)
 
@@ -344,7 +347,9 @@ def shifts():
                     doctors_by_hour[slot_start].append(doc)
 
 
-    metrics_res = supabase.table("rad_metrics").select("radiologist_id,rvu,volatility").execute()
+    metrics_res = (
+        supabase.table("rad_metrics").select("radiologist_id,rvu,volatility").execute()
+    )
     metrics_rows = {row["radiologist_id"]: row for row in (metrics_res.data or [])}
 
     all_hour_slots = [slot for day_slots in hour_slots_by_day.values() for slot in day_slots]
@@ -412,8 +417,8 @@ def shifts():
         while True:
             _res = (
                 supabase
-                .table("capacity_per_hour_breakdown")
-                .select("date,hour,state,modality,total_rvus")
+            .table("capacity_per_hour_breakdown")
+            .select("date,hour,state,modality,total_rvus")
                 .in_("date", prev_dates)
                 .range(_offset, _offset + _batch - 1)
                 .execute()
@@ -814,7 +819,6 @@ def shifts():
         "end_date": end_of_week.strftime("%B %d, %Y"),
         "prev_week_start": prev_week_start,
         "next_week_start": next_week_start,
-        "doctors_by_hour": doctors_by_hour,
         "coverage_filters_enabled": COVERAGE_FILTERS_ENABLED,
         "datetime": datetime,
         "now": now
@@ -1035,7 +1039,10 @@ def hour_detail():
     sched_q = (
         supabase
         .table("monthly_schedule")
-        .select("*, radiologists(*)")
+        .select(
+            "start_date,end_date,start_time,end_time,break_start,break_end,"
+            "radiologists(id,name)"
+        )
         .lte("start_date", date_str)
         .gte("end_date", date_str)
     )
