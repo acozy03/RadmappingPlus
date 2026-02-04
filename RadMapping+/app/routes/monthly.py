@@ -149,6 +149,8 @@ def search_schedule():
     month = request.args.get('month', datetime.now().month, type=int)
 
     query = supabase.table("radiologists").select("*")
+    # Only include active doctors in search results
+    query = query.eq("active_status", True)
 
     if search_term:
         query = query.ilike('name', f'%{search_term}%')
@@ -348,4 +350,4 @@ def update_schedule(rad_id):
     year = request.form.get("year")
     month = request.form.get("month")
     start_day = request.form.get("start_day")
-    return redirect(url_for("monthly.monthly", year=year, month=month, start_day=start_day)) 
+    return redirect(url_for("monthly.monthly", year=year, month=month, start_day=start_day))

@@ -1,10 +1,8 @@
 radmapping_service.json
-
 __pycache__/
-
 utils/
 *.env
 .env.yaml
-
 index_store/
+venv/
 

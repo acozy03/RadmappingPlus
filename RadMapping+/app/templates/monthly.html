@@ -409,11 +409,14 @@ table, th, td {
   color: var(--monthly-link);
 }
 
+/* Commented out .monthly-routine-badge CSS (unused after removal) */
+/*
 .monthly-routine-badge {
   background: var(--monthly-badge-bg) !important;
   color: var(--monthly-badge-text) !important;
   border: 1px solid var(--monthly-border);
 }
+*/
 
 .monthly-modal {
   background: var(--monthly-modal-bg) !important;
@@ -633,13 +636,18 @@ class VirtualScheduleTable {
         const nameCell = document.createElement('td');
         nameCell.className = 'sticky-left-cell monthly-sticky-cell z-20 w-48 px-4 py-2 font-medium text-left';
         const isPinned = pinnedDoctors.includes(doctor.id);
+
+        // Routine badge removed for monthly schedule UI per request.
+        // Kept original snippet commented for quick restore:
+        // ${ /* doctor.reads_routines ? '<span class="monthly-routine-badge inline-flex items-center justify-center text-xs font-bold text-purple-700 bg-purple-100 h-5 px-2 rounded" title="Routines">R</span>' : '' */ }
+
         nameCell.innerHTML = `
             <div class="flex items-center gap-2">
                 ${isPinned ? '<span title="Pinned Doctor" class="text-yellow-500 text-sm">⭐</span>' : ''}
                 <a href="/radmapping/doctors/${doctor.id}" target="_blank" class="monthly-doctor-link text-blue-600 hover:underline">
                     ${doctor.name}
                 </a>
-                ${doctor.reads_routines ? '<span class="monthly-routine-badge inline-flex items-center justify-center text-xs font-bold text-purple-700 bg-purple-100 h-5 px-2 rounded" title="Routines">R</span>' : ''}
+                <!-- Routine badge removed from monthly schedule UI -->
             </div>
         `;
         row.appendChild(nameCell);
