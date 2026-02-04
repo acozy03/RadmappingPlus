@@ -1,11 +1,14 @@
 from flask import Blueprint, render_template, session, redirect, url_for, request, jsonify
 from app.admin_required import admin_required
-from datetime import datetime, timedelta 
+from datetime import datetime, timedelta
+from zoneinfo import ZoneInfo
 import uuid
 from app.middleware import with_supabase_auth
 from app.supabase_client import get_supabase_client
 import logging 
 from app.audit_log import log_audit_action
+
+EASTERN = ZoneInfo("US/Eastern")  
 vacations_bp = Blueprint('vacations', __name__)
 
 @vacations_bp.route('/vacations')
@@ -43,7 +46,7 @@ def vacations_page():
                 vacation["end_date"] = None 
         processed_vacations.append(vacation) 
 
-    today = datetime.now().date()
+    today = datetime.now(EASTERN).date()
     month_start = today.replace(day=1)
     next_month = (today.replace(day=28) + timedelta(days=4)).replace(day=1)
     month_end = next_month - timedelta(days=1)

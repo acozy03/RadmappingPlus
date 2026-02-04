@@ -3,7 +3,9 @@ from flask import Blueprint, render_template, session, request, jsonify
 from app.supabase_client import get_supabase_client
 from app.middleware import with_supabase_auth
 from datetime import datetime, timedelta, timezone
+from zoneinfo import ZoneInfo
 from calendar import monthrange
+EASTERN = ZoneInfo("US/Eastern")  
 from collections import defaultdict
 import re
 from app.schedule_sync import run_google_sheet_sync
@@ -55,11 +57,11 @@ def daily():
         today_date = (
             datetime.strptime(date_str, "%Y-%m-%d").date()
             if date_str else
-            datetime.now().date()
+            datetime.now(EASTERN).date()
         )
     except Exception as e:
         print(f"Invalid date_str format: {e}. Defaulting to today.")
-        today_date = datetime.now().date()
+        today_date = datetime.now(EASTERN).date()
 
     today = today_date.strftime("%Y-%m-%d")
     prev_date = (today_date - timedelta(days=1)).strftime("%Y-%m-%d")

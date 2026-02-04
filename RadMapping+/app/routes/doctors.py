@@ -4,10 +4,13 @@ from app.supabase_client import get_supabase_client
 from app.middleware import with_supabase_auth
 from app.audit_log import log_audit_action 
 from datetime import datetime, timedelta
+from zoneinfo import ZoneInfo
 from calendar import monthrange
 import uuid
 from threading import Thread
 from postgrest import APIError
+
+EASTERN = ZoneInfo("US/Eastern")  
 doctors_bp = Blueprint('doctors', __name__)
 
 @doctors_bp.route('/doctors')
@@ -97,8 +100,8 @@ def search_doctors():
 @with_supabase_auth
 def doctor_profile(rad_id):
     supabase = get_supabase_client()
-    now = datetime.now()
-    today_str = datetime.now().strftime("%Y-%m-%d")
+    now = datetime.now(EASTERN)
+    today_str = now.strftime("%Y-%m-%d")
     year = request.args.get("year", default=now.year, type=int)
     month = request.args.get("month", default=now.month, type=int)
     

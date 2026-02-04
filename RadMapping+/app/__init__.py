@@ -1,8 +1,11 @@
 from flask import Flask, session, redirect, url_for, request
 from config import Config
 from datetime import datetime
+from zoneinfo import ZoneInfo
 from dotenv import load_dotenv
 from .admin_required import admin_required
+
+EASTERN = ZoneInfo("US/Eastern")  
 
 
 def create_app():
@@ -33,8 +36,8 @@ def create_app():
 
     @app.context_processor
     def inject_now():
-        current_time = datetime.now()
-        print(f"Injecting 'now' into Jinja context: {current_time}") 
+        current_time = datetime.now(EASTERN)
+        print(f"Injecting 'now' into Jinja context (EST): {current_time}") 
         return {'now': current_time}
 
     def format_ampm(value):

@@ -1,7 +1,10 @@
 from flask import Blueprint, render_template, session, redirect, url_for, request, jsonify
 from app.admin_required import admin_required
 from datetime import datetime, timedelta
+from zoneinfo import ZoneInfo
 from calendar import monthrange
+
+EASTERN = ZoneInfo("US/Eastern") 
 from collections import defaultdict
 import uuid
 import calendar as pycalendar
@@ -16,7 +19,7 @@ supabase = get_supabase_client()
 @with_supabase_auth
 def monthly():
     supabase = get_supabase_client()
-    now = datetime.now()
+    now = datetime.now(EASTERN)
     year = request.args.get("year", default=now.year, type=int)
     month = request.args.get("month", default=now.month, type=int)
     start_day = request.args.get("start_day", default=1, type=int)
@@ -145,8 +148,9 @@ def search_schedule():
     offset = (page - 1) * per_page
 
     search_term = request.args.get('search', '').strip()
-    year = request.args.get('year', datetime.now().year, type=int)
-    month = request.args.get('month', datetime.now().month, type=int)
+    now_est = datetime.now(EASTERN)
+    year = request.args.get('year', now_est.year, type=int)
+    month = request.args.get('month', now_est.month, type=int)
 
     query = supabase.table("radiologists").select("*")
     # Only include active doctors in search results
