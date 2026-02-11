@@ -119,16 +119,13 @@
                 </thead>
                 <tbody class="bg-white divide-y divide-gray-200 vacations-table-body" id="vacationTableBody">
                     {% for vacation in vacations %}
-                    {# These variables are now datetime objects due to backend processing #}
                     {% set start_date = vacation.start_date %}
                     {% set end_date = vacation.end_date %}
-                    {# Corrected: access now.date directly #}
-                    {% set today = now.date() %} 
-                    {% set is_current = start_date.date() <= today and today <= end_date.date() %} 
-                    {% set is_upcoming = start_date.date() > today %} 
-                    {% set is_past = end_date.date() < today %} 
+                    {% if start_date and end_date %}
+                    {% set is_current = start_date.date() <= today and today <= end_date.date() %}
+                    {% set is_upcoming = start_date.date() > today %}
                     {% set duration = (end_date - start_date).days + 1 %}
-                    
+
                     <tr class="hover:bg-gray-50 transition-colors vacation-row">
                         <td class="px-6 py-4 whitespace-nowrap">
                             <div class="flex items-center">
@@ -155,26 +152,55 @@
                         <td class="px-6 py-4 whitespace-nowrap">
                             <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-blue-100 text-blue-800">
                                 <i class="fas fa-hourglass-half mr-1"></i>
+                                {% if vacation.half_day %}
+                                0.5 day
+                                {% else %}
                                 {{ duration }} day{% if duration != 1 %}s{% endif %}
+                                {% endif %}
                             </span>
                         </td>
-                        <td class="px-6 py-4 whitespace-nowrap">
-                            {% if is_current %}
-                            <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-green-100 text-green-800">
-                                <i class="fas fa-circle mr-1 text-green-500"></i>
-                                Active
-                            </span>
-                            {% elif is_upcoming %}
-                            <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-yellow-100 text-yellow-800">
-                                <i class="fas fa-clock mr-1 text-yellow-500"></i>
-                                Upcoming
-                            </span>
-                            {% else %}
-                            <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-gray-100 text-gray-800">
-                                <i class="fas fa-check mr-1 text-gray-500"></i>
-                                Completed
-                            </span>
-                            {% endif %}
+                        <td class="px-6 py-4 whitespace-nowrap space-y-2">
+                            <div>
+                                {% if vacation.status == 'approved' %}
+                                <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-green-100 text-green-800">
+                                    <i class="fas fa-check-circle mr-1 text-green-500"></i>
+                                    Approved
+                                </span>
+                                {% elif vacation.status == 'rejected' %}
+                                <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-red-100 text-red-800">
+                                    <i class="fas fa-times-circle mr-1 text-red-500"></i>
+                                    Rejected
+                                </span>
+                                {% elif vacation.status == 'cancelled' %}
+                                <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-gray-100 text-gray-800">
+                                    <i class="fas fa-ban mr-1 text-gray-500"></i>
+                                    Cancelled
+                                </span>
+                                {% else %}
+                                <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-yellow-100 text-yellow-800">
+                                    <i class="fas fa-hourglass-start mr-1 text-yellow-500"></i>
+                                    Pending
+                                </span>
+                                {% endif %}
+                            </div>
+                            <div>
+                                {% if is_current %}
+                                <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-green-100 text-green-800">
+                                    <i class="fas fa-circle mr-1 text-green-500"></i>
+                                    Active
+                                </span>
+                                {% elif is_upcoming %}
+                                <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-yellow-100 text-yellow-800">
+                                    <i class="fas fa-clock mr-1 text-yellow-500"></i>
+                                    Upcoming
+                                </span>
+                                {% else %}
+                                <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-gray-100 text-gray-800">
+                                    <i class="fas fa-check mr-1 text-gray-500"></i>
+                                    Completed
+                                </span>
+                                {% endif %}
+                            </div>
                         </td>
                         <td class="px-6 py-4">
                             {% if vacation.comments %}
@@ -188,11 +214,11 @@
                         {% if session.user.role == 'admin' %}
                         <td class="px-6 py-4 whitespace-nowrap text-sm font-medium">
                             <div class="flex items-center space-x-2">
-                                <button onclick="openEditVacationModal('{{ vacation.id }}')" 
+                                <button onclick="openEditVacationModal('{{ vacation.id }}')"
                                         class="inline-flex items-center px-3 py-1.5 border border-transparent text-xs font-medium rounded-md text-blue-700 bg-blue-100 hover:bg-blue-200 transition-colors">
                                     <i class="fas fa-edit mr-1"></i>Edit
                                 </button>
-                                <button onclick="deleteVacation('{{ vacation.id }}')" 
+                                <button onclick="deleteVacation('{{ vacation.id }}')"
                                         class="inline-flex items-center px-3 py-1.5 border border-transparent text-xs font-medium rounded-md text-red-700 bg-red-100 hover:bg-red-200 transition-colors">
                                     <i class="fas fa-trash mr-1"></i>Delete
                                 </button>
@@ -200,6 +226,7 @@
                         </td>
                         {% endif %}
                     </tr>
+                    {% endif %}
                     {% else %}
                     <tr id="noVacationsRow">
                         <td colspan="7" class="px-6 py-12 text-center">
@@ -268,9 +295,26 @@
             </div>
             <div>
                 <label class="block text-sm font-medium text-gray-700 mb-2">
+                    <i class="fas fa-tag text-emerald-500 mr-2"></i>Status
+                </label>
+                <select name="status"
+                        class="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500 transition-colors">
+                    <option value="pending">Pending</option>
+                    <option value="approved">Approved</option>
+                    <option value="rejected">Rejected</option>
+                    <option value="cancelled">Cancelled</option>
+                </select>
+            </div>
+            <div class="flex items-center">
+                <input type="checkbox" name="half_day" id="addHalfDay"
+                       class="h-4 w-4 text-emerald-600 border-gray-300 rounded focus:ring-emerald-500">
+                <label for="addHalfDay" class="ml-2 block text-sm text-gray-700">Half-day vacation</label>
+            </div>
+            <div>
+                <label class="block text-sm font-medium text-gray-700 mb-2">
                     <i class="fas fa-comment text-emerald-500 mr-2"></i>Comments
                 </label>
-                <textarea name="comments" rows="3" 
+                <textarea name="comments" rows="3"
                           class="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500 transition-colors resize-none"
                           placeholder="Enter any additional notes (optional)"></textarea>
             </div>
@@ -329,6 +373,23 @@
                 </label>
                 <input type="date" name="end_date" required id="editEndDate"
                        class="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-colors">
+            </div>
+            <div>
+                <label class="block text-sm font-medium text-gray-700 mb-2">
+                    <i class="fas fa-tag text-blue-500 mr-2"></i>Status
+                </label>
+                <select name="status" id="editStatus"
+                        class="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-colors">
+                    <option value="pending">Pending</option>
+                    <option value="approved">Approved</option>
+                    <option value="rejected">Rejected</option>
+                    <option value="cancelled">Cancelled</option>
+                </select>
+            </div>
+            <div class="flex items-center">
+                <input type="checkbox" name="half_day" id="editHalfDay"
+                       class="h-4 w-4 text-blue-600 border-gray-300 rounded focus:ring-blue-500">
+                <label for="editHalfDay" class="ml-2 block text-sm text-gray-700">Half-day vacation</label>
             </div>
             <div>
                 <label class="block text-sm font-medium text-gray-700 mb-2">
@@ -643,6 +704,8 @@ function openEditVacationModal(vacationId) {
             document.getElementById('editEndDate').value = endDate.toISOString().split('T')[0];
         }
         document.getElementById('editComments').value = vacation.comments || '';
+        document.getElementById('editStatus').value = vacation.status || 'pending';
+        document.getElementById('editHalfDay').checked = Boolean(vacation.half_day);
     }
     document.getElementById('editVacationModal').classList.remove('hidden');
 }
@@ -721,20 +784,49 @@ document.addEventListener('DOMContentLoaded', function() {
     const today = new Date().toISOString().split('T')[0];
     const startDateInputs = document.querySelectorAll('input[name="start_date"]');
     const endDateInputs = document.querySelectorAll('input[name="end_date"]');
-    
+
+    function syncHalfDayState(form) {
+        const halfDayInput = form.querySelector('input[name="half_day"]');
+        const startDateInput = form.querySelector('input[name="start_date"]');
+        const endDateInput = form.querySelector('input[name="end_date"]');
+
+        if (!halfDayInput || !startDateInput || !endDateInput) {
+            return;
+        }
+
+        const enforceHalfDayDate = () => {
+            if (halfDayInput.checked && startDateInput.value) {
+                endDateInput.value = startDateInput.value;
+                endDateInput.readOnly = true;
+            } else {
+                endDateInput.readOnly = false;
+            }
+        };
+
+        halfDayInput.addEventListener('change', enforceHalfDayDate);
+        startDateInput.addEventListener('change', enforceHalfDayDate);
+        enforceHalfDayDate();
+    }
+
     startDateInputs.forEach(input => {
         input.min = today;
         input.addEventListener('change', function() {
             const endDateInput = this.closest('form').querySelector('input[name="end_date"]');
-            if (endDateInput) { 
-                endDateInput.min = this.value;
+            const halfDayInput = this.closest('form').querySelector('input[name="half_day"]');
+            if (endDateInput) {
+                endDateInput.min = this.value || today;
+                if (halfDayInput && halfDayInput.checked) {
+                    endDateInput.value = this.value;
+                }
             }
         });
     });
-    
+
     endDateInputs.forEach(input => {
         input.min = today;
     });
+
+    document.querySelectorAll('#addVacationModal form, #editVacationModal form').forEach(syncHalfDayState);
 
     const addVacationModal = document.getElementById('addVacationModal');
     const addVacationModalContent = document.getElementById('addVacationModalContent');
