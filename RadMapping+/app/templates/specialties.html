@@ -2,17 +2,17 @@
 {% block title %}Specialties{% endblock %}
 {% block content %}
     <div id="specialtiesPage" class="specialties-page">
-        <div class="container mx-auto px-4 py-8">
+        <div class="px-4 py-8">
             <div class="flex flex-col lg:flex-row lg:items-center lg:justify-between mb-8">
                 <div class="mb-6 lg:mb-0">
-                    <h1 class="text-3xl font-bold specialties-title mb-2 flex items-center">Specialty Studies Management</h1>
-                    <p class="specialties-subtitle">Manage medical specialties and doctor assignments</p>
+                    <h1 class="text-3xl font-bold specialties-title mb-2 flex items-center">Exam Type Management</h1>
+                    <p class="specialties-subtitle">View and manage specialty / general exam privileges</p>
                 </div>
                 {% if session.user.role == 'admin' %}
                     <button onclick="openAddSpecialtyModal()"
                             class="inline-flex items-center px-6 py-3 font-medium rounded-lg shadow-lg hover:shadow-xl transform hover:-translate-y-0.5 transition-all duration-200 specialties-primary-button">
                         <i class="fas fa-plus mr-2"></i>
-                        Add New Specialty
+                        Add New Exam Type
                     </button>
                 {% endif %}
             </div>
@@ -23,7 +23,7 @@
                     </div>
                     <input type="text"
                            id="specialtySearch"
-                           placeholder="Search specialties/exams by name, description, or type..."
+                           placeholder="Search specialties/exams by name..."
                            class="w-full pl-10 pr-4 py-3 rounded-lg transition-colors shadow-sm specialties-input"
                            oninput="filterTable()">
                 </div>
@@ -33,13 +33,28 @@
                     <table class="min-w-full specialties-table">
                         <thead>
                             <tr>
-                                <th scope="col">Study Name</th>
-                                <th scope="col">Type</th>
-                                <th scope="col">Description</th>
+                                <th scope="col" class="cursor-pointer specialties-sort-header" data-sort="name">
+                                    <div class="flex items-center">
+                                        Study Name
+                                        <span class="ml-2 specialties-sort-indicator">↕</span>
+                                    </div>
+                                </th>
+                                <th scope="col" class="cursor-pointer specialties-sort-header" data-sort="type">
+                                    <div class="flex items-center">
+                                        Type
+                                        <span class="ml-2 specialties-sort-indicator">↕</span>
+                                    </div>
+                                </th>
+                                <th scope="col" class="cursor-pointer specialties-sort-header" data-sort="description">
+                                    <div class="flex items-center">
+                                        Description
+                                        <span class="ml-2 specialties-sort-indicator">↕</span>
+                                    </div>
+                                </th>
                                 <th scope="col" class="text-right">Actions</th>
                             </tr>
                         </thead>
-                        <tbody>
+                        <tbody id="specialtiesTableBody">
                             {% for specialty in specialties %}
                                 <tr class="specialty-row"
                                     data-name="{{ specialty.name|lower }}"
@@ -51,7 +66,7 @@
                                     <td>
                                         <span class="specialty-type-badge"
                                               data-type="{{ 'specialty' if specialty.is_specialty else 'exam' }}">
-                                            {{ 'Specialty' if specialty.is_specialty else 'Regular Exam' }}
+                                            {{ 'Specialty' if specialty.is_specialty else 'General Exam' }}
                                         </span>
                                     </td>
                                     <td>
@@ -128,7 +143,7 @@
                                        name="is_specialty"
                                        value="on"
                                        class="specialties-checkbox">
-                                <span>Mark as a true specialty (unchecked = regular exam)</span>
+                                <span>Mark as a true specialty (unchecked = general exam)</span>
                             </label>
                         </div>
                         <div class="flex justify-end gap-3">
@@ -428,6 +443,19 @@
   color: var(--sp-text-muted);
   background: var(--sp-secondary-bg);
   border-bottom: 1px solid var(--sp-card-border);
+}
+
+.specialties-sort-header {
+  user-select: none;
+}
+
+.specialties-sort-indicator {
+  color: var(--sp-icon-muted);
+  font-size: 0.78rem;
+}
+
+.specialties-sort-indicator.active {
+  color: var(--sp-highlight);
 }
 
 .specialties-table tbody td {
@@ -851,6 +879,7 @@
     <script src="//unpkg.com/alpinejs" defer></script>
     <script>
 const isAdmin = "{{ 'true' if session.user.role == 'admin' else 'false' }}" === 'true';
+let specialtySort = { column: 'name', direction: 'asc' };
 
 function openAddSpecialtyModal() {
   document.getElementById('addSpecialtyModal').classList.remove('hidden');
@@ -886,9 +915,55 @@ function updatePermission(checkbox) {
 }
 
 function filterTable() {
-  const specialtyQuery = document.getElementById('specialtySearch').value.toLowerCase();
+  applyFiltersAndSort();
+}
 
-  const rows = document.querySelectorAll('.specialty-row');
+function getSpecialtySortValue(row, column) {
+  if (column === 'name') {
+    return row.dataset.name || '';
+  }
+
+  if (column === 'description') {
+    return row.dataset.description || '';
+  }
+
+  if (column === 'type') {
+    return row.dataset.type || '';
+  }
+
+  return '';
+}
+
+function updateSpecialtySortIndicators() {
+  document.querySelectorAll('.specialties-sort-indicator').forEach(indicator => {
+    indicator.textContent = '↕';
+    indicator.classList.remove('active');
+  });
+
+  const activeHeader = document.querySelector(`.specialties-sort-header[data-sort="${specialtySort.column}"]`);
+  if (!activeHeader) {
+    return;
+  }
+
+  const activeIndicator = activeHeader.querySelector('.specialties-sort-indicator');
+  if (activeIndicator) {
+    activeIndicator.textContent = specialtySort.direction === 'asc' ? '↑' : '↓';
+    activeIndicator.classList.add('active');
+  }
+}
+
+function applyFiltersAndSort() {
+  const specialtyQuery = document.getElementById('specialtySearch').value.toLowerCase();
+  const tableBody = document.getElementById('specialtiesTableBody');
+
+  if (!tableBody) {
+    return;
+  }
+
+  const rows = Array.from(document.querySelectorAll('.specialty-row'));
+  const matchingRows = [];
+  const hiddenRows = [];
+
   rows.forEach(row => {
     const name = row.dataset.name || '';
     const description = row.dataset.description || '';
@@ -896,11 +971,53 @@ function filterTable() {
 
     if (name.includes(specialtyQuery) || description.includes(specialtyQuery) || type.includes(specialtyQuery)) {
       row.style.display = '';
+      matchingRows.push(row);
     } else {
       row.style.display = 'none';
+      hiddenRows.push(row);
     }
   });
+
+  matchingRows.sort((rowA, rowB) => {
+    const valueA = getSpecialtySortValue(rowA, specialtySort.column);
+    const valueB = getSpecialtySortValue(rowB, specialtySort.column);
+
+    if (valueA < valueB) {
+      return specialtySort.direction === 'asc' ? -1 : 1;
+    }
+
+    if (valueA > valueB) {
+      return specialtySort.direction === 'asc' ? 1 : -1;
+    }
+
+    return 0;
+  });
+
+  [...matchingRows, ...hiddenRows].forEach(row => {
+    tableBody.appendChild(row);
+  });
+
+  updateSpecialtySortIndicators();
 }
+
+document.addEventListener('DOMContentLoaded', () => {
+  document.querySelectorAll('.specialties-sort-header[data-sort]').forEach(header => {
+    header.addEventListener('click', () => {
+      const { sort: column } = header.dataset;
+
+      if (specialtySort.column === column) {
+        specialtySort.direction = specialtySort.direction === 'asc' ? 'desc' : 'asc';
+      } else {
+        specialtySort.column = column;
+        specialtySort.direction = 'asc';
+      }
+
+      applyFiltersAndSort();
+    });
+  });
+
+  applyFiltersAndSort();
+});
 
 function showDoctorsForSpecialty(specialtyId, specialtyName) {
   const modal = document.getElementById('specialtyDoctorsModal');
