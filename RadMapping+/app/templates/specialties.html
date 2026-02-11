@@ -1,264 +1,284 @@
 {% extends "layout.html" %}
 {% block title %}Specialties{% endblock %}
-
 {% block content %}
-<div id="specialtiesPage" class="specialties-page">
-  <div class="container mx-auto px-4 py-8">
-    <div class="flex flex-col lg:flex-row lg:items-center lg:justify-between mb-8">
-      <div class="mb-6 lg:mb-0">
-      <h1 class="text-3xl font-bold specialties-title mb-2 flex items-center">
-        Specialty Studies Management
-      </h1>
-      <p class="specialties-subtitle">Manage medical specialties and doctor assignments</p>
-    </div>
-      {% if session.user.role == 'admin' %}
-      <button onclick="openAddSpecialtyModal()"
-              class="inline-flex items-center px-6 py-3 font-medium rounded-lg shadow-lg hover:shadow-xl transform hover:-translate-y-0.5 transition-all duration-200 specialties-primary-button">
-        <i class="fas fa-plus mr-2"></i>
-        Add New Specialty
-      </button>
-      {% endif %}
-    </div>
-
-    <div class="mb-8">
-      <div class="relative max-w-md">
-        <div class="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
-          <i class="fas fa-search specialties-icon-muted"></i>
-        </div>
-        <input type="text" id="specialtySearch"
-               placeholder="Search specialties/exams by name, description, or type..."
-               class="w-full pl-10 pr-4 py-3 rounded-lg transition-colors shadow-sm specialties-input"
-               oninput="filterTable()">
-      </div>
-    </div>
-
-    <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
-      {% for specialty in specialties %}
-      <div class="specialty-card group rounded-xl shadow-sm p-6 hover:shadow-lg hover:-translate-y-1 transition-all duration-300 relative overflow-hidden flex flex-col specialties-card"
-           data-name="{{ specialty.name|lower }}"
-           data-description="{{ (specialty.description or '')|lower }}"
-           data-type="{{ 'specialty' if specialty.is_specialty else 'exam' }}">
-        <div class="absolute top-0 left-0 w-full h-1 specialties-card-accent"></div>
-
-        <div class="flex items-start justify-between mb-4">
-          <div class="flex-1">
-            <h3 class="text-lg font-semibold specialties-card-title mb-2 transition-colors">
-              {{ specialty.name }}
-            </h3>
-            <span class="specialty-type-badge" data-type="{{ 'specialty' if specialty.is_specialty else 'exam' }}">
-              {{ 'Specialty' if specialty.is_specialty else 'Exam' }}
-            </span>
-          </div>
-
-          {% if session.user.role == 'admin' %}
-          <div class="flex gap-2 ml-3">
-            <button onclick="openEditDoctorsModal('{{ specialty.id }}', '{{ specialty.name|escape }}')"
-                    class="p-2 rounded-lg transition-colors specialties-icon-button specialties-icon-button--edit"
-                    title="Edit Doctors">
-              <i class="fas fa-user-edit text-sm"></i>
-            </button>
-            <button onclick="confirmDeleteSpecialty('{{ specialty.id }}', '{{ specialty.name|escape }}')"
-                    class="p-2 rounded-lg transition-colors specialties-icon-button specialties-icon-button--delete"
-                    title="Delete Specialty">
-              <i class="fas fa-trash text-sm"></i>
-            </button>
-          </div>
-          {% endif %}
-        </div>
-
-        <button onclick="showDoctorsForSpecialty('{{ specialty.id }}', '{{ specialty.name|escape }}')"
-                class="w-full inline-flex items-center justify-center px-4 py-2 font-medium rounded-lg transition-colors group mt-auto specialties-card-action">
-          <i class="fas fa-users mr-2"></i>
-          View Assigned Doctors
-          <i class="fas fa-arrow-right ml-2 transform group-hover:translate-x-1 transition-transform"></i>
-        </button>
-      </div>
-      {% endfor %}
-    </div>
-
-    <div id="addSpecialtyModal" class="fixed inset-0 z-50 hidden bg-black bg-opacity-50 flex items-center justify-center p-4">
-      <div class="rounded-xl shadow-2xl w-full max-w-md max-h-[90vh] overflow-y-auto transform transition-all specialties-modal" id="addSpecialtyModalContent">
-      <div class="flex items-center justify-between p-6 specialties-modal-header">
-        <div class="flex items-center">
-          <div class="w-8 h-8 rounded-lg flex items-center justify-center mr-3 specialties-modal-icon specialties-modal-icon--add">
-            <i class="fas fa-plus text-sm"></i>
-          </div>
-          <h3 class="text-lg font-semibold specialties-modal-title">Add New Specialty</h3>
-        </div>
-        <button onclick="closeAddSpecialtyModal()" class="p-2 rounded-lg transition-colors specialties-close-button">
-          <i class="fas fa-times"></i>
-        </button>
-      </div>
-
-        <form method="POST" action="{{ url_for('specialties.add_specialty') }}" class="p-6">
-          <div class="mb-6">
-          <label class="block text-sm font-medium mb-2 specialties-label">
-            <i class="fas fa-tag mr-2 specialties-icon-accent"></i>Specialty Name
-          </label>
-          <input type="text" name="name" required
-                 class="w-full px-4 py-3 rounded-lg transition-colors specialties-input"
-                 placeholder="Enter specialty name">
-        </div>
-
-        <div class="mb-6">
-          <label class="block text-sm font-medium mb-2 specialties-label">
-            <i class="fas fa-align-left mr-2 specialties-icon-accent"></i>Description
-          </label>
-          <textarea name="description" rows="4"
-                    class="w-full px-4 py-3 rounded-lg transition-colors resize-none specialties-input specialties-textarea"
-                    placeholder="Enter specialty description (optional)"></textarea>
-        </div>
-
-        <div class="mb-6">
-          <label class="inline-flex items-center gap-3 specialties-label">
-            <input type="checkbox" name="is_specialty" value="on" class="specialties-checkbox">
-            <span>Mark as a true specialty (unchecked = exam)</span>
-          </label>
-        </div>
-
-          <div class="flex justify-end gap-3">
-            <button type="button" onclick="closeAddSpecialtyModal()"
-                    class="px-4 py-2 rounded-lg transition-colors specialties-secondary-button">
-              Cancel
-            </button>
-            <button type="submit"
-                    class="px-6 py-2 font-medium rounded-lg hover:shadow-lg transform hover:-translate-y-0.5 transition-all duration-200 specialties-primary-button">
-              <i class="fas fa-plus mr-2"></i>Add Specialty
-            </button>
-          </div>
-        </form>
-      </div>
-    </div>
-
-    <div id="editDoctorsModal" class="fixed inset-0 z-50 hidden bg-black bg-opacity-50 flex items-center justify-center p-4">
-      <div class="rounded-xl shadow-2xl w-full max-w-lg max-h-[90vh] overflow-y-auto transform transition-all specialties-modal" id="editDoctorsModalContent">
-      <div class="flex items-center justify-between p-6 specialties-modal-header">
-        <div class="flex items-center">
-          <div class="w-8 h-8 rounded-lg flex items-center justify-center mr-3 specialties-modal-icon specialties-modal-icon--edit">
-            <i class="fas fa-user-edit text-sm"></i>
-          </div>
-          <h3 class="text-lg font-semibold specialties-modal-title">
-            Edit Doctors for <span id="editSpecialtyName" class="specialties-highlight"></span>
-          </h3>
-        </div>
-        <button onclick="closeEditDoctorsModal()" class="p-2 rounded-lg transition-colors specialties-close-button">
-          <i class="fas fa-times"></i>
-        </button>
-      </div>
-
-        <div class="p-6">
-          <form id="editDoctorsForm" onsubmit="submitEditDoctors(event)">
-            <div class="relative mb-4">
-              <div class="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
-                <i class="fas fa-search specialties-icon-muted"></i>
-              </div>
-              <input type="text" id="doctorModalSearch"
-                     placeholder="Search doctors..."
-                     class="w-full pl-10 pr-4 py-3 rounded-lg transition-colors specialties-input"
-                     oninput="filterDoctorsChecklist()">
+    <div id="specialtiesPage" class="specialties-page">
+        <div class="container mx-auto px-4 py-8">
+            <div class="flex flex-col lg:flex-row lg:items-center lg:justify-between mb-8">
+                <div class="mb-6 lg:mb-0">
+                    <h1 class="text-3xl font-bold specialties-title mb-2 flex items-center">Specialty Studies Management</h1>
+                    <p class="specialties-subtitle">Manage medical specialties and doctor assignments</p>
+                </div>
+                {% if session.user.role == 'admin' %}
+                    <button onclick="openAddSpecialtyModal()"
+                            class="inline-flex items-center px-6 py-3 font-medium rounded-lg shadow-lg hover:shadow-xl transform hover:-translate-y-0.5 transition-all duration-200 specialties-primary-button">
+                        <i class="fas fa-plus mr-2"></i>
+                        Add New Specialty
+                    </button>
+                {% endif %}
             </div>
-
-            <div id="doctorsChecklist" class="mb-6 space-y-3 max-h-64 overflow-y-auto rounded-lg p-4 specialties-scroll-surface">
-              </div>
-
-            <input type="hidden" name="specialty_id" id="editSpecialtyId">
-
-            <div class="flex justify-end gap-3">
-              <button type="button" onclick="closeEditDoctorsModal()"
-                      class="px-4 py-2 rounded-lg transition-colors specialties-secondary-button">
-                Cancel
-              </button>
-              <button type="submit"
-                      class="px-6 py-2 font-medium rounded-lg hover:shadow-lg transform hover:-translate-y-0.5 transition-all duration-200 specialties-success-button">
-                <i class="fas fa-save mr-2"></i>Save Changes
-              </button>
+            <div class="mb-8">
+                <div class="relative max-w-md">
+                    <div class="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+                        <i class="fas fa-search specialties-icon-muted"></i>
+                    </div>
+                    <input type="text"
+                           id="specialtySearch"
+                           placeholder="Search specialties/exams by name, description, or type..."
+                           class="w-full pl-10 pr-4 py-3 rounded-lg transition-colors shadow-sm specialties-input"
+                           oninput="filterTable()">
+                </div>
             </div>
-          </form>
+            <div class="specialties-table-shell rounded-xl overflow-hidden">
+                <div class="overflow-x-auto">
+                    <table class="min-w-full specialties-table">
+                        <thead>
+                            <tr>
+                                <th scope="col">Study Name</th>
+                                <th scope="col">Type</th>
+                                <th scope="col">Description</th>
+                                <th scope="col" class="text-right">Actions</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {% for specialty in specialties %}
+                                <tr class="specialty-row"
+                                    data-name="{{ specialty.name|lower }}"
+                                    data-description="{{ (specialty.description or '')|lower }}"
+                                    data-type="{{ 'specialty' if specialty.is_specialty else 'exam' }}">
+                                    <td>
+                                        <div class="font-semibold specialties-card-title">{{ specialty.name }}</div>
+                                    </td>
+                                    <td>
+                                        <span class="specialty-type-badge"
+                                              data-type="{{ 'specialty' if specialty.is_specialty else 'exam' }}">
+                                            {{ 'Specialty' if specialty.is_specialty else 'Regular Exam' }}
+                                        </span>
+                                    </td>
+                                    <td>
+                                        <p class="specialties-table-description">{{ specialty.description or 'No description provided.' }}</p>
+                                    </td>
+                                    <td>
+                                        <div class="flex items-center justify-end gap-2">
+                                            <button onclick="showDoctorsForSpecialty('{{ specialty.id }}', '{{ specialty.name|escape }}')"
+                                                    class="inline-flex items-center justify-center px-4 py-2 text-sm font-medium rounded-lg transition-colors specialties-card-action">
+                                                <i class="fas fa-users mr-2"></i>
+                                                Assigned Doctors
+                                            </button>
+                                            {% if session.user.role == 'admin' %}
+                                                <button onclick="openEditDoctorsModal('{{ specialty.id }}', '{{ specialty.name|escape }}')"
+                                                        class="p-2 rounded-lg transition-colors specialties-icon-button specialties-icon-button--edit"
+                                                        title="Edit Doctors">
+                                                    <i class="fas fa-user-edit text-sm"></i>
+                                                </button>
+                                                <button onclick="confirmDeleteSpecialty('{{ specialty.id }}', '{{ specialty.name|escape }}')"
+                                                        class="p-2 rounded-lg transition-colors specialties-icon-button specialties-icon-button--delete"
+                                                        title="Delete Specialty">
+                                                    <i class="fas fa-trash text-sm"></i>
+                                                </button>
+                                            {% endif %}
+                                        </div>
+                                    </td>
+                                </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+            <div id="addSpecialtyModal"
+                 class="fixed inset-0 z-50 hidden bg-black bg-opacity-50 flex items-center justify-center p-4">
+                <div class="rounded-xl shadow-2xl w-full max-w-md max-h-[90vh] overflow-y-auto transform transition-all specialties-modal"
+                     id="addSpecialtyModalContent">
+                    <div class="flex items-center justify-between p-6 specialties-modal-header">
+                        <div class="flex items-center">
+                            <div class="w-8 h-8 rounded-lg flex items-center justify-center mr-3 specialties-modal-icon specialties-modal-icon--add">
+                                <i class="fas fa-plus text-sm"></i>
+                            </div>
+                            <h3 class="text-lg font-semibold specialties-modal-title">Add New Specialty</h3>
+                        </div>
+                        <button onclick="closeAddSpecialtyModal()"
+                                class="p-2 rounded-lg transition-colors specialties-close-button">
+                            <i class="fas fa-times"></i>
+                        </button>
+                    </div>
+                    <form method="POST"
+                          action="{{ url_for("specialties.add_specialty") }}"
+                          class="p-6">
+                        <div class="mb-6">
+                            <label class="block text-sm font-medium mb-2 specialties-label">
+                                <i class="fas fa-tag mr-2 specialties-icon-accent"></i>Specialty Name
+                            </label>
+                            <input type="text"
+                                   name="name"
+                                   required
+                                   class="w-full px-4 py-3 rounded-lg transition-colors specialties-input"
+                                   placeholder="Enter specialty name">
+                        </div>
+                        <div class="mb-6">
+                            <label class="block text-sm font-medium mb-2 specialties-label">
+                                <i class="fas fa-align-left mr-2 specialties-icon-accent"></i>Description
+                            </label>
+                            <textarea name="description"
+                                      rows="4"
+                                      class="w-full px-4 py-3 rounded-lg transition-colors resize-none specialties-input specialties-textarea"
+                                      placeholder="Enter specialty description (optional)"></textarea>
+                        </div>
+                        <div class="mb-6">
+                            <label class="inline-flex items-center gap-3 specialties-label">
+                                <input type="checkbox"
+                                       name="is_specialty"
+                                       value="on"
+                                       class="specialties-checkbox">
+                                <span>Mark as a true specialty (unchecked = regular exam)</span>
+                            </label>
+                        </div>
+                        <div class="flex justify-end gap-3">
+                            <button type="button"
+                                    onclick="closeAddSpecialtyModal()"
+                                    class="px-4 py-2 rounded-lg transition-colors specialties-secondary-button">
+                                Cancel
+                            </button>
+                            <button type="submit"
+                                    class="px-6 py-2 font-medium rounded-lg hover:shadow-lg transform hover:-translate-y-0.5 transition-all duration-200 specialties-primary-button">
+                                <i class="fas fa-plus mr-2"></i>Add Specialty
+                            </button>
+                        </div>
+                    </form>
+                </div>
+            </div>
+            <div id="editDoctorsModal"
+                 class="fixed inset-0 z-50 hidden bg-black bg-opacity-50 flex items-center justify-center p-4">
+                <div class="rounded-xl shadow-2xl w-full max-w-lg max-h-[90vh] overflow-y-auto transform transition-all specialties-modal"
+                     id="editDoctorsModalContent">
+                    <div class="flex items-center justify-between p-6 specialties-modal-header">
+                        <div class="flex items-center">
+                            <div class="w-8 h-8 rounded-lg flex items-center justify-center mr-3 specialties-modal-icon specialties-modal-icon--edit">
+                                <i class="fas fa-user-edit text-sm"></i>
+                            </div>
+                            <h3 class="text-lg font-semibold specialties-modal-title">
+                                Edit Doctors for <span id="editSpecialtyName" class="specialties-highlight"></span>
+                            </h3>
+                        </div>
+                        <button onclick="closeEditDoctorsModal()"
+                                class="p-2 rounded-lg transition-colors specialties-close-button">
+                            <i class="fas fa-times"></i>
+                        </button>
+                    </div>
+                    <div class="p-6">
+                        <form id="editDoctorsForm" onsubmit="submitEditDoctors(event)">
+                            <div class="relative mb-4">
+                                <div class="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+                                    <i class="fas fa-search specialties-icon-muted"></i>
+                                </div>
+                                <input type="text"
+                                       id="doctorModalSearch"
+                                       placeholder="Search doctors..."
+                                       class="w-full pl-10 pr-4 py-3 rounded-lg transition-colors specialties-input"
+                                       oninput="filterDoctorsChecklist()">
+                            </div>
+                            <div id="doctorsChecklist"
+                                 class="mb-6 space-y-3 max-h-64 overflow-y-auto rounded-lg p-4 specialties-scroll-surface">
+                            </div>
+                            <input type="hidden" name="specialty_id" id="editSpecialtyId">
+                            <div class="flex justify-end gap-3">
+                                <button type="button"
+                                        onclick="closeEditDoctorsModal()"
+                                        class="px-4 py-2 rounded-lg transition-colors specialties-secondary-button">
+                                    Cancel
+                                </button>
+                                <button type="submit"
+                                        class="px-6 py-2 font-medium rounded-lg hover:shadow-lg transform hover:-translate-y-0.5 transition-all duration-200 specialties-success-button">
+                                    <i class="fas fa-save mr-2"></i>Save Changes
+                                </button>
+                            </div>
+                        </form>
+                    </div>
+                </div>
+            </div>
+            <div id="deleteSpecialtyModal"
+                 class="fixed inset-0 z-50 hidden bg-black bg-opacity-50 flex items-center justify-center p-4">
+                <div class="rounded-xl shadow-2xl w-full max-w-md max-h-[90vh] overflow-y-auto transform transition-all specialties-modal"
+                     id="deleteSpecialtyModalContent">
+                    <div class="flex items-center justify-between p-6 specialties-modal-header">
+                        <div class="flex items-center">
+                            <div class="w-8 h-8 rounded-lg flex items-center justify-center mr-3 specialties-modal-icon specialties-modal-icon--warning">
+                                <i class="fas fa-exclamation-triangle text-sm"></i>
+                            </div>
+                            <h3 class="text-lg font-semibold specialties-modal-title">Delete Specialty</h3>
+                        </div>
+                        <button onclick="closeDeleteSpecialtyModal()"
+                                class="p-2 rounded-lg transition-colors specialties-close-button">
+                            <i class="fas fa-times"></i>
+                        </button>
+                    </div>
+                    <div class="p-6">
+                        <div class="flex items-center mb-4">
+                            <div class="w-12 h-12 rounded-full flex items-center justify-center mr-4 specialties-warning-icon">
+                                <i class="fas fa-exclamation-triangle text-lg"></i>
+                            </div>
+                            <div>
+                                <p class="font-medium specialties-title">Are you sure you want to delete this specialty?</p>
+                                <p class="text-sm mt-1 specialties-subtitle">This action cannot be undone.</p>
+                            </div>
+                        </div>
+                        <div class="rounded-lg p-4 mb-6 specialties-warning-panel">
+                            <p class="text-sm specialties-warning-text">
+                                <strong>Specialty:</strong> "<span id="deleteSpecialtyName" class="font-medium"></span>"
+                            </p>
+                        </div>
+                        <form id="deleteSpecialtyForm" method="POST">
+                            <div class="flex justify-end gap-3">
+                                <button type="button"
+                                        onclick="closeDeleteSpecialtyModal()"
+                                        class="px-4 py-2 rounded-lg transition-colors specialties-secondary-button">
+                                    Cancel
+                                </button>
+                                <button type="submit"
+                                        class="px-6 py-2 font-medium rounded-lg hover:shadow-lg transform hover:-translate-y-0.5 transition-all duration-200 specialties-danger-button">
+                                    <i class="fas fa-trash mr-2"></i>Delete Specialty
+                                </button>
+                            </div>
+                        </form>
+                    </div>
+                </div>
+            </div>
+            <div id="specialtyDoctorsModal"
+                 class="fixed inset-0 z-50 hidden bg-black bg-opacity-50 flex items-center justify-center p-4">
+                <div class="rounded-xl shadow-2xl w-full max-w-2xl max-h-[90vh] overflow-y-auto transform transition-all specialties-modal"
+                     id="specialtyDoctorsModalContent">
+                    <div class="flex items-center justify-between p-6 specialties-modal-header">
+                        <div class="flex items-center">
+                            <div class="w-8 h-8 rounded-lg flex items-center justify-center mr-3 specialties-modal-icon specialties-modal-icon--view">
+                                <i class="fas fa-users text-sm"></i>
+                            </div>
+                            <h3 id="specialtyDoctorsTitle"
+                                class="text-lg font-semibold specialties-modal-title">
+                                Doctors that can read this Specialty
+                            </h3>
+                        </div>
+                        <button onclick="closeSpecialtyDoctorsModal()"
+                                class="p-2 rounded-lg transition-colors specialties-close-button">
+                            <i class="fas fa-times"></i>
+                        </button>
+                    </div>
+                    <div class="p-6">
+                        <div class="relative mb-6">
+                            <div class="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+                                <i class="fas fa-search specialties-icon-muted"></i>
+                            </div>
+                            <input type="text"
+                                   id="specialtyDoctorsSearch"
+                                   placeholder="Search doctors by name or email..."
+                                   class="w-full pl-10 pr-4 py-3 rounded-lg transition-colors specialties-input"
+                                   oninput="filterSpecialtyDoctors()">
+                        </div>
+                        <div id="specialtyDoctorsList"
+                             class="space-y-3 max-h-96 overflow-y-auto specialties-doctor-list"></div>
+                    </div>
+                </div>
+            </div>
         </div>
-      </div>
     </div>
-
-    <div id="deleteSpecialtyModal" class="fixed inset-0 z-50 hidden bg-black bg-opacity-50 flex items-center justify-center p-4">
-      <div class="rounded-xl shadow-2xl w-full max-w-md max-h-[90vh] overflow-y-auto transform transition-all specialties-modal" id="deleteSpecialtyModalContent">
-      <div class="flex items-center justify-between p-6 specialties-modal-header">
-        <div class="flex items-center">
-          <div class="w-8 h-8 rounded-lg flex items-center justify-center mr-3 specialties-modal-icon specialties-modal-icon--warning">
-            <i class="fas fa-exclamation-triangle text-sm"></i>
-          </div>
-          <h3 class="text-lg font-semibold specialties-modal-title">Delete Specialty</h3>
-        </div>
-        <button onclick="closeDeleteSpecialtyModal()" class="p-2 rounded-lg transition-colors specialties-close-button">
-          <i class="fas fa-times"></i>
-        </button>
-      </div>
-
-        <div class="p-6">
-          <div class="flex items-center mb-4">
-          <div class="w-12 h-12 rounded-full flex items-center justify-center mr-4 specialties-warning-icon">
-            <i class="fas fa-exclamation-triangle text-lg"></i>
-          </div>
-          <div>
-            <p class="font-medium specialties-title">Are you sure you want to delete this specialty?</p>
-            <p class="text-sm mt-1 specialties-subtitle">This action cannot be undone.</p>
-          </div>
-        </div>
-
-          <div class="rounded-lg p-4 mb-6 specialties-warning-panel">
-            <p class="text-sm specialties-warning-text">
-              <strong>Specialty:</strong> "<span id="deleteSpecialtyName" class="font-medium"></span>"
-            </p>
-          </div>
-
-          <form id="deleteSpecialtyForm" method="POST">
-            <div class="flex justify-end gap-3">
-              <button type="button" onclick="closeDeleteSpecialtyModal()"
-                      class="px-4 py-2 rounded-lg transition-colors specialties-secondary-button">
-                Cancel
-              </button>
-              <button type="submit"
-                      class="px-6 py-2 font-medium rounded-lg hover:shadow-lg transform hover:-translate-y-0.5 transition-all duration-200 specialties-danger-button">
-                <i class="fas fa-trash mr-2"></i>Delete Specialty
-              </button>
-            </div>
-          </form>
-        </div>
-      </div>
-    </div>
-
-    <div id="specialtyDoctorsModal" class="fixed inset-0 z-50 hidden bg-black bg-opacity-50 flex items-center justify-center p-4">
-      <div class="rounded-xl shadow-2xl w-full max-w-2xl max-h-[90vh] overflow-y-auto transform transition-all specialties-modal" id="specialtyDoctorsModalContent">
-      <div class="flex items-center justify-between p-6 specialties-modal-header">
-        <div class="flex items-center">
-          <div class="w-8 h-8 rounded-lg flex items-center justify-center mr-3 specialties-modal-icon specialties-modal-icon--view">
-            <i class="fas fa-users text-sm"></i>
-          </div>
-          <h3 id="specialtyDoctorsTitle" class="text-lg font-semibold specialties-modal-title">Doctors that can read this Specialty</h3>
-        </div>
-        <button onclick="closeSpecialtyDoctorsModal()" class="p-2 rounded-lg transition-colors specialties-close-button">
-          <i class="fas fa-times"></i>
-        </button>
-      </div>
-
-        <div class="p-6">
-          <div class="relative mb-6">
-            <div class="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
-              <i class="fas fa-search specialties-icon-muted"></i>
-            </div>
-            <input type="text" id="specialtyDoctorsSearch"
-                   placeholder="Search doctors by name or email..."
-                   class="w-full pl-10 pr-4 py-3 rounded-lg transition-colors specialties-input"
-                   oninput="filterSpecialtyDoctors()">
-          </div>
-
-          <div id="specialtyDoctorsList" class="space-y-3 max-h-96 overflow-y-auto specialties-doctor-list">
-            </div>
-        </div>
-      </div>
-    </div>
-  </div>
-</div>
-
-<style>
+    <style>
 #specialtiesPage {
   --sp-page-bg: #f8fafc;
   --sp-card-surface: #ffffff;
@@ -389,6 +409,51 @@
   box-shadow: 0 18px 30px -18px rgba(79, 70, 229, 0.22);
 }
 
+.specialties-table-shell {
+  background: var(--sp-card-surface);
+  border: 1px solid var(--sp-card-border);
+  box-shadow: 0 22px 45px -28px rgba(79, 70, 229, 0.35);
+}
+
+.specialties-table {
+  border-collapse: separate;
+  border-spacing: 0;
+}
+
+.specialties-table thead th {
+  padding: 0.9rem 1rem;
+  font-size: 0.78rem;
+  text-transform: uppercase;
+  letter-spacing: 0.07em;
+  color: var(--sp-text-muted);
+  background: var(--sp-secondary-bg);
+  border-bottom: 1px solid var(--sp-card-border);
+}
+
+.specialties-table tbody td {
+  padding: 1rem;
+  vertical-align: middle;
+  border-bottom: 1px solid var(--sp-card-border);
+}
+
+.specialties-table tbody tr:last-child td {
+  border-bottom: none;
+}
+
+.specialties-table tbody tr:hover {
+  background: rgba(99, 102, 241, 0.06);
+}
+
+[data-theme="dark"] .specialties-table tbody tr:hover {
+  background: rgba(129, 140, 248, 0.12);
+}
+
+.specialties-table-description {
+  color: var(--sp-text-secondary);
+  font-size: 0.92rem;
+  max-width: 36rem;
+}
+
 .specialties-card:hover {
   box-shadow: 0 22px 35px -15px rgba(79, 70, 229, 0.35);
 }
@@ -421,12 +486,14 @@
   display: inline-flex;
   align-items: center;
   width: fit-content;
-  padding: 0.2rem 0.55rem;
+  justify-content: center;
+  min-width: 5.4rem;
+  padding: 0.34rem 0.68rem;
   border-radius: 9999px;
-  font-size: 0.72rem;
+  font-size: 0.7rem;
   font-weight: 700;
   text-transform: uppercase;
-  letter-spacing: 0.04em;
+  letter-spacing: 0.08em;
 }
 
 .specialty-type-badge[data-type="specialty"] {
@@ -780,10 +847,9 @@
 .loading {
   animation: pulse 2s cubic-bezier(0.4, 0, 0.6, 1) infinite;
 }
-</style>
-
-<script src="//unpkg.com/alpinejs" defer></script>
-<script>
+    </style>
+    <script src="//unpkg.com/alpinejs" defer></script>
+    <script>
 const isAdmin = "{{ 'true' if session.user.role == 'admin' else 'false' }}" === 'true';
 
 function openAddSpecialtyModal() {
@@ -822,16 +888,16 @@ function updatePermission(checkbox) {
 function filterTable() {
   const specialtyQuery = document.getElementById('specialtySearch').value.toLowerCase();
 
-  const cards = document.querySelectorAll('.specialty-card');
-  cards.forEach(card => {
-    const name = card.dataset.name || '';
-    const description = card.dataset.description || '';
-    const type = card.dataset.type || '';
+  const rows = document.querySelectorAll('.specialty-row');
+  rows.forEach(row => {
+    const name = row.dataset.name || '';
+    const description = row.dataset.description || '';
+    const type = row.dataset.type || '';
 
     if (name.includes(specialtyQuery) || description.includes(specialtyQuery) || type.includes(specialtyQuery)) {
-      card.style.display = '';
+      row.style.display = '';
     } else {
-      card.style.display = 'none';
+      row.style.display = 'none';
     }
   });
 }
@@ -1031,5 +1097,5 @@ document.addEventListener('DOMContentLoaded', function() {
   setupClickOutsideToClose(deleteSpecialtyModal, deleteSpecialtyModalContent, closeDeleteSpecialtyModal);
   setupClickOutsideToClose(specialtyDoctorsModal, specialtyDoctorsModalContent, closeSpecialtyDoctorsModal);
 });
-</script>
+    </script>
 {% endblock %}
