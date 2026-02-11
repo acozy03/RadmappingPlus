@@ -18,30 +18,26 @@
   <div class="flex-1 overflow-y-auto px-8 pb-8">
     <div class="dashboard-grid-landing">
       {% set dashboard_links = [
-        {'label': 'Daily Schedule', 'desc': "View and manage today's radiologist assignments", 'icon': 'calendar-day', 'gradient': 'blue-cyan', 'url': url_for('daily.daily')},
-        {'label': 'Monthly Schedule', 'desc': 'Plan and view monthly radiologist schedules', 'icon': 'calendar-alt', 'gradient': 'purple-pink', 'url': url_for('monthly.monthly')},
-        {'label': 'Capacity', 'desc': 'Monitor under/overstaffed shifts', 'icon': 'chart-line', 'gradient': 'blue-cyan', 'url': url_for('shifts.shifts')},
-        {'label': 'Doctor Directory', 'desc': 'Access radiologist profiles and information', 'icon': 'user-md', 'gradient': 'green-teal', 'url': url_for('doctors.doctor_list')},
-        {'label': 'Facilities Directory', 'desc': 'View and manage all facilities', 'icon': 'hospital', 'gradient': 'orange-red', 'url': url_for('facilities.facilities')},
-        {'label': 'Specialties Directory', 'desc': 'Browse and manage specialties', 'icon': 'star', 'gradient': 'yellow-orange', 'url': url_for('specialties.specialties')},
-        {'label': 'License Management', 'desc': 'Track and manage radiologist certifications', 'icon': 'id-card', 'gradient': 'indigo-purple', 'url': url_for('licenses.licenses_page')},
-        {'label': 'Vacations', 'desc': 'Manage radiologist time off and coverage', 'icon': 'umbrella-beach', 'gradient': 'pink-rose', 'url': url_for('vacations.vacations_page')},
-        {'label': 'Information', 'desc': 'Access department guidelines and information', 'icon': 'info-circle', 'gradient': 'teal-cyan', 'url': url_for('info.info')},
-        {'label': 'Contacts Directory', 'desc': 'Find and manage department contacts', 'icon': 'address-book', 'gradient': 'violet-purple', 'url': url_for('contacts.contacts')}
+        {'label': 'Daily Schedule', 'desc': "View and manage today's radiologist assignments", 'icon': 'calendar-day', 'url': url_for('daily.daily')},
+        {'label': 'Monthly Schedule', 'desc': 'Plan and view monthly radiologist schedules', 'icon': 'calendar-alt', 'url': url_for('monthly.monthly')},
+        {'label': 'Capacity', 'desc': 'Monitor under/overstaffed shifts', 'icon': 'chart-line', 'url': url_for('shifts.shifts')},
+        {'label': 'Doctor Directory', 'desc': 'Access radiologist profiles and information', 'icon': 'user-md', 'url': url_for('doctors.doctor_list')},
+        {'label': 'Facilities Directory', 'desc': 'View and manage all facilities', 'icon': 'hospital', 'url': url_for('facilities.facilities')},
+        {'label': 'Specialties Directory', 'desc': 'Browse and manage specialties', 'icon': 'star', 'url': url_for('specialties.specialties')},
+        {'label': 'License Management', 'desc': 'Track and manage radiologist certifications', 'icon': 'id-card', 'url': url_for('licenses.licenses_page')},
+        {'label': 'Vacations', 'desc': 'Manage radiologist time off and coverage', 'icon': 'umbrella-beach', 'url': url_for('vacations.vacations_page')},
+        {'label': 'Information', 'desc': 'Access department guidelines and information', 'icon': 'info-circle', 'url': url_for('info.info')},
+        {'label': 'Contacts Directory', 'desc': 'Find and manage department contacts', 'icon': 'address-book', 'url': url_for('contacts.contacts')}
       ] %}
 
       {% for card in dashboard_links %}
-      <a href="{{ card.url }}" class="dashboard-card" data-gradient="{{ card.gradient }}" style="--delay: {{ loop.index0 * 100 }}ms;">
-        <div class="card-gradient-overlay"></div>
-        <div class="card-border"></div>
+      <a href="{{ card.url }}" class="dashboard-card">
         <div class="card-content">
           <div class="icon-container">
             <i class="fas fa-{{ card.icon }} card-icon"></i>
           </div>
           <h3 class="card-title">{{ card.label }}</h3>
           <p class="card-description">{{ card.desc }}</p>
-          <i class="fas fa-sparkles sparkle sparkle-1"></i>
-          <i class="fas fa-bolt sparkle sparkle-2"></i>
         </div>
       </a>
       {% endfor %}
@@ -56,12 +52,5 @@ function updateTime() {
 }
 updateTime();
 setInterval(updateTime, 1000);
-
-document.addEventListener('DOMContentLoaded', () => {
-  document.querySelectorAll('.dashboard-card').forEach(card => {
-    card.addEventListener('mouseenter', () => card.classList.add('hovered'));
-    card.addEventListener('mouseleave', () => card.classList.remove('hovered'));
-  });
-});
 </script>
 {% endblock %}

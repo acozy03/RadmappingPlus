@@ -30,20 +30,6 @@
 </head>
 <body class="bg-gray-100 text-gray-800 overflow-x-hidden">
 <div class="dashboard-container relative min-h-screen">
-  <div class="background-particles pointer-events-none absolute inset-0 z-0">
-    <div class="particle" style="--delay: 0s; --x: 10%; --y: 20%;"></div>
-    <div class="particle" style="--delay: 0.5s; --x: 80%; --y: 10%;"></div>
-    <div class="particle" style="--delay: 1s; --x: 20%; --y: 80%;"></div>
-    <div class="particle" style="--delay: 1.5s; --x: 90%; --y: 60%;"></div>
-    <div class="particle" style="--delay: 2s; --x: 50%; --y: 30%;"></div>
-    <div class="particle" style="--delay: 2.5s; --x: 70%; --y: 90%;"></div>
-    <div class="particle" style="--delay: 3s; --x: 30%; --y: 50%;"></div>
-    <div class="particle" style="--delay: 3.5s; --x: 60%; --y: 70%;"></div>
-  </div>
-
-  <div class="gradient-orb orb-1"></div>
-  <div class="gradient-orb orb-2"></div>
-
   <div class="relative z-10 {% if request.endpoint == 'landing.landing' %}h-screen flex flex-col{% endif %}">
     {% if session.user and request.endpoint != 'auth.login' %}
     <div class="navbar-wrapper">

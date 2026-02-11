@@ -2120,3 +2120,64 @@ thead.sticky th {
 [data-theme="dark"] ::-webkit-scrollbar-thumb {
   background: linear-gradient(to bottom, #60a5fa, #818cf8);
 }
+
+/* Flat UI cleanup: remove shadows, landing animations, and decorative gradients */
+.dashboard-container {
+  background: #f8fafc;
+}
+
+.background-particles,
+.gradient-orb,
+.card-gradient-overlay,
+.card-border,
+.sparkle {
+  display: none !important;
+}
+
+*,
+*::before,
+*::after {
+  box-shadow: none !important;
+  text-shadow: none !important;
+}
+
+.landing-page .hero-section,
+.landing-page .hero-subtitle,
+.landing-page .status-indicator,
+.landing-page .dashboard-card,
+.landing-page .dashboard-card:hover,
+.landing-page .card-icon,
+.landing-page .card-title,
+.landing-page .icon-container::before,
+.landing-page .status-icon {
+  animation: none !important;
+  transition: none !important;
+  transform: none !important;
+}
+
+.landing-page .hero-title {
+  color: #1f2937;
+  background: none;
+  -webkit-text-fill-color: initial;
+  animation: none !important;
+}
+
+.landing-page .dashboard-card {
+  background: #ffffff;
+  border: 1px solid #d1d5db;
+}
+
+.landing-page .icon-container::before {
+  background: #dbeafe !important;
+}
+
+.landing-page .card-icon {
+  background: #2563eb !important;
+  color: #ffffff;
+}
+
+.landing-page .dashboard-card[data-gradient] .icon-container::before,
+.landing-page .dashboard-card[data-gradient] .card-icon,
+.landing-page .dashboard-card[data-gradient] .card-gradient-overlay {
+  background: #2563eb !important;
+}
