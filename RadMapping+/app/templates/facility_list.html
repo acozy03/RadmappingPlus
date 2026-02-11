@@ -85,6 +85,27 @@
         background-color: #2d3748; 
         color: #93c5fd; /* Light blue text for contrast */
     }
+
+
+  .facility-modal-select-item:hover {
+    background-color: #f9fafb;
+  }
+
+  .facility-modal-neutral-btn:hover {
+    background-color: #f3f4f6;
+  }
+
+  html[data-theme="dark"] #prioritizeModal .facility-modal-select-item:hover,
+  html[data-theme="dark"] #helixModal .facility-modal-select-item:hover,
+  html[data-theme="dark"] #pinFacilitiesModal .facility-modal-select-item:hover {
+    background-color: rgba(51, 65, 85, 0.72);
+  }
+
+  html[data-theme="dark"] #prioritizeModal .facility-modal-neutral-btn:hover,
+  html[data-theme="dark"] #helixModal .facility-modal-neutral-btn:hover,
+  html[data-theme="dark"] #pinFacilitiesModal .facility-modal-neutral-btn:hover {
+    background-color: rgba(51, 65, 85, 0.82);
+  }
 </style>
 <div class="flex justify-between items-center mb-6 border-b pb-2">
   <h2 class="text-2xl font-semibold">Facilities</h2>
@@ -276,7 +297,7 @@
         </svg>
       </button>
     </div>
-        <form method="POST" action="{{ url_for('facilities.add_facility') }}" class="space-y-4 p-5"> {# Reduced form padding slightly #}
+        <form method="post" action="{{ url_for('facilities.add_facility') }}" class="space-y-4 p-5"> {# Reduced form padding slightly #}
       <div>
         <label class="block text-sm font-medium text-gray-700">Name</label>
         <input type="text" name="name" required class="w-full border rounded px-3 py-2 text-sm">
@@ -363,7 +384,7 @@
     <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 max-h-[60vh] overflow-y-auto" id="prioritizeFacilitiesList">
       </div>
     <div class="mt-4 flex justify-end gap-2">
-      <button onclick="closePrioritizeModal()" class="px-4 py-2 border rounded hover:bg-gray-100">
+      <button onclick="closePrioritizeModal()" class="px-4 py-2 border rounded facility-modal-neutral-btn">
         Cancel
       </button>
       <button onclick="savePrioritizedFacilities()" class="px-4 py-2 bg-purple-600 text-white rounded hover:bg-purple-700">
@@ -405,7 +426,7 @@
     <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 max-h-[60vh] overflow-y-auto" id="helixFacilitiesList">
     </div>
     <div class="mt-4 flex justify-end gap-2">
-      <button onclick="closeHelixModal()" class="px-4 py-2 border rounded hover:bg-gray-100">
+      <button onclick="closeHelixModal()" class="px-4 py-2 border rounded facility-modal-neutral-btn">
         Cancel
       </button>
       <button onclick="saveHelixFacilities()" class="px-4 py-2 bg-green-600 text-white rounded hover:bg-green-700">
@@ -450,7 +471,7 @@
     <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 max-h-[60vh] overflow-y-auto" id="pinFacilitiesList"></div>
 
     <div class="mt-4 flex justify-end gap-2">
-      <button onclick="closePinModal()" class="px-4 py-2 border rounded hover:bg-gray-100">
+      <button onclick="closePinModal()" class="px-4 py-2 border rounded facility-modal-neutral-btn">
         Cancel
       </button>
       <button onclick="savePinnedFacilities()" class="px-4 py-2 bg-purple-600 text-white rounded hover:bg-purple-700">
@@ -527,7 +548,7 @@ function renderPinFacilitiesList(facilities) {
   facilities.forEach(fac => {
     const isAlreadyPinned = PINNED_FACILITIES.includes(fac.id); // from server context
     const div = document.createElement('div');
-    div.className = 'flex items-center gap-2 p-2 border rounded hover:bg-gray-50 facility-item';
+    div.className = 'flex items-center gap-2 p-2 border rounded facility-modal-select-item facility-item';
     div.innerHTML = `
       <input type="checkbox"
              id="pin-fac-${fac.id}"
@@ -839,7 +860,7 @@ function populatePrioritizeChecklist() {
   allFacilitiesData.forEach(facility => {
     const isPrioritized = PRIORITIZED_FACILITIES.includes(facility.id);
     const checkboxDiv = document.createElement('div');
-    checkboxDiv.className = 'flex items-center gap-2 p-2 border rounded hover:bg-gray-50 facility-item';
+    checkboxDiv.className = 'flex items-center gap-2 p-2 border rounded facility-modal-select-item facility-item';
     checkboxDiv.innerHTML = `
       <input type="checkbox"
              id="prioritize-${facility.id}"
@@ -916,7 +937,7 @@ function populateHelixChecklist() {
   allFacilitiesData.forEach(facility => {
     const isHelix = HELIX_FACILITIES.includes(facility.id);
     const checkboxDiv = document.createElement('div');
-    checkboxDiv.className = 'flex items-center gap-2 p-2 border rounded hover:bg-gray-50 facility-item';
+    checkboxDiv.className = 'flex items-center gap-2 p-2 border rounded facility-modal-select-item facility-item';
     checkboxDiv.innerHTML = `
       <input type="checkbox"
              id="helix-${facility.id}"

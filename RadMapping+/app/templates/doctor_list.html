@@ -57,6 +57,23 @@
     border-color: rgba(147, 197, 253, 0.75);
     color: #ffffff;
   }
+
+
+  .modal-select-item:hover {
+    background-color: #f9fafb;
+  }
+
+  .modal-neutral-btn:hover {
+    background-color: #f3f4f6;
+  }
+
+  html[data-theme="dark"] #pinModal .modal-select-item:hover {
+    background-color: rgba(51, 65, 85, 0.72);
+  }
+
+  html[data-theme="dark"] #pinModal .modal-neutral-btn:hover {
+    background-color: rgba(51, 65, 85, 0.82);
+  }
 </style>
 <div class="flex justify-between items-center mb-6 border-b pb-2">
   <h2 class="text-2xl font-semibold">Doctor Directory</h2>
@@ -172,7 +189,7 @@
     </div>
     <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 max-h-[60vh] overflow-y-auto" id="pinDoctorsList">
       {% for doctor in all_doctors %}
-        <div class="flex items-center gap-2 p-2 border rounded hover:bg-gray-50 doctor-item">
+        <div class="flex items-center gap-2 p-2 border rounded modal-select-item doctor-item">
           <input type="checkbox" 
                  id="pin-{{ doctor.id }}" 
                  class="pin-checkbox form-checkbox h-5 w-5 text-purple-600"
@@ -190,7 +207,7 @@
       {% endfor %}
     </div>
     <div class="mt-4 flex justify-end gap-2">
-      <button onclick="closePinModal()" class="px-4 py-2 border rounded hover:bg-gray-100">
+      <button onclick="closePinModal()" class="px-4 py-2 border rounded modal-neutral-btn">
         Cancel
       </button>
       <button onclick="savePinnedDoctors()" class="px-4 py-2 bg-purple-600 text-white rounded hover:bg-purple-700">
@@ -211,7 +228,7 @@
         </svg>
       </button>
     </div>
-    <form method="POST" action="{{ url_for('doctors.add_doctor') }}" class="space-y-4">
+    <form method="post" action="{{ url_for('doctors.add_doctor') }}" class="space-y-4">
       <div>
         <label class="block text-sm font-medium text-gray-700">Name</label>
         <input type="text" name="name" required class="w-full border rounded px-3 py-2 text-sm">

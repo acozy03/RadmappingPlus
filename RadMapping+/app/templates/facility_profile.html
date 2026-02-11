@@ -439,6 +439,15 @@
   background-color: var(--doctor-surface) !important;
 }
 
+#radiologistModal .bulk-assign-rad-row-hover:hover {
+  background-color: #ffffff;
+}
+
+.dark #radiologistModal .bulk-assign-rad-row-hover:hover,
+[data-theme="dark"] #radiologistModal .bulk-assign-rad-row-hover:hover {
+  background-color: var(--doctor-surface-elevated) !important;
+}
+
 </style>
 <div class="facility-profile" x-data="{ editing: false }">
     <div class="mb-8">
@@ -558,7 +567,7 @@
   </div>
 
   <div x-show="editing" class="mb-8">
-    <form method="POST" action="{{ url_for('facilities.update_facility', facility_id=facility.id) }}" class="bg-white rounded-lg shadow p-6 border grid grid-cols-1 sm:grid-cols-2 gap-6 surface-card">
+    <form method="post" action="{{ url_for('facilities.update_facility', facility_id=facility.id) }}" class="bg-white rounded-lg shadow p-6 border grid grid-cols-1 sm:grid-cols-2 gap-6 surface-card">
       <label class="block">
         <span class="font-semibold">Facility Name</span>
         <input type="text" name="name" value="{{ facility.name }}" class="input w-full border rounded px-3 py-2 text-sm" />
@@ -843,7 +852,7 @@
                       </button>
                       <form id="assignment-edit-{{ assignment.id }}"
                             action="{{ url_for('facilities.update_assignment', facility_id=facility.id, assignment_id=assignment.id) }}"
-                            method="POST"
+                            method="post"
                             class="inline-flex gap-2 flex-nowrap"
                             x-on:submit="savingAssignmentId = '{{ assignment.id }}'">
                         <button type="submit"
@@ -867,7 +876,7 @@
                         </button>
                       </form>
                       <form action="{{ url_for('facilities.remove_assignment', facility_id=facility.id, assignment_id=assignment.id) }}"
-                            method="POST"
+                            method="post"
                             style="display: inline;"
                             onsubmit="handleFormDelete(event, this)"
                             data-title="Remove Assignment"
@@ -900,7 +909,7 @@
       <button onclick="closeAddContactModal()" class="absolute top-2 right-2 text-2xl font-bold text-gray-500 hover:text-black">×</button>
       <h3 class="text-xl font-semibold mb-4">Add New Contact</h3>
 
-      <form method="POST" action="{{ url_for('facilities.add_facility_contact', facility_id=facility.id) }}" class="space-y-4">
+      <form method="post" action="{{ url_for('facilities.add_facility_contact', facility_id=facility.id) }}" class="space-y-4">
         <div>
           <label class="block text-sm font-medium text-gray-700">Role</label>
           <input type="text" name="role" required class="mt-1 block w-full border rounded-md shadow-sm py-2 px-3 text-sm">
@@ -924,7 +933,7 @@
       <button onclick="closeEditContactModal()" class="absolute top-2 right-2 text-2xl font-bold text-gray-500 hover:text-black">×</button>
       <h3 class="text-xl font-semibold mb-4">Edit Contact</h3>
 
-      <form id="editContactForm" method="POST" action="{{ url_for('facilities.edit_facility_contact', facility_id=facility.id, contact_id='') }}" class="space-y-4">
+      <form id="editContactForm" method="post" action="{{ url_for('facilities.edit_facility_contact', facility_id=facility.id, contact_id='') }}" class="space-y-4">
         <div>
           <label class="block text-sm font-medium text-gray-700">Role</label>
           <input type="text" name="role" required class="mt-1 block w-full border rounded-md shadow-sm py-2 px-3 text-sm">
@@ -948,7 +957,7 @@
       <button onclick="closeRadiologistModal()" class="absolute top-2 right-2 text-2xl font-bold text-gray-500 hover:text-black">×</button>
       <h3 class="text-xl font-semibold mb-4">Assign Radiologists to Facility</h3>
 
-      <form method="POST" action="{{ url_for('facilities.assign_radiologist', facility_id=facility.id) }}" class="space-y-4">
+      <form method="post" action="{{ url_for('facilities.assign_radiologist', facility_id=facility.id) }}" class="space-y-4">
         <div>
           <div class="flex flex-wrap items-center justify-between gap-2 mb-1">
             <label class="block text-sm font-medium text-gray-700">Select Radiologists</label>
@@ -984,7 +993,7 @@
                 </thead>
                 <tbody>
                   {% for rad in available_radiologists %}
-                    <tr class="bulk-assign-rad-row border-t hover:bg-white">
+                    <tr class="bulk-assign-rad-row bulk-assign-rad-row-hover border-t">
                       <td class="px-3 py-2 align-top">
                         <input type="checkbox" name="radiologist_ids[]" value="{{ rad.id }}" class="bulk-assign-rad-checkbox h-4 w-4 mt-1">
                       </td>
@@ -1020,14 +1029,13 @@
     </div>
   </div>
 
-
 <div id="bulkEditAssignmentsModal" class="fixed inset-0 z-50 hidden bg-black bg-opacity-50 flex items-center justify-center" onclick="if(event.target === this) closeBulkEditAssignmentsModal();">
   <div class="bg-white rounded-lg shadow-lg w-[98%] max-w-7xl max-h-[95vh] overflow-y-auto p-6 relative surface-card" onclick="event.stopPropagation();">
     <button onclick="closeBulkEditAssignmentsModal()" class="absolute top-2 right-2 text-2xl font-bold text-gray-500 hover:text-black">×</button>
 
     <h3 class="text-xl font-semibold mb-4">Bulk Edit Assigned Radiologists</h3>
 
-    <form method="POST" action="{{ url_for('facilities.bulk_update_assignments', facility_id=facility.id) }}" class="space-y-4">
+    <form method="post" action="{{ url_for('facilities.bulk_update_assignments', facility_id=facility.id) }}" class="space-y-4">
 
       <div class="relative mb-4 w-full max-w-md">
         <input
@@ -1043,7 +1051,7 @@
         </span>
       </div>
 
-      <div class="overflow-y-auto" style="max-height: 60vh;">
+      <div class="overflow-y-auto max-h-[60vh]">
         <table class="min-w-full bg-white border border-gray-200 text-sm rounded surface-table">
           <thead class="bg-white sticky top-0 z-10">
             <tr class="text-left">
@@ -1120,10 +1128,7 @@
   </div>
 </div>
 
-
-
-
-<form id="deleteContactForm" method="POST" style="display: none;"></form>
+<form id="deleteContactForm" method="post" class="hidden"></form>
 
 <script>
   function filterBulkDoctors(query) {
@@ -1362,7 +1367,7 @@ function hideDoctorPopup() {
 </script>
 
 {% if session.user.role == 'admin' %}
-<form method="POST" 
+<form method="post" 
       action="{{ url_for('facilities.remove_facility', facility_id=facility.id) }}" 
       onsubmit="handleFormDelete(event, this)" 
       class="mt-4"
