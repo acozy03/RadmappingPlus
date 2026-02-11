@@ -26,7 +26,7 @@
           <i class="fas fa-search specialties-icon-muted"></i>
         </div>
         <input type="text" id="specialtySearch"
-               placeholder="Search specialties by name or description..."
+               placeholder="Search specialties/exams by name, description, or type..."
                class="w-full pl-10 pr-4 py-3 rounded-lg transition-colors shadow-sm specialties-input"
                oninput="filterTable()">
       </div>
@@ -34,7 +34,10 @@
 
     <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
       {% for specialty in specialties %}
-      <div class="specialty-card group rounded-xl shadow-sm p-6 hover:shadow-lg hover:-translate-y-1 transition-all duration-300 relative overflow-hidden flex flex-col specialties-card">
+      <div class="specialty-card group rounded-xl shadow-sm p-6 hover:shadow-lg hover:-translate-y-1 transition-all duration-300 relative overflow-hidden flex flex-col specialties-card"
+           data-name="{{ specialty.name|lower }}"
+           data-description="{{ (specialty.description or '')|lower }}"
+           data-type="{{ 'specialty' if specialty.is_specialty else 'exam' }}">
         <div class="absolute top-0 left-0 w-full h-1 specialties-card-accent"></div>
 
         <div class="flex items-start justify-between mb-4">
@@ -42,6 +45,9 @@
             <h3 class="text-lg font-semibold specialties-card-title mb-2 transition-colors">
               {{ specialty.name }}
             </h3>
+            <span class="specialty-type-badge" data-type="{{ 'specialty' if specialty.is_specialty else 'exam' }}">
+              {{ 'Specialty' if specialty.is_specialty else 'Exam' }}
+            </span>
           </div>
 
           {% if session.user.role == 'admin' %}
@@ -101,6 +107,13 @@
           <textarea name="description" rows="4"
                     class="w-full px-4 py-3 rounded-lg transition-colors resize-none specialties-input specialties-textarea"
                     placeholder="Enter specialty description (optional)"></textarea>
+        </div>
+
+        <div class="mb-6">
+          <label class="inline-flex items-center gap-3 specialties-label">
+            <input type="checkbox" name="is_specialty" value="on" class="specialties-checkbox">
+            <span>Mark as a true specialty (unchecked = exam)</span>
+          </label>
         </div>
 
           <div class="flex justify-end gap-3">
@@ -402,6 +415,38 @@
 .specialty-card:focus-within .specialties-card-action {
   background: var(--sp-secondary-hover);
   color: var(--sp-highlight);
+}
+
+.specialty-type-badge {
+  display: inline-flex;
+  align-items: center;
+  width: fit-content;
+  padding: 0.2rem 0.55rem;
+  border-radius: 9999px;
+  font-size: 0.72rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+}
+
+.specialty-type-badge[data-type="specialty"] {
+  background: rgba(16, 185, 129, 0.14);
+  color: #047857;
+}
+
+.specialty-type-badge[data-type="exam"] {
+  background: rgba(99, 102, 241, 0.14);
+  color: #4338ca;
+}
+
+[data-theme="dark"] .specialty-type-badge[data-type="specialty"] {
+  background: rgba(16, 185, 129, 0.2);
+  color: #6ee7b7;
+}
+
+[data-theme="dark"] .specialty-type-badge[data-type="exam"] {
+  background: rgba(129, 140, 248, 0.2);
+  color: #c7d2fe;
 }
 
 .specialties-icon-button {
@@ -776,13 +821,14 @@ function updatePermission(checkbox) {
 
 function filterTable() {
   const specialtyQuery = document.getElementById('specialtySearch').value.toLowerCase();
-  
+
   const cards = document.querySelectorAll('.specialty-card');
   cards.forEach(card => {
-    const name = card.querySelector('h3').textContent.toLowerCase();
-    const description = card.querySelector('p')?.textContent.toLowerCase() || '';
-    
-    if (name.includes(specialtyQuery) || description.includes(specialtyQuery)) {
+    const name = card.dataset.name || '';
+    const description = card.dataset.description || '';
+    const type = card.dataset.type || '';
+
+    if (name.includes(specialtyQuery) || description.includes(specialtyQuery) || type.includes(specialtyQuery)) {
       card.style.display = '';
     } else {
       card.style.display = 'none';

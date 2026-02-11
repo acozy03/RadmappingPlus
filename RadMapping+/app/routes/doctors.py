@@ -3,10 +3,10 @@ from app.admin_required import admin_required
 from app.supabase_client import get_supabase_client
 from app.middleware import with_supabase_auth
 from app.audit_log import log_audit_action 
+from app.radmapping_sync import process_cell_update
 from datetime import datetime, timedelta
 from calendar import monthrange
 import uuid
-from threading import Thread
 from postgrest import APIError
 doctors_bp = Blueprint('doctors', __name__)
 
@@ -16,7 +16,6 @@ def doctor_list():
     supabase = get_supabase_client()
     page = request.args.get('page', 1, type=int)
     per_page = 25
-    offset = (page - 1) * per_page
 
     all_doctors_res = supabase.table("radiologists").select("*").order("name").execute()
     all_doctors = all_doctors_res.data
@@ -48,7 +47,6 @@ def search_doctors():
     supabase = get_supabase_client()
     page = request.args.get('page', 1, type=int)
     per_page = 25
-    offset = (page - 1) * per_page
     search_term = request.args.get('search', '')
     status = request.args.get('status', 'all')
 
@@ -148,9 +146,10 @@ def doctor_profile(rad_id):
             break
 
     specialty_perms = supabase.table("specialty_permissions") \
-        .select("*, specialty_studies(name, description)") \
+        .select("*, specialty_studies(name, description, is_specialty)") \
         .eq("radiologist_id", rad_id) \
         .eq("can_read", True) \
+        .eq("specialty_studies.is_specialty", True) \
         .execute().data
     doctor_specialties = [perm["specialty_studies"] for perm in specialty_perms if perm.get("specialty_studies")]
 
@@ -565,7 +564,7 @@ def add_facility_assignment(rad_id):
 @admin_required
 def get_doctor_specialties(doctor_id):
     supabase = get_supabase_client()
-    specialties_res = supabase.table("specialty_studies").select("*").order("name").execute()
+    specialties_res = supabase.table("specialty_studies").select("*").eq("is_specialty", True).order("name").execute()
     specialties = specialties_res.data
     perms_res = supabase.table("specialty_permissions") \
         .select("specialty_id, can_read") \
@@ -589,7 +588,7 @@ def update_doctor_specialties(doctor_id):
     supabase = get_supabase_client()
     data = request.get_json()
     specialty_ids = set(data.get('specialty_ids', []))
-    specialties_res = supabase.table("specialty_studies").select("id").execute()
+    specialties_res = supabase.table("specialty_studies").select("id").eq("is_specialty", True).execute()
     all_specialty_ids = {s['id'] for s in specialties_res.data}
     perms_res = supabase.table("specialty_permissions") \
         .select("id, specialty_id, can_read") \
@@ -750,9 +749,6 @@ def delete_assignment(assignment_id):
     except Exception as e:
         return f"Error deleting assignment: {str(e)}", 500 
     
-from flask import Blueprint, request, jsonify
-from app.radmapping_sync import process_cell_update
-
 @doctors_bp.route('/doctors/radmapping-sync', methods=["POST"])
 def radmapping_sync():
     try:
@@ -770,7 +766,7 @@ def radmapping_sync():
         print("Sync success:", result)
         return jsonify(result), status_code
 
-    except Exception as e:
+    except Exception:
         import traceback
         print("Exception occurred during radmapping_sync:")
         print(traceback.format_exc())

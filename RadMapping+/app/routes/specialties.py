@@ -7,6 +7,15 @@ import uuid
 
 specialties_bp = Blueprint('specialties', __name__)
 
+
+def _normalize_specialty_flags(specialties):
+    for specialty in specialties:
+        if 'name' in specialty and isinstance(specialty['name'], str):
+            specialty['name'] = specialty['name'].replace('\n', ' ').replace('\r', ' ').strip()
+        specialty['is_specialty'] = bool(specialty.get('is_specialty'))
+    return specialties
+
+
 @specialties_bp.route('/specialties')
 @with_supabase_auth
 def specialties():
@@ -16,11 +25,7 @@ def specialties():
     pinned_doctor_ids = [p["doctor_id"] for p in pinned_res.data]
 
     specialties_res = supabase.table("specialty_studies").select("*").order("name").execute()
-    specialties = specialties_res.data
-
-    for specialty in specialties:
-        if 'name' in specialty and isinstance(specialty['name'], str):
-            specialty['name'] = specialty['name'].replace('\n', ' ').replace('\r', ' ').strip()
+    specialties = _normalize_specialty_flags(specialties_res.data)
 
     doctors_res = supabase.table("radiologists").select("*").order("name").execute()
     doctors = doctors_res.data
@@ -70,7 +75,8 @@ def add_specialty():
     data = {
         "id": str(uuid.uuid4()),
         "name": request.form.get("name"),
-        "description": request.form.get("description")
+        "description": request.form.get("description"),
+        "is_specialty": request.form.get("is_specialty") == "on"
     }
     res = supabase.table("specialty_studies").insert(data).execute()
     if not hasattr(res, "error"):
@@ -257,7 +263,7 @@ def search_specialties_doctors():
     pinned_doctor_ids = [p["doctor_id"] for p in pinned_res.data]
 
     specialties_res = supabase.table("specialty_studies").select("*").order("name").execute()
-    specialties = specialties_res.data
+    specialties = _normalize_specialty_flags(specialties_res.data)
 
     doctors_res = supabase.table("radiologists").select("*").order("name").execute()
     doctors = doctors_res.data
