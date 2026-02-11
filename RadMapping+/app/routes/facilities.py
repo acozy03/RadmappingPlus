@@ -5,7 +5,6 @@ from app.middleware import with_supabase_auth
 from app.supabase_client import get_supabase_client
 from app.audit_log import log_audit_action
 import time
-from flask import g
 facilities_bp = Blueprint('facilities', __name__)
 supabase = get_supabase_client()
 _cached_prioritized_facility_ids = None
@@ -102,8 +101,6 @@ def facilities():
 @with_supabase_auth
 def search_facilities():
     
-    function_start_time = time.time()
-
     start_supabase_client_access = time.time()
     supabase = get_supabase_client()
     time_to_get_supabase_client = time.time() - start_supabase_client_access
@@ -118,7 +115,7 @@ def search_facilities():
 
     start_time_cache = time.time()
     prioritized_facility_ids = _get_prioritized_facility_ids_cached(supabase)
-    helix_facility_ids = _get_helix_facility_ids_cached(supabase)
+    _get_helix_facility_ids_cached(supabase)
     print(f"Time to fetch prioritized IDs (cached): {time.time() - start_time_cache:.4f}s")
     
     user_email = session["user"]["email"]
@@ -198,7 +195,7 @@ def search_facilities():
         visible_facilities = sorted_matching_facilities_meta
         total_count = len(visible_facilities)
         print(f"Time for determining visible facility IDs (fetch_all): {time.time() - start_time_ids:.4f}s")
-        print(f"Skipping full details fetch as fetch_all is true.")
+        print("Skipping full details fetch as fetch_all is true.")
     else:
         offset = (page - 1) * per_page
         visible_facilities_ids = [f["id"] for f in sorted_matching_facilities_meta[offset:offset + per_page]]
@@ -585,24 +582,56 @@ def bulk_update_assignments(facility_id):
 @admin_required
 def assign_radiologist(facility_id):
     supabase = get_supabase_client()
-    data = {
-        "id": str(uuid.uuid4()),
-        "radiologist_id": request.form.get("radiologist_id"),
-        "facility_id": facility_id,
-        "can_read": request.form.get("can_read", "empty"),
-    }
-    res = supabase.table("doctor_facility_assignments").insert(data).execute()
+    selected_ids = request.form.getlist("radiologist_ids[]") or request.form.getlist("radiologist_ids")
+    single_id = request.form.get("radiologist_id")
+    if single_id:
+        selected_ids.append(single_id)
 
-    if not hasattr(res, "error"):
-        log_audit_action(
-            supabase=supabase,
-            action="insert",
-            table_name="doctor_facility_assignments",
-            record_id=data["id"],
-            user_email=session.get("user", {}).get("email", "unknown"),
-            old_data=None,
-            new_data=data
-        )
+    allowed_statuses = {"true", "pending", "false", "withdrawn"}
+
+    # Keep insertion order while de-duplicating IDs from mixed payloads.
+    selected_ids = [rad_id for rad_id in dict.fromkeys(selected_ids) if rad_id]
+    if not selected_ids:
+        return redirect(url_for("facilities.facility_profile", facility_id=facility_id))
+
+    existing_assignments_res = supabase.table("doctor_facility_assignments") \
+        .select("radiologist_id") \
+        .eq("facility_id", facility_id) \
+        .in_("radiologist_id", selected_ids) \
+        .execute()
+
+    existing_ids = {a.get("radiologist_id") for a in (existing_assignments_res.data or [])}
+
+    for radiologist_id in selected_ids:
+        if radiologist_id in existing_ids:
+            continue
+
+        can_read = request.form.get(f"can_read_{radiologist_id}", "true")
+        if can_read not in allowed_statuses:
+            can_read = "true"
+
+        notes = request.form.get(f"notes_{radiologist_id}", "")
+
+        data = {
+            "id": str(uuid.uuid4()),
+            "radiologist_id": radiologist_id,
+            "facility_id": facility_id,
+            "can_read": can_read,
+            "notes": notes,
+        }
+
+        res = supabase.table("doctor_facility_assignments").insert(data).execute()
+
+        if not hasattr(res, "error"):
+            log_audit_action(
+                supabase=supabase,
+                action="insert",
+                table_name="doctor_facility_assignments",
+                record_id=data["id"],
+                user_email=session.get("user", {}).get("email", "unknown"),
+                old_data=None,
+                new_data=data
+            )
 
     return redirect(url_for("facilities.facility_profile", facility_id=facility_id))
 
