@@ -501,9 +501,10 @@ thead.sticky th {
 /* Compact Enhanced Navbar Styles */
 .navbar-enhanced {
     position: relative;
+    background: #fcfcfc;
     backdrop-filter: blur(10px);
-    border-bottom: 1px solid rgba(59, 130, 246, 0.1);
-    box-shadow: 0 2px 10px rgba(0, 0, 0, 0.05);
+    border-bottom: 1px solid rgba(71, 85, 105, 0.28);
+    box-shadow: 0 14px 30px rgba(15, 23, 42, 0.12);
     overflow: visible;
     border-radius: 0.75rem;
     margin: 0 2.25rem;
@@ -682,11 +683,10 @@ thead.sticky th {
     top: calc(100% + 0.75rem);
     min-width: 14rem;
     padding: 0.75rem;
-    background: rgba(255, 255, 255, 0.96);
+    background: #f8fafc;
     border-radius: 0.75rem;
     border: 1px solid rgba(59, 130, 246, 0.2);
     box-shadow: 0 24px 48px rgba(15, 23, 42, 0.12);
-    backdrop-filter: blur(12px);
     opacity: 0;
     transform: translateY(-8px) scale(0.98);
     transition: opacity 0.2s ease, transform 0.2s ease;
@@ -786,7 +786,7 @@ thead.sticky th {
 }
 
 [data-theme="dark"] .user-dropdown {
-    background: rgba(15, 23, 42, 0.94);
+    background: #0f172a;
     border-color: rgba(96, 165, 250, 0.28);
     box-shadow: 0 32px 68px rgba(2, 6, 23, 0.9);
 }
@@ -2023,9 +2023,9 @@ thead.sticky th {
 }
 
 [data-theme="dark"] .navbar-enhanced {
-  background: rgba(17, 24, 39, 0.92);
-  border-bottom: 1px solid rgba(96, 165, 250, 0.35);
-  box-shadow: 0 18px 45px rgba(8, 15, 33, 0.55);
+  background: #0b1220;
+  border-bottom: 1px solid rgba(96, 165, 250, 0.5);
+  box-shadow: 0 20px 48px rgba(2, 6, 23, 0.72);
 }
 
 [data-theme="dark"] .navbar-logo-minimal .logo-icon-minimal {
