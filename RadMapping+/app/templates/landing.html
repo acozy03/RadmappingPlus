@@ -8,7 +8,7 @@
       <h1 class="text-5xl md:text-7xl font-bold tracking-tight text-gray-900">RadMapping+</h1>
     </div>
 
-    <div class="mt-10">
+    <div id="landingAskContainer" class="mt-10">
       <form id="landingAskForm" class="w-full" onsubmit="sendLandingMessage(event)">
         <div class="flex gap-3 items-center bg-white rounded-2xl shadow-lg border border-gray-200 px-4 py-3">
           <input
@@ -31,7 +31,6 @@
     <div id="chatPanel" class="hidden mt-8 bg-white rounded-2xl border border-gray-200 shadow-xl overflow-hidden">
       <div class="flex items-center justify-between px-5 py-4 border-b border-gray-200 bg-gray-50">
         <h2 class="font-semibold text-gray-900">Veston</h2>
-        <button id="newChatButton" class="text-sm text-blue-600 hover:text-blue-700" type="button">New chat</button>
       </div>
       <div id="landingMessages" class="h-[50vh] overflow-y-auto p-5 space-y-4 bg-white"></div>
       <div class="border-t border-gray-200 p-4 bg-gray-50">
@@ -40,7 +39,7 @@
             type="text"
             id="chatPanelInput"
             class="w-full border border-gray-300 rounded-xl px-4 py-3 focus:outline-none focus:ring-2 focus:ring-blue-500"
-            placeholder="Continue the conversation..."
+            placeholder="Ask Veston anything..."
             required
           />
           <button
@@ -56,6 +55,37 @@
 </div>
 
 <script>
+function escapeHtml(unsafeText) {
+  return unsafeText
+    .replace(/&/g, '&amp;')
+    .replace(/</g, '&lt;')
+    .replace(/>/g, '&gt;')
+    .replace(/"/g, '&quot;')
+    .replace(/'/g, '&#039;');
+}
+
+function renderMarkdown(content) {
+  const codeBlocks = [];
+  let html = escapeHtml(content);
+
+  html = html.replace(/```(\w+)?\n([\s\S]*?)```/g, (_match, language, code) => {
+    const escapedLanguage = language ? ` data-language="${language}"` : '';
+    const codeBlock = `<pre class="bg-gray-900 text-green-400 rounded-lg p-3 my-2 overflow-x-auto"><code${escapedLanguage}>${code.trim()}</code></pre>`;
+    codeBlocks.push(codeBlock);
+    return `__CODE_BLOCK_${codeBlocks.length - 1}__`;
+  });
+
+  html = html
+    .replace(/`([^`]+)`/g, '<code class="bg-gray-200 text-gray-900 px-1 py-0.5 rounded text-sm">$1</code>')
+    .replace(/\*\*([^*]+)\*\*/g, '<strong>$1</strong>')
+    .replace(/\*([^*]+)\*/g, '<em>$1</em>')
+    .replace(/\[([^\]]+)\]\((https?:\/\/[^\s)]+)\)/g, '<a href="$2" target="_blank" rel="noopener noreferrer" class="text-blue-600 underline">$1</a>')
+    .replace(/\n/g, '<br>');
+
+  html = html.replace(/__CODE_BLOCK_(\d+)__/g, (_match, index) => codeBlocks[Number(index)] || '');
+  return html;
+}
+
 function appendMessage(message, role) {
   const container = document.getElementById('landingMessages');
   const row = document.createElement('div');
@@ -65,7 +95,7 @@ function appendMessage(message, role) {
   bubble.className = role === 'user'
     ? 'max-w-[85%] rounded-2xl rounded-br-md bg-blue-600 text-white px-4 py-3'
     : 'max-w-[85%] rounded-2xl rounded-bl-md bg-gray-100 text-gray-900 px-4 py-3';
-  bubble.innerHTML = message.replace(/\n/g, '<br>');
+  bubble.innerHTML = role === 'assistant' ? renderMarkdown(message) : escapeHtml(message).replace(/\n/g, '<br>');
 
   row.appendChild(bubble);
   container.appendChild(row);
@@ -104,6 +134,7 @@ async function sendLandingMessage(event) {
   }
 
   document.getElementById('landingHero').classList.add('hidden');
+  document.getElementById('landingAskContainer').classList.add('hidden');
   document.getElementById('chatPanel').classList.remove('hidden');
 
   appendMessage(question, 'user');
@@ -111,6 +142,8 @@ async function sendLandingMessage(event) {
 
   if (fromLandingInput) {
     document.getElementById('chatPanelInput').focus();
+  } else {
+    activeInput.focus();
   }
 
   try {
@@ -136,16 +169,5 @@ async function sendLandingMessage(event) {
     appendMessage('I ran into a technical error. Please try again.', 'assistant');
   }
 }
-
-function resetLandingChat() {
-  document.getElementById('landingMessages').innerHTML = '';
-  document.getElementById('chatPanel').classList.add('hidden');
-  document.getElementById('landingHero').classList.remove('hidden');
-  document.getElementById('landingInput').value = '';
-  document.getElementById('chatPanelInput').value = '';
-  document.getElementById('landingInput').focus();
-}
-
-document.getElementById('newChatButton').addEventListener('click', resetLandingChat);
 </script>
 {% endblock %}
