@@ -11,7 +11,7 @@
 <div id="radiologistsData" data-radiologists='{{ radiologists|tojson|safe }}' class="hidden"></div>
 
 <div id="licensesPage" class="licenses-page">
-  <div class="px-4 py-8">
+  <div class="max-w-7xl mx-auto px-4 py-8">
     
       <div class="flex flex-col lg:flex-row lg:items-center lg:justify-between mb-8">
         <div class="mb-4 lg:mb-0">
@@ -283,15 +283,13 @@
 }
 
 #licensesPage {
-  background: #f8fafc;
-  border-radius: 1rem;
-  padding: 0.5rem;
+  background: transparent;
   min-height: calc(100vh - 12rem);
   --sp-text-muted: #64748b;
 }
 
 [data-theme="dark"] #licensesPage {
-  background: #050b1a;
+  background: transparent;
   --sp-text-muted: #a5b4fc;
 }
 

@@ -215,17 +215,12 @@
         color: #fecaca;
     }
 </style>
-<div class="max-w-6xl mx-auto info-page-container">
+<div id="infoPage" class="info-page-container max-w-7xl mx-auto px-4 py-8">
     <div class="mb-8">
-        <div class="flex items-center justify-between flex-wrap gap-4 mb-4">
-            <div class="flex items-center">
-                <div class="w-12 h-12 bg-gradient-to-r from-blue-600 to-indigo-600 rounded-xl flex items-center justify-center mr-4">
-                    <i class="fas fa-info-circle text-white text-xl"></i>
-                </div>
-                <div>
-                    <h1 class="text-3xl font-bold text-gray-900 page-title">General Information</h1>
-                    <p class="text-gray-600 page-subtitle">Important information and guidelines for the radiology department</p>
-                </div>
+        <div class="flex flex-col lg:flex-row lg:items-center lg:justify-between mb-8">
+            <div class="mb-6 lg:mb-0">
+                <h1 class="text-3xl font-bold text-gray-900 page-title mb-2">General Information</h1>
+                <p class="text-gray-600 page-subtitle">Important information and guidelines for the radiology department</p>
             </div>
             {% if session.user.role == 'admin' %}
             <button onclick="openAddModal()"
@@ -319,7 +314,7 @@
             </div>
             <div class="prose prose-gray max-w-none">
                 <div class="themed-content {{ content_bg }} border-l-4 {{ content_border }} p-4 rounded-r-lg">
-                    <p class="text-gray-700 leading-relaxed" style="white-space: pre-wrap;">{{ article.content }}</p>
+                    <p class="text-gray-700 leading-relaxed whitespace-pre-wrap">{{ article.content }}</p>
                 </div>
             </div>
         </section>
@@ -343,7 +338,7 @@
                 <i class="fas fa-times"></i>
             </button>
         </div>
-        <form method="POST" action="{{ url_for('info.add_article') }}" class="p-6 space-y-4">
+        <form method="post" action="{{ url_for('info.add_article') }}" class="p-6 space-y-4">
             <div class="info-form-field">
                 <label class="block text-sm font-medium text-gray-700 mb-1">Title</label>
                 <input type="text" name="title" required class="w-full px-4 py-3 border border-gray-300 rounded-lg">
@@ -388,7 +383,7 @@
                 <i class="fas fa-times"></i>
             </button>
         </div>
-        <form id="editForm" method="POST" class="p-6 space-y-4">
+        <form id="editForm" method="post" class="p-6 space-y-4">
             <input type="hidden" name="id" id="editArticleId">
             <div class="info-form-field">
                 <label class="block text-sm font-medium text-gray-700 mb-1">Title</label>
@@ -426,9 +421,6 @@
     </div>
 </div>
 
-</div>
-
-
 <div id="delete-confirm-modal" class="fixed inset-0 z-50 hidden bg-black bg-opacity-50 flex items-center justify-center p-4">
   <div class="bg-white rounded-xl shadow-2xl w-full max-w-md transform transition-all info-modal" onclick="event.stopPropagation();">
     <div class="flex items-center gap-4 p-6 border-b border-gray-200 info-modal-header">
@@ -447,7 +439,6 @@
                 <div id="item-to-delete-info" class="bg-red-50 border-l-4 border-red-400 text-red-800 p-3 rounded-r-lg font-medium info-delete-warning">
                  </div>
             </div>
-                    </form>
     </div>
     <div class="flex justify-end gap-3 p-6 bg-gray-50 rounded-b-xl info-modal-footer">
       <button onclick="closeDeleteModal()" class="px-4 py-2 text-gray-700 bg-gray-200 hover:bg-gray-300 rounded-lg font-medium info-secondary-button">Cancel</button>

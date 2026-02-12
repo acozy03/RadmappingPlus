@@ -2,7 +2,7 @@
 {% block title %}Specialties{% endblock %}
 {% block content %}
     <div id="specialtiesPage" class="specialties-page">
-        <div class="px-4 py-8">
+        <div class="max-w-7xl mx-auto px-4 py-8">
             <div class="flex flex-col lg:flex-row lg:items-center lg:justify-between mb-8">
                 <div class="mb-6 lg:mb-0">
                     <h1 class="text-3xl font-bold specialties-title mb-2 flex items-center">Exam Type Management</h1>
@@ -115,7 +115,7 @@
                             <i class="fas fa-times"></i>
                         </button>
                     </div>
-                    <form method="POST"
+                    <form method="post"
                           action="{{ url_for("specialties.add_specialty") }}"
                           class="p-6">
                         <div class="mb-6">
@@ -240,7 +240,7 @@
                                 <strong>Specialty:</strong> "<span id="deleteSpecialtyName" class="font-medium"></span>"
                             </p>
                         </div>
-                        <form id="deleteSpecialtyForm" method="POST">
+                        <form id="deleteSpecialtyForm" method="post">
                             <div class="flex justify-end gap-3">
                                 <button type="button"
                                         onclick="closeDeleteSpecialtyModal()"
@@ -295,7 +295,7 @@
     </div>
     <style>
 #specialtiesPage {
-  --sp-page-bg: #f8fafc;
+  --sp-page-bg: transparent;
   --sp-card-surface: #ffffff;
   --sp-card-border: #e2e8f0;
   --sp-card-title: #1f2937;
@@ -345,7 +345,7 @@
 }
 
 [data-theme="dark"] #specialtiesPage {
-  --sp-page-bg: #050b1a;
+  --sp-page-bg: transparent;
   --sp-card-surface: rgba(15, 23, 42, 0.92);
   --sp-card-border: rgba(71, 85, 105, 0.45);
   --sp-card-title: #f8fafc;
@@ -397,8 +397,6 @@
 
 #specialtiesPage {
   background: var(--sp-page-bg);
-  border-radius: 1rem;
-  padding: 0.5rem;
   color: var(--sp-card-title);
 }
 
