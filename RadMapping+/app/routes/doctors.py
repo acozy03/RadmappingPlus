@@ -3,7 +3,6 @@ from app.admin_required import admin_required
 from app.supabase_client import get_supabase_client
 from app.middleware import with_supabase_auth
 from app.audit_log import log_audit_action 
-from app.radmapping_sync import process_cell_update
 from datetime import datetime, timedelta
 from calendar import monthrange
 import uuid
@@ -749,28 +748,28 @@ def delete_assignment(assignment_id):
     except Exception as e:
         return f"Error deleting assignment: {str(e)}", 500 
     
-@doctors_bp.route('/doctors/radmapping-sync', methods=["POST"])
-def radmapping_sync():
-    try:
-        data = request.get_json(force=True)
-        print("🛰️ Received radmapping-sync request:", data)
+# @doctors_bp.route('/doctors/radmapping-sync', methods=["POST"])
+# def radmapping_sync():
+#     try:
+#         data = request.get_json(force=True)
+#         print("🛰️ Received radmapping-sync request:", data)
 
-        sheet_id = data.get("sheetId")
-        row = data.get("row")
-        col = data.get("col")
+#         sheet_id = data.get("sheetId")
+#         row = data.get("row")
+#         col = data.get("col")
 
-        if not sheet_id or not row or not col:
-            print("Missing fields:", data)
-            return jsonify({"error": "Missing required fields"}), 400
-        result, status_code = process_cell_update(sheet_id, int(row), int(col))
-        print("Sync success:", result)
-        return jsonify(result), status_code
+#         if not sheet_id or not row or not col:
+#             print("Missing fields:", data)
+#             return jsonify({"error": "Missing required fields"}), 400
+#         result, status_code = process_cell_update(sheet_id, int(row), int(col))
+#         print("Sync success:", result)
+#         return jsonify(result), status_code
 
-    except Exception:
-        import traceback
-        print("Exception occurred during radmapping_sync:")
-        print(traceback.format_exc())
-        return jsonify({"error": "Internal server error"}), 500
+#     except Exception:
+#         import traceback
+#         print("Exception occurred during radmapping_sync:")
+#         print(traceback.format_exc())
+#         return jsonify({"error": "Internal server error"}), 500
 
 @doctors_bp.route('/api/doctors', methods=['GET'])
 # @with_supabase_auth
