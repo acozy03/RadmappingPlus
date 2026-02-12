@@ -1,8 +1,6 @@
 import gspread
 import uuid
 from datetime import datetime
-from flask import request, jsonify
-from threading import Thread
 from app.supabase_client import get_supabase_client
 import google.auth
 

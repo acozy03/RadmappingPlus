@@ -1,9 +1,6 @@
-from flask import Blueprint, render_template, session, redirect, url_for, request, jsonify
-import os
-import logging
+from flask import Blueprint, render_template, session, request, jsonify
 from app.supabase_client import get_supabase_client
 from app.middleware import with_supabase_auth
-from app.supabase_helper import fetch_all_rows
 from datetime import datetime, timedelta
 from app.admin_required import admin_required
 from app.audit_log import log_audit_action

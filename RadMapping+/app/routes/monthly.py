@@ -1,5 +1,4 @@
 from flask import Blueprint, render_template, session, redirect, url_for, request, jsonify
-from app.admin_required import admin_required
 from datetime import datetime, timedelta
 from calendar import monthrange
 from collections import defaultdict
@@ -15,7 +14,6 @@ supabase = get_supabase_client()
 @monthly_bp.route('/monthly')
 @with_supabase_auth
 def monthly():
-    supabase = get_supabase_client()
     now = datetime.now()
     year = request.args.get("year", default=now.year, type=int)
     month = request.args.get("month", default=now.month, type=int)
@@ -109,7 +107,6 @@ def monthly():
 @monthly_bp.route('/monthly/pin', methods=['POST'])
 @with_supabase_auth
 def pin_doctors():
-    supabase = get_supabase_client()
     data = request.get_json()
     doctor_ids = data.get('doctor_ids', [])
     user_email = session["user"]["email"]
@@ -136,7 +133,6 @@ def pin_doctors():
 @monthly_bp.route('/monthly/search', methods=["GET"])
 @with_supabase_auth
 def search_schedule():
-    supabase = get_supabase_client()
     from collections import defaultdict
     import calendar as pycalendar
 
@@ -188,7 +184,6 @@ def search_schedule():
 @monthly_bp.route('/monthly/bulk', methods=['POST'])
 @with_supabase_auth
 def bulk_schedule():
-    supabase = get_supabase_client()
     if session["user"]["role"] != "admin":
         return "Unauthorized", 403
 
@@ -244,7 +239,6 @@ def bulk_schedule():
 @monthly_bp.route('/monthly/pattern', methods=['POST'])
 @with_supabase_auth
 def pattern_schedule():
-    supabase = get_supabase_client()
     if session["user"]["role"] != "admin":
         return "Unauthorized", 403
     
@@ -301,7 +295,6 @@ def pattern_schedule():
 @monthly_bp.route('/monthly/<string:rad_id>/delete_schedule', methods=["POST"])
 @with_supabase_auth
 def delete_schedule(rad_id):
-    supabase = get_supabase_client()
     if session["user"]["role"] != "admin":
         return "Unauthorized", 403
 
@@ -317,7 +310,6 @@ def delete_schedule(rad_id):
 @monthly_bp.route('/monthly/<string:rad_id>/update_schedule', methods=["POST"])
 @with_supabase_auth
 def update_schedule(rad_id):
-    supabase = get_supabase_client()
     if session["user"]["role"] != "admin":
         return "Unauthorized", 403
 

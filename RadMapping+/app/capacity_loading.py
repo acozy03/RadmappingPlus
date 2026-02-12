@@ -1,10 +1,12 @@
 # app/routes/ingest_capacity.py
 from __future__ import annotations
-import os, sys, math, csv, traceback
+import os
+import sys
+import math
+import csv
 import pandas as pd
 from datetime import datetime, date, time as dtime
 from collections import defaultdict
-from flask import Blueprint, request, jsonify
 from dotenv import load_dotenv
 from zoneinfo import ZoneInfo
 from supabase import create_client, Client
@@ -182,7 +184,8 @@ def load_cache() -> dict:
         try:
             df = pd.read_csv(CACHE_CSV)
             for _, r in df.iterrows():
-                k = norm_text(r.get("excel_name")); v = r.get("facility_id")
+                k = norm_text(r.get("excel_name"))
+                v = r.get("facility_id")
                 if k and isinstance(v, str):
                     cache[k] = v
             print(f"🗂️  Loaded cache entries: {len(cache)}")

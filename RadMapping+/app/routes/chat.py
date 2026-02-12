@@ -70,9 +70,6 @@ def chat():
     # body should look like { response: "...", sql_query: "..." }
     return jsonify(body), 200
 
-from flask import Blueprint, request, jsonify
-import pandas as pd
-
 @chat_bp.post("/chat/fabric/capacity-yesterday")
 def ingest_fabric_studies_yesterday():
     try:

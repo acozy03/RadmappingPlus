@@ -217,7 +217,7 @@ def license_sync():
         Thread(target=run_in_background).start()
         return jsonify({"status": "License sync started"}), 202
 
-    except Exception as e:
+    except Exception:
         import traceback
         print("Error in license_sync:", traceback.format_exc())
         return jsonify({"error": "Internal server error"}), 500

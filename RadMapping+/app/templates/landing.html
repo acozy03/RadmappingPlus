@@ -2,55 +2,150 @@
 {% block title %}Welcome to RadMapping+{% endblock %}
 
 {% block content %}
-<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
-
-<div class="w-full h-full flex flex-col relative landing-page">
-  <div class="hero-section landing-hero flex-shrink-0">
-    <div class="hero-title-container">
-      <h1 class="hero-title">RadMapping+</h1>
+<div class="w-full h-full flex items-center justify-center px-6 py-10">
+  <div class="w-full max-w-3xl">
+    <div id="landingHero" class="text-center space-y-6">
+      <h1 class="text-5xl md:text-7xl font-bold tracking-tight text-gray-900">RadMapping+</h1>
     </div>
-    <p class="hero-subtitle">Your comprehensive radiology department management system</p>
-    <div class="status-indicator landing-status">
-      <span class="status-text"><span id="current-time"></span></span>
-    </div>
-  </div>
 
-  <div class="flex-1 overflow-y-auto px-8 pb-8">
-    <div class="dashboard-grid-landing">
-      {% set dashboard_links = [
-        {'label': 'Daily Schedule', 'desc': "View and manage today's radiologist assignments", 'icon': 'calendar-day', 'url': url_for('daily.daily')},
-        {'label': 'Monthly Schedule', 'desc': 'Plan and view monthly radiologist schedules', 'icon': 'calendar-alt', 'url': url_for('monthly.monthly')},
-        {'label': 'Capacity', 'desc': 'Monitor under/overstaffed shifts', 'icon': 'chart-line', 'url': url_for('shifts.shifts')},
-        {'label': 'Doctor Directory', 'desc': 'Access radiologist profiles and information', 'icon': 'user-md', 'url': url_for('doctors.doctor_list')},
-        {'label': 'Facilities Directory', 'desc': 'View and manage all facilities', 'icon': 'hospital', 'url': url_for('facilities.facilities')},
-        {'label': 'Specialties Directory', 'desc': 'Browse and manage specialties', 'icon': 'star', 'url': url_for('specialties.specialties')},
-        {'label': 'License Management', 'desc': 'Track and manage radiologist certifications', 'icon': 'id-card', 'url': url_for('licenses.licenses_page')},
-        {'label': 'Vacations', 'desc': 'Manage radiologist time off and coverage', 'icon': 'umbrella-beach', 'url': url_for('vacations.vacations_page')},
-        {'label': 'Information', 'desc': 'Access department guidelines and information', 'icon': 'info-circle', 'url': url_for('info.info')},
-        {'label': 'Contacts Directory', 'desc': 'Find and manage department contacts', 'icon': 'address-book', 'url': url_for('contacts.contacts')}
-      ] %}
-
-      {% for card in dashboard_links %}
-      <a href="{{ card.url }}" class="dashboard-card">
-        <div class="card-content">
-          <div class="icon-container">
-            <i class="fas fa-{{ card.icon }} card-icon"></i>
-          </div>
-          <h3 class="card-title">{{ card.label }}</h3>
-          <p class="card-description">{{ card.desc }}</p>
+    <div class="mt-10">
+      <form id="landingAskForm" class="w-full" onsubmit="sendLandingMessage(event)">
+        <div class="flex gap-3 items-center bg-white rounded-2xl shadow-lg border border-gray-200 px-4 py-3">
+          <input
+            type="text"
+            id="landingInput"
+            class="w-full bg-transparent focus:outline-none text-gray-900"
+            placeholder="Ask Veston anything..."
+            required
+          />
+          <button
+            type="submit"
+            class="bg-blue-600 hover:bg-blue-700 text-white rounded-xl px-4 py-2 transition-colors"
+          >
+            Send
+          </button>
         </div>
-      </a>
-      {% endfor %}
+      </form>
+    </div>
+
+    <div id="chatPanel" class="hidden mt-8 bg-white rounded-2xl border border-gray-200 shadow-xl overflow-hidden">
+      <div class="flex items-center justify-between px-5 py-4 border-b border-gray-200 bg-gray-50">
+        <h2 class="font-semibold text-gray-900">Veston</h2>
+        <button id="newChatButton" class="text-sm text-blue-600 hover:text-blue-700" type="button">New chat</button>
+      </div>
+      <div id="landingMessages" class="h-[50vh] overflow-y-auto p-5 space-y-4 bg-white"></div>
+      <div class="border-t border-gray-200 p-4 bg-gray-50">
+        <form id="chatPanelForm" class="flex gap-3" onsubmit="sendLandingMessage(event)">
+          <input
+            type="text"
+            id="chatPanelInput"
+            class="w-full border border-gray-300 rounded-xl px-4 py-3 focus:outline-none focus:ring-2 focus:ring-blue-500"
+            placeholder="Continue the conversation..."
+            required
+          />
+          <button
+            type="submit"
+            class="bg-blue-600 hover:bg-blue-700 text-white rounded-xl px-4 py-2 transition-colors"
+          >
+            Send
+          </button>
+        </form>
+      </div>
     </div>
   </div>
 </div>
 
 <script>
-function updateTime() {
-  const now = new Date();
-  document.getElementById('current-time').textContent = now.toLocaleTimeString();
+function appendMessage(message, role) {
+  const container = document.getElementById('landingMessages');
+  const row = document.createElement('div');
+  row.className = `flex ${role === 'user' ? 'justify-end' : 'justify-start'}`;
+
+  const bubble = document.createElement('div');
+  bubble.className = role === 'user'
+    ? 'max-w-[85%] rounded-2xl rounded-br-md bg-blue-600 text-white px-4 py-3'
+    : 'max-w-[85%] rounded-2xl rounded-bl-md bg-gray-100 text-gray-900 px-4 py-3';
+  bubble.innerHTML = message.replace(/\n/g, '<br>');
+
+  row.appendChild(bubble);
+  container.appendChild(row);
+  container.scrollTop = container.scrollHeight;
 }
-updateTime();
-setInterval(updateTime, 1000);
+
+function setLoadingMessage(show) {
+  const container = document.getElementById('landingMessages');
+  const existing = document.getElementById('landingLoadingMessage');
+
+  if (show && !existing) {
+    const row = document.createElement('div');
+    row.id = 'landingLoadingMessage';
+    row.className = 'flex justify-start';
+    row.innerHTML = '<div class="max-w-[85%] rounded-2xl rounded-bl-md bg-gray-100 text-gray-500 px-4 py-3">Thinking...</div>';
+    container.appendChild(row);
+    container.scrollTop = container.scrollHeight;
+  }
+
+  if (!show && existing) {
+    existing.remove();
+  }
+}
+
+async function sendLandingMessage(event) {
+  event.preventDefault();
+
+  const fromLandingInput = event.target.id === 'landingAskForm';
+  const activeInput = fromLandingInput
+    ? document.getElementById('landingInput')
+    : document.getElementById('chatPanelInput');
+
+  const question = activeInput.value.trim();
+  if (!question) {
+    return;
+  }
+
+  document.getElementById('landingHero').classList.add('hidden');
+  document.getElementById('chatPanel').classList.remove('hidden');
+
+  appendMessage(question, 'user');
+  activeInput.value = '';
+
+  if (fromLandingInput) {
+    document.getElementById('chatPanelInput').focus();
+  }
+
+  try {
+    setLoadingMessage(true);
+    const response = await fetch('/radmapping/chat', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ question }),
+    });
+
+    const data = await response.json();
+    setLoadingMessage(false);
+
+    if (!response.ok || data.error) {
+      appendMessage(data.error || 'I ran into an issue getting a response.', 'assistant');
+      return;
+    }
+
+    const reply = data?.output?.reply || data?.response || data?.reply || 'No response was returned.';
+    appendMessage(reply, 'assistant');
+  } catch (error) {
+    setLoadingMessage(false);
+    appendMessage('I ran into a technical error. Please try again.', 'assistant');
+  }
+}
+
+function resetLandingChat() {
+  document.getElementById('landingMessages').innerHTML = '';
+  document.getElementById('chatPanel').classList.add('hidden');
+  document.getElementById('landingHero').classList.remove('hidden');
+  document.getElementById('landingInput').value = '';
+  document.getElementById('chatPanelInput').value = '';
+  document.getElementById('landingInput').focus();
+}
+
+document.getElementById('newChatButton').addEventListener('click', resetLandingChat);
 </script>
 {% endblock %}

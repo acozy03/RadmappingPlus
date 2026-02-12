@@ -1,6 +1,4 @@
-import os
 from app import create_app
-import sys
 
 try:
     app = create_app()

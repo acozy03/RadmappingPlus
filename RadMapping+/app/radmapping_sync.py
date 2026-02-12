@@ -1,5 +1,4 @@
 import os
-import io
 import uuid
 import openpyxl
 from google.oauth2 import service_account
@@ -77,7 +76,7 @@ def process_cell_update(sheet_id: str, row: int, col: int) -> tuple[dict, int]:
     finally:
         if os.path.exists(temp_file):
             os.remove(temp_file)
-            print(f"Temp file deleted.")
+            print("Temp file deleted.")
 
 
     facility_name = str(ws.cell(row=row, column=1).value).strip().upper()

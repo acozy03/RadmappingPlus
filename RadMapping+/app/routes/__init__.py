@@ -24,7 +24,7 @@ __all__ = [
     'landing_bp',
     'contacts_bp',
     'licenses_bp',
-    'auth_bp',  
-    'shifts_bp'
-    'audit_bp'
+    'auth_bp',
+    'shifts_bp',
+    'audit_bp',
 ] 

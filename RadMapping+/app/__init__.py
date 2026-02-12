@@ -2,9 +2,6 @@ from flask import Flask, session, redirect, url_for, request
 from config import Config
 from datetime import datetime
 from dotenv import load_dotenv
-from .admin_required import admin_required
-
-
 def create_app():
     load_dotenv()
     app = Flask(__name__)
