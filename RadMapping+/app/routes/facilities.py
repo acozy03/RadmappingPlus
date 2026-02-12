@@ -370,6 +370,23 @@ def facility_profile(facility_id):
     print(f"Sorted assignments: {sorted_assignments}")
     assigned_radiologist_ids = {a["radiologist_id"] for a in sorted_assignments}
 
+    if assigned_radiologist_ids:
+        certs_res = supabase.table("certifications") \
+            .select("radiologist_id, specialty") \
+            .in_("radiologist_id", list(assigned_radiologist_ids)) \
+            .execute()
+        fellowship_by_radiologist = {}
+        for cert in certs_res.data or []:
+            fellowship = (cert.get("specialty") or "").strip()
+            radiologist_id = cert.get("radiologist_id")
+            if fellowship and radiologist_id and radiologist_id not in fellowship_by_radiologist:
+                fellowship_by_radiologist[radiologist_id] = fellowship
+
+        for assignment in sorted_assignments:
+            rad = assignment.get("radiologists") or {}
+            if rad:
+                rad["fellowship"] = fellowship_by_radiologist.get(assignment.get("radiologist_id"))
+
     all_rads_res = supabase.table("radiologists").select("id, name").order("name").execute()
     all_radiologists = all_rads_res.data or []
     available_radiologists = [r for r in all_radiologists if r["id"] not in assigned_radiologist_ids]
