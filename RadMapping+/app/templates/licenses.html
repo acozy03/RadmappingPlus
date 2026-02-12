@@ -10,19 +10,19 @@
 {% block content %}
 <div id="radiologistsData" data-radiologists='{{ radiologists|tojson|safe }}' class="hidden"></div>
 
-<div class="licenses-page">
-<div class="flex flex-col lg:flex-row lg:items-center lg:justify-between mb-8">
-  <div class="mb-4 lg:mb-0">
-    <h2 class="text-3xl font-bold text-gray-900 mb-2">License Management</h2>
-    <p class="text-gray-600">Track and manage radiologist certifications and licenses</p>
-  </div>
-  <div class="flex flex-col sm:flex-row items-start sm:items-center gap-4">
-  <div class="flex items-center gap-3">
+<div id="licensesPage" class="licenses-page">
+  <div class="px-4 py-8">
     
-  </div>
+      <div class="flex flex-col lg:flex-row lg:items-center lg:justify-between mb-8">
+        <div class="mb-4 lg:mb-0">
+          <h2 class="text-3xl font-bold text-gray-900 mb-2">License Management</h2>
+          <p class="specialties-subtitle">Track and manage radiologist certifications and licenses</p>
+        </div>
+        <div class="flex flex-col sm:flex-row items-start sm:items-center gap-4">
+          <div class="flex items-center gap-3"></div>
 
   {% if session.user.role == 'admin' %}
-<div x-data="{ open: false }" class="relative" id ="addLicenseModal">
+<div x-data="{ open: false }" class="relative" id="addLicenseModal">
   <button @click="open = true"
           class="inline-flex items-center px-4 py-2 rounded-lg bg-blue-600 text-white text-sm font-semibold shadow-sm hover:bg-blue-700 transition">
     Add License
@@ -30,7 +30,7 @@
 
   <div x-show="open"
         class="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50"
-        style="display: none;"
+        x-cloak
         x-transition:enter="transition ease-out duration-150"
         x-transition:enter-start="opacity-0"
         x-transition:enter-end="opacity-100"
@@ -41,13 +41,13 @@
     <div @click.away="open = false"
           class="bg-white rounded-xl shadow-xl max-w-lg w-full p-6 relative z-50"
           x-show="open"
-          style="display: none;">
+          x-cloak>
 
       <h3 class="text-lg font-semibold text-gray-800 mb-4">
         Add New License
       </h3>
 
-      <form method="POST" action="{{ url_for('licenses.licenses_page') }}" class="space-y-4">
+      <form method="post" action="{{ url_for('licenses.licenses_page') }}" class="space-y-4">
 
         <div>
           <label class="block text-sm font-medium text-gray-700 mb-1">Radiologist</label>
@@ -239,6 +239,7 @@
       </div>
     </div>
 </div>
+  </div>
 
 <div id="delete-confirm-modal" class="modal-overlay">
   <div class="modal-content">
@@ -247,7 +248,7 @@
         <i class="fas fa-exclamation-triangle"></i>
       </div>
       <h3 class="text-lg font-semibold text-gray-800">Delete License</h3>
-      <span class="close-delete-modal-btn">&times;</span>
+      <span class="close-delete-modal-btn">×</span>
     </div>
     <div class="modal-body">
       <div class="body-icon-container">
@@ -273,6 +274,27 @@
 
 
 <style>
+[x-cloak] {
+  display: none !important;
+}
+
+.specialties-subtitle {
+  color: var(--sp-text-muted);
+}
+
+#licensesPage {
+  background: #f8fafc;
+  border-radius: 1rem;
+  padding: 0.5rem;
+  min-height: calc(100vh - 12rem);
+  --sp-text-muted: #64748b;
+}
+
+[data-theme="dark"] #licensesPage {
+  background: #050b1a;
+  --sp-text-muted: #a5b4fc;
+}
+
 html[data-theme="dark"] body {
   background-color: #0f172a;
   color: #e2e8f0;
@@ -851,7 +873,7 @@ function updateTable() {
             <i class="fas fa-edit mr-1"></i>Edit
           </button>
           
-          <form method="POST" action="/radmapping/doctors/${cert.radiologist_id}/licenses/${cert.id}/delete" class="inline requires-confirmation" data-item-name="License for ${cert.radiologists.name} in ${cert.state}">
+          <form method="post" action="/radmapping/doctors/${cert.radiologist_id}/licenses/${cert.id}/delete" class="inline requires-confirmation" data-item-name="License for ${cert.radiologists.name} in ${cert.state}">
             <button type="submit" class="inline-flex items-center px-3 py-1.5 border border-transparent text-xs font-medium rounded-md text-red-700 bg-red-100 hover:bg-red-200 transition-colors">
                 <i class="fas fa-trash mr-1"></i>Delete
             </button>
