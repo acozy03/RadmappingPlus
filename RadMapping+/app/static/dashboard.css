@@ -1563,10 +1563,6 @@ thead.sticky th {
   border: 1px solid var(--shifts-border) !important;
 }
 
-.shifts-filter-button:hover {
-  transform: translateY(-1px);
-}
-
 .shifts-nav-button {
   border: 1px solid transparent;
 
