@@ -1144,6 +1144,10 @@ thead.sticky th {
     background-color: var(--daily-control-bg) !important;
     border-color: var(--daily-control-border) !important;
     color: var(--daily-control-text) !important;
+    height: 2.5rem;
+    min-height: 2.5rem;
+    box-sizing: border-box;
+    line-height: 1.25rem;
     
     
 }
@@ -1158,7 +1162,10 @@ thead.sticky th {
 }
 
 .daily-filter-bar .daily-filter-button {
-    
+    height: 2.5rem;
+    min-height: 2.5rem;
+    box-sizing: border-box;
+    line-height: 1.25rem;
 }
 
 .daily-filter-bar .daily-filter-button:hover {
