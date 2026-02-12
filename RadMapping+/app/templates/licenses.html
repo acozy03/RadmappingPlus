@@ -24,7 +24,8 @@
   {% if session.user.role == 'admin' %}
 <div x-data="{ open: false }" class="relative" id="addLicenseModal">
   <button @click="open = true"
-          class="inline-flex items-center px-4 py-2 rounded-lg bg-blue-600 text-white text-sm font-semibold shadow-sm hover:bg-blue-700 transition">
+          class="inline-flex items-center px-6 py-3 text-white font-medium rounded-lg shadow-lg hover:shadow-xl transform hover:-translate-y-0.5 transition-all duration-200 licenses-primary-button">
+    <i class="fas fa-plus mr-2"></i>
     Add License
   </button>
 
@@ -108,7 +109,7 @@
 
 </div>
 
-<div class="bg-white rounded-xl shadow-sm border border-gray-200 p-6 mb-6">
+<div class="licenses-filter-shell rounded-xl p-6 mb-6">
   <div class="flex flex-col lg:flex-row gap-4">
     <div class="flex-1 relative">
       <div class="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
@@ -118,7 +119,7 @@
         type="text"
         id="licenseSearch"
         placeholder="Search by state, doctor, specialty, or tags..."
-        class="w-full pl-10 pr-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-colors"
+        class="w-full pl-10 pr-4 py-3 rounded-lg transition-colors shadow-sm licenses-filter-input"
         onkeyup="debounceSearch()" />
     </div>
     
@@ -128,7 +129,7 @@
       </div>
       <select
         id="stateFilter"
-        class="w-full pl-10 pr-8 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-colors appearance-none bg-white"
+        class="w-full pl-10 pr-8 py-3 rounded-lg transition-colors shadow-sm appearance-none licenses-filter-input"
         onchange="applyFiltersAndSort()">
         <option value="">All States</option>
         {% for state in us_states %}
@@ -142,17 +143,17 @@
     
     <div class="flex gap-2">
       <button onclick="filterByStatus('all')" 
-              class="px-4 py-2 rounded-lg text-sm font-medium transition-all duration-200 bg-blue-600 text-white hover:bg-blue-700 active-filter" 
+              class="px-4 py-2 rounded-lg text-sm font-medium transition-all duration-200 licenses-status-button licenses-status-button--active active-filter" 
               data-status="all">
         <i class="fas fa-list mr-2"></i>All
       </button>
       <button onclick="filterByStatus('true')" 
-              class="px-4 py-2 rounded-lg text-sm font-medium transition-all duration-200 bg-gray-100 text-gray-700 hover:bg-green-100 hover:text-green-700" 
+              class="px-4 py-2 rounded-lg text-sm font-medium transition-all duration-200 licenses-status-button" 
               data-status="true">
         <i class="fas fa-check-circle mr-2"></i>Active Doctors
       </button>
       <button onclick="filterByStatus('false')" 
-              class="px-4 py-2 rounded-lg text-sm font-medium transition-all duration-200 bg-gray-100 text-gray-700 hover:bg-red-100 hover:text-red-700" 
+              class="px-4 py-2 rounded-lg text-sm font-medium transition-all duration-200 licenses-status-button" 
               data-status="false">
         <i class="fas fa-exclamation-triangle mr-2"></i>Inactive Doctors
       </button>
@@ -286,11 +287,91 @@
   background: transparent;
   min-height: calc(100vh - 12rem);
   --sp-text-muted: #64748b;
+  --lic-surface: rgba(255, 255, 255, 0.96);
+  --lic-border: #dbe2f3;
+  --lic-input-bg: #eef2ff;
+  --lic-input-border: #c7d2fe;
+  --lic-input-text: #0f172a;
+  --lic-input-placeholder: #64748b;
+  --lic-input-focus: rgba(99, 102, 241, 0.25);
+  --lic-muted-icon: #94a3b8;
 }
 
 [data-theme="dark"] #licensesPage {
   background: transparent;
   --sp-text-muted: #a5b4fc;
+  --lic-surface: rgba(15, 23, 42, 0.92);
+  --lic-border: rgba(71, 85, 105, 0.45);
+  --lic-input-bg: rgba(15, 23, 42, 0.85);
+  --lic-input-border: rgba(129, 140, 248, 0.35);
+  --lic-input-text: #f8fafc;
+  --lic-input-placeholder: #94a3c9;
+  --lic-input-focus: rgba(129, 140, 248, 0.35);
+  --lic-muted-icon: #94a3c3;
+}
+
+.licenses-primary-button {
+  background-image: linear-gradient(135deg, #4f46e5, #8b5cf6);
+}
+
+.licenses-primary-button:hover {
+  box-shadow: 0 20px 40px -16px rgba(99, 102, 241, 0.55);
+}
+
+.licenses-filter-shell {
+  background: var(--lic-surface);
+  border: 1px solid var(--lic-border);
+  box-shadow: 0 18px 34px -24px rgba(79, 70, 229, 0.36);
+}
+
+.licenses-filter-input {
+  background: var(--lic-input-bg);
+  border: 1px solid var(--lic-input-border);
+  color: var(--lic-input-text);
+}
+
+.licenses-filter-input::placeholder {
+  color: var(--lic-input-placeholder);
+}
+
+.licenses-filter-input:focus {
+  border-color: #a78bfa;
+  box-shadow: 0 0 0 3px var(--lic-input-focus);
+  outline: none;
+}
+
+.licenses-filter-shell .fa-search,
+.licenses-filter-shell .fa-map-marker-alt,
+.licenses-filter-shell .fa-chevron-down {
+  color: var(--lic-muted-icon);
+}
+
+.licenses-status-button {
+  background: rgba(51, 65, 85, 0.16);
+  color: #1e293b;
+  border: 1px solid var(--lic-border);
+}
+
+.licenses-status-button:hover {
+  background: rgba(129, 140, 248, 0.2);
+  color: #4338ca;
+}
+
+.licenses-status-button--active {
+  background-image: linear-gradient(135deg, #4f46e5, #8b5cf6);
+  border-color: transparent;
+  color: #fff;
+  box-shadow: 0 12px 26px -14px rgba(99, 102, 241, 0.7);
+}
+
+[data-theme="dark"] .licenses-status-button {
+  background: rgba(39, 51, 78, 0.75);
+  color: #e2e8f0;
+}
+
+[data-theme="dark"] .licenses-status-button:hover {
+  background: rgba(124, 58, 237, 0.2);
+  color: #c4b5fd;
 }
 
 html[data-theme="dark"] body {
@@ -420,6 +501,13 @@ html[data-theme="dark"] .licenses-page textarea {
   color: #e2e8f0 !important;
   border-color: #334155 !important;
 }
+
+html[data-theme="dark"] .licenses-page .licenses-filter-input {
+  background: var(--lic-input-bg) !important;
+  border-color: var(--lic-input-border) !important;
+  color: var(--lic-input-text) !important;
+}
+
 
 html[data-theme="dark"] .licenses-page select option {
   background-color: #0f172a;
@@ -901,15 +989,13 @@ function updateCounts() {
 function filterByStatus(status) {
   currentStatusFilter = status;
   document.querySelectorAll('[data-status]').forEach(button => {
-    button.classList.remove('active-filter', 'bg-blue-600', 'text-white');
-    button.classList.add('bg-gray-100', 'text-gray-700');
+    button.classList.remove('active-filter', 'licenses-status-button--active');
     if (button.dataset.status === status) {
-      button.classList.remove('bg-gray-100', 'text-gray-700');
-      button.classList.add('active-filter', 'bg-blue-600', 'text-white');
+      button.classList.add('active-filter', 'licenses-status-button--active');
     }
   });
-  
-  visibleEntries = entriesPerPage; 
+
+  visibleEntries = entriesPerPage;
   applyFiltersAndSort();
 }
 
