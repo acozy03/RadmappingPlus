@@ -35,23 +35,23 @@
                             <tr>
                                 <th scope="col" class="cursor-pointer specialties-sort-header" data-sort="name">
                                     <div class="flex items-center">
-                                        Study Name
+                                        <i class="fas fa-file-medical mr-2"></i>Study Name
                                         <span class="ml-2 specialties-sort-indicator">↕</span>
                                     </div>
                                 </th>
                                 <th scope="col" class="cursor-pointer specialties-sort-header" data-sort="type">
                                     <div class="flex items-center">
-                                        Type
+                                        <i class="fas fa-tag mr-2"></i>Type
                                         <span class="ml-2 specialties-sort-indicator">↕</span>
                                     </div>
                                 </th>
                                 <th scope="col" class="cursor-pointer specialties-sort-header" data-sort="description">
                                     <div class="flex items-center">
-                                        Description
+                                        <i class="fas fa-align-left mr-2"></i>Description
                                         <span class="ml-2 specialties-sort-indicator">↕</span>
                                     </div>
                                 </th>
-                                <th scope="col" class="text-right">Actions</th>
+                                <th scope="col" class="text-right"><i class="fas fa-cog mr-2"></i>Actions</th>
                             </tr>
                         </thead>
                         <tbody id="specialtiesTableBody">
@@ -486,17 +486,22 @@
 }
 
 .specialties-table thead th {
-  padding: 0.9rem 1rem;
-  font-size: 0.78rem;
+  padding: 1rem 1.5rem;
+  font-size: 0.75rem;
+  font-weight: 500;
   text-transform: uppercase;
-  letter-spacing: 0.07em;
-  color: var(--sp-text-muted);
-  background: var(--sp-secondary-bg);
-  border-bottom: 1px solid var(--sp-card-border);
+  letter-spacing: 0.05em;
+  color: #6b7280;
+  background: #f9fafb;
+  border-bottom: 1px solid #e5e7eb;
 }
 
 .specialties-sort-header {
   user-select: none;
+}
+
+.specialties-sort-header:hover {
+  background: #f3f4f6;
 }
 
 .specialties-sort-indicator {
@@ -524,6 +529,17 @@
 
 [data-theme="dark"] .specialties-table tbody tr:hover {
   background: rgba(129, 140, 248, 0.12);
+}
+
+[data-theme="dark"] .specialties-table thead th {
+  background: #243045;
+  color: #cbd5f5;
+  border-bottom: 1px solid #334155;
+}
+
+[data-theme="dark"] .specialties-sort-header:hover {
+  background: #2d3a52;
+  color: #e2e8f0;
 }
 
 .specialties-table-description {
