@@ -5,7 +5,6 @@ import os
 import requests
 import uuid
 from datetime import datetime
-from app.capacity_loading import load_rows_to_capacity_tables
 chat_bp = Blueprint("chat", __name__)
 
 # Required: set this env var to your n8n Webhook (Production URL)
@@ -69,26 +68,6 @@ def chat():
     print(f"n8n response: {body}")
     # body should look like { response: "...", sql_query: "..." }
     return jsonify(body), 200
-
-@chat_bp.post("/chat/fabric/capacity-yesterday")
-def ingest_fabric_studies_yesterday():
-    try:
-        data = request.get_json(force=True)
-        print("📥 Ingest request received from Fabric.", data)
-
-        rows = data.get("output")
-
-        if not isinstance(rows, list):
-            return jsonify({"ok": False, "error": "Body must contain 'output' as an array of rows"}), 400
-
-        print(f"📥 Received {len(rows)} rows from Fabric.")
-        load_rows_to_capacity_tables(rows)
-
-        return jsonify({"ok": True, "count": len(rows)}), 200
-
-    except Exception as e:
-        print("❌ Ingest failed:", e)
-        return jsonify({"ok": False, "error": str(e)}), 500
 
     
 
