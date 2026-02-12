@@ -1492,7 +1492,7 @@ thead.sticky th {
   --shifts-accent: #1d4ed8;
   --shifts-border: rgba(148, 163, 184, 0.35);
   --shifts-surface: rgba(255, 255, 255, 0.96);
-  --shifts-surface-alt: rgba(248, 250, 252, 0.92); */
+  --shifts-surface-alt: rgba(248, 250, 252, 0.92);
   --shifts-filter-bg: linear-gradient(135deg, rgba(219, 234, 254, 0.95), rgba(224, 231, 255, 0.95));
   --shifts-filter-border: rgba(191, 219, 254, 0.75);
 
@@ -1836,7 +1836,7 @@ thead.sticky th {
 .status-filter-button.status-filter-active {
     background: linear-gradient(135deg, #2563eb, #7c3aed);
     color: #ffffff;
-    box-shadow: 0 18px 35px rgba(37, 99, 235, 0.25);
+    box-shadow: none;
 }
 
 .facility-card,

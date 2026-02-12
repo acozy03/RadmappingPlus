@@ -142,7 +142,7 @@
     
     <div class="flex gap-2">
       <button onclick="filterByStatus('all')" 
-              class="px-4 py-2 rounded-lg text-sm font-medium transition-all duration-200 bg-blue-600 text-white shadow-sm hover:bg-blue-700 active-filter" 
+              class="px-4 py-2 rounded-lg text-sm font-medium transition-all duration-200 bg-blue-600 text-white hover:bg-blue-700 active-filter" 
               data-status="all">
         <i class="fas fa-list mr-2"></i>All
       </button>
@@ -431,7 +431,7 @@ html[data-theme="dark"] .licenses-page textarea::placeholder {
 }
 
 html[data-theme="dark"] .licenses-page .active-filter {
-  box-shadow: 0 6px 18px rgba(59, 130, 246, 0.4) !important;
+  box-shadow: none !important;
 }
 
 html[data-theme="dark"] .licenses-page .modal-content {
@@ -496,7 +496,7 @@ html[data-theme="dark"] .licenses-page .license-row .view-mode a:hover {
 
 .active-filter {
   transform: translateY(-1px);
-  box-shadow: 0 4px 12px rgba(59, 130, 246, 0.3);
+  box-shadow: none;
 }
 .status-badge {
   transition: all 0.2s ease-in-out;
