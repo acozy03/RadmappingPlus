@@ -98,7 +98,7 @@
     <table class="w-full text-sm text-left audit-table">
       <thead class="text-xs text-gray-700 uppercase bg-gray-50 border-b border-gray-200 sticky top-0 z-10 audit-table-head">
         <tr>
-          <th class="px-4 py-4 cursor-pointer hover:bg-gray-100 transition-colors sticky left-0 bg-gray-50 z-20 audit-table-header audit-sticky-cell" data-sort="timestamp">
+          <th class="px-4 py-4 cursor-pointer hover:bg-gray-100 transition-colors audit-table-header" data-sort="timestamp">
             <div class="flex items-center">
               Timestamp
               <span class="ml-2 text-gray-400 sort-indicator audit-sort-indicator">↕</span>
@@ -1098,7 +1098,7 @@
   row.className = 'bg-white border-b hover:bg-gray-50 transition-colors audit-row';
 
   row.innerHTML = `
-    <td class="px-4 py-4 whitespace-nowrap timestamp-cell sticky left-0 bg-white z-10 audit-table-cell audit-sticky-cell">
+    <td class="px-4 py-4 whitespace-nowrap timestamp-cell audit-table-cell">
       <div class="formatted-timestamp text-sm font-medium text-gray-900 audit-text-primary" data-raw="${entry.timestamp}">${entry.timestamp}</div>
       <div class="relative-time text-xs text-gray-500 audit-muted-text"></div>
     </td>
