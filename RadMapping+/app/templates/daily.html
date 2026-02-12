@@ -575,12 +575,16 @@
   }
 
   function scrollToCurrentHour() {
+    document.querySelectorAll('.daily-slot-card.daily-current-hour').forEach((card) => {
+      card.classList.remove('daily-current-hour');
+    });
+
     const now = new Date();
     const currentHour = now.getHours();
     const target = document.getElementById(`hour-${currentHour}`);
 
     if (target && "{{ today }}" === getLocalDateString(now)) {
-      target.classList.add("ring-1", "ring-blue-200", "ring-offset-2");
+      target.classList.add("daily-current-hour");
     }
   }
 
@@ -734,10 +738,11 @@ function filterDoctors() {
       : (hourIndex >= parseInt(startSelect.value, 10) || hourIndex <= parseInt(endSelect.value, 10));
 
     if (!inRange) {
+      hourBlock.classList.remove("daily-current-hour");
       hourBlock.style.display = 'none';
     } else if (isToday && hourIndex === currentHour) {
       hourBlock.style.display = 'block';
-      hourBlock.classList.add("ring-1", "ring-blue-200", "ring-offset-2");
+      hourBlock.classList.add("daily-current-hour");
 
       const existingMsg = hourBlock.querySelector('.no-results-message');
       if (searchTerm && !anyVisible && !existingMsg) {
@@ -749,7 +754,7 @@ function filterDoctors() {
         existingMsg.remove();
       }
     } else {
-      hourBlock.classList.remove("ring-1", "ring-blue-200", "ring-offset-2");
+      hourBlock.classList.remove("daily-current-hour");
       hourBlock.style.display = anyVisible ? 'block' : 'none';
     }
   });

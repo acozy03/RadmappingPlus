@@ -1185,9 +1185,19 @@ thead.sticky th {
     overflow: visible;
 }
 
+.daily-slot-card.daily-current-hour {
+    border-color: rgba(37, 99, 235, 0.55) !important;
+    box-shadow: 0 0 0 2px rgba(59, 130, 246, 0.28), 0 14px 28px rgba(37, 99, 235, 0.16);
+}
+
 .daily-slot-card:hover {
     transform: none;
     
+}
+
+[data-theme="dark"] .daily-slot-card.daily-current-hour {
+    border-color: rgba(96, 165, 250, 0.8) !important;
+    box-shadow: 0 0 0 2px rgba(96, 165, 250, 0.42), 0 20px 42px rgba(2, 132, 199, 0.32);
 }
 
 .daily-slot-card h4 {
