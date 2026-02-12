@@ -430,11 +430,9 @@
 
 <div class="overflow-x-auto">
     <div class="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-5 xl:grid-cols-7 gap-4 px-2 py-2">
-        {% set today_date = namespace(value=(datetime.now().date())) %}
-
         {% for day, color_grouped_slots in weekly_data_by_day_and_color.items() %}
-        {% set is_today = (day == today_date.value) %}
-        <div class="{{ 'ring-2 ring-blue-300 ring-offset-1' if is_today else '' }} flex flex-col min-w-0 rounded-md bg-white shifts-day-card">
+        {% set is_today = (day == eastern_today) %}
+        <div class="{{ 'shifts-day-card--today ring-2 ring-blue-300 ring-offset-1' if is_today else '' }} flex flex-col min-w-0 rounded-md bg-white shifts-day-card">
             {% set first_color_group = color_grouped_slots.values() | first %}
             {% set first_slot_of_day = first_color_group | first if first_color_group %}
             {% if first_slot_of_day %}

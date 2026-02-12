@@ -818,7 +818,8 @@ def shifts():
         "doctors_by_hour": doctors_by_hour,
         "coverage_filters_enabled": COVERAGE_FILTERS_ENABLED,
         "datetime": datetime,
-        "now": now
+        "now": now,
+        "eastern_today": eastern_now().date(),
     }
 
     if COVERAGE_FILTERS_ENABLED:

@@ -1715,6 +1715,16 @@ thead.sticky th {
     var(--tw-shadow) !important;
 }
 
+
+.shifts-page .shifts-day-card--today {
+  border: 1px solid rgba(59, 130, 246, 0.7);
+  box-shadow: 0 0 0 2px rgba(96, 165, 250, 0.35);
+}
+
+[data-theme="dark"] .shifts-page .shifts-day-card--today {
+  border-color: rgba(96, 165, 250, 0.8);
+  box-shadow: 0 0 0 2px rgba(96, 165, 250, 0.4);
+}
 [data-theme="dark"] .shifts-page .ring-blue-300 {
   --tw-ring-color: rgba(96, 165, 250, 0.55) !important;
 }
