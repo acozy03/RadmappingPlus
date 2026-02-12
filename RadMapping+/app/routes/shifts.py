@@ -214,8 +214,8 @@ MODALITY_RVU = {
     "ECG": 0.2,
 }
 
-# Feature flag: global coverage filters are disabled on initial shifts load.
-COVERAGE_FILTERS_ENABLED = False
+# Feature flag: global coverage filters are enabled on shifts load.
+COVERAGE_FILTERS_ENABLED = True
 
 # Soft-preference tuning: modalities with a weight below this threshold are
 # treated as "last resort" for allocation. We still allow allocating to them
