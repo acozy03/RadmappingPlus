@@ -113,6 +113,42 @@ def delete_specialty(specialty_id):
     return redirect(url_for("specialties.specialties"))
 
 
+@specialties_bp.route('/specialties/<string:specialty_id>/update', methods=['POST'])
+@with_supabase_auth
+@admin_required
+def update_specialty(specialty_id):
+    supabase = get_supabase_client()
+    payload = request.get_json(silent=True) or {}
+
+    name = (payload.get("name") or "").strip()
+    if not name:
+        return jsonify({"status": "error", "message": "Specialty name is required."}), 400
+
+    update_data = {
+        "name": name,
+        "description": (payload.get("description") or "").strip() or None,
+        "is_specialty": bool(payload.get("is_specialty"))
+    }
+
+    old_data = supabase.table("specialty_studies").select("*").eq("id", specialty_id).single().execute().data
+    res = supabase.table("specialty_studies").update(update_data).eq("id", specialty_id).execute()
+
+    if hasattr(res, "error") and res.error:
+        return jsonify({"status": "error", "message": "Failed to update specialty."}), 500
+
+    log_audit_action(
+        supabase=supabase,
+        action="update",
+        table_name="specialty_studies",
+        record_id=specialty_id,
+        user_email=session.get("user", {}).get("email", "unknown"),
+        old_data=old_data,
+        new_data=update_data
+    )
+
+    return jsonify({"status": "success"})
+
+
 @specialties_bp.route('/specialties/<string:specialty_id>/doctors')
 @with_supabase_auth
 def doctors_for_specialty(specialty_id):

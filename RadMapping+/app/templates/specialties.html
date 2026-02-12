@@ -59,36 +59,79 @@
                                 <tr class="specialty-row"
                                     data-name="{{ specialty.name|lower }}"
                                     data-description="{{ (specialty.description or '')|lower }}"
-                                    data-type="{{ 'specialty' if specialty.is_specialty else 'exam' }}">
+                                    data-type="{{ 'specialty' if specialty.is_specialty else 'exam' }}"
+                                    data-name-display="{{ specialty.name }}"
+                                    data-description-display="{{ specialty.description or '' }}">
                                     <td>
-                                        <div class="font-semibold specialties-card-title">{{ specialty.name }}</div>
+                                        <div class="specialty-view-mode" data-field="name">
+                                            <div class="font-semibold specialties-card-title">{{ specialty.name }}</div>
+                                        </div>
+                                        {% if session.user.role == 'admin' %}
+                                            <input type="text"
+                                                   class="hidden w-full px-3 py-2 rounded-lg transition-colors specialties-input specialty-edit-input"
+                                                   data-field="name"
+                                                   value="{{ specialty.name }}">
+                                        {% endif %}
                                     </td>
                                     <td>
-                                        <span class="specialty-type-badge"
-                                              data-type="{{ 'specialty' if specialty.is_specialty else 'exam' }}">
-                                            {{ 'Specialty' if specialty.is_specialty else 'General Exam' }}
-                                        </span>
+                                        <div class="specialty-view-mode" data-field="type">
+                                            <span class="specialty-type-badge"
+                                                  data-type="{{ 'specialty' if specialty.is_specialty else 'exam' }}">
+                                                {{ 'Specialty' if specialty.is_specialty else 'General Exam' }}
+                                            </span>
+                                        </div>
+                                        {% if session.user.role == 'admin' %}
+                                            <select class="hidden w-full px-3 py-2 rounded-lg transition-colors specialties-input specialty-edit-input"
+                                                    data-field="type">
+                                                <option value="specialty" {% if specialty.is_specialty %}selected{% endif %}>Specialty</option>
+                                                <option value="exam" {% if not specialty.is_specialty %}selected{% endif %}>General Exam</option>
+                                            </select>
+                                        {% endif %}
                                     </td>
                                     <td>
-                                        <p class="specialties-table-description">{{ specialty.description or 'No description provided.' }}</p>
+                                        <div class="specialty-view-mode" data-field="description">
+                                            <p class="specialties-table-description">{{ specialty.description or 'No description provided.' }}</p>
+                                        </div>
+                                        {% if session.user.role == 'admin' %}
+                                            <textarea rows="2"
+                                                      class="hidden w-full px-3 py-2 rounded-lg transition-colors specialties-input specialty-edit-input"
+                                                      data-field="description"
+                                                      placeholder="No description provided.">{{ specialty.description or '' }}</textarea>
+                                        {% endif %}
                                     </td>
                                     <td>
-                                        <div class="flex items-center justify-end gap-2">
-                                            <button onclick="showDoctorsForSpecialty('{{ specialty.id }}', '{{ specialty.name|escape }}')"
-                                                    class="inline-flex items-center justify-center px-4 py-2 text-sm font-medium rounded-lg transition-colors specialties-card-action">
-                                                <i class="fas fa-users mr-2"></i>
-                                                Assigned Doctors
-                                            </button>
+                                        <div class="flex items-center justify-end gap-2 specialty-action-group" data-specialty-id="{{ specialty.id }}">
                                             {% if session.user.role == 'admin' %}
-                                                <button onclick="openEditDoctorsModal('{{ specialty.id }}', '{{ specialty.name|escape }}')"
-                                                        class="p-2 rounded-lg transition-colors specialties-icon-button specialties-icon-button--edit"
+                                                <button onclick="openEditDoctorsModal('{{ specialty.id }}')"
+                                                        class="p-2 rounded-lg transition-colors specialties-icon-button specialty-doctors-btn"
                                                         title="Edit Doctors">
-                                                    <i class="fas fa-user-edit text-sm"></i>
+                                                    <i class="fas fa-users text-sm"></i>
                                                 </button>
-                                                <button onclick="confirmDeleteSpecialty('{{ specialty.id }}', '{{ specialty.name|escape }}')"
+                                                <button onclick="toggleSpecialtyEdit('{{ specialty.id }}', true)"
+                                                        class="p-2 rounded-lg transition-colors specialties-icon-button specialties-icon-button--edit specialty-edit-toggle"
+                                                        title="Edit Specialty">
+                                                    <i class="fas fa-pen text-sm"></i>
+                                                </button>
+                                                <button onclick="saveSpecialtyInline('{{ specialty.id }}')"
+                                                        class="hidden p-2 rounded-lg transition-colors specialties-icon-button specialties-icon-button--save specialty-edit-save"
+                                                        title="Save Specialty">
+                                                    <i class="fas fa-check text-sm"></i>
+                                                </button>
+                                                <button onclick="toggleSpecialtyEdit('{{ specialty.id }}', false)"
+                                                        class="hidden p-2 rounded-lg transition-colors specialties-icon-button specialty-edit-cancel"
+                                                        title="Cancel Edit">
+                                                    <i class="fas fa-times text-sm"></i>
+                                                </button>
+                                                <button onclick="confirmDeleteSpecialty('{{ specialty.id }}')"
                                                         class="p-2 rounded-lg transition-colors specialties-icon-button specialties-icon-button--delete"
                                                         title="Delete Specialty">
                                                     <i class="fas fa-trash text-sm"></i>
+                                                </button>
+                                            {% else %}
+                                                <button onclick="showDoctorsForSpecialty('{{ specialty.id }}', '{{ specialty.name|escape }}')"
+                                                        class="p-2 rounded-lg transition-colors specialties-icon-button specialty-doctors-btn"
+                                                        title="View Doctors">
+                                                    <i class="fas fa-users text-sm"></i>
                                                 </button>
                                             {% endif %}
                                         </div>
@@ -180,15 +223,24 @@
                     </div>
                     <div class="p-6">
                         <form id="editDoctorsForm" onsubmit="submitEditDoctors(event)">
-                            <div class="relative mb-4">
-                                <div class="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
-                                    <i class="fas fa-search specialties-icon-muted"></i>
+                            <div class="grid grid-cols-1 md:grid-cols-3 gap-3 mb-4">
+                                <div class="relative md:col-span-2">
+                                    <div class="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+                                        <i class="fas fa-search specialties-icon-muted"></i>
+                                    </div>
+                                    <input type="text"
+                                           id="doctorModalSearch"
+                                           placeholder="Search doctors..."
+                                           class="w-full pl-10 pr-4 py-3 rounded-lg transition-colors specialties-input"
+                                           oninput="filterDoctorsChecklist()">
                                 </div>
-                                <input type="text"
-                                       id="doctorModalSearch"
-                                       placeholder="Search doctors..."
-                                       class="w-full pl-10 pr-4 py-3 rounded-lg transition-colors specialties-input"
-                                       oninput="filterDoctorsChecklist()">
+                                <select id="doctorAssignmentFilter"
+                                        class="w-full px-4 py-3 rounded-lg transition-colors specialties-input"
+                                        onchange="filterDoctorsChecklist()">
+                                    <option value="all">All Doctors</option>
+                                    <option value="assigned">Can Read</option>
+                                    <option value="unassigned">Cannot Read</option>
+                                </select>
                             </div>
                             <div id="doctorsChecklist"
                                  class="mb-6 space-y-3 max-h-64 overflow-y-auto rounded-lg p-4 specialties-scroll-surface">
@@ -555,6 +607,14 @@
   color: var(--sp-accent-strong);
 }
 
+.specialties-icon-button--save {
+  color: #10b981;
+}
+
+[data-theme="dark"] .specialties-icon-button--save {
+  color: #6ee7b7;
+}
+
 .specialties-icon-button--delete {
   color: #f97316;
 }
@@ -569,6 +629,14 @@
 
 .specialties-icon-button--edit:hover {
   background: rgba(99, 102, 241, 0.12);
+}
+
+.specialties-icon-button--save:hover {
+  background: rgba(16, 185, 129, 0.15);
+}
+
+.specialty-edit-cancel:hover {
+  background: rgba(148, 163, 184, 0.18);
 }
 
 .specialties-primary-button {
@@ -887,6 +955,114 @@ function closeAddSpecialtyModal() {
   document.getElementById('addSpecialtyModal').classList.add('hidden');
 }
 
+function getSpecialtyRow(specialtyId) {
+  return document.querySelector(`.specialty-action-group[data-specialty-id="${specialtyId}"]`)?.closest('.specialty-row');
+}
+
+function toggleSpecialtyEdit(specialtyId, isEditing) {
+  const row = getSpecialtyRow(specialtyId);
+  if (!row) {
+    return;
+  }
+
+  row.querySelectorAll('.specialty-view-mode').forEach(el => el.classList.toggle('hidden', isEditing));
+  row.querySelectorAll('.specialty-edit-input').forEach(el => el.classList.toggle('hidden', !isEditing));
+
+  const actionGroup = row.querySelector('.specialty-action-group');
+  if (!actionGroup) {
+    return;
+  }
+
+  actionGroup.querySelector('.specialty-edit-toggle')?.classList.toggle('hidden', isEditing);
+  actionGroup.querySelector('.specialty-edit-save')?.classList.toggle('hidden', !isEditing);
+  actionGroup.querySelector('.specialty-edit-cancel')?.classList.toggle('hidden', !isEditing);
+  actionGroup.querySelector('.specialty-doctors-btn')?.classList.toggle('hidden', isEditing);
+
+  if (!isEditing) {
+    const nameInput = row.querySelector('.specialty-edit-input[data-field="name"]');
+    const descriptionInput = row.querySelector('.specialty-edit-input[data-field="description"]');
+    const typeInput = row.querySelector('.specialty-edit-input[data-field="type"]');
+
+    if (nameInput) {
+      nameInput.value = row.dataset.nameDisplay || '';
+    }
+
+    if (descriptionInput) {
+      descriptionInput.value = row.dataset.descriptionDisplay || '';
+    }
+
+    if (typeInput) {
+      typeInput.value = row.dataset.type || 'exam';
+    }
+  }
+}
+
+function saveSpecialtyInline(specialtyId) {
+  const row = getSpecialtyRow(specialtyId);
+  if (!row) {
+    return;
+  }
+
+  const nameInput = row.querySelector('.specialty-edit-input[data-field="name"]');
+  const descriptionInput = row.querySelector('.specialty-edit-input[data-field="description"]');
+  const typeInput = row.querySelector('.specialty-edit-input[data-field="type"]');
+
+  const name = nameInput?.value.trim() || '';
+  if (!name) {
+    alert('Specialty name is required.');
+    return;
+  }
+
+  const description = descriptionInput?.value.trim() || '';
+  const isSpecialty = typeInput?.value === 'specialty';
+
+  fetch(`/radmapping/specialties/${specialtyId}/update`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({
+      name,
+      description,
+      is_specialty: isSpecialty
+    })
+  })
+    .then(res => res.json())
+    .then(data => {
+      if (data.status !== 'success') {
+        alert(data.message || 'Failed to update specialty.');
+        return;
+      }
+
+      row.dataset.name = name.toLowerCase();
+      row.dataset.nameDisplay = name;
+      row.dataset.description = description.toLowerCase();
+      row.dataset.descriptionDisplay = description;
+      row.dataset.type = isSpecialty ? 'specialty' : 'exam';
+
+      const nameView = row.querySelector('.specialty-view-mode[data-field="name"] .specialties-card-title');
+      if (nameView) {
+        nameView.textContent = name;
+      }
+
+      const typeBadge = row.querySelector('.specialty-view-mode[data-field="type"] .specialty-type-badge');
+      if (typeBadge) {
+        typeBadge.dataset.type = isSpecialty ? 'specialty' : 'exam';
+        typeBadge.textContent = isSpecialty ? 'Specialty' : 'General Exam';
+      }
+
+      const descriptionView = row.querySelector('.specialty-view-mode[data-field="description"] .specialties-table-description');
+      if (descriptionView) {
+        descriptionView.textContent = description || 'No description provided.';
+      }
+
+
+      toggleSpecialtyEdit(specialtyId, false);
+      applyFiltersAndSort();
+    })
+    .catch(() => {
+      alert('Error updating specialty.');
+    });
+}
+
 function updatePermission(checkbox) {
   const radiologist_id = checkbox.dataset.radiologistId;
   const specialty_id = checkbox.dataset.specialtyId;
@@ -1093,8 +1269,9 @@ function closeSpecialtyDoctorsModal() {
   document.getElementById('specialtyDoctorsModal').classList.add('hidden');
 }
 
-function openEditDoctorsModal(specialtyId, specialtyName) {
+function openEditDoctorsModal(specialtyId) {
   document.getElementById('editSpecialtyId').value = specialtyId;
+  const specialtyName = getSpecialtyRow(specialtyId)?.dataset.nameDisplay || 'Specialty';
   document.getElementById('editSpecialtyName').textContent = specialtyName;
   const checklist = document.getElementById('doctorsChecklist');
   checklist.innerHTML = '<div class="flex items-center justify-center py-4 loading specialties-loading"><i class="fas fa-spinner fa-spin mr-2"></i>Loading doctors...</div>';
@@ -1108,6 +1285,7 @@ function openEditDoctorsModal(specialtyId, specialtyName) {
         const checked = doc.assigned ? 'checked' : '';
         const checkboxDiv = document.createElement('div');
         checkboxDiv.className = 'doctor-check-item flex items-center p-3 rounded-lg transition-colors specialties-check-item';
+        checkboxDiv.dataset.assigned = doc.assigned ? 'true' : 'false';
         checkboxDiv.innerHTML = `
           <input type='checkbox' name='doctor_ids' value='${doc.id}' ${checked}
                  class='w-4 h-4 rounded focus:ring-2 specialties-checkbox'>
@@ -1122,6 +1300,7 @@ function openEditDoctorsModal(specialtyId, specialtyName) {
         checklist.appendChild(checkboxDiv);
       });
       document.getElementById('doctorModalSearch').value = '';
+      document.getElementById('doctorAssignmentFilter').value = 'all';
     })
     .catch(error => {
       checklist.innerHTML = `
@@ -1162,19 +1341,28 @@ function submitEditDoctors(e) {
 
 function filterDoctorsChecklist() {
   const q = document.getElementById('doctorModalSearch').value.toLowerCase();
+  const assignmentFilter = document.getElementById('doctorAssignmentFilter').value;
+
   document.querySelectorAll('#doctorsChecklist .doctor-check-item').forEach(item => {
     const name = item.querySelector('.doctor-name').textContent.toLowerCase();
     const emailSpan = item.querySelector('.specialties-doctor-email');
     const email = emailSpan ? emailSpan.textContent.toLowerCase() : '';
-    item.style.display = (name.includes(q) || email.includes(q)) ? '' : 'none';
+    const matchesSearch = name.includes(q) || email.includes(q);
+    const isAssigned = item.dataset.assigned === 'true';
+    const matchesAssignment = assignmentFilter === 'all'
+      || (assignmentFilter === 'assigned' && isAssigned)
+      || (assignmentFilter === 'unassigned' && !isAssigned);
+
+    item.style.display = (matchesSearch && matchesAssignment) ? '' : 'none';
   });
 }
 
-function confirmDeleteSpecialty(specialtyId, specialtyName) {
+function confirmDeleteSpecialty(specialtyId) {
   const modal = document.getElementById('deleteSpecialtyModal');
   const form = document.getElementById('deleteSpecialtyForm');
   const nameSpan = document.getElementById('deleteSpecialtyName');
   
+  const specialtyName = getSpecialtyRow(specialtyId)?.dataset.nameDisplay || 'Unknown Specialty';
   nameSpan.textContent = specialtyName;
   form.action = `/radmapping/specialties/${specialtyId}/delete`;
   modal.classList.remove('hidden');
