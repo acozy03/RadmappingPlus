@@ -160,7 +160,7 @@
   </div>
 </div>
 
-<div class="bg-white rounded-xl shadow-sm border border-gray-200 overflow-hidden">
+<div class="licenses-table-shell bg-white rounded-xl shadow-sm border border-gray-200 overflow-hidden">
   <div class="overflow-x-auto">
     <table id="licensesTable" class="min-w-full divide-y divide-gray-200">
       <thead class="bg-gray-50">
@@ -208,7 +208,7 @@
           {% endif %}
         </tr>
       </thead>
-      <tbody id="licensesTableBody" class="bg-white divide-y divide-gray-200">
+      <tbody id="licensesTableBody" class="divide-y divide-gray-200">
         {# Initial rows will be loaded by JavaScript #}
       </tbody>
     </table>
@@ -354,18 +354,21 @@ html[data-theme="dark"] .licenses-page tbody tr {
   border-bottom-color: #334155 !important;
 }
 
-html[data-theme="dark"] .licenses-page .license-row.hover\:bg-gray-50:hover,
-html[data-theme="dark"] .licenses-page tbody tr:hover {
-  background-color: #28344d !important;
-  box-shadow: 0 4px 12px rgba(15, 23, 42, 0.4);
+.licenses-page #licensesTableBody tr {
+  background: transparent;
 }
 
-html[data-theme="dark"] .licenses-page .bg-green-50 {
-  background-color: #243045 !important;
+.licenses-page #licensesTableBody tr:hover {
+  background: rgba(99, 102, 241, 0.06);
 }
 
-html[data-theme="dark"] .licenses-page .bg-red-50 {
-  background-color: #243045 !important;
+html[data-theme="dark"] .licenses-page .licenses-table-shell {
+  background-color: transparent !important;
+}
+
+html[data-theme="dark"] .licenses-page #licensesTableBody tr:hover {
+  background: rgba(129, 140, 248, 0.12) !important;
+  box-shadow: none;
 }
 
 html[data-theme="dark"] .licenses-page .bg-blue-100 {
@@ -777,8 +780,7 @@ function updateTable() {
     
     const row = document.createElement('tr');
     row.id = `license-row-${cert.id}`;
-    const isActiveDoctor = String(cert.radiologists.active_status) === 'true';
-    row.className = `license-row hover:bg-gray-50 transition-colors duration-150 ${isActiveDoctor ? 'bg-green-50 ' : 'bg-red-50 '}`;
+    row.className = 'license-row transition-colors duration-150';
     row.dataset.doctorId = cert.radiologist_id;
     row.dataset.doctorName = cert.radiologists.name;
     row.dataset.state = cert.state;
@@ -809,18 +811,9 @@ function updateTable() {
     row.innerHTML = `
       <td class="px-6 py-4 whitespace-nowrap">
         <span class="view-mode">
-          <div class="flex items-center">
-            <div class="flex-shrink-0 h-10 w-10">
-              <div class="h-10 w-10 rounded-full bg-gradient-to-r from-blue-500 to-purple-600 flex items-center justify-center">
-                <span class="text-white font-medium text-sm">${cert.radiologists.name.substring(0, 2).toUpperCase()}</span>
-              </div>
-            </div>
-            <div class="ml-4">
-              <a href="/radmapping/doctors/${cert.radiologist_id}" target="_blank" class="text-blue-600 hover:text-blue-800 font-medium transition-colors">
-                ${cert.radiologists.name}
-              </a>
-            </div>
-          </div>
+          <a href="/radmapping/doctors/${cert.radiologist_id}" target="_blank" class="text-blue-600 hover:text-blue-800 font-medium transition-colors">
+            ${cert.radiologists.name}
+          </a>
         </span>
         <select class="edit-mode hidden w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500" name="doctor">
           ${doctorOptions}
