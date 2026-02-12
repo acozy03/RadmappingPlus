@@ -5,6 +5,7 @@ import json
 from datetime import datetime, timedelta
 from collections import defaultdict
 from app.supabase_client import get_supabase_client
+from app.time_utils import eastern_now
 from app.middleware import with_supabase_auth
 from app.supabase_helper import fetch_all_rows
 
@@ -236,7 +237,7 @@ def shifts():
     if date_str:
         now = datetime.strptime(date_str, '%Y-%m-%d')
     else:
-        now = datetime.now()
+        now = eastern_now().replace(tzinfo=None)
     
     start_of_week = now - timedelta(days=now.weekday())
     end_of_week = start_of_week + timedelta(days=6)

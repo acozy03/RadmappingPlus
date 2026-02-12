@@ -35,7 +35,7 @@
                 <thead class="monthly-table-header top-0 z-30">
                     <tr class="h-16">
                         <th class="sticky-left-header z-40 w-48 px-4 py-3 font-medium text-left">Doctor</th>
-                        {% set today_str = datetime.now().strftime('%Y-%m-%d') %}
+                        {% set today_str = eastern_now().strftime('%Y-%m-%d') %}
                         {% for day in range(1, days_in_month + 1) %}
                             {% set date = datetime(year, month, day) %}
                             {% set date_str = date.strftime('%Y-%m-%d') %}

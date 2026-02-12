@@ -2,11 +2,12 @@
 from flask import Blueprint, render_template, session, request, jsonify
 from app.supabase_client import get_supabase_client
 from app.middleware import with_supabase_auth
-from datetime import datetime, timedelta, timezone
+from datetime import datetime, timedelta
 from calendar import monthrange
 from collections import defaultdict
 import re
 from app.schedule_sync import run_google_sheet_sync
+from app.time_utils import EASTERN_TZ, eastern_now, eastern_today
 
 daily_bp = Blueprint('daily', __name__)
 
@@ -14,7 +15,7 @@ def parse_time(base_date_str, time_str):
     for fmt in ("%Y-%m-%d %I%p", "%Y-%m-%d %I:%M%p", "%Y-%m-%d %I%M%p", "%Y-%m-%d %H:%M:%S"):
         try:
             dt_obj = datetime.strptime(f"{base_date_str} {time_str.upper()}", fmt)
-            return dt_obj.replace(tzinfo=timezone.utc)
+            return dt_obj.replace(tzinfo=EASTERN_TZ)
         except ValueError:
             continue
     raise ValueError(f"Invalid time format: {time_str}")
@@ -54,17 +55,17 @@ def daily():
         today_date = (
             datetime.strptime(date_str, "%Y-%m-%d").date()
             if date_str else
-            datetime.now().date()
+            eastern_today()
         )
     except Exception as e:
         print(f"Invalid date_str format: {e}. Defaulting to today.")
-        today_date = datetime.now().date()
+        today_date = eastern_today()
 
     today = today_date.strftime("%Y-%m-%d")
     prev_date = (today_date - timedelta(days=1)).strftime("%Y-%m-%d")
     next_date = (today_date + timedelta(days=1)).strftime("%Y-%m-%d")
 
-    base_date = datetime.combine(today_date, datetime.min.time()).replace(tzinfo=timezone.utc)
+    base_date = datetime.combine(today_date, datetime.min.time()).replace(tzinfo=EASTERN_TZ)
 
     # Track only TODAY's latest end (including overnights from today and PRN parsed from today's schedule).
     # Tomorrow's entries must not extend the display window.
@@ -329,7 +330,7 @@ def daily():
     doctors_on_shift_ids = {doc["id"] for doc in doctors_on_shift if doc.get("id") and doc.get("start_dt") and doc.get("end_dt")}
 
     doctors_currently_on_shift_ids = set()
-    current_time_aware = datetime.now(timezone.utc)
+    current_time_aware = eastern_now()
     for doc in doctors_on_shift:
         if doc.get("id") and doc.get("working_segments"):
             for segment in doc["working_segments"]:
@@ -386,6 +387,8 @@ def daily():
         doctors_on_shift_ids=list(doctors_on_shift_ids),
         doctors_currently_on_shift_ids=list(doctors_currently_on_shift_ids),
         selected_timezone=request.args.get("timezone", "EST"),
+        eastern_today=eastern_today().strftime("%Y-%m-%d"),
+        eastern_current_hour=eastern_now().hour,
         timezone_offset = {
             'EST': 0,
             'CST': -1,

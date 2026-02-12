@@ -319,6 +319,9 @@
         document.body.appendChild(modal);
     }
 }
+    const easternTodayStr = '{{ eastern_today }}';
+    const easternCurrentHour = {{ eastern_current_hour }};
+
     let currentCalendarDate = new Date('{{ today }}');
     currentCalendarDate.setDate(currentCalendarDate.getDate() + 1);
     let selectedDate = new Date('{{ today }}');
@@ -362,13 +365,12 @@
     }
 
     function selectToday() {
-      const today = new Date();
-      selectDate(today.getFullYear(), today.getMonth(), today.getDate());
+      const [year, month, day] = easternTodayStr.split('-').map(Number);
+      selectDate(year, month - 1, day);
     }
 
     function selectDate(year, month, day) {
-      const date = new Date(year, month, day);
-      const dateString = date.toISOString().split('T')[0];
+      const dateString = `${year}-${String(month + 1).padStart(2, '0')}-${String(day).padStart(2, '0')}`;
       
       document.getElementById('date-picker').value = dateString;
       document.getElementById('dateForm').submit();
@@ -394,7 +396,7 @@
       const calendarDays = document.getElementById('calendarDays');
       calendarDays.innerHTML = '';
 
-      const today = new Date();
+      const today = easternTodayStr;
       const currentSelectedDate = new Date(selectedDate);
 
       for (let i = 0; i < 42; i++) {
@@ -409,7 +411,7 @@
         // Style different types of days
         if (date.getMonth() !== month) {
           dayElement.className += ' text-gray-300';
-        } else if (date.toDateString() === today.toDateString()) {
+        } else if (`${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, '0')}-${String(date.getDate()).padStart(2, '0')}` === today) {
           dayElement.className += ' bg-blue-600 text-white hover:bg-blue-700';
         } else if (date.toDateString() === currentSelectedDate.toDateString()) {
           dayElement.className += ' bg-blue-100 text-blue-700 font-semibold';
@@ -694,8 +696,8 @@ function filterDoctors() {
   const searchTerm = document.getElementById('doctorSearch').value.toLowerCase();
   const startSelect = document.getElementById("startHour");
   const endSelect = document.getElementById("endHour");
-  const isToday = "{{ today }}" === new Date().toISOString().split('T')[0];
-  const currentHour = new Date().getHours();
+  const isToday = "{{ today }}" === easternTodayStr;
+  const currentHour = easternCurrentHour;
   const maxHour = document.querySelectorAll('[id^="hour-"]').length - 1;
 
   if (searchTerm) {
@@ -819,8 +821,8 @@ function filterDoctors() {
 
   if (!startSelect || !endSelect) return;
 
-  const today = new Date().toISOString().split("T")[0];
-  const isToday = "{{ today }}" === new Date().toISOString().split('T')[0];
+  const today = easternTodayStr;
+  const isToday = "{{ today }}" === easternTodayStr;
   if (isToday) {
     setInitialHourFilter();
   } else {

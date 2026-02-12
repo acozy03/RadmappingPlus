@@ -7,6 +7,7 @@ import calendar as pycalendar
 from app.middleware import with_supabase_auth
 from app.supabase_helper import fetch_all_rows_monthly, fetch_schedule_data
 from app.supabase_client import get_supabase_client
+from app.time_utils import eastern_now
 
 monthly_bp = Blueprint('monthly', __name__)
 
@@ -14,7 +15,7 @@ supabase = get_supabase_client()
 @monthly_bp.route('/monthly')
 @with_supabase_auth
 def monthly():
-    now = datetime.now()
+    now = eastern_now()
     year = request.args.get("year", default=now.year, type=int)
     month = request.args.get("month", default=now.month, type=int)
     start_day = request.args.get("start_day", default=1, type=int)
@@ -97,6 +98,7 @@ def monthly():
         next_start=1,
         calendar=calendar,
         datetime=datetime,
+        eastern_now=eastern_now,
         start_doctor=start_doctor,
         total_doctors=total_doctors,
         total_pages=total_pages,
@@ -141,8 +143,9 @@ def search_schedule():
     offset = (page - 1) * per_page
 
     search_term = request.args.get('search', '').strip()
-    year = request.args.get('year', datetime.now().year, type=int)
-    month = request.args.get('month', datetime.now().month, type=int)
+    now = eastern_now()
+    year = request.args.get('year', now.year, type=int)
+    month = request.args.get('month', now.month, type=int)
 
     query = supabase.table("radiologists").select("*")
     # Only include active doctors in search results

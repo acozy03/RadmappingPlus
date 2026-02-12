@@ -967,6 +967,12 @@
 
 
 <script>
+    const easternFormatter = new Intl.DateTimeFormat('en-CA', { timeZone: 'America/New_York' });
+
+    function getEasternDateString(date = new Date()) {
+      return easternFormatter.format(date);
+    }
+
     let currentCalendarDate = new Date('{{ now.strftime("%Y-%m-%d") }}');
     
     function toggleCalendar() {
@@ -989,14 +995,12 @@
     }
     
     function selectDate(year, month, day) {
-        const date = new Date(year, month, day);
-        const dateString = date.toISOString().split('T')[0];
+        const dateString = `${year}-${String(month + 1).padStart(2, '0')}-${String(day).padStart(2, '0')}`;
         window.location.href = `{{ url_for('shifts.shifts') }}?date=${dateString}`;
     }
 
     function selectToday() {
-        const today = new Date();
-        const dateString = today.toISOString().split('T')[0];
+        const dateString = getEasternDateString();
         window.location.href = `{{ url_for('shifts.shifts') }}?date=${dateString}`;
     }
 
