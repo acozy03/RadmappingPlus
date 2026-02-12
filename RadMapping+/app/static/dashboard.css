@@ -90,6 +90,15 @@
     animation: slideUp 0.8s ease-out 0.2s both;
 }
 
+
+.standard-page-subtitle {
+    color: #64748b;
+}
+
+[data-theme="dark"] .standard-page-subtitle {
+    color: #a5b4fc;
+}
+
 .status-indicator {
     display: inline-flex;
     align-items: center;
