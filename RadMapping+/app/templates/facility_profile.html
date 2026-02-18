@@ -503,17 +503,17 @@
           {% set full_text = facility.qa_criteria or '—' %}
           {% if full_text|length > 50 %}
             <template x-if="!expanded">
-              <span>
+              <span class="whitespace-pre-line">
                 {{ full_text[:50] }}... <a href="#" @click.prevent="expanded = true" class="text-blue-600 hover:underline">Show More</a>
               </span>
             </template>
             <template x-if="expanded">
-              <span>
+              <span class="whitespace-pre-line">
                 {{ full_text }} <a href="#" @click.prevent="expanded = false" class="text-blue-600 hover:underline">Show less</a>
               </span>
             </template>
           {% else %}
-            {{ full_text }}
+            <span class="whitespace-pre-line">{{ full_text }}</span>
           {% endif %}
         </div>
       </div>
@@ -523,17 +523,17 @@
           {% set full_text = facility.monitoring or '—' %}
           {% if full_text|length > 50 %}
             <template x-if="!expanded">
-              <span>
+              <span class="whitespace-pre-line">
                 {{ full_text[:50] }}... <a href="#" @click.prevent="expanded = true" class="text-blue-600 hover:underline">Show More</a>
               </span>
             </template>
             <template x-if="expanded">
-              <span>
+              <span class="whitespace-pre-line">
                 {{ full_text }} <a href="#" @click.prevent="expanded = false" class="text-blue-600 hover:underline">Show less</a>
               </span>
             </template>
           {% else %}
-            {{ full_text }}
+            <span class="whitespace-pre-line">{{ full_text }}</span>
           {% endif %}
         </div>
       </div>
@@ -599,11 +599,11 @@
       </label>
        <label class="block">
         <span class="font-semibold">QA Criteria</span>
-        <input type="text" name="qa_criteria" value="{{ facility.qa_criteria or '' }}" class="input w-full border rounded px-3 py-2 text-sm" />
+        <textarea name="qa_criteria" rows="3" class="input w-full border rounded px-3 py-2 text-sm">{{ facility.qa_criteria or '' }}</textarea>
       </label>
        <label class="block">
         <span class="font-semibold">Monitoring</span>
-        <input type="text" name="monitoring" value="{{ facility.monitoring or '' }}" class="input w-full border rounded px-3 py-2 text-sm" />
+        <textarea name="monitoring" rows="3" class="input w-full border rounded px-3 py-2 text-sm">{{ facility.monitoring or '' }}</textarea>
       </label>
       <label class="block">
         <span class="font-semibold">Additional Info / Comments</span>

@@ -578,17 +578,17 @@
           {% set full_text = doctor.stipulations or '—' %}
           {% if full_text|length > 50 %}
             <template x-if="!expanded">
-              <span>
+              <span class="whitespace-pre-line">
                 {{ full_text[:50] }}... <a href="#" @click.prevent="expanded = true" class="link-primary underline">Show More</a>
               </span>
             </template>
             <template x-if="expanded">
-              <span>
+              <span class="whitespace-pre-line">
                 {{ full_text }} <a href="#" @click.prevent="expanded = false" class="link-primary underline">Show less</a>
               </span>
             </template>
           {% else %}
-            {{ full_text }}
+            <span class="whitespace-pre-line">{{ full_text }}</span>
           {% endif %}
         </div>
       </div>
@@ -661,7 +661,7 @@
 
       <label class="block">
         <span class="font-semibold">Stipulations</span>
-        <input type="text" name="stipulations" value="{{ doctor.stipulations or '' }}" class="input w-full border rounded px-3 py-2 text-sm" />
+        <textarea name="stipulations" rows="3" class="input w-full border rounded px-3 py-2 text-sm">{{ doctor.stipulations or '' }}</textarea>
       </label>
 
       <label class="block">

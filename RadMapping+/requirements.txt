@@ -7,3 +7,4 @@ gspread==6.2.0
 google-auth==2.39.0
 pandas==2.2.3
 gunicorn==23.0.0
+rapidfuzz
