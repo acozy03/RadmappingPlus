@@ -1,25 +1,44 @@
-from flask import Blueprint, render_template, session, request, jsonify
+from flask import Blueprint, render_template, session, redirect, url_for, request, jsonify
+import os
+import logging
 from app.supabase_client import get_supabase_client
 from app.middleware import with_supabase_auth
+from app.supabase_helper import fetch_all_rows
 from datetime import datetime, timedelta
 from app.admin_required import admin_required
 from app.audit_log import log_audit_action
 audit_bp = Blueprint('audit', __name__)
 
-def fetch_audit_logs_with_date_range(start_date_str: str, end_date_str: str):
+def fetch_audit_logs_with_date_range(start_date_str: str, end_date_str: str, batch_size: int = 1000):
+    """
+    Fetch all audit logs within a date range, handling pagination to avoid 1000-row limit.
+    This prevents silently losing records when the filter returns more than 1000 entries.
+    """
     supabase = get_supabase_client()
     
     start_date = datetime.strptime(start_date_str, "%Y-%m-%d").isoformat()
     end_date = (datetime.strptime(end_date_str, "%Y-%m-%d") + timedelta(days=1)).isoformat()
     
-    query = supabase.table("audit_log") \
-        .select("*") \
-        .gte("timestamp", start_date) \
-        .lt("timestamp", end_date) \
-        .order("timestamp", desc=True)
+    all_logs = []
+    offset = 0
     
-    res = query.execute()
-    return res.data or []
+    while True:
+        query = supabase.table("audit_log") \
+            .select("*") \
+            .gte("timestamp", start_date) \
+            .lt("timestamp", end_date) \
+            .order("timestamp", desc=True) \
+            .range(offset, offset + batch_size - 1)
+        
+        res = query.execute()
+        batch = res.data or []
+        all_logs.extend(batch)
+        
+        if len(batch) < batch_size:
+            break
+        offset += batch_size
+    
+    return all_logs
 
 @with_supabase_auth
 @audit_bp.route("/audit")
@@ -107,5 +126,3 @@ def undo_delete(audit_id):
           new_data={"error": str(e)},
       )
       return jsonify({"error": f"Restore failed: {e}"}), 400
-
-
