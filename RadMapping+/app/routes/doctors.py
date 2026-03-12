@@ -382,6 +382,38 @@ def update_doctor(rad_id):
         
         data = {k: v for k, v in data.items() if v is not None}
         
+        # Handle fellowship (certification specialty update)
+        fellowship = request.form.get("fellowship")
+        if fellowship:
+            # Find the primary certification (the one with specialty matching doctor_specialty)
+            # Or get the most recent certification
+            certs_for_update = supabase.table("certifications") \
+                .select("*") \
+                .eq("radiologist_id", rad_id) \
+                .order("created_at", desc=True) \
+                .limit(1) \
+                .execute()
+            
+            if certs_for_update.data:
+                # Update the most recent certification's specialty
+                primary_cert = certs_for_update.data[0]
+                cert_update_data = {"specialty": fellowship}
+                supabase.table("certifications").update(cert_update_data).eq("id", primary_cert["id"]).execute()
+                
+                log_audit_action(
+                    supabase=supabase,
+                    action="update",
+                    table_name="certifications",
+                    record_id=primary_cert["id"],
+                    user_email=session.get("user", {}).get("email", "unknown"),
+                    old_data=primary_cert,
+                    new_data={**primary_cert, **cert_update_data}
+                )
+            else:
+                # No certification exists, we need to create a warning or handle it gracefully
+                # For now, just skip if no certification exists
+                pass
+        
         old_metrics_res = (
             supabase
             .table("rad_metrics")
@@ -459,6 +491,60 @@ def update_doctor(rad_id):
                     old_data=old_data,
                     new_data=data
                 )
+
+        # Handle specialties update
+        specialties_param = request.form.getlist("specialties")
+        if specialties_param is not None:
+            # specialties_param is already a list from getlist()
+            specialty_ids_set = set(s for s in specialties_param if s)
+            
+            # Get all available specialties
+            specialties_res = supabase.table("specialty_studies").select("id").eq("is_specialty", True).execute()
+            all_specialty_ids = {s['id'] for s in specialties_res.data}
+            
+            # Get current permissions
+            perms_res = supabase.table("specialty_permissions") \
+                .select("id, specialty_id, can_read") \
+                .eq("radiologist_id", rad_id) \
+                .execute()
+            perms_map = {p['specialty_id']: p for p in perms_res.data}
+            
+            # Update permissions - add or remove as needed
+            for spec_id in all_specialty_ids:
+                should_have = spec_id in specialty_ids_set
+                
+                if spec_id in perms_map:
+                    perm = perms_map[spec_id]
+                    if not should_have:
+                        # Remove the permission
+                        supabase.table("specialty_permissions").delete().eq("id", perm["id"]).execute()
+                        log_audit_action(
+                            supabase=supabase,
+                            action="delete",
+                            table_name="specialty_permissions",
+                            record_id=perm["id"],
+                            user_email=session.get("user", {}).get("email", "unknown"),
+                            old_data=perm,
+                            new_data=None
+                        )
+                elif should_have:
+                    # Add the permission
+                    new_perm = {
+                        "id": str(uuid.uuid4()),
+                        "radiologist_id": rad_id,
+                        "specialty_id": spec_id,
+                        "can_read": True
+                    }
+                    supabase.table("specialty_permissions").insert(new_perm).execute()
+                    log_audit_action(
+                        supabase=supabase,
+                        action="insert",
+                        table_name="specialty_permissions",
+                        record_id=new_perm["id"],
+                        user_email=session.get("user", {}).get("email", "unknown"),
+                        old_data=None,
+                        new_data=new_perm
+                    )
 
         return redirect(url_for("doctors.doctor_profile", rad_id=rad_id))
     except Exception as e:

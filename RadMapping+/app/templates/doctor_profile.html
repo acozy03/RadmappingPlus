@@ -468,7 +468,7 @@
 </style>
 
 
-<div class="doctor-profile-page" x-data="{ editing: false }">
+<div class="doctor-profile-page" x-data="setupDoctorProfileData()">
   <div class="mb-8">
     <div class="surface-card rounded-lg  p-6 border flex flex-col sm:flex-row items-center justify-between gap-4{% if doctor.active_status %} border-status-active{% else %} border-status-inactive{% endif %}">
       <h2 class="text-3xl font-bold text-highlight text-center sm:text-left mb-2 sm:mb-0 flex-1">
@@ -599,7 +599,7 @@
   </div>
 
   <div x-show="editing" class="mb-8">
-    <form method="POST" action="{{ url_for('doctors.update_doctor', rad_id=doctor.id) }}" class="surface-card rounded-lg p-6 border grid grid-cols-1 sm:grid-cols-2 gap-6">
+    <form method="POST" action="{{ url_for('doctors.update_doctor', rad_id=doctor.id) }}" class="surface-card rounded-lg p-6 border grid grid-cols-1 sm:grid-cols-2 gap-6" @submit.prevent="submitForm($event)">
       <label class="block">
     <span class="font-semibold">Name</span>
     <input type="text" name="name" value="{{ doctor.name }}" required class="input w-full border rounded px-3 py-2 text-sm" />
@@ -667,6 +667,24 @@
       <label class="block">
         <span class="font-semibold">Additional Info</span>
         <textarea name="additional_info" rows="3" class="input w-full border rounded px-3 py-2 text-sm">{{ doctor.additional_info or '' }}</textarea>
+      </label>
+
+      <label class="block">
+        <span class="font-semibold">Fellowship</span>
+        <input type="text" name="fellowship" value="{{ doctor_specialty or '' }}" class="input w-full border rounded px-3 py-2 text-sm" placeholder="e.g., Neuroradiology, Pediatric Radiology" />
+      </label>
+
+      <label class="block">
+        <span class="font-semibold">Specialties</span>
+        <div id="specialties-checkboxes" class="mt-2 space-y-2 p-3 border rounded bg-gray-50" style="max-height: 300px; overflow-y: auto;">
+          {% for spec in doctor_specialties %}
+            <label class="flex items-center space-x-2 cursor-pointer hover:bg-sky-500 p-2 rounded transition-colors text-gray-900">
+              <input type="checkbox" name="specialties" value="{{ spec.id }}" checked class="specialty-checkbox h-4 w-4 rounded">
+              <span class="text-sm font-medium">{{ spec.name }}</span>
+            </label>
+          {% endfor %}
+        </div>
+        <p class="text-xs text-muted mt-2">Check the specialties applicable to this doctor</p>
       </label>
 
       <label class="flex items-center space-x-2 mt-4">
@@ -1158,6 +1176,75 @@ input[type=number]::-webkit-inner-spin-button {
       const doctorName = form.dataset.itemName;
       showDeleteModal(doctorName, form);
     }
+  </script>
+
+  <script>
+    // Alpine.js data function for handling form submission
+    function setupDoctorProfileData() {
+      return {
+        editing: false,
+        submitForm: function(event) {
+          // No need to sync Select2 anymore - checkboxes handle it automatically
+          // Just submit the form
+          setTimeout(() => {
+            event.target.submit();
+          }, 50);
+        }
+      };
+    }
+
+    // Initialize Specialties Checkboxes
+    const doctorId = "{{ doctor.id }}";
+    
+    function initializeSpecialtiesCheckboxes() {
+      // Fetch all available specialties
+      fetch(`/doctors/${doctorId}/specialties`)
+        .then(response => response.json())
+        .then(data => {
+          const container = document.getElementById('specialties-checkboxes');
+          
+          // Get currently checked values before clearing
+          const currentlyChecked = Array.from(container.querySelectorAll('input[name="specialties"]:checked'))
+            .map(checkbox => checkbox.value);
+          
+          // Clear the container
+          container.innerHTML = '';
+          
+          // Add checkboxes for all available specialties
+          data.specialties.forEach(spec => {
+            const label = document.createElement('label');
+            label.className = 'flex items-center space-x-2 cursor-pointer hover:bg-sky-100 p-2 rounded transition-colors text-gray-900';
+            
+            const checkbox = document.createElement('input');
+            checkbox.type = 'checkbox';
+            checkbox.name = 'specialties';
+            checkbox.value = spec.id;
+            checkbox.className = 'specialty-checkbox h-4 w-4 rounded';
+            
+            // Check if this specialty was previously checked
+            if (currentlyChecked.includes(spec.id)) {
+              checkbox.checked = true;
+            }
+            
+            const span = document.createElement('span');
+            span.className = 'text-sm font-medium';
+            span.textContent = spec.name;
+            
+            label.appendChild(checkbox);
+            label.appendChild(span);
+            container.appendChild(label);
+          });
+        })
+        .catch(error => {
+          console.error('Error loading specialties:', error);
+        });
+    }
+
+    // Initialize when the page loads
+    document.addEventListener('DOMContentLoaded', function() {
+      // Small delay to ensure the page is fully rendered
+      setTimeout(initializeSpecialtiesCheckboxes, 100);
+    });
   </script>
   
 
