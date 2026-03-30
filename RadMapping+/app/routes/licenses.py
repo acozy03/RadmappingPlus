@@ -91,6 +91,7 @@ def search_licenses():
     search_term = request.args.get('search', '').lower()
     state = request.args.get('state', '')
     doctor_status = request.args.get('status', 'all')
+    license_status = request.args.get('license_status', 'all')
 
     filtered_certifications = []
 
@@ -115,8 +116,13 @@ def search_licenses():
             active_status_str = str(cert.get('radiologists', {}).get('active_status', False)).lower()
             if active_status_str != doctor_status:
                 match_doctor_status = False
+
+        match_license_status = True
+        if license_status != 'all':
+            if cert.get('status') != license_status:
+                match_license_status = False
         
-        if match_search and match_state and match_doctor_status:
+        if match_search and match_state and match_doctor_status and match_license_status:
             filtered_certifications.append(cert)
             
     filtered_certifications.sort(key=lambda x: x.get('state', ''), reverse=False)

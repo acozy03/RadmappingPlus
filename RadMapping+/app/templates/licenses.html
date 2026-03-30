@@ -158,6 +158,26 @@
         <i class="fas fa-exclamation-triangle mr-2"></i>Inactive Doctors
       </button>
     </div>
+    <div class="flex gap-2 licenses-filter-actions">
+      <button onclick="filterByLicenseStatus('all')"
+              class="px-4 py-2 rounded-lg text-sm font-medium transition-all duration-200 licenses-status-button"
+              data-license-status="all"
+              aria-label="Show all licenses">
+        <i class="fas fa-list mr-2"></i>All Licenses
+      </button>
+      <button onclick="filterByLicenseStatus('Active')"
+              class="px-4 py-2 rounded-lg text-sm font-medium transition-all duration-200 licenses-status-button licenses-status-button--active active-filter"
+              data-license-status="Active"
+              aria-label="Show active licenses only">
+        <i class="fas fa-check-circle mr-2"></i>Active Licenses
+      </button>
+      <button onclick="filterByLicenseStatus('Expired')"
+              class="px-4 py-2 rounded-lg text-sm font-medium transition-all duration-200 licenses-status-button"
+              data-license-status="Expired"
+              aria-label="Show expired licenses only">
+        <i class="fas fa-times-circle mr-2"></i>Expired Licenses
+      </button>
+    </div>
   </div>
 </div>
 
@@ -697,6 +717,7 @@ tbody tr:hover {
 
 <script>
 let currentStatusFilter = 'all';
+let currentLicenseStatusFilter = 'Active';
 let currentSearchTerm = '';
 const entriesPerPage = 25;
 let visibleEntries = entriesPerPage;
@@ -805,6 +826,12 @@ function applyFiltersAndSort() {
   if (currentStatusFilter !== 'all') {
     tempFilteredData = tempFilteredData.filter(cert => 
       String(cert.radiologists.active_status) === currentStatusFilter
+    );
+  }
+
+  if (currentLicenseStatusFilter !== 'all') {
+    tempFilteredData = tempFilteredData.filter(cert =>
+      cert.status === currentLicenseStatusFilter
     );
   }
 
@@ -994,6 +1021,19 @@ function filterByStatus(status) {
   document.querySelectorAll('[data-status]').forEach(button => {
     button.classList.remove('active-filter', 'licenses-status-button--active');
     if (button.dataset.status === status) {
+      button.classList.add('active-filter', 'licenses-status-button--active');
+    }
+  });
+
+  visibleEntries = entriesPerPage;
+  applyFiltersAndSort();
+}
+
+function filterByLicenseStatus(status) {
+  currentLicenseStatusFilter = status;
+  document.querySelectorAll('[data-license-status]').forEach(button => {
+    button.classList.remove('active-filter', 'licenses-status-button--active');
+    if (button.dataset.licenseStatus === status) {
       button.classList.add('active-filter', 'licenses-status-button--active');
     }
   });
