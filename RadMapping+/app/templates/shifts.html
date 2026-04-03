@@ -456,6 +456,7 @@
   {% set stats = hourly_rvu_stats[slot.datetime] %}
   {% set current = stats['current'] if stats else None %}
   {% set expected = stats['historical'] if stats else None %}
+  {% set trickle_mult = stats['trickle_multiplier'] if stats else 1.0 %}
   {% set ratio = (current / expected) if current is not none and expected and expected > 0 else None %}
   {% set ratio_percent = (ratio * 100) | round(1) if ratio is not none else None %}
   {% set slot_key = slot.datetime.isoformat() %}
@@ -555,19 +556,27 @@
       data-hour='{{ slot.hour }}'
       class="group rounded-md p-2 md:p-3 shadow-sm border border-gray-300 {{ color_class }} relative cursor-pointer hour-slot-div shifts-slot-card min-w-0"
     >
-      <div class="flex flex-col md:flex-row md:items-center md:justify-between gap-1 md:gap-0">
-        <h4 class="text-xs md:text-sm font-semibold text-gray-800">
-          <span>{{ slot.label }}</span>
-        </h4>
-        <span class="flex flex-wrap items-center text-xs text-gray-700 relative gap-x-1 gap-y-0.5 md:gap-x-2" style="min-width:0;">
-          <span class="text-blue-700 font-semibold">
-            {{ (current | round(1)) if current is not none else '—' }}
+      <div class="flex flex-col gap-1">
+        <div class="flex flex-col md:flex-row md:items-center md:justify-between gap-1 md:gap-0">
+          <h4 class="text-xs md:text-sm font-semibold text-gray-800">
+            <span>{{ slot.label }}</span>
+          </h4>
+          <span class="flex flex-wrap items-center text-xs text-gray-700 relative gap-x-1 gap-y-0.5 md:gap-x-2" style="min-width:0;">
+            <span class="text-blue-700 font-semibold">
+              {{ (current | round(1)) if current is not none else '—' }}
+            </span>
+            <span class="text-gray-400">vs</span>
+            <span class="text-green-700 font-semibold">
+              {{ (expected | round(1)) if expected is not none else '—' }}
+            </span>
           </span>
-          <span class="text-gray-400">vs</span>
-          <span class="text-green-700 font-semibold">
-            {{ (expected | round(1)) if expected is not none else '—' }}
-          </span>
-        </span>
+        </div>
+        {% if trickle_mult and trickle_mult != 1.0 %}
+        <div class="flex items-center gap-1 text-[10px] text-gray-500">
+          <span>Queue Trickle:</span>
+          <span class="font-semibold {{ 'text-red-600' if trickle_mult >= 1.3 else 'text-orange-500' if trickle_mult >= 1.1 else 'text-gray-600' }}">{{ trickle_mult | round(2) }}x</span>
+        </div>
+        {% endif %}
       </div>
     </div>
 
@@ -653,6 +662,11 @@
         <span x-text="date"></span>
         &nbsp;&mdash;&nbsp;
         <span x-text="time"></span>
+        <template x-if="hourDetail && hourDetail.trickle_multiplier && hourDetail.trickle_multiplier != 1.0">
+          <span class="ml-2 text-xs" :class="hourDetail.trickle_multiplier >= 1.3 ? 'text-red-600' : hourDetail.trickle_multiplier >= 1.1 ? 'text-orange-500' : 'text-gray-500'">
+            Queue Trickle: <span x-text="hourDetail.trickle_multiplier.toFixed(2)"></span>x
+          </span>
+        </template>
       </p>
       <div class="mt-2 flex flex-wrap items-center gap-2">
         <div class="inline-flex rounded-md border border-blue-200 overflow-hidden shadow-sm">

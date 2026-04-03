@@ -367,7 +367,7 @@ def shifts():
         _res = (
             supabase
             .table("capacity_per_hour")
-            .select("date", "hour", "total_rvus")
+            .select("date", "hour", "total_rvus", "trickle_multiplier", "base_total_rvus")
             .in_("date", cap_dates)
             .range(_offset, _offset + _batch - 1)
             .execute()
@@ -379,6 +379,7 @@ def shifts():
         _offset += _batch
 
     historical_rvu_lookup = {}
+    trickle_multiplier_lookup = {}
     for row in cap_rows_all:
         d = row.get("date")
         h = row.get("hour")
@@ -393,6 +394,7 @@ def shifts():
             except Exception:
                 continue
         historical_rvu_lookup[(d, h_int)] = row.get("total_rvus")
+        trickle_multiplier_lookup[(d, h_int)] = float(row.get("trickle_multiplier") or 1.0)
 
     # --- New effective capacity computation ---
     # We will estimate per-hour supply by allocating each on-shift doctor's
@@ -753,7 +755,9 @@ def shifts():
     for slot in all_hour_slots:
         slot_dt = slot["datetime"]
         hist, eff = compute_effective_supply(slot_dt)
-        hourly_rvu_stats[slot_dt] = {"historical": hist, "current": eff}
+        prev_d, prev_h = get_prev_week_same_day_and_hour(slot_dt)
+        tm = trickle_multiplier_lookup.get((prev_d, prev_h), 1.0) if prev_d else 1.0
+        hourly_rvu_stats[slot_dt] = {"historical": hist, "current": eff, "trickle_multiplier": tm}
 
     # Debug: per-day coverage summary
     if dbg and str(dbg).lower() in ("1", "true", "yes"):
@@ -972,7 +976,7 @@ def hour_detail():
     breakdown_res = (
         supabase
         .table("capacity_per_hour_breakdown")
-        .select("state,total_rvus,modality")
+        .select("state,total_rvus,modality,base_rvus,trickle_multiplier")
         .eq("date", prev_date_str)
         .eq("hour", prev_hour_int)
         .execute()
@@ -990,7 +994,7 @@ def hour_detail():
         day_res = (
             supabase
             .table("capacity_per_hour_breakdown")
-            .select("state,total_rvus,modality,hour")
+            .select("state,total_rvus,modality,hour,base_rvus,trickle_multiplier")
             .eq("date", prev_date_str)
             .execute()
         )
@@ -1028,6 +1032,31 @@ def hour_detail():
                 "supply_effective_allocated_rvus": 0,
                 "doctor_allocations": []
             })
+
+    # 2) Adjust demand per distribution_mode using trickle columns
+    #    worst  = total_rvus (already includes trickle backlog — default/worst case)
+    #    normal = base_rvus  (forecast before trickle was applied)
+    #    best   = base_rvus / trickle_multiplier (optimistic: less than base)
+    for row in breakdown_rows:
+        base = row.get("base_rvus")
+        tm = row.get("trickle_multiplier")
+        # Null-safe: if new columns aren't populated yet, fall back gracefully
+        try:
+            base = float(base) if base is not None else None
+        except Exception:
+            base = None
+        try:
+            tm = float(tm) if tm is not None else 1.0
+        except Exception:
+            tm = 1.0
+        if tm <= 0:
+            tm = 1.0
+
+        if distribution_mode == "normal" and base is not None:
+            row["total_rvus"] = base
+        elif distribution_mode == "best" and base is not None:
+            row["total_rvus"] = base / tm
+        # "worst" keeps the original total_rvus (trickle-adjusted) — no change needed
 
     # 3) Determine doctors on shift for this specific hour
     #    Reuse the same logic as the weekly view but constrained to one hour window
@@ -1558,6 +1587,22 @@ def hour_detail():
         for md, states in modality_breakdown.items()
     }
 
+    # Fetch hourly trickle_multiplier from capacity_per_hour for display
+    hour_trickle_multiplier = 1.0
+    try:
+        tm_res = (
+            supabase
+            .table("capacity_per_hour")
+            .select("trickle_multiplier")
+            .eq("date", prev_date_str)
+            .eq("hour", prev_hour_int)
+            .execute()
+        )
+        if tm_res.data:
+            hour_trickle_multiplier = float((tm_res.data[0]).get("trickle_multiplier") or 1.0)
+    except Exception:
+        hour_trickle_multiplier = 1.0
+
     payload = {
         "date": date_str,
         "hour": hour,
@@ -1565,6 +1610,8 @@ def hour_detail():
         "fallback": fallback_info,
         "applied_overrides": base_overrides,
         "total_expected_rvus": total_expected,
+        "trickle_multiplier": hour_trickle_multiplier,
+        "distribution_mode": distribution_mode,
         "by_state": by_state_payload,
         "by_state_merged": by_state_merged_payload,
         "by_modality": by_modality_payload,
