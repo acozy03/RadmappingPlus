@@ -3,6 +3,7 @@ from app.admin_required import admin_required
 from app.supabase_client import get_supabase_client
 from app.middleware import with_supabase_auth
 from app.audit_log import log_audit_action 
+from app.supabase_helper import sanitize_form_dict, strip_form_value
 from datetime import datetime, timedelta
 from calendar import monthrange
 import uuid
@@ -46,7 +47,7 @@ def search_doctors():
     supabase = get_supabase_client()
     page = request.args.get('page', 1, type=int)
     per_page = 25
-    search_term = request.args.get('search', '')
+    search_term = request.args.get('search', '').strip()
     status = request.args.get('status', 'all')
 
     user_email = session["user"]["email"]
@@ -366,18 +367,18 @@ def update_doctor(rad_id):
         old_data = supabase.table("radiologists").select("*").eq("id", rad_id).single().execute().data
         
         data = {
-            "name": request.form.get("name"),
-            "email": request.form.get("email"),
-            "phone": request.form.get("phone"),
-            "pacs": request.form.get("pacs"),
-            "modalities": request.form.get("modalities"),
-            "primary_contact_method": request.form.get("primary_contact_method"),
-            "timezone": request.form.get("timezone"),
+            "name": strip_form_value(request.form.get("name")),
+            "email": strip_form_value(request.form.get("email")),
+            "phone": strip_form_value(request.form.get("phone")),
+            "pacs": strip_form_value(request.form.get("pacs")),
+            "modalities": strip_form_value(request.form.get("modalities")),
+            "primary_contact_method": strip_form_value(request.form.get("primary_contact_method")),
+            "timezone": strip_form_value(request.form.get("timezone")),
             "active_status": True if request.form.get("active_status") == "true" else False,
-            "stipulations": request.form.get("stipulations"),
-            "reads_routines": request.form.get("reads_routines"),
-            "reads_stats": request.form.get("reads_stats"), 
-            "additional_info": request.form.get("additional_info"),
+            "stipulations": strip_form_value(request.form.get("stipulations")),
+            "reads_routines": strip_form_value(request.form.get("reads_routines")),
+            "reads_stats": strip_form_value(request.form.get("reads_stats")), 
+            "additional_info": strip_form_value(request.form.get("additional_info")),
         }
         
         data = {k: v for k, v in data.items() if v is not None}
@@ -559,18 +560,18 @@ def add_doctor():
     
     data = {
         "id": new_id,
-        "name": request.form.get("name"),
-        "email": request.form.get("email"),
-        "phone": request.form.get("phone"),
-        "pacs": request.form.get("pacs"),
-        "primary_contact_method": request.form.get("primary_contact_method"),
-        "modalities": request.form.get("modalities"),
-        "timezone": request.form.get("timezone"),
-        "additional_info": request.form.get("additional_info"),
+        "name": strip_form_value(request.form.get("name")),
+        "email": strip_form_value(request.form.get("email")),
+        "phone": strip_form_value(request.form.get("phone")),
+        "pacs": strip_form_value(request.form.get("pacs")),
+        "primary_contact_method": strip_form_value(request.form.get("primary_contact_method")),
+        "modalities": strip_form_value(request.form.get("modalities")),
+        "timezone": strip_form_value(request.form.get("timezone")),
+        "additional_info": strip_form_value(request.form.get("additional_info")),
         "active_status": True if request.form.get("active_status") == "true" else False,
-        "stipulations": request.form.get("stipulations"),
-        "reads_routines": request.form.get("reads_routines"),
-        "reads_stats": request.form.get("reads_stats"),
+        "stipulations": strip_form_value(request.form.get("stipulations")),
+        "reads_routines": strip_form_value(request.form.get("reads_routines")),
+        "reads_stats": strip_form_value(request.form.get("reads_stats")),
     }
 
     res = supabase.table("radiologists").insert(data).execute()
@@ -613,11 +614,11 @@ def remove_doctor(rad_id):
 def add_facility_assignment(rad_id):
     supabase = get_supabase_client()
 
-    can_read = request.form.get("can_read", "false")  
+    can_read = strip_form_value(request.form.get("can_read", "false"))  
     if can_read not in ["true", "pending", "false"]:
         return "Invalid can_read value", 400
 
-    notes = request.form.get("notes", "")
+    notes = strip_form_value(request.form.get("notes", ""))
     notes = None if notes == "None" else notes
 
     data = {
@@ -728,11 +729,11 @@ def add_certification(rad_id):
     data = {
         "id": str(uuid.uuid4()),
         "radiologist_id": rad_id,
-        "state": request.form['state'],
+        "state": request.form['state'].strip(),
         "expiration_date": request.form['expiration_date'],
-        "status": request.form['status'],
-        "specialty": request.form.get('specialty', ''),
-        "tags": request.form.get('tags', ''),
+        "status": request.form['status'].strip(),
+        "specialty": (request.form.get('specialty', '') or '').strip(),
+        "tags": (request.form.get('tags', '') or '').strip(),
     }
     res = supabase.table("certifications").insert(data).execute()
 
@@ -766,11 +767,11 @@ def update_assignment(assignment_id):
             return "Assignment not found", 404
         
         old_data = current_res.data
-        can_read = request.form.get("can_read", "false")  
+        can_read = strip_form_value(request.form.get("can_read", "false"))  
         if can_read not in ["true", "pending", "false"]:
             return "Invalid can_read value", 400
 
-        notes = request.form.get("notes", "")
+        notes = strip_form_value(request.form.get("notes", ""))
         notes = None if notes == "None" else notes
 
         update_data = {
@@ -865,7 +866,7 @@ def get_doctors_api():
     """
     try:
         supabase = get_supabase_client()
-        search_term = request.args.get('search', '')
+        search_term = request.args.get('search', '').strip()
 
         if not search_term:
             return jsonify({'error': 'No search term provided.'}), 400
