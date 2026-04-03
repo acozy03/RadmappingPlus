@@ -4,6 +4,7 @@ import uuid
 from app.middleware import with_supabase_auth
 from app.supabase_client import get_supabase_client
 from app.audit_log import log_audit_action
+from app.supabase_helper import strip_form_value
 import time
 facilities_bp = Blueprint('facilities', __name__)
 supabase = get_supabase_client()
@@ -435,8 +436,8 @@ def add_facility_contact(facility_id):
     data = {
         "id": str(uuid.uuid4()),
         "facility_id": facility_id,
-        "text": request.form.get("text"),
-        "role": request.form.get("role")
+        "text": strip_form_value(request.form.get("text")),
+        "role": strip_form_value(request.form.get("role"))
     }
     
     res = supabase.table("facility_contact_assignments").insert(data).execute()
@@ -461,7 +462,7 @@ def edit_facility_contact(facility_id, contact_id):
     supabase = get_supabase_client()
     data = {
         "text": request.form.get("text"),
-        "role": request.form.get("role")
+        "role": strip_form_value(request.form.get("role"))
     }
 
     old_data = supabase.table("facility_contact_assignments").select("*").eq("id", contact_id).single().execute().data
@@ -532,7 +533,7 @@ def bulk_update_assignments(facility_id):
         old_assignment_data = supabase.table('doctor_facility_assignments').select('*').eq('id', assignment_id).single().execute().data
 
         # Update assignment's can_read status
-        can_read = request.form.get(f'can_read_{assignment_id}', 'true')
+        can_read = (request.form.get(f'can_read_{assignment_id}', 'true') or '').strip()
         notes = request.form.get(f'notes_{assignment_id}', '')
         
         new_assignment_data = {
@@ -681,17 +682,17 @@ def update_facility(facility_id):
     form = request.form
     
     data = {
-        'name': form.get('name'),
-        'location': form.get('location'),
-        'pacs': form.get('pacs'),
-        'tat_definition': form.get('tat_definition'),
-        'modalities_assignment_period': form.get('assignment_period'),
-        'modalities': form.get('assignment_type'),
-        'qa_criteria': form.get('qa_criteria'),
-        'monitoring': form.get('monitoring'),
-        'active_status': form.get('active_status'),
-        'additional_info': form.get('additional_info'),
-        'account_poc': form.get('account_poc')  
+        'name': strip_form_value(form.get('name')),
+        'location': strip_form_value(form.get('location')),
+        'pacs': strip_form_value(form.get('pacs')),
+        'tat_definition': strip_form_value(form.get('tat_definition')),
+        'modalities_assignment_period': strip_form_value(form.get('assignment_period')),
+        'modalities': strip_form_value(form.get('assignment_type')),
+        'qa_criteria': strip_form_value(form.get('qa_criteria')),
+        'monitoring': strip_form_value(form.get('monitoring')),
+        'active_status': strip_form_value(form.get('active_status')),
+        'additional_info': strip_form_value(form.get('additional_info')),
+        'account_poc': strip_form_value(form.get('account_poc'))
     }
 
     old_data = supabase.table('facilities').select('*').eq('id', facility_id).single().execute().data
@@ -746,7 +747,7 @@ def update_assignment(facility_id, assignment_id):
         return "Assignment not found", 404
 
     old_assignment_data = current_res.data
-    can_read = request.form.get("can_read", old_assignment_data.get("can_read", "true"))
+    can_read = (request.form.get("can_read", old_assignment_data.get("can_read", "true")) or "").strip()
     if can_read not in ["true", "pending", "false", "withdrawn"]:
         return "Invalid can_read value", 400
 
@@ -816,20 +817,20 @@ def update_assignment(facility_id, assignment_id):
 def add_facility():
     supabase = get_supabase_client()
     new_id = str(uuid.uuid4())
-    data = request.get_json()
+    raw = request.get_json()
     data = {
         "id": new_id,
-        "name": data.get("name"),
-        "location": data.get("location"),
-        "pacs": data.get("pacs"),
-        "tat_definition": data.get("tat_definition"),
-        "modalities_assignment_period": data.get("modalities_assignment_period"),
-        "modalities": data.get("modalities"),
-        "qa_criteria": data.get("qa_criteria"),
-        "monitoring": data.get("monitoring"),
-        "additional_info": data.get("additional_info"),
-        "active_status": data.get("active_status"),
-        "account_poc": data.get("account_poc")
+        "name": strip_form_value(raw.get("name")),
+        "location": strip_form_value(raw.get("location")),
+        "pacs": strip_form_value(raw.get("pacs")),
+        "tat_definition": strip_form_value(raw.get("tat_definition")),
+        "modalities_assignment_period": strip_form_value(raw.get("modalities_assignment_period")),
+        "modalities": strip_form_value(raw.get("modalities")),
+        "qa_criteria": strip_form_value(raw.get("qa_criteria")),
+        "monitoring": strip_form_value(raw.get("monitoring")),
+        "additional_info": strip_form_value(raw.get("additional_info")),
+        "active_status": strip_form_value(raw.get("active_status")),
+        "account_poc": strip_form_value(raw.get("account_poc"))
     }
 
     res = supabase.table("facilities").insert(data).execute()

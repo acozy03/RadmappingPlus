@@ -1,5 +1,23 @@
 from app.supabase_client import get_supabase_client
 
+
+def strip_form_value(value):
+    """Strip leading/trailing whitespace from a form value if it's a string."""
+    if isinstance(value, str):
+        return value.strip()
+    return value
+
+
+def sanitize_form_dict(data, exclude_keys=None):
+    """Strip whitespace from all string values in a dict, optionally skipping certain keys."""
+    if exclude_keys is None:
+        exclude_keys = set()
+    return {
+        k: (strip_form_value(v) if k not in exclude_keys else v)
+        for k, v in data.items()
+    }
+
+
 # Helper functions to fetch all rows from table to get around 1000 row limit
 def fetch_all_rows(table: str, select_query: str = "*", batch_size: int = 1000):
     supabase = get_supabase_client()

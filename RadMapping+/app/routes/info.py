@@ -5,6 +5,7 @@ from datetime import datetime
 import uuid
 from app.middleware import with_supabase_auth
 from app.audit_log import log_audit_action
+from app.supabase_helper import strip_form_value
 import random
 
 info_bp = Blueprint('info', __name__)
@@ -58,11 +59,11 @@ def add_article():
     supabase = get_supabase_client()
     data = {
         "id": str(uuid.uuid4()),
-        "title": request.form.get("title"),
-        "content": request.form.get("content"),
-        "category": request.form.get("category"),
-        "theme": request.form.get("theme"),
-        "icon": request.form.get("icon"),
+        "title": strip_form_value(request.form.get("title")),
+        "content": strip_form_value(request.form.get("content")),
+        "category": strip_form_value(request.form.get("category")),
+        "theme": strip_form_value(request.form.get("theme")),
+        "icon": strip_form_value(request.form.get("icon")),
         "created_at": datetime.now().isoformat(),
         "updated_at": datetime.now().isoformat()
     }
@@ -85,11 +86,11 @@ def add_article():
 def edit_article(article_id):
     supabase = get_supabase_client()
     data = {
-        "title": request.form.get("title"),
-        "content": request.form.get("content"),
-        "category": request.form.get("category"),
-        "theme": request.form.get("theme"),
-        "icon": request.form.get("icon"),
+        "title": strip_form_value(request.form.get("title")),
+        "content": strip_form_value(request.form.get("content")),
+        "category": strip_form_value(request.form.get("category")),
+        "theme": strip_form_value(request.form.get("theme")),
+        "icon": strip_form_value(request.form.get("icon")),
         "updated_at": datetime.now().isoformat()
     }
     old_data = supabase.table("info_articles").select("*").eq("id", article_id).single().execute().data

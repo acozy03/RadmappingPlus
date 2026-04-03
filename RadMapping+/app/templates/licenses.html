@@ -143,12 +143,12 @@
     
     <div class="flex gap-2 licenses-filter-actions">
       <button onclick="filterByStatus('all')" 
-              class="px-4 py-2 rounded-lg text-sm font-medium transition-all duration-200 licenses-status-button licenses-status-button--active active-filter" 
+              class="px-4 py-2 rounded-lg text-sm font-medium transition-all duration-200 licenses-status-button" 
               data-status="all">
         <i class="fas fa-list mr-2"></i>All
       </button>
       <button onclick="filterByStatus('true')" 
-              class="px-4 py-2 rounded-lg text-sm font-medium transition-all duration-200 licenses-status-button" 
+              class="px-4 py-2 rounded-lg text-sm font-medium transition-all duration-200 licenses-status-button licenses-status-button--active active-filter" 
               data-status="true">
         <i class="fas fa-check-circle mr-2"></i>Active Doctors
       </button>
@@ -186,7 +186,7 @@
           </th>
           <th class="px-6 py-4 text-left text-xs font-medium text-gray-500 uppercase tracking-wider cursor-pointer hover:bg-gray-100 transition-colors" data-sort="status">
             <div class="flex items-center">
-                <i class="fas fa-info-circle mr-2"></i>Status
+                <i class="fas fa-info-circle mr-2"></i>License
                 <span class="ml-2 text-gray-400 sort-indicator">↕</span>
             </div>
           </th>
@@ -696,7 +696,7 @@ tbody tr:hover {
 </style>
 
 <script>
-let currentStatusFilter = 'all';
+let currentStatusFilter = 'true';
 let currentSearchTerm = '';
 const entriesPerPage = 25;
 let visibleEntries = entriesPerPage;

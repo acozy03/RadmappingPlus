@@ -4,7 +4,7 @@ from app.supabase_client import get_supabase_client
 from app.middleware import with_supabase_auth
 from app.license_sync import process_license_cell_update
 from app.audit_log import log_audit_action
-from app.supabase_helper import fetch_all_rows # Import the new function
+from app.supabase_helper import fetch_all_rows, strip_form_value
 
 from datetime import datetime
 from threading import Thread
@@ -54,10 +54,10 @@ def update_license(license_id):
 
     data = {
         "radiologist_id": request.form.get("radiologist_id") or None,
-        "state": request.form.get("state") or None,
-        "specialty": request.form.get("specialty") or None,
-        "status": request.form.get("status") or None,
-        "tags": request.form.get("tags") or None,
+        "state": strip_form_value(request.form.get("state")) or None,
+        "specialty": strip_form_value(request.form.get("specialty")) or None,
+        "status": strip_form_value(request.form.get("status")) or None,
+        "tags": strip_form_value(request.form.get("tags")) or None,
         "expiration_date": request.form.get("expiration_date") or None
     }
 
@@ -88,19 +88,19 @@ def search_licenses():
 
     temp_query_data = all_certifications_from_db
 
-    search_term = request.args.get('search', '').lower()
-    state = request.args.get('state', '')
-    doctor_status = request.args.get('status', 'all')
+    search_term = request.args.get('search', '').strip().lower()
+    state = request.args.get('state', '').strip()
+    doctor_status = request.args.get('status', 'all').strip()
 
     filtered_certifications = []
 
     for cert in temp_query_data:
         match_search = True
         if search_term:
-            state_match = cert.get('state', '').lower().startswith(search_term)
-            specialty_match = cert.get('specialty', '').lower().startswith(search_term)
-            tags_match = cert.get('tags', '').lower().startswith(search_term) if cert.get('tags') else False
-            radiologist_name_match = cert.get('radiologists', {}).get('name', '').lower().startswith(search_term)
+            state_match = search_term in cert.get('state', '').lower()
+            specialty_match = search_term in cert.get('specialty', '').lower()
+            tags_match = search_term in cert.get('tags', '').lower() if cert.get('tags') else False
+            radiologist_name_match = search_term in cert.get('radiologists', {}).get('name', '').lower()
             
             if not (state_match or specialty_match or tags_match or radiologist_name_match):
                 match_search = False
@@ -141,9 +141,9 @@ def licenses_page():
 
     if request.method == "POST":
         doctor_id = request.form.get("doctor")
-        state = request.form.get("state")
+        state = strip_form_value(request.form.get("state"))
         expiration_date = request.form.get("exp")
-        specialty = request.form.get("specialty")
+        specialty = strip_form_value(request.form.get("specialty"))
 
         if not specialty:
             existing = supabase.table("certifications") \
@@ -154,8 +154,8 @@ def licenses_page():
             if existing.data:
                 specialty = existing.data[0]["specialty"]
 
-        tags = request.form.get("tags")
-        status = request.form.get("status")
+        tags = strip_form_value(request.form.get("tags"))
+        status = strip_form_value(request.form.get("status"))
 
         if doctor_id and state and expiration_date:
             new_cert = {

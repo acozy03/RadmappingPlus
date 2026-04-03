@@ -3,6 +3,7 @@ from app.admin_required import admin_required
 from app.supabase_client import get_supabase_client
 from app.middleware import with_supabase_auth
 from app.audit_log import log_audit_action
+from app.supabase_helper import strip_form_value
 import uuid
 
 specialties_bp = Blueprint('specialties', __name__)
@@ -74,8 +75,8 @@ def add_specialty():
     supabase = get_supabase_client()
     data = {
         "id": str(uuid.uuid4()),
-        "name": request.form.get("name"),
-        "description": request.form.get("description"),
+        "name": strip_form_value(request.form.get("name")),
+        "description": strip_form_value(request.form.get("description")),
         "is_specialty": request.form.get("is_specialty") == "on"
     }
     res = supabase.table("specialty_studies").insert(data).execute()

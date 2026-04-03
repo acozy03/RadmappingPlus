@@ -2,6 +2,7 @@ from flask import Blueprint, render_template, session, redirect, url_for, reques
 from app.admin_required import admin_required
 from app.supabase_client import get_supabase_client
 from app.middleware import with_supabase_auth
+from app.supabase_helper import strip_form_value
 from datetime import datetime
 import uuid
 import logging
@@ -37,11 +38,11 @@ def add_contact():
         supabase = get_supabase_client()
         data = {
             "id": str(uuid.uuid4()),
-            "name": request.form.get("name"),
-            "department": request.form.get("department"),
+            "name": strip_form_value(request.form.get("name")),
+            "department": strip_form_value(request.form.get("department")),
             "contact_number": request.form.get("contact_number"),
             "extension_number": request.form.get("extension_number"),
-            "email": request.form.get("email"),
+            "email": strip_form_value(request.form.get("email")),
             "additional_info": request.form.get("additional_info"),
             "created_at": datetime.now().isoformat(),
             "updated_at": datetime.now().isoformat()
@@ -73,11 +74,11 @@ def edit_contact(contact_id):
     try:
         supabase = get_supabase_client()
         data = {
-            "name": request.form.get("name"),
-            "department": request.form.get("department"),
+            "name": strip_form_value(request.form.get("name")),
+            "department": strip_form_value(request.form.get("department")),
             "contact_number": request.form.get("contact_number"),
             "extension_number": request.form.get("extension_number"),
-            "email": request.form.get("email"),
+            "email": strip_form_value(request.form.get("email")),
             "additional_info": request.form.get("additional_info"),
             "updated_at": datetime.now().isoformat()
         }
