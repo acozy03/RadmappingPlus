@@ -367,7 +367,7 @@ def shifts():
         _res = (
             supabase
             .table("capacity_per_hour")
-            .select("date", "hour", "total_rvus", "trickle_multiplier", "base_total_rvus")
+            .select("date", "hour", "total_rvus", "trickle_multiplier", "base_total_rvus", "avg_inherited_backlog_rvus")
             .in_("date", cap_dates)
             .range(_offset, _offset + _batch - 1)
             .execute()
@@ -380,6 +380,7 @@ def shifts():
 
     historical_rvu_lookup = {}
     trickle_multiplier_lookup = {}
+    backlog_lookup = {}
     for row in cap_rows_all:
         d = row.get("date")
         h = row.get("hour")
@@ -395,6 +396,7 @@ def shifts():
                 continue
         historical_rvu_lookup[(d, h_int)] = row.get("total_rvus")
         trickle_multiplier_lookup[(d, h_int)] = float(row.get("trickle_multiplier") or 1.0)
+        backlog_lookup[(d, h_int)] = float(row.get("avg_inherited_backlog_rvus") or 0.0)
 
     # --- New effective capacity computation ---
     # We will estimate per-hour supply by allocating each on-shift doctor's
@@ -757,7 +759,8 @@ def shifts():
         hist, eff = compute_effective_supply(slot_dt)
         prev_d, prev_h = get_prev_week_same_day_and_hour(slot_dt)
         tm = trickle_multiplier_lookup.get((prev_d, prev_h), 1.0) if prev_d else 1.0
-        hourly_rvu_stats[slot_dt] = {"historical": hist, "current": eff, "trickle_multiplier": tm}
+        bl = backlog_lookup.get((prev_d, prev_h), 0.0) if prev_d else 0.0
+        hourly_rvu_stats[slot_dt] = {"historical": hist, "current": eff, "trickle_multiplier": tm, "backlog": bl}
 
     # Debug: per-day coverage summary
     if dbg and str(dbg).lower() in ("1", "true", "yes"):

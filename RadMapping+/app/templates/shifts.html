@@ -347,20 +347,14 @@
             </label>
         </div>
         <div class="flex items-center gap-2 flex-wrap md:justify-end">
-          <label for="sort-metric-select" class="text-sm font-medium text-gray-700">Sort By:</label>
-          <select
-            id="sort-metric-select"
-            class="px-2 py-1.5 text-sm border border-blue-200 rounded-md bg-white text-gray-700 focus:outline-none focus:ring-2 focus:ring-blue-300"
-          >
-            <option value="time">Hour</option>
-            <option value="capacity" selected>Capacity Ratio</option>
-          </select>
           <button
             id="hour-sort-toggle"
             type="button"
-            class="px-3 py-1.5 text-sm font-medium bg-blue-100 text-blue-700 rounded-md shadow-sm hover:bg-blue-200 transition-colors shifts-filter-button"
+            class="px-3 py-1.5 text-sm font-medium bg-blue-100 text-blue-700 rounded-md shadow-sm hover:bg-blue-200 transition-colors shifts-filter-button inline-flex items-center gap-1"
           >
-            Direction: Ascending
+            <span>Direction:</span>
+            <span class="sort-direction-label">Ascending</span>
+            <span class="sort-direction-arrow">&#x2193;</span>
           </button>
         </div>
     </div>
@@ -457,6 +451,7 @@
   {% set current = stats['current'] if stats else None %}
   {% set expected = stats['historical'] if stats else None %}
   {% set trickle_mult = stats['trickle_multiplier'] if stats else 1.0 %}
+  {% set backlog = stats['backlog'] if stats else 0.0 %}
   {% set ratio = (current / expected) if current is not none and expected and expected > 0 else None %}
   {% set ratio_percent = (ratio * 100) | round(1) if ratio is not none else None %}
   {% set slot_key = slot.datetime.isoformat() %}
@@ -480,6 +475,8 @@
     data-sort-time="{{ slot.datetime.isoformat() }}"
     data-color-group="{{ color_group_name }}"
     data-capacity-ratio="{{ ratio if ratio is not none else '' }}"
+    data-backlog="{{ backlog | round(1) }}"
+    data-hour="{{ slot.hour }}"
   >
 
     <div
@@ -571,12 +568,6 @@
             </span>
           </span>
         </div>
-        {% if trickle_mult and trickle_mult != 1.0 %}
-        <div class="flex items-center gap-1 text-[10px] text-gray-500">
-          <span>Queue Trickle:</span>
-          <span class="font-semibold {{ 'text-red-600' if trickle_mult >= 1.3 else 'text-orange-500' if trickle_mult >= 1.1 else 'text-gray-600' }}">{{ trickle_mult | round(2) }}x</span>
-        </div>
-        {% endif %}
       </div>
     </div>
 
@@ -1052,7 +1043,6 @@
 
     document.addEventListener('DOMContentLoaded', () => {
       const sortButton = document.getElementById('hour-sort-toggle');
-      const sortMetricSelect = document.getElementById('sort-metric-select');
 
       if (!sortButton) {
         document.body.classList.remove('hour-sort-initializing');
@@ -1061,7 +1051,6 @@
       }
 
       let sortDescending = false;
-      let sortMetric = sortMetricSelect ? sortMetricSelect.value || 'capacity' : 'capacity';
 
       const markSortReady = () => {
         document.body.classList.remove('hour-sort-initializing');
@@ -1069,7 +1058,10 @@
       };
 
       const updateButtonLabel = () => {
-        sortButton.textContent = sortDescending ? 'Direction: Descending' : 'Direction: Ascending';
+        const label = sortButton.querySelector('.sort-direction-label');
+        const arrow = sortButton.querySelector('.sort-direction-arrow');
+        if (label) label.textContent = sortDescending ? 'Descending' : 'Ascending';
+        if (arrow) arrow.innerHTML = sortDescending ? '&#x2191;' : '&#x2193;';
       };
 
       const parseSortTime = (value) => {
@@ -1077,38 +1069,86 @@
         return Number.isNaN(parsed) ? null : parsed;
       };
 
-      const parseCapacityRatio = (value) => {
-        if (value === null || value === undefined || value === '') {
-          return null;
-        }
-        const parsed = Number.parseFloat(value);
-        return Number.isNaN(parsed) ? null : parsed;
-      };
-
-      const getSortValue = (wrapper, metric) => {
+      const getSortValue = (wrapper) => {
         const fallbackValue = sortDescending ? Number.NEGATIVE_INFINITY : Number.POSITIVE_INFINITY;
-
-        if (metric === 'capacity') {
-          const ratio = parseCapacityRatio(wrapper.getAttribute('data-capacity-ratio'));
-          return ratio === null ? fallbackValue : ratio;
-        }
-
         const time = parseSortTime(wrapper.getAttribute('data-sort-time'));
         return time === null ? fallbackValue : time;
+      };
+
+      const injectTrickleArrows = (sortedContainer, allDayBodies) => {
+        // Remove existing arrows and prev/next containers
+        sortedContainer.querySelectorAll('.trickle-arrow, .trickle-prev-next').forEach(el => el.remove());
+
+        const wrappers = Array.from(sortedContainer.querySelectorAll('.relative.group[data-sort-time]'));
+        if (!wrappers.length) return;
+
+        const getHour = (el) => parseInt(el.getAttribute('data-hour') || '0', 10);
+        const arrowChar = sortDescending ? '&#x2191;' : '&#x2193;';
+
+        // "From Prev" before hour 0 card
+        const hour0Card = wrappers.find(w => getHour(w) === 0);
+        const hour0Backlog = hour0Card ? parseFloat(hour0Card.getAttribute('data-backlog') || '0') : 0;
+
+        if (hour0Card && hour0Backlog > 0) {
+          const prevDiv = document.createElement('div');
+          prevDiv.className = 'trickle-prev-next flex items-center justify-center py-1.5 text-xs font-semibold text-amber-700 rounded border border-amber-300 bg-amber-50';
+          prevDiv.innerHTML = 'From Prev Day: ' + hour0Backlog.toFixed(1) + ' RVUs';
+          hour0Card.parentNode.insertBefore(prevDiv, hour0Card);
+        }
+
+        // Arrows between consecutive cards
+        const currentWrappers = Array.from(sortedContainer.querySelectorAll('.relative.group[data-sort-time]'));
+        for (let i = 0; i < currentWrappers.length - 1; i++) {
+          const nextWrapper = currentWrappers[i + 1];
+          const nextBacklog = parseFloat(nextWrapper.getAttribute('data-backlog') || '0');
+
+          const arrowDiv = document.createElement('div');
+            arrowDiv.className = 'trickle-arrow flex items-center justify-between px-3 py-1.5 text-sm rounded bg-gray-800 bg-opacity-40 border border-gray-600';
+            const numClass = nextBacklog > 0 ? 'text-orange-400 font-bold' : 'text-gray-500';
+            arrowDiv.innerHTML = '<span class="text-white text-base">' + arrowChar + '</span>'
+              + '<span class="' + numClass + ' text-sm">' + nextBacklog.toFixed(1) + '</span>'
+              + '<span class="text-white text-base">' + arrowChar + '</span>';
+            nextWrapper.parentNode.insertBefore(arrowDiv, nextWrapper);
+        }
+
+        // "Into Next" after hour 23 — use next day column's hour 0 backlog
+        const hour23Card = wrappers.find(w => getHour(w) === 23);
+        if (hour23Card && allDayBodies) {
+          const dayBodyArr = Array.from(allDayBodies);
+          const currentDayIdx = dayBodyArr.indexOf(sortedContainer.closest('.shifts-day-body'));
+          const nextDayBody = currentDayIdx >= 0 ? dayBodyArr[currentDayIdx + 1] : null;
+          let intoNextVal = 0;
+          if (nextDayBody) {
+            const nextH0 = nextDayBody.querySelector('[data-hour="0"]');
+            intoNextVal = nextH0 ? parseFloat(nextH0.getAttribute('data-backlog') || '0') : 0;
+          }
+          if (intoNextVal > 0) {
+            const nextDiv = document.createElement('div');
+            nextDiv.className = 'trickle-prev-next flex items-center justify-center py-1.5 text-xs font-semibold text-amber-700 rounded border border-amber-300 bg-amber-50';
+            nextDiv.innerHTML = 'Into Next Day: ' + intoNextVal.toFixed(1) + ' RVUs';
+            if (hour23Card.nextSibling) {
+              hour23Card.parentNode.insertBefore(nextDiv, hour23Card.nextSibling);
+            } else {
+              sortedContainer.appendChild(nextDiv);
+            }
+          }
+        }
       };
 
       const sortHourTiles = () => {
         document.body.classList.add('hour-sort-active');
 
-        document.querySelectorAll('.shifts-day-body').forEach(dayBody => {
+        const allDayBodies = document.querySelectorAll('.shifts-day-body');
+
+        allDayBodies.forEach(dayBody => {
           const wrappers = Array.from(dayBody.querySelectorAll('.relative.group[data-sort-time]'));
           if (!wrappers.length) {
             return;
           }
 
           wrappers.sort((a, b) => {
-            const valueA = getSortValue(a, sortMetric);
-            const valueB = getSortValue(b, sortMetric);
+            const valueA = getSortValue(a);
+            const valueB = getSortValue(b);
             return sortDescending ? valueB - valueA : valueA - valueB;
           });
 
@@ -1125,6 +1165,14 @@
           });
         });
 
+        // Inject arrows after all days are sorted (need cross-day access)
+        allDayBodies.forEach(dayBody => {
+          const sortedContainer = dayBody.querySelector('.sorted-hour-container');
+          if (sortedContainer) {
+            injectTrickleArrows(sortedContainer, allDayBodies);
+          }
+        });
+
         window.requestAnimationFrame(() => {
           document.dispatchEvent(new CustomEvent('shifts:refreshFilters'));
           markSortReady();
@@ -1136,13 +1184,6 @@
         updateButtonLabel();
         sortHourTiles();
       });
-
-      if (sortMetricSelect) {
-        sortMetricSelect.addEventListener('change', (event) => {
-          sortMetric = event.target.value;
-          sortHourTiles();
-        });
-      }
 
       updateButtonLabel();
       sortHourTiles();
