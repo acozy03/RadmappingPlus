@@ -1,12 +1,9 @@
 {% extends "layout.html" %}
 {% block title %}Capacity Gaps{% endblock %}
-
 {% block content %}
-{% set coverage_filters_enabled = coverage_filters_enabled | default(false) %}
-<script>
-  document.body.classList.add('hour-sort-initializing');
-</script>
-<style>
+    {% set coverage_filters_enabled = coverage_filters_enabled | default(false) %}
+    <script>document.body.classList.add('hour-sort-initializing');</script>
+    <style>
   .shifts-loading-skeleton {
     display: none;
   }
@@ -54,921 +51,666 @@
   [data-theme="dark"] .shifts-modal .text-blue-700 {
     color: #93c5fd; /* blue-300 */
   }
-</style>
-<div x-data="{
-    show: false,
-    doctors: [],
-    time: '',
-    date: '',
-    uncoveredStates: [],
-    coveredStates: [],
-    stateDoctorMap: {},
-    matchedStates: [],
-    hoveredState: '',
-    facilityDoctorMap: {},
-    hoveredFacility: '',
-    hourDetail: null,
-    hourLoading: false,
-    // What-if simulation: per-doctor base RVU overrides (temporary)
-    baseOverrides: {},
-    // What-if panel collapsed/expanded state
-    whatIfOpen: true,
-    // Units toggle for modal values: 'rvus' or 'cases'
-    units: 'rvus',
-    // Distribution mode for volatility adjustments
-    distributionMode: 'normal',
-    // Match backend modality RVU chunks for case conversion
-    modalityChunks: {
-      'XR': 0.2,
-      'CT': 1.1,
-      'US': 0.5,
-      'MRI': 1.4,
-      'MG': 0.8,
-      'NM': 2.5,
-      'PT': 2.5,
-      'IR': 4.0,
-      'RF': 0.7,
-      'SC': 0.6,
-      'OT': 0.3,
-      'XA': 0.8,
-      'ECG': 0.2,
-    },
-    chunkFor(mod) {
-      const m = (mod || '').toUpperCase();
-      return this.modalityChunks[m] || 0.2;
-    },
-    toCases(v, mod) {
-      const ch = this.chunkFor(mod);
-      if (!ch || !isFinite(ch) || ch <= 0) return 0;
-      const n = Math.round((Number(v) || 0) / ch);
-      return isFinite(n) ? n : 0;
-    },
-    fmtNumber(v) {
-      const val = Number(v) || 0;
-      return Math.abs(val) < 1 ? val.toFixed(3) : val.toFixed(1);
-    },
-    fmtValue(v, mod) {
-      return this.units === 'rvus' ? this.fmtNumber(v) : String(this.toCases(v, mod));
-    },
-    sumCasesByModality(list) {
-      return (list || []).reduce((t, m) => t + this.toCases(m?.expected_rvus || 0, m?.modality), 0);
-    },
-    totalExpectedCases() {
-      return this.sumCasesByModality(this.hourDetail?.by_modality || []);
-    },
-    totalSupplyCases() {
-      const allocs = (this.hourDetail?.doctor_allocations || []).flatMap(d => d.allocations || []);
-      return allocs.reduce((t, a) => t + this.toCases(a?.allocated_rvus || 0, a?.modality), 0);
-    }
-}"
-          x-effect="document.body.classList.toggle(&quot;overflow-hidden&quot;, show)"
-     class="shifts-page">
-
-<div class="shifts-filter-bar rounded-xl shadow-sm p-4 sm:p-6 mb-6 w-full border border-blue-100">
-    <div class="flex items-center justify-between flex-wrap gap-4">
-        <a href="{{ url_for('shifts.shifts', date=prev_week_start) }}"
-           class="p-2 hover:bg-blue-100 rounded-full transition-colors shifts-nav-button">
-            <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6 text-blue-600" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 19l-7-7 7-7" />
-            </svg>
-        </a>
-
-        <div class="relative">
-            <button type="button"
-                    onclick="toggleCalendar()"
-                    class="flex items-center gap-2 bg-blue-100 hover:bg-blue-200 text-blue-700 px-4 py-2 rounded-lg  shifts-filter-button">
-                <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" />
-                </svg>
-                <span class="font-medium">{{ start_date }} - {{ end_date }}</span>
-            </button>
-
-            <div id="calendarPopup" class="hidden absolute top-full left-0 mt-2 bg-black rounded-xl shadow-2xl border border-gray-200 z-50 p-4 min-w-[320px] shifts-calendar">
-                <div class="flex items-center justify-between mb-4">
-                    <button type="button" onclick="changeMonth(-1)" class="p-2 hover:bg-gray-100 rounded-lg transition-colors shifts-calendar__nav">
-                        <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 text-gray-600" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 19l-7-7 7-7" />
+    </style>
+    <div x-data="{ show: false, doctors: [], time: '', date: '', uncoveredStates: [], coveredStates: [], stateDoctorMap: {}, matchedStates: [], hoveredState: '', facilityDoctorMap: {}, hoveredFacility: '', hourDetail: null, hourLoading: false, // What-if simulation: per-doctor base RVU overrides (temporary) baseOverrides: {}, // What-if panel collapsed/expanded state whatIfOpen: true, // Units toggle for modal values: 'rvus' or 'cases' units: 'rvus', // Distribution mode for volatility adjustments pageDistributionMode: '{{ distribution_mode }}', distributionMode: '{{ distribution_mode }}', // Match backend modality RVU chunks for case conversion modalityChunks: { 'XR': 0.2, 'CT': 1.1, 'US': 0.5, 'MRI': 1.4, 'MG': 0.8, 'NM': 2.5, 'PT': 2.5, 'IR': 4.0, 'RF': 0.7, 'SC': 0.6, 'OT': 0.3, 'XA': 0.8, 'ECG': 0.2, }, chunkFor(mod) { const m = (mod || '').toUpperCase(); return this.modalityChunks[m] || 0.2; }, toCases(v, mod) { const ch = this.chunkFor(mod); if (!ch || !isFinite(ch) || ch <= 0) return 0; const n = Math.round((Number(v) || 0) / ch); return isFinite(n) ? n : 0; }, fmtNumber(v) { const val = Number(v) || 0; return Math.abs(val) < 1 ? val.toFixed(3) : val.toFixed(1); }, fmtValue(v, mod) { return this.units === 'rvus' ? this.fmtNumber(v) : String(this.toCases(v, mod)); }, sumCasesByModality(list) { return (list || []).reduce((t, m) => t + this.toCases(m?.expected_rvus || 0, m?.modality), 0); }, totalExpectedCases() { return this.sumCasesByModality(this.hourDetail?.by_modality || []); }, totalSupplyCases() { const allocs = (this.hourDetail?.doctor_allocations || []).flatMap(d => d.allocations || []); return allocs.reduce((t, a) => t + this.toCases(a?.allocated_rvus || 0, a?.modality), 0); } }"
+         x-effect="document.body.classList.toggle(&quot;overflow-hidden&quot;, show)"
+         class="shifts-page">
+        <div class="shifts-filter-bar rounded-xl shadow-sm p-4 sm:p-6 mb-6 w-full border border-blue-100">
+            <div class="flex items-center justify-between flex-wrap gap-4">
+                <a href="{{ url_for('shifts.shifts', date=prev_week_start, distribution_mode=distribution_mode) }}"
+                   class="p-2 hover:bg-blue-100 rounded-full transition-colors shifts-nav-button">
+                    <svg xmlns="http://www.w3.org/2000/svg"
+                         class="h-6 w-6 text-blue-600"
+                         fill="none"
+                         viewBox="0 0 24 24"
+                         stroke="currentColor">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 19l-7-7 7-7" />
+                    </svg>
+                </a>
+                <div class="relative">
+                    <button type="button"
+                            onclick="toggleCalendar()"
+                            class="flex items-center gap-2 bg-blue-100 hover:bg-blue-200 text-blue-700 px-4 py-2 rounded-lg  shifts-filter-button">
+                        <svg xmlns="http://www.w3.org/2000/svg"
+                             class="h-5 w-5"
+                             fill="none"
+                             viewBox="0 0 24 24"
+                             stroke="currentColor">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" />
                         </svg>
+                        <span class="font-medium">{{ start_date }} - {{ end_date }}</span>
                     </button>
-                    <div class="text-center">
-                        <h3 id="calendarMonth" class="text-lg font-semibold text-gray-800"></h3>
-                        <p id="calendarYear" class="text-sm text-gray-600"></p>
+                    <div id="calendarPopup"
+                         class="hidden absolute top-full left-0 mt-2 bg-black rounded-xl shadow-2xl border border-gray-200 z-50 p-4 min-w-[320px] shifts-calendar">
+                        <div class="flex items-center justify-between mb-4">
+                            <button type="button"
+                                    onclick="changeMonth(-1)"
+                                    class="p-2 hover:bg-gray-100 rounded-lg transition-colors shifts-calendar__nav">
+                                <svg xmlns="http://www.w3.org/2000/svg"
+                                     class="h-5 w-5 text-gray-600"
+                                     fill="none"
+                                     viewBox="0 0 24 24"
+                                     stroke="currentColor">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 19l-7-7 7-7" />
+                                </svg>
+                            </button>
+                            <div class="text-center">
+                                <h3 id="calendarMonth" class="text-lg font-semibold text-gray-800"></h3>
+                                <p id="calendarYear" class="text-sm text-gray-600"></p>
+                            </div>
+                            <button type="button"
+                                    onclick="changeMonth(1)"
+                                    class="p-2 hover:bg-gray-100 rounded-lg transition-colors">
+                                <svg xmlns="http://www.w3.org/2000/svg"
+                                     class="h-5 w-5 text-gray-600"
+                                     fill="none"
+                                     viewBox="0 0 24 24"
+                                     stroke="currentColor">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7" />
+                                </svg>
+                            </button>
+                        </div>
+                        <div class="grid grid-cols-7 gap-1 mb-2">
+                            <div class="text-center text-xs font-medium text-gray-500 py-2">Sun</div>
+                            <div class="text-center text-xs font-medium text-gray-500 py-2">Mon</div>
+                            <div class="text-center text-xs font-medium text-gray-500 py-2">Tue</div>
+                            <div class="text-center text-xs font-medium text-gray-500 py-2">Wed</div>
+                            <div class="text-center text-xs font-medium text-gray-500 py-2">Thu</div>
+                            <div class="text-center text-xs font-medium text-gray-500 py-2">Fri</div>
+                            <div class="text-center text-xs font-medium text-gray-500 py-2">Sat</div>
+                        </div>
+                        <div id="calendarDays" class="grid grid-cols-7 gap-1"></div>
+                        <div class="flex gap-2 mt-4 pt-4 border-t border-gray-200">
+                            <button type="button"
+                                    onclick="selectToday()"
+                                    class="flex-1 px-3 py-2 text-sm bg-blue-100 text-blue-700 rounded-lg hover:bg-blue-200 transition-colors shifts-filter-button">
+                                This Week
+                            </button>
+                            <button type="button"
+                                    onclick="closeCalendar()"
+                                    class="flex-1 px-3 py-2 text-sm bg-gray-100 text-gray-700 rounded-lg hover:bg-gray-200 transition-colors shifts-filter-button">
+                                Cancel
+                            </button>
+                        </div>
                     </div>
-                    <button type="button" onclick="changeMonth(1)" class="p-2 hover:bg-gray-100 rounded-lg transition-colors">
-                        <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 text-gray-600" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7" />
-                        </svg>
-                    </button>
                 </div>
-                <div class="grid grid-cols-7 gap-1 mb-2">
-                    <div class="text-center text-xs font-medium text-gray-500 py-2">Sun</div>
-                    <div class="text-center text-xs font-medium text-gray-500 py-2">Mon</div>
-                    <div class="text-center text-xs font-medium text-gray-500 py-2">Tue</div>
-                    <div class="text-center text-xs font-medium text-gray-500 py-2">Wed</div>
-                    <div class="text-center text-xs font-medium text-gray-500 py-2">Thu</div>
-                    <div class="text-center text-xs font-medium text-gray-500 py-2">Fri</div>
-                    <div class="text-center text-xs font-medium text-gray-500 py-2">Sat</div>
-                </div>
-                <div id="calendarDays" class="grid grid-cols-7 gap-1">
-                    </div>
-                <div class="flex gap-2 mt-4 pt-4 border-t border-gray-200">
-                    <button type="button" onclick="selectToday()" class="flex-1 px-3 py-2 text-sm bg-blue-100 text-blue-700 rounded-lg hover:bg-blue-200 transition-colors shifts-filter-button">
-                        This Week
-                    </button>
-                    <button type="button" onclick="closeCalendar()" class="flex-1 px-3 py-2 text-sm bg-gray-100 text-gray-700 rounded-lg hover:bg-gray-200 transition-colors shifts-filter-button">
-                        Cancel
-                    </button>
-                </div>
+                <a href="{{ url_for('shifts.shifts', date=next_week_start, distribution_mode=distribution_mode) }}"
+                   class="p-2 hover:bg-blue-100 rounded-full transition-colors shifts-nav-button">
+                    <svg xmlns="http://www.w3.org/2000/svg"
+                         class="h-6 w-6 text-blue-600"
+                         fill="none"
+                         viewBox="0 0 24 24"
+                         stroke="currentColor">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7" />
+                    </svg>
+                </a>
             </div>
         </div>
-
-        <a href="{{ url_for('shifts.shifts', date=next_week_start) }}"
-           class="p-2 hover:bg-blue-100 rounded-full transition-colors shifts-nav-button">
-            <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6 text-blue-600" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7" />
-            </svg>
-        </a>
-    </div>
-</div>
-
-{# Filter Controls #}
-<div x-data="{
-  showDeepRed: true,
-  showRed: true,
-  showYellow: true,
-  showGreen: true,
-  coverageFiltersEnabled: {{ 'true' if coverage_filters_enabled else 'false' }},
-  {% if coverage_filters_enabled %}
-  stateQuery: '',
-  facilityQuery: '',
-  facilityMatches: [],
-  matchedStates: [],
-  {% endif %}
-  init() {
-    const reapplyFilters = () => {
-      window.requestAnimationFrame(() => this.applyFilters());
-    };
-
-    document.addEventListener('shifts:refreshFilters', reapplyFilters);
-
-    this.$el.addEventListener('alpine:destroy', () => {
-      document.removeEventListener('shifts:refreshFilters', reapplyFilters);
-    });
-
-    this.$nextTick(() => this.applyFilters());
-  },
-  applyFilters() {
-    {% if coverage_filters_enabled %}
-    const normalize = s => s.toLowerCase().replace(/\s+/g, ' ').replace(/\n/g, ' ').trim();
-    const facilityQuery = normalize(this.facilityQuery);
-    const stateQuery = normalize(this.stateQuery || '');
-
-    document.querySelectorAll('.hour-slot-div').forEach(slotElement => {
-      const facilityDataRaw = slotElement.getAttribute('data-facility-doctor-map') || '{}';
-      const coveredStatesRaw = slotElement.getAttribute('data-covered-states') || '[]';
-      let facilityData = {};
-      let coveredStates = [];
-      try {
-        facilityData = JSON.parse(facilityDataRaw);
-        coveredStates = JSON.parse(coveredStatesRaw);
-      } catch {
-        return;
-      }
-
-      const facilityNames = Object.keys(facilityData);
-      const stateMatch = stateQuery
-        ? coveredStates.some(state => normalize(state).includes(stateQuery))
-        : true;
-      const facilityMatch = facilityQuery
-        ? facilityNames.some(name => normalize(name).includes(facilityQuery) && facilityData[name].length > 0)
-        : true;
-
-      const match = stateMatch && facilityMatch;
-
-      slotElement.classList.remove('ring-red-500', 'ring-green-500', 'ring-2');
-
-      if (stateQuery || facilityQuery) {
-        slotElement.classList.add(match ? 'ring-green-500' : 'ring-red-500', 'ring-2');
-      }
-    });
-    {% endif %}
-
-    // NEW: Filter visibility of capacity sections
-    const sortActive = document.body.classList.contains('hour-sort-active');
-
-    document.querySelectorAll('.capacity-section').forEach(section => {
-      const isDeepRed = section.classList.contains('bg-red-50');
-      const isRed = section.classList.contains('bg-red-200');
-      const isYellow = section.classList.contains('bg-yellow-100');
-      const isGreen = section.classList.contains('bg-green-100');
-
-      const shouldShow =
-        (isDeepRed && this.showDeepRed) ||
-        (isRed && this.showRed) ||
-        (isYellow && this.showYellow) ||
-        (isGreen && this.showGreen);
-
-      if (sortActive && section.dataset.sortedView === 'true') {
-        section.style.display = 'none';
-      } else {
-        section.style.display = shouldShow ? '' : 'none';
-      }
-    });
-
-    if (sortActive) {
-      document.querySelectorAll('.sorted-hour-container [data-color-group]').forEach(wrapper => {
-        const colorGroup = wrapper.getAttribute('data-color-group');
-        const isDeepRed = colorGroup === 'deep-red';
-        const isRed = colorGroup === 'red';
-        const isYellow = colorGroup === 'yellow';
-        const isGreen = colorGroup === 'green';
-
-        const shouldShow =
-          (isDeepRed && this.showDeepRed) ||
-          (isRed && this.showRed) ||
-          (isYellow && this.showYellow) ||
-          (isGreen && this.showGreen);
-
-        wrapper.style.display = shouldShow ? '' : 'none';
-      });
-    }
-  },
-  updateFilters: debounce(function () {
-    this.applyFilters();
-  }, 150),
-  {% if coverage_filters_enabled %}
-  updateStateSuggestions() {
-    const query = this.stateQuery.trim().toLowerCase();
-    const allStates = new Set();
-
-    document.querySelectorAll('.hour-slot-div').forEach(slotElement => {
-      const states = JSON.parse(slotElement.getAttribute('data-covered-states') || '[]');
-      states.forEach(s => allStates.add(s));
-    });
-
-    this.matchedStates = [...allStates].filter(s => s.toLowerCase().includes(query)).slice(0, 10);
-  },
-
-  updateFacilitySuggestions() {
-    const query = this.facilityQuery.trim().toLowerCase();
-    const allFacilities = new Set();
-
-    document.querySelectorAll('.hour-slot-div').forEach(slotElement => {
-      const facilityData = JSON.parse(slotElement.getAttribute('data-facility-doctor-map') || '{}');
-      Object.keys(facilityData).forEach(fac => allFacilities.add(fac));
-    });
-
-    this.facilityMatches = [...allFacilities]
-      .filter(f => f.toLowerCase().includes(query))
-      .slice(0, 10);
-  }
-  {% endif %}
-}"
-
- class="mb-6 p-4 bg-white rounded-lg shadow-sm border border-gray-200 shifts-filter-panel">
-    <div class="flex flex-col gap-4 md:flex-row md:items-center md:justify-between">
-        <div class="flex items-center flex-wrap gap-3">
-            <span class="text-sm font-medium text-gray-700">Show Sections:</span>
-            <label class="inline-flex items-center">
-                <input type="checkbox" class="form-checkbox h-4 w-4 text-red-700" checked x-model="showRed" @change="updateFilters()">
-                <span class="ml-2 text-sm text-gray-700">Below 50% Capacity</span>
-            </label>
-            <label class="inline-flex items-center">
-                <input type="checkbox" class="form-checkbox h-4 w-4 text-red-500" checked x-model="showDeepRed" @change="updateFilters()">
-                <span class="ml-2 text-sm text-gray-700">50-70% Capacity</span>
-            </label>
-            <label class="inline-flex items-center">
-                <input type="checkbox" class="form-checkbox h-4 w-4 text-yellow-500" checked x-model="showYellow" @change="updateFilters()">
-                <span class="ml-2 text-sm text-gray-700">70-100% Capacity</span>
-            </label>
-            <label class="inline-flex items-center">
-                <input type="checkbox" class="form-checkbox h-4 w-4 text-green-600" checked x-model="showGreen" @change="updateFilters()">
-                <span class="ml-2 text-sm text-gray-700">Above 100% Capacity</span>
-            </label>
-        </div>
-        <div class="flex items-center gap-2 flex-wrap md:justify-end">
-          <label for="sort-metric-select" class="text-sm font-medium text-gray-700">Sort By:</label>
-          <select
-            id="sort-metric-select"
-            class="px-2 py-1.5 text-sm border border-blue-200 rounded-md bg-white text-gray-700 focus:outline-none focus:ring-2 focus:ring-blue-300"
-          >
-            <option value="time">Hour</option>
-            <option value="capacity" selected>Capacity Ratio</option>
-          </select>
-          <button
-            id="hour-sort-toggle"
-            type="button"
-            class="px-3 py-1.5 text-sm font-medium bg-blue-100 text-blue-700 rounded-md shadow-sm hover:bg-blue-200 transition-colors shifts-filter-button"
-          >
-            Direction: Ascending
-          </button>
-        </div>
-    </div>
-    <div class="mt-4 pt-4 border-t border-gray-200 flex flex-col md:flex-row gap-4">
-        {% if coverage_filters_enabled %}
-         <div class="flex-1">
-  <label class="block text-sm font-medium text-gray-700 mb-1" for="global-state-search">Search by State Coverage:</label>
-  <div class="relative">
-    <input
-      id="global-state-search"
-      type="text"
-      placeholder="Enter state name"
-      class="w-full px-2 py-1 border rounded text-sm"
-      x-model="stateQuery"
-      @input="updateFilters(); updateStateSuggestions();"
-      @focus="updateStateSuggestions()"
-      @click.outside="matchedStates = []"
-    />
-
-    <ul 
-      x-show="matchedStates.length > 0" 
-      class="absolute z-50 bg-white border border-gray-300 mt-1 w-full rounded shadow text-sm shifts-suggestion"
-    >
-      <template x-for="state in matchedStates" :key="state">
-        <li
-          class="px-3 py-1 hover:bg-gray-100 cursor-pointer shifts-suggestion__item"
-          @click="stateQuery = state; matchedStates = []; updateFilters();"
-          x-text="state"
-        ></li>
-      </template>
-    </ul>
-  </div>
-</div>
-
-        <div class="flex-1">
-            <label class="block text-sm font-medium text-gray-700 mb-1" for="global-facility-search">Search by Facility Coverage:</label>
-             <div class="relative">
-  <input
-    id="global-facility-search"
-    type="text"
-    placeholder="Enter facility name"
-    class="w-full px-2 py-1 border rounded text-sm"
-    x-model="facilityQuery"
-    @input="updateFilters(); updateFacilitySuggestions();"
-    @focus="updateFacilitySuggestions()"
-    @click.outside="facilityMatches = []"
-  />
-
-  <ul 
-    x-show="facilityMatches.length > 0" 
-    class="absolute z-50 bg-white border border-gray-300 mt-1 w-full rounded shadow text-sm shifts-suggestion"
-  >
-    <template x-for="fac in facilityMatches" :key="fac">
-      <li
-        class="px-3 py-1 hover:bg-gray-100 cursor-pointer shifts-suggestion__item"
-        @click="facilityQuery = fac; facilityMatches = []; updateFilters();"
-        x-text="fac"
-      ></li>
-    </template>
-  </ul>
-</div>
-
-        </div>
-        {% endif %}
-    </div>
-</div>
-
-<div class="overflow-x-auto">
-    <div class="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-5 xl:grid-cols-7 gap-4 px-2 py-2">
-        {% for day, color_grouped_slots in weekly_data_by_day_and_color.items() %}
-        {% set is_today = (day == eastern_today) %}
-        <div class="{{ 'shifts-day-card--today ring-2 ring-blue-300 ring-offset-1' if is_today else '' }} flex flex-col min-w-0 rounded-md bg-white shifts-day-card">
-            {% set first_color_group = color_grouped_slots.values() | first %}
-            {% set first_slot_of_day = first_color_group | first if first_color_group %}
-            {% if first_slot_of_day %}
-            <div class="bg-gray-200 p-4 rounded-t-lg text-center mt-1 shifts-day-header">
-                <h2 class="text-base md:text-xl font-semibold text-gray-700">{{ first_slot_of_day.day_label }}</h2>
-                <p class="text-xs md:text-sm text-gray-600">{{ day.strftime("%Y-%m-%d") }}</p>
-            </div>
+        {# Filter Controls #}
+        <div x-data="{ coverageFiltersEnabled: {{ 'true' if coverage_filters_enabled else 'false' }},
+            {% if coverage_filters_enabled %}stateQuery: '', facilityQuery: '', facilityMatches: [], matchedStates: [],{% endif %}
+            init() { const reapplyFilters = () => { window.requestAnimationFrame(() => this.applyFilters()); };  document.addEventListener('shifts:refreshFilters', reapplyFilters);  this.$el.addEventListener('alpine:destroy', () => { document.removeEventListener('shifts:refreshFilters', reapplyFilters); });  this.$nextTick(() => this.applyFilters()); }, applyFilters() {
+            {% if coverage_filters_enabled %}
+                const normalize = s => s.toLowerCase().replace(/\s+/g, ' ').replace(/\n/g, ' ').trim(); const facilityQuery = normalize(this.facilityQuery); const stateQuery = normalize(this.stateQuery || '');  document.querySelectorAll('.hour-slot-div').forEach(slotElement => { const facilityDataRaw = slotElement.getAttribute('data-facility-doctor-map') || '{}'; const coveredStatesRaw = slotElement.getAttribute('data-covered-states') || '[]'; let facilityData = {}; let coveredStates = []; try { facilityData = JSON.parse(facilityDataRaw); coveredStates = JSON.parse(coveredStatesRaw); } catch { return; }  const facilityNames = Object.keys(facilityData); const stateMatch = stateQuery ? coveredStates.some(state => normalize(state).includes(stateQuery)) : true; const facilityMatch = facilityQuery ? facilityNames.some(name => normalize(name).includes(facilityQuery) && facilityData[name].length > 0) : true;  const match = stateMatch && facilityMatch;  slotElement.classList.remove('ring-red-500', 'ring-green-500', 'ring-2');  if (stateQuery || facilityQuery) { slotElement.classList.add(match ? 'ring-green-500' : 'ring-red-500', 'ring-2'); } });
             {% endif %}
-
-            <div class="flex-1 bg-white rounded-b-lg border border-gray-200 p-2 md:p-4 shifts-day-body">
-                <div class="shifts-loading-skeleton space-y-3" aria-hidden="true">
-                    <div class="h-20 rounded-lg bg-gray-200 animate-pulse"></div>
-                    <div class="h-20 rounded-lg bg-gray-200 animate-pulse"></div>
-                    <div class="h-20 rounded-lg bg-gray-200 animate-pulse"></div>
-                </div>
-                <div class="sorted-hour-container space-y-2"></div>
-                {% for color_class, slots_in_color_group in color_grouped_slots.items() %}
-                <div class="mb-4 capacity-section {{ color_class }} rounded-lg p-2 shifts-capacity-section" data-sorted-view="true">
-                    <div class="space-y-2">
-                        {% for slot in slots_in_color_group %}
-  {% set stats = hourly_rvu_stats[slot.datetime] %}
-  {% set current = stats['current'] if stats else None %}
-  {% set expected = stats['historical'] if stats else None %}
-  {% set ratio = (current / expected) if current is not none and expected and expected > 0 else None %}
-  {% set ratio_percent = (ratio * 100) | round(1) if ratio is not none else None %}
-  {% set slot_key = slot.datetime.isoformat() %}
-  {% set facility_doctor_map = facility_doctor_map_by_hour.get(slot_key, {}) if coverage_filters_enabled else {} %}
-  {% set uncovered_states = uncovered_states_by_hour.get(slot_key, []) if coverage_filters_enabled else [] %}
-  {% set covered_states = covered_states_by_hour.get(slot_key, []) if coverage_filters_enabled else [] %}
-  {% set state_doctor_map = state_doctor_map_by_hour.get(slot_key, {}) if coverage_filters_enabled else {} %}
-  {% set modal_doctors = [] %}
-  {% for doc in doctors_by_hour.get(slot.datetime, []) %}
-    {% set _ = modal_doctors.append({
-      'id': doc.id,
-      'name': doc.name | trim,
-      'url': url_for('doctors.doctor_profile', rad_id=doc.id),
-      'modalities': doc.modalities | default('', true) | trim
-    }) %}
-  {% endfor %}
-
-  {% set color_group_name = 'deep-red' if 'bg-red-200' in color_class else 'red' if 'bg-red-50' in color_class else 'yellow' if 'yellow' in color_class else 'green' if 'green' in color_class else 'neutral' %}
-  <div
-    class="relative group"
-    data-sort-time="{{ slot.datetime.isoformat() }}"
-    data-color-group="{{ color_group_name }}"
-    data-capacity-ratio="{{ ratio if ratio is not none else '' }}"
-  >
-
-    <div
-      @click="
-        show = true;
-        doctors = JSON.parse($el.getAttribute('data-doctors'));
-        time = '{{ slot.label }}';
-        date = '{{ slot.datetime.strftime('%Y-%m-%d') }}';
-        const uncoveredStatesRaw = $el.getAttribute('data-uncovered-states');
-        const coveredStatesRaw = $el.getAttribute('data-covered-states');
-        const stateDoctorMapRaw = $el.getAttribute('data-state-doctor-map');
-        const facilityDoctorMapRaw = $el.getAttribute('data-facility-doctor-map');
-        uncoveredStates = uncoveredStatesRaw ? JSON.parse(uncoveredStatesRaw) : [];
-        coveredStates = coveredStatesRaw ? JSON.parse(coveredStatesRaw) : [];
-        stateDoctorMap = stateDoctorMapRaw ? JSON.parse(stateDoctorMapRaw) : {};
-        facilityDoctorMap = facilityDoctorMapRaw ? JSON.parse(facilityDoctorMapRaw) : {};
-        const rvu = JSON.parse($el.getAttribute('data-rvu'));
-        if (doctors.length > 0) {
-          doctors[0].current = rvu.current;
-          doctors[0].expected = rvu.expected;
-          doctors[0].ratio = rvu.ratio;
-        }
-        // Load per-facility/state demand for this hour
-        hourDetail = null; hourLoading = true;
-        const _date = $el.getAttribute('data-date');
-        const _hour = $el.getAttribute('data-hour');
-        const url = '{{ url_for("shifts.hour_detail") }}?date=' + encodeURIComponent(_date) + '&hour=' + encodeURIComponent(_hour);
-        try {
-          console.log('[shifts] Fetch hour_detail', { date: _date, hour: _hour, url });
-        } catch {}
-        fetch(url + '&distribution_mode=' + encodeURIComponent(distributionMode))
-          .then(r => {
-            try { console.log('[shifts] hour_detail status', r.status); } catch {}
-            if (!r.ok) throw new Error('HTTP '+r.status);
-            return r.json();
-          })
-          .then(data => {
-            try { console.log('[shifts] hour_detail data', data); } catch {}
-            hourDetail = data;
-            if (Array.isArray(data.covered_states)) {
-              coveredStates = data.covered_states;
-            }
-            if (Array.isArray(data.uncovered_states)) {
-              uncoveredStates = data.uncovered_states;
-            }
-            if (data.state_doctor_map && typeof data.state_doctor_map === 'object') {
-              stateDoctorMap = data.state_doctor_map;
-            }
-            if (data.facility_doctor_map && typeof data.facility_doctor_map === 'object') {
-              facilityDoctorMap = data.facility_doctor_map;
-            }
-            baseOverrides = {}; // reset overrides on fresh load
-          })
-          .catch(err => {
-            try { console.error('[shifts] hour_detail error', err); } catch {}
-            hourDetail = { error: 'Failed to load' };
-          })
-          .finally(() => { hourLoading = false; });
-      "
-      data-doctors='{{ modal_doctors | tojson | escape }}'
-      {% if coverage_filters_enabled %}
-      data-uncovered-states='{{ uncovered_states | tojson | escape }}'
-      data-covered-states='{{ covered_states | tojson | escape }}'
-      data-state-doctor-map='{{ state_doctor_map | tojson | escape }}'
-      data-facility-doctor-map='{{ facility_doctor_map | tojson | safe }}'
-      {% endif %}
-
-      data-rvu='{{ {
-        "current": current,
-        "expected": expected,
-        "ratio": ratio
-      } | tojson | escape }}'
-      data-date='{{ slot.date }}'
-      data-hour='{{ slot.hour }}'
-      class="group rounded-md p-2 md:p-3 shadow-sm border border-gray-300 {{ color_class }} relative cursor-pointer hour-slot-div shifts-slot-card min-w-0"
-    >
-      <div class="flex flex-col md:flex-row md:items-center md:justify-between gap-1 md:gap-0">
-        <h4 class="text-xs md:text-sm font-semibold text-gray-800">
-          <span>{{ slot.label }}</span>
-        </h4>
-        <span class="flex flex-wrap items-center text-xs text-gray-700 relative gap-x-1 gap-y-0.5 md:gap-x-2" style="min-width:0;">
-          <span class="text-blue-700 font-semibold">
-            {{ (current | round(1)) if current is not none else '—' }}
-          </span>
-          <span class="text-gray-400">vs</span>
-          <span class="text-green-700 font-semibold">
-            {{ (expected | round(1)) if expected is not none else '—' }}
-          </span>
-        </span>
-      </div>
-    </div>
-
-    {% if ratio_percent is not none %}
-    <div
-      class="absolute left-1/2 -translate-x-1/2 bottom-full mb-1 w-max bg-white border border-gray-300 rounded shadow-lg px-3 py-1 text-xs text-gray-900 opacity-0 group-hover:opacity-100 pointer-events-none transition-opacity z-50 whitespace-nowrap shifts-tooltip"
-    >
-      Capacity Ratio: {{ ratio_percent }}%
-    </div>
-    {% endif %}
-  </div>
-{% endfor %}
-
-                      
+            }, updateFilters: debounce(function () { this.applyFilters(); }, 150),
+            {% if coverage_filters_enabled %}
+                updateStateSuggestions() { const query = this.stateQuery.trim().toLowerCase(); const allStates = new Set();  document.querySelectorAll('.hour-slot-div').forEach(slotElement => { const states = JSON.parse(slotElement.getAttribute('data-covered-states') || '[]'); states.forEach(s => allStates.add(s)); });  this.matchedStates = [...allStates].filter(s => s.toLowerCase().includes(query)).slice(0, 10); },  updateFacilitySuggestions() { const query = this.facilityQuery.trim().toLowerCase(); const allFacilities = new Set();  document.querySelectorAll('.hour-slot-div').forEach(slotElement => { const facilityData = JSON.parse(slotElement.getAttribute('data-facility-doctor-map') || '{}'); Object.keys(facilityData).forEach(fac => allFacilities.add(fac)); });  this.facilityMatches = [...allFacilities] .filter(f => f.toLowerCase().includes(query)) .slice(0, 10); }
+            {% endif %}
+            }"  class="mb-6 p-4 bg-white rounded-lg shadow-sm border border-gray-200 shifts-filter-panel">
+            <div class="flex flex-col gap-3 md:flex-row md:items-center md:justify-between">
+                <div class="flex items-center gap-3 flex-wrap">
+                    <span class="text-sm font-medium text-gray-700">Distribution:</span>
+                    <div class="inline-flex rounded-md border border-blue-200 overflow-hidden shadow-sm">
+                        <a href="{{ url_for('shifts.shifts', date=selected_date, distribution_mode='worst') }}"
+                           class="px-3 py-1.5 text-sm font-medium transition-colors {{ 'bg-blue-600 text-white' if distribution_mode == 'worst' else 'bg-white text-blue-700 hover:bg-blue-50' }}">
+                            Worst
+                        </a>
+                        <a href="{{ url_for('shifts.shifts', date=selected_date, distribution_mode='normal') }}"
+                           class="px-3 py-1.5 text-sm font-medium transition-colors border-x border-blue-200 {{ 'bg-blue-600 text-white' if distribution_mode == 'normal' else 'bg-white text-blue-700 hover:bg-blue-50' }}">
+                            Normal
+                        </a>
+                        <a href="{{ url_for('shifts.shifts', date=selected_date, distribution_mode='best') }}"
+                           class="px-3 py-1.5 text-sm font-medium transition-colors {{ 'bg-blue-600 text-white' if distribution_mode == 'best' else 'bg-white text-blue-700 hover:bg-blue-50' }}">
+                            Best
+                        </a>
                     </div>
                 </div>
+                <div class="flex items-center gap-2 flex-wrap md:justify-end">
+                    <button id="hour-sort-toggle"
+                            type="button"
+                            class="px-3 py-1.5 text-sm font-medium bg-blue-100 text-blue-700 rounded-md shadow-sm hover:bg-blue-200 transition-colors shifts-filter-button inline-flex items-center gap-1">
+                        <span>Direction:</span>
+                        <span class="sort-direction-label">Ascending</span>
+                        <span class="sort-direction-arrow">&#x2193;</span>
+                    </button>
+                </div>
+            </div>
+            <div class="mt-4 pt-4 border-t border-gray-200 flex flex-col md:flex-row gap-4">
+                {% if coverage_filters_enabled %}
+                    <div class="flex-1">
+                        <label class="block text-sm font-medium text-gray-700 mb-1"
+                               for="global-state-search">Search by State Coverage:</label>
+                        <div class="relative">
+                            <input id="global-state-search"
+                                   type="text"
+                                   placeholder="Enter state name"
+                                   class="w-full px-2 py-1 border rounded text-sm"
+                                   x-model="stateQuery"
+                                   @input="updateFilters(); updateStateSuggestions();"
+                                   @focus="updateStateSuggestions()"
+                                   @click.outside="matchedStates = []" />
+                            <ul x-show="matchedStates.length > 0"
+                                class="absolute z-50 bg-white border border-gray-300 mt-1 w-full rounded shadow text-sm shifts-suggestion">
+                                <template x-for="state in matchedStates" :key="state">
+                                    <li class="px-3 py-1 hover:bg-gray-100 cursor-pointer shifts-suggestion__item"
+                                        @click="stateQuery = state; matchedStates = []; updateFilters();"
+                                        x-text="state"></li>
+                                </template>
+                            </ul>
+                        </div>
+                    </div>
+                    <div class="flex-1">
+                        <label class="block text-sm font-medium text-gray-700 mb-1"
+                               for="global-facility-search">Search by Facility Coverage:</label>
+                        <div class="relative">
+                            <input id="global-facility-search"
+                                   type="text"
+                                   placeholder="Enter facility name"
+                                   class="w-full px-2 py-1 border rounded text-sm"
+                                   x-model="facilityQuery"
+                                   @input="updateFilters(); updateFacilitySuggestions();"
+                                   @focus="updateFacilitySuggestions()"
+                                   @click.outside="facilityMatches = []" />
+                            <ul x-show="facilityMatches.length > 0"
+                                class="absolute z-50 bg-white border border-gray-300 mt-1 w-full rounded shadow text-sm shifts-suggestion">
+                                <template x-for="fac in facilityMatches" :key="fac">
+                                    <li class="px-3 py-1 hover:bg-gray-100 cursor-pointer shifts-suggestion__item"
+                                        @click="facilityQuery = fac; facilityMatches = []; updateFilters();"
+                                        x-text="fac"></li>
+                                </template>
+                            </ul>
+                        </div>
+                    </div>
+                {% endif %}
+            </div>
+        </div>
+        <div class="overflow-x-auto">
+            <div class="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-5 xl:grid-cols-7 gap-4 px-2 py-2">
+                {% for day, color_grouped_slots in weekly_data_by_day_and_color.items() %}
+                    {% set is_today = (day == eastern_today) %}
+                    <div class="{{ 'shifts-day-card--today ring-2 ring-blue-300 ring-offset-1' if is_today else '' }} flex flex-col min-w-0 rounded-md bg-white shifts-day-card">
+                        {% set first_color_group = color_grouped_slots.values() | first %}
+                        {% set first_slot_of_day = first_color_group | first if first_color_group %}
+                        {% if first_slot_of_day %}
+                            <div class="bg-gray-200 p-4 rounded-t-lg text-center mt-1 shifts-day-header">
+                                <h2 class="text-base md:text-xl font-semibold text-gray-700">{{ first_slot_of_day.day_label }}</h2>
+                                <p class="text-xs md:text-sm text-gray-600">{{ day.strftime("%Y-%m-%d") }}</p>
+                            </div>
+                        {% endif %}
+                        <div class="flex-1 bg-white rounded-b-lg border border-gray-200 p-2 md:p-4 shifts-day-body">
+                            <div class="shifts-loading-skeleton space-y-3" aria-hidden="true">
+                                <div class="h-20 rounded-lg bg-gray-200 animate-pulse"></div>
+                                <div class="h-20 rounded-lg bg-gray-200 animate-pulse"></div>
+                                <div class="h-20 rounded-lg bg-gray-200 animate-pulse"></div>
+                            </div>
+                            <div class="sorted-hour-container space-y-2"></div>
+                            {% for color_class, slots_in_color_group in color_grouped_slots.items() %}
+                                <div class="mb-4 capacity-section {{ color_class }} rounded-lg p-2 shifts-capacity-section"
+                                     data-sorted-view="true">
+                                    <div class="space-y-2">
+                                        {% for slot in slots_in_color_group %}
+                                            {% set stats = hourly_rvu_stats[slot.datetime] %}
+                                            {% set current = stats['current'] if stats else None %}
+                                            {% set expected = stats['historical'] if stats else None %}
+                                            {% set trickle_mult = stats['trickle_multiplier'] if stats else 1.0 %}
+                                            {% set backlog = stats['backlog'] if stats else 0.0 %}
+                                            {% set ratio = (current / expected) if current is not none and expected and expected > 0 else None %}
+                                            {% set ratio_percent = (ratio * 100) | round(1) if ratio is not none else None %}
+                                            {% set slot_key = slot.datetime.isoformat() %}
+                                            {% set facility_doctor_map = facility_doctor_map_by_hour.get(slot_key, {}) if coverage_filters_enabled else {} %}
+                                            {% set uncovered_states = uncovered_states_by_hour.get(slot_key, []) if coverage_filters_enabled else [] %}
+                                            {% set covered_states = covered_states_by_hour.get(slot_key, []) if coverage_filters_enabled else [] %}
+                                            {% set state_doctor_map = state_doctor_map_by_hour.get(slot_key, {}) if coverage_filters_enabled else {} %}
+                                            {% set modal_doctors = [] %}
+                                            {% for doc in doctors_by_hour.get(slot.datetime, []) %}
+                                                {% set _ = modal_doctors.append({
+                                                                                                    'id': doc.id,
+                                                                                                    'name': doc.name | trim,
+                                                                                                    'url': url_for('doctors.doctor_profile', rad_id=doc.id),
+                                                                                                    'modalities': doc.modalities | default('', true) | trim
+                                                                                                }) %}
+                                            {% endfor %}
+                                            <div class="relative group"
+                                                 data-sort-time="{{ slot.datetime.isoformat() }}"
+                                                 data-capacity-ratio="{{ ratio if ratio is not none else '' }}"
+                                                 data-backlog="{{ backlog | round(1) }}"
+                                                 data-hour="{{ slot.hour }}">
+                                                <div @click=" show = true; doctors = JSON.parse($el.getAttribute('data-doctors')); time = '{{ slot.label }}'; date = '{{ slot.datetime.strftime("%Y-%m-%d") }}'; const uncoveredStatesRaw = $el.getAttribute('data-uncovered-states'); const coveredStatesRaw = $el.getAttribute('data-covered-states'); const stateDoctorMapRaw = $el.getAttribute('data-state-doctor-map'); const facilityDoctorMapRaw = $el.getAttribute('data-facility-doctor-map'); uncoveredStates = uncoveredStatesRaw ? JSON.parse(uncoveredStatesRaw) : []; coveredStates = coveredStatesRaw ? JSON.parse(coveredStatesRaw) : []; stateDoctorMap = stateDoctorMapRaw ? JSON.parse(stateDoctorMapRaw) : {}; facilityDoctorMap = facilityDoctorMapRaw ? JSON.parse(facilityDoctorMapRaw) : {}; const rvu = JSON.parse($el.getAttribute('data-rvu')); if (doctors.length > 0) { doctors[0].current = rvu.current; doctors[0].expected = rvu.expected; doctors[0].ratio = rvu.ratio; } distributionMode = pageDistributionMode; // Load per-facility/state demand for this hour hourDetail = null; hourLoading = true; const _date = $el.getAttribute('data-date'); const _hour = $el.getAttribute('data-hour'); const url = '{{ url_for("shifts.hour_detail") }}?date=' + encodeURIComponent(_date) + '&hour=' + encodeURIComponent(_hour); try { console.log('[shifts] Fetch hour_detail', { date: _date, hour: _hour, url }); } catch {} fetch(url + '&distribution_mode=' + encodeURIComponent(distributionMode)) .then(r => { try { console.log('[shifts] hour_detail status', r.status); } catch {} if (!r.ok) throw new Error('HTTP '+r.status); return r.json(); }) .then(data => { try { console.log('[shifts] hour_detail data', data); } catch {} hourDetail = data; if (Array.isArray(data.covered_states)) { coveredStates = data.covered_states; } if (Array.isArray(data.uncovered_states)) { uncoveredStates = data.uncovered_states; } if (data.state_doctor_map && typeof data.state_doctor_map === 'object') { stateDoctorMap = data.state_doctor_map; } if (data.facility_doctor_map && typeof data.facility_doctor_map === 'object') { facilityDoctorMap = data.facility_doctor_map; } baseOverrides = {}; // reset overrides on fresh load }) .catch(err => { try { console.error('[shifts] hour_detail error', err); } catch {} hourDetail = { error: 'Failed to load' }; }) .finally(() => { hourLoading = false; }); " data-doctors='{{ modal_doctors | tojson | escape }}'
+                                                    {% if coverage_filters_enabled %}
+                                                        data-uncovered-states='{{ uncovered_states | tojson | escape }}' data-covered-states='{{ covered_states | tojson | escape }}' data-state-doctor-map='{{ state_doctor_map | tojson | escape }}' data-facility-doctor-map='{{ facility_doctor_map | tojson | safe }}'
+                                                    {% endif %}
+                                                    data-rvu='{{ { "current": current, "expected": expected, "ratio": ratio } | tojson | escape }}' data-date='{{ slot.date }}' data-hour='{{ slot.hour }}' class="group rounded-md p-2 md:p-3 shadow-sm border border-gray-300 {{ color_class }} relative cursor-pointer hour-slot-div shifts-slot-card min-w-0">
+                                                    <div class="flex flex-col gap-1">
+                                                        <div class="flex flex-col md:flex-row md:items-center md:justify-between gap-1 md:gap-0">
+                                                            <h4 class="text-xs md:text-sm font-semibold text-gray-800">
+                                                                <span>{{ slot.label }}</span>
+                                                            </h4>
+                                                            <span class="flex flex-wrap items-center text-xs text-gray-700 relative gap-x-1 gap-y-0.5 md:gap-x-2"
+                                                                  style="min-width:0">
+                                                                <span class="text-blue-700 font-semibold">{{ (current | round(1) ) if current is not none else '—' }}</span>
+                                                                <span class="text-gray-400">vs</span>
+                                                                <span class="text-green-700 font-semibold">{{ (expected | round(1) ) if expected is not none else '—' }}</span>
+                                                            </span>
+                                                        </div>
+                                                    </div>
+                                                </div>
+                                                {% if ratio_percent is not none %}
+                                                    <div class="absolute left-1/2 -translate-x-1/2 bottom-full mb-1 w-max bg-white border border-gray-300 rounded shadow-lg px-3 py-1 text-xs text-gray-900 opacity-0 group-hover:opacity-100 pointer-events-none transition-opacity z-50 whitespace-nowrap shifts-tooltip">
+                                                        Capacity Ratio: {{ ratio_percent }}%
+                                                    </div>
+                                                {% endif %}
+                                            </div>
+                                        {% endfor %}
+                                    </div>
+                                </div>
+                            {% endfor %}
+                        </div>
+                    </div>
                 {% endfor %}
             </div>
         </div>
-        {% endfor %}
-    </div>
-</div>
-
-<div 
-     x-show="show"
-     @close-modal.window="show = false"
-     class="fixed inset-0 bg-black bg-opacity-50 z-50 flex items-center justify-center shifts-modal-overlay"
-     x-transition
-     style="display: none;"
->
-  <div @click.away="show = false" class="relative bg-white rounded-lg p-6 w-[48rem] min-h-[32rem] shadow-xl shifts-modal">
-
-    <button @click="show = false"
-            class="absolute top-3 right-4 text-gray-500 hover:text-gray-800 text-2xl font-bold focus:outline-none"
-            aria-label="Close">
-      &times;
-    </button>
-    <div class="mb-2">
-      <div class="text-sm text-gray-700 flex items-center flex-wrap gap-2">
-        <template x-if="!hourLoading && hourDetail && hourDetail.supply_effective_allocated_rvus !== undefined">
-          <span>
-            <!-- RVUs view -->
-            <span x-show="units==='rvus'">
-              <span class="text-blue-700 font-semibold" x-text="fmtNumber(hourDetail.supply_effective_allocated_rvus||0)"></span>
-              <span class="text-gray-400">vs</span>
-              <span class="text-green-700 font-semibold" x-text="fmtNumber(hourDetail.total_expected_rvus||0)"></span>
-            </span>
-            <!-- Cases view -->
-            <span x-show="units==='cases'">
-              <span class="text-blue-700 font-semibold" x-text="totalSupplyCases()"></span>
-              <span class="text-gray-400">vs</span>
-              <span class="text-green-700 font-semibold" x-text="totalExpectedCases()"></span>
-            </span>
-            <span class="text-gray-700 font-medium">(
-              <span x-text="(hourDetail.total_expected_rvus>0 ? ((hourDetail.supply_effective_allocated_rvus/hourDetail.total_expected_rvus)*100).toFixed(1) : '0.0') + '%' "></span>
-            )</span>
-          </span>
-        </template>
-        <template x-if="hourLoading || !hourDetail || hourDetail.supply_effective_allocated_rvus === undefined">
-          <span>
-            <template x-if="doctors.length > 0 && doctors[0].current !== undefined">
-              <span class="text-blue-700 font-semibold" x-text="doctors[0].current.toFixed(1)"></span>
-            </template>
-            <template x-if="doctors.length === 0 || doctors[0].current === undefined">
-              <span class="text-blue-700 font-semibold">—</span>
-            </template>
-            <span class="text-gray-400">vs</span>
-            <template x-if="doctors.length > 0 && doctors[0].expected !== undefined">
-              <span class="text-green-700 font-semibold" x-text="doctors[0].expected.toFixed(1)"></span>
-            </template>
-            <template x-if="doctors.length === 0 || doctors[0].expected === undefined">
-              <span class="text-green-700 font-semibold">—</span>
-            </template>
-            <template x-if="doctors.length > 0 && doctors[0].ratio !== undefined">
-              <span class="text-gray-700 font-medium">
-                (<span x-text="(doctors[0].ratio * 100).toFixed(1) + '%'"></span>)
-              </span>
-            </template>
-          </span>
-        </template>
-      </div>
-      <p class="text-sm text-gray-500 mt-1">
-        <span x-text="date"></span>
-        &nbsp;&mdash;&nbsp;
-        <span x-text="time"></span>
-      </p>
-      <div class="mt-2 flex flex-wrap items-center gap-2">
-        <div class="inline-flex rounded-md border border-blue-200 overflow-hidden shadow-sm">
-          <button type="button" @click="units='rvus'"
-                  :class="units==='rvus' ? 'bg-blue-600 text-white' : 'bg-white text-blue-700 hover:bg-blue-50'"
-                  class="px-2 py-1 text-xs font-medium">RVUs</button>
-          <button type="button" @click="units='cases'"
-                  :class="units==='cases' ? 'bg-blue-600 text-white' : 'bg-white text-blue-700 hover:bg-blue-50'"
-                  class="px-2 py-1 text-xs font-medium">Cases</button>
-        </div>
-        <label class="flex items-center gap-2 text-xs text-gray-700 ml-auto">
-          <span class="font-medium">Distribution</span>
-          <select class="border border-gray-300 rounded px-2 py-1 text-xs"
-                  x-model="distributionMode"
-                  @change="hourLoading=true; fetch('{{ url_for("shifts.hour_detail") }}', {method:'POST', headers:{'Content-Type':'application/json'}, body: JSON.stringify({date, hour: Number((hourDetail&&hourDetail.hour)||0), base_overrides: baseOverrides, distribution_mode: distributionMode})}).then(r=>r.json()).then(d=>{hourDetail=d;}).finally(()=>{hourLoading=false;})">
-            <option value="worst">Worst</option>
-            <option value="normal">Normal</option>
-            <option value="best">Best</option>
-          </select>
-        </label>
-      </div>
-    </div>
-
-      
-      
-    <h2 class="text-sm font-semibold mb-2 text-gray-800">Scheduled Doctors
-    
-    <!-- What-if base RVU overrides (temporary; triggers recomputation) -->
-    <div class="mt-2 mb-3 p-2 rounded border border-blue-200 bg-blue-50 text-xs text-blue-900 whatif-panel">
-      <!-- Clickable header toggles the panel like a dropdown -->
-      <button type="button" class="w-full flex items-center justify-between gap-2" @click="whatIfOpen = !whatIfOpen">
-        <div class="font-medium whatif-title">What-if base RVUs (not saved)</div>
-        <span class="text-gray-500"> <span x-text="whatIfOpen ? 'Hide' : 'Show'"></span> ▾</span>
-      </button>
-      <div x-show="whatIfOpen" x-transition>
-        <div class="mt-2 flex gap-2">
-          <button class="px-2 py-1 rounded bg-white border border-blue-300 hover:bg-blue-100"
-                  @click="hourLoading=true; fetch('{{ url_for("shifts.hour_detail") }}', {method:'POST', headers:{'Content-Type':'application/json'}, body: JSON.stringify({date, hour: Number((hourDetail&&hourDetail.hour)||0), base_overrides: baseOverrides, distribution_mode: distributionMode})}).then(r=>r.json()).then(d=>{hourDetail=d;}).finally(()=>{hourLoading=false;})">
-            Recalculate
-          </button>
-          <button class="px-2 py-1 rounded bg-white border border-gray-300 hover:bg-gray-100" @click="baseOverrides = {}">Clear</button>
-        </div>
-        <template x-if="!hourLoading && hourDetail && (hourDetail.doctor_allocations||[]).length">
-          <div class="mt-2 grid grid-cols-1 sm:grid-cols-2 gap-2">
-            <template x-for="doc in hourDetail.doctor_allocations" :key="doc.id">
-              <label class="flex items-center justify-between gap-2 bg-white rounded border border-blue-100 px-2 py-1">
-                <span class="truncate" :title="doc.name" x-text="doc.name || ('ID ' + doc.id)"></span>
-                <span class="flex items-center gap-1">
-                  <input type="number" step="0.1" min="0" class="w-20 px-2 py-1 border rounded text-gray-800"
-                         :placeholder="String((doc.base_rvu||0).toFixed(1))"
-                         :value="baseOverrides[doc.id] ?? ''"
-                         @input="(e)=>{ let v = Number(e.target.value); if(!isFinite(v) || v<0){ v=0; } if(e.target.value===''){ delete baseOverrides[doc.id]; } else { baseOverrides[doc.id] = v; e.target.value = String(v); } }">
-                  <span class="text-gray-500">RVU</span>
-                </span>
-              </label>
-            </template>
-          </div>
-        </template>
-      </div>
-    </div>
-    <template x-if="!hourLoading && hourDetail && (!hourDetail.total_expected_rvus || hourDetail.total_expected_rvus <= 0)">
-      <div class="mt-2 text-xs text-gray-500">
-        No state/modality demand records were found for the expected prior-week hour.
-      </div>
-    </template>
-    </h2>
-        <!-- Doctor allocations (expand on doctor name; only > 0.0 entries) -->
-        <template x-if="!hourLoading && hourDetail && (hourDetail.doctor_allocations||[]).length">
-          <div class="space-y-2 max-h-64 overflow-y-auto">
-            <template x-for="doc in hourDetail.doctor_allocations" :key="doc.id">
-              <div class="border rounded p-2 bg-white" x-data="{ open: false, showMix: false }">
-                <button class="flex items-center justify-between w-full text-left" @click="open = !open">
-                  <div>
-                    <a @click.stop :href="(doctors.find(d=>d.id===doc.id)||{}).url" target="_blank" rel="noopener" class="text-sm font-semibold text-blue-800 hover:text-blue-900" x-text="doc.name || ('ID ' + doc.id)"></a>
-                    <span class="ml-2 text-[11px] text-gray-600">
-                      <span x-text="units==='rvus' ? 'Contributing RVUs:' : 'Contributing Cases:'"></span>
-                      <span x-text="units==='rvus' 
-                        ? (() => { const v=(doc.contributing_rvus||0); return Math.abs(v) < 1 ? v.toFixed(3) : v.toFixed(1); })() 
-                        : ((doc.allocations||[]).reduce((t,a)=>{ const m=(a.modality||'').toUpperCase(); const CH={XR:0.2,CT:1.1,US:0.5,MRI:1.4,MG:0.8,NM:2.5,PT:2.5,IR:4.0,RF:0.7,SC:0.6,OT:0.3,XA:0.8,ECG:0.2}; const ch=CH[m]||0.2; return t + Math.round(((a.allocated_rvus||0)/ch)); },0))"></span>
-                    </span>
-                  </div>
-                  <span class="text-xs text-gray-500" x-text="open ? '▲' : '▼'"></span>
-                </button>
-                <template x-if="(doc.modality_weights || []).filter(m => ((m.weight||0) >= 0.005)).length">
-                  <div class="mt-1 flex flex-wrap gap-1">
-                    <template x-for="mw in (doc.modality_weights || [])
-                      .filter(m => ((m.weight||0) >= 0.005))
-                      .slice()
-                      .sort((a,b)=> (b.weight||0)-(a.weight||0))" :key="mw.modality">
-                      <span class="inline-flex items-center gap-1 text-[10px] px-1.5 py-0.5 rounded bg-blue-50 text-blue-700 border border-blue-200">
-                        <span x-text="mw.modality || 'Unknown'"></span>
-                        <span class="text-gray-500" x-text="Math.round((mw.weight||0)*100) + '%' "></span>
-                      </span>
-                    </template>
-                  </div>
-                </template>
-                <div class="mt-1 text-[11px]" x-show="open" x-transition>
-                  <template x-if="(doc.allocations||[]).length > 0">
-                    <div class="space-y-0.5">
-                      <template x-for="al in (doc.allocations || []).filter(a => (a.allocated_rvus||0) >= 0)" :key="(al.state || 'unknown') + '-' + al.modality">
-                        <div class="flex items-center justify-between">
-                          <div class="truncate">
-                            <span class="font-medium" x-text="al.state || 'Unknown state'" :title="al.state || 'Unknown state'"></span>
-                            <span class="ml-1 inline-block text-[10px] px-1 py-0.5 rounded bg-blue-50 text-blue-700 border border-blue-200" x-text="al.modality"></span>
-                          </div>
-                          <div class="shrink-0 text-gray-800">
-                            <span class="text-green-700 font-semibold" x-text="units==='rvus' 
-                              ? (() => { const v=(al.allocated_rvus||0); return Math.abs(v) < 1 ? v.toFixed(3) : v.toFixed(1); })() 
-                              : (() => { const m=(al.modality||'').toUpperCase(); const CH={XR:0.2,CT:1.1,US:0.5,MRI:1.4,MG:0.8,NM:2.5,PT:2.5,IR:4.0,RF:0.7,SC:0.6,OT:0.3,XA:0.8,ECG:0.2}; const ch=CH[m]||0.2; return Math.round(((al.allocated_rvus||0)/ch)); })()"></span>
-                          </div>
-                        </div>
-                      </template>
+        <div x-show="show"
+             @close-modal.window="show = false"
+             class="fixed inset-0 bg-black bg-opacity-50 z-50 flex items-center justify-center shifts-modal-overlay"
+             x-transition
+             style="display: none">
+            <div @click.away="show = false"
+                 class="relative bg-white rounded-lg p-6 w-[48rem] min-h-[32rem] shadow-xl shifts-modal">
+                <button @click="show = false"
+                        class="absolute top-3 right-4 text-gray-500 hover:text-gray-800 text-2xl font-bold focus:outline-none"
+                        aria-label="Close">&times;</button>
+                <div class="mb-2">
+                    <div class="text-sm text-gray-700 flex items-center flex-wrap gap-2">
+                        <template x-if="!hourLoading && hourDetail && hourDetail.supply_effective_allocated_rvus !== undefined">
+                            <span>
+                                <!-- RVUs view -->
+                                <span x-show="units==='rvus'">
+                                    <span class="text-blue-700 font-semibold"
+                                          x-text="fmtNumber(hourDetail.supply_effective_allocated_rvus||0)"></span>
+                                    <span class="text-gray-400">vs</span>
+                                    <span class="text-green-700 font-semibold"
+                                          x-text="fmtNumber(hourDetail.total_expected_rvus||0)"></span>
+                                </span>
+                                <!-- Cases view -->
+                                <span x-show="units==='cases'">
+                                    <span class="text-blue-700 font-semibold" x-text="totalSupplyCases()"></span>
+                                    <span class="text-gray-400">vs</span>
+                                    <span class="text-green-700 font-semibold" x-text="totalExpectedCases()"></span>
+                                </span>
+                                <span class="text-gray-700 font-medium">(
+                                    <span x-text="(hourDetail.total_expected_rvus>0 ? ((hourDetail.supply_effective_allocated_rvus/hourDetail.total_expected_rvus)*100).toFixed(1) : '0.0') + '%' "></span>
+                                )</span>
+                            </span>
+                        </template>
+                        <template x-if="hourLoading || !hourDetail || hourDetail.supply_effective_allocated_rvus === undefined">
+                            <span>
+                                <template x-if="doctors.length > 0 && doctors[0].current !== undefined">
+                                    <span class="text-blue-700 font-semibold"
+                                          x-text="doctors[0].current.toFixed(1)"></span>
+                                </template>
+                                <template x-if="doctors.length === 0 || doctors[0].current === undefined">
+                                    <span class="text-blue-700 font-semibold">—</span>
+                                </template>
+                                <span class="text-gray-400">vs</span>
+                                <template x-if="doctors.length > 0 && doctors[0].expected !== undefined">
+                                    <span class="text-green-700 font-semibold"
+                                          x-text="doctors[0].expected.toFixed(1)"></span>
+                                </template>
+                                <template x-if="doctors.length === 0 || doctors[0].expected === undefined">
+                                    <span class="text-green-700 font-semibold">—</span>
+                                </template>
+                                <template x-if="doctors.length > 0 && doctors[0].ratio !== undefined">
+                                    <span class="text-gray-700 font-medium">
+                                        (<span x-text="(doctors[0].ratio * 100).toFixed(1) + '%'"></span>)
+                                    </span>
+                                </template>
+                            </span>
+                        </template>
                     </div>
-                  </template>
+                    <p class="text-sm text-gray-500 mt-1">
+                        <span x-text="date"></span>
+                        &nbsp;&mdash;&nbsp;
+                        <span x-text="time"></span>
+                        <template x-if="hourDetail && hourDetail.trickle_multiplier && hourDetail.trickle_multiplier != 1.0">
+                            <span class="ml-2 text-xs"
+                                  :class="hourDetail.trickle_multiplier >= 1.3 ? 'text-red-600' : hourDetail.trickle_multiplier >= 1.1 ? 'text-orange-500' : 'text-gray-500'">
+                                Queue Trickle: <span x-text="hourDetail.trickle_multiplier.toFixed(2)"></span>x
+                            </span>
+                        </template>
+                    </p>
+                    <div class="mt-2 flex flex-wrap items-center gap-2">
+                        <div class="inline-flex rounded-md border border-blue-200 overflow-hidden shadow-sm">
+                            <button type="button"
+                                    @click="units='rvus'"
+                                    :class="units==='rvus' ? 'bg-blue-600 text-white' : 'bg-white text-blue-700 hover:bg-blue-50'"
+                                    class="px-2 py-1 text-xs font-medium">RVUs</button>
+                            <button type="button"
+                                    @click="units='cases'"
+                                    :class="units==='cases' ? 'bg-blue-600 text-white' : 'bg-white text-blue-700 hover:bg-blue-50'"
+                                    class="px-2 py-1 text-xs font-medium">Cases</button>
+                        </div>
+                        <label class="flex items-center gap-2 text-xs text-gray-700 ml-auto">
+                            <span class="font-medium">Distribution</span>
+                            <select class="border border-gray-300 rounded px-2 py-1 text-xs"
+                                    x-model="distributionMode"
+                                    @change="hourLoading=true; fetch('{{ url_for("shifts.hour_detail") }}', {method:'POST', headers:{'Content-Type':'application/json'}, body: JSON.stringify({date, hour: Number((hourDetail&&hourDetail.hour)||0), base_overrides: baseOverrides, distribution_mode: distributionMode})}).then(r=>r.json()).then(d=>{hourDetail=d;}).finally(()=>{hourLoading=false;})">
+                                <option value="worst">Worst</option>
+                                <option value="normal">Normal</option>
+                                <option value="best">Best</option>
+                            </select>
+                        </label>
+                    </div>
                 </div>
-              </div>
-            </template>
-          </div>
-        </template>
-        <template x-if="!hourLoading && hourDetail && !(hourDetail.doctor_allocations||[]).length">
-          <div class="text-xs text-gray-500">No doctors contributed RVUs for this hour.</div>
-        </template>
-        
-        <!-- State/Modality breakdown moved below the doctor list -->
-        <template x-if="!hourLoading && hourDetail">
-          <div class="mt-3 grid grid-cols-1 md:grid-cols-2 gap-2">
-            <div>
-              <h4 class="text-xs font-semibold text-gray-700 mb-1">By State</h4>
-              <div class="max-h-36 overflow-y-auto space-y-1">
-                <template x-for="s in hourDetail.by_state_merged" :key="s.state">
-                  <div x-data="{ open: false }" class="text-xs bg-white border rounded">
-                    <button @click="open = !open" class="w-full px-2 py-1 flex items-center justify-between" :title="(s.state || 'Unknown') + ' — ' + ((s.expected_rvus||0).toFixed(1)) + ' RVUs'">
-                      <span class="truncate font-medium" x-text="s.state || 'Unknown'" :title="s.state || 'Unknown'"></span>
-                      <div class="ml-2 shrink-0 flex items-center gap-2">
-                        <span class="text-green-700 font-semibold" x-text="units==='rvus' 
-                          ? (s.expected_rvus || 0).toFixed(1) 
-                          : (()=>{ const CH={XR:0.2,CT:1.1,US:0.5,MRI:1.4,MG:0.8,NM:2.5,PT:2.5,IR:4.0,RF:0.7,SC:0.6,OT:0.3,XA:0.8,ECG:0.2}; const br=(hourDetail.state_breakdown[s.state]||[]); return br.reduce((t,md)=>{ const m=(md.modality||'').toUpperCase(); const ch=CH[m]||0.2; return t + Math.round(((md.expected_rvus||0)/ch)); },0); })()"></span>
-                        <span class="text-gray-400">|</span>
-                        <span :class="(() => { const sup=(hourDetail.doctor_allocations||[]).flatMap(d=>d.allocations||[]).filter(a=>a.state===s.state).reduce((t,a)=>t+(a.allocated_rvus||0),0); const pct=s.expected_rvus>0? (sup/s.expected_rvus*100):0; return pct<60?'text-red-600':(pct<90?'text-yellow-600':'text-green-700'); })()" x-text="(() => { const sup=(hourDetail.doctor_allocations||[]).flatMap(d=>d.allocations||[]).filter(a=>a.state===s.state).reduce((t,a)=>t+(a.allocated_rvus||0),0); return s.expected_rvus>0 ? ((sup/s.expected_rvus*100).toFixed(1)+'%') : '—%'; })()"></span>
-                      </div>
-                    </button>
-                    <div x-show="open" x-transition class="px-2 pb-2">
-                      <template x-for="md in (hourDetail.state_breakdown[s.state] || [])" :key="md.modality">
-                        <div class="flex items-center justify-between mt-1">
-                          <span class="inline-block text-[10px] px-1.5 py-0.5 rounded bg-blue-50 text-blue-700 border border-blue-200" x-text="md.modality || 'Unknown'" :title="(md.modality || 'Unknown') + ' — ' + ((md.expected_rvus||0).toFixed(1)) + ' RVUs'"></span>
-                          <div class="ml-2 shrink-0 flex items-center gap-2">
-                            <span class="text-green-700 font-semibold" x-text="units==='rvus' 
-                              ? (md.expected_rvus || 0).toFixed(1) 
-                              : (()=>{ const m=(md.modality||'').toUpperCase(); const CH={XR:0.2,CT:1.1,US:0.5,MRI:1.4,MG:0.8,NM:2.5,PT:2.5,IR:4.0,RF:0.7,SC:0.6,OT:0.3,XA:0.8,ECG:0.2}; const ch=CH[m]||0.2; return Math.round(((md.expected_rvus||0)/ch)); })()"></span>
-                            <span class="text-gray-400">|</span>
-                          <span :class="(() => { const sup=(hourDetail.doctor_allocations||[]).flatMap(d=>d.allocations||[]).filter(a=>a.state===s.state && a.modality===md.modality).reduce((t,a)=>t+(a.allocated_rvus||0),0); const pct=md.expected_rvus>0? (sup/md.expected_rvus*100):0; return pct<60?'text-red-600':(pct<90?'text-yellow-600':'text-green-700'); })()" x-text="(() => { const sup=(hourDetail.doctor_allocations||[]).flatMap(d=>d.allocations||[]).filter(a=>a.state===s.state && a.modality===md.modality).reduce((t,a)=>t+(a.allocated_rvus||0),0); return md.expected_rvus>0 ? ((sup/md.expected_rvus*100).toFixed(1)+'%') : '—%'; })()"></span>
-                          </div>
-                        </div>
-                      </template>
-                    </div>
-                  </div>
-                </template>
-              </div>
-            </div>
-
-            <div>
-              <h4 class="text-xs font-semibold text-gray-700 mb-1">By Modality</h4>
-              <div class="max-h-36 overflow-y-auto space-y-1">
-                <template x-for="m in hourDetail.by_modality" :key="m.modality">
-                  <div x-data="{ open: false }" class="text-xs bg-white border rounded">
-                    <button @click="open = !open" class="w-full px-2 py-1 flex items-center justify-between" :title="(m.modality || 'Unknown') + ' — ' + ((m.expected_rvus||0).toFixed(1)) + ' RVUs'">
-                      <span class="inline-block text-[10px] px-1.5 py-0.5 rounded bg-blue-50 text-blue-700 border border-blue-200" x-text="m.modality || 'Unknown'" :title="m.modality || 'Unknown'"></span>
-                      <div class="ml-2 shrink-0 flex items-center gap-2">
-                        <span class="text-green-700 font-semibold" x-text="units==='rvus' 
-                          ? (m.expected_rvus || 0).toFixed(1) 
-                          : (()=>{ const m2=(m.modality||'').toUpperCase(); const CH={XR:0.2,CT:1.1,US:0.5,MRI:1.4,MG:0.8,NM:2.5,PT:2.5,IR:4.0,RF:0.7,SC:0.6,OT:0.3,XA:0.8,ECG:0.2}; const ch=CH[m2]||0.2; return Math.round(((m.expected_rvus||0)/ch)); })()"></span>
-                        <span class="text-gray-400">|</span>
-                        <span :class="(() => { const sup=(hourDetail.doctor_allocations||[]).flatMap(d=>d.allocations||[]).filter(a=>a.modality===m.modality).reduce((t,a)=>t+(a.allocated_rvus||0),0); const pct=m.expected_rvus>0? (sup/m.expected_rvus*100):0; return pct<60?'text-red-600':(pct<90?'text-yellow-600':'text-green-700'); })()" x-text="(() => { const sup=(hourDetail.doctor_allocations||[]).flatMap(d=>d.allocations||[]).filter(a=>a.modality===m.modality).reduce((t,a)=>t+(a.allocated_rvus||0),0); return m.expected_rvus>0 ? ((sup/m.expected_rvus*100).toFixed(1)+'%') : '—%'; })()"></span>
-                      </div>
-                    </button>
-                    <div x-show="open" x-transition class="px-2 pb-2">
-                      <template x-for="st in (hourDetail.modality_breakdown[m.modality] || [])" :key="st.state">
-                        <div class="flex items-center justify-between mt-1">
-                          <span class="font-medium" x-text="st.state || 'Unknown'" :title="st.state || 'Unknown'"></span>
-                          <div class="ml-2 shrink-0 flex items-center gap-2">
-                            <span class="text-green-700 font-semibold" x-text="units==='rvus' 
-                              ? (st.expected_rvus || 0).toFixed(1) 
-                              : (()=>{ const m3=(m.modality||'').toUpperCase(); const CH={XR:0.2,CT:1.1,US:0.5,MRI:1.4,MG:0.8,NM:2.5,PT:2.5,IR:4.0,RF:0.7,SC:0.6,OT:0.3,XA:0.8,ECG:0.2}; const ch=CH[m3]||0.2; return Math.round(((st.expected_rvus||0)/ch)); })()"></span>
-                            <span class="text-gray-400">|</span>
-                          <span :class="(() => { const sup=(hourDetail.doctor_allocations||[]).flatMap(d=>d.allocations||[]).filter(a=>a.modality===m.modality && a.state===st.state).reduce((t,a)=>t+(a.allocated_rvus||0),0); const pct=st.expected_rvus>0? (sup/st.expected_rvus*100):0; return pct<60?'text-red-600':(pct<90?'text-yellow-600':'text-green-700'); })()" x-text="(() => { const sup=(hourDetail.doctor_allocations||[]).flatMap(d=>d.allocations||[]).filter(a=>a.modality===m.modality && a.state===st.state).reduce((t,a)=>t+(a.allocated_rvus||0),0); return st.expected_rvus>0 ? ((sup/st.expected_rvus*100).toFixed(1)+'%') : '—%'; })()"></span>
-                          </div>
-                        </div>
-                      </template>
-                    </div>
-                  </div>
-                </template>
-              </div>
-            </div>
-          </div>
-        </template>
-        <template x-if="!hourLoading && hourDetail && (!hourDetail.total_expected_rvus || hourDetail.total_expected_rvus <= 0)">
-          <div class="mt-3 text-xs text-gray-500">
-            No state/modality demand records were found for the expected prior-week hour.
-          </div>
-        </template>
-        <div class="mt-4 grid grid-cols-1 md:grid-cols-2 gap-6">
-            <div>
-                <label class="block text-xs font-semibold text-gray-700 mb-1" for="state-search">Check State Coverage:</label>
-<div x-data="{ stateQueryModal: '', matchedStatesModal: [] }">
-  <input
-      id="state-search"
-      type="text"
-      x-model="stateQueryModal"
-      placeholder="Enter state name"
-      class="w-full px-2 py-1 border rounded text-sm mb-2"
-      @input="
-          let q = stateQueryModal.trim().toLowerCase();
-          matchedStatesModal = q ? [...coveredStates, ...uncoveredStates].filter(s => s.toLowerCase().includes(q)) : [];
-          hoveredState = '';
-      "
-  >
-
-  <div class="flex flex-wrap gap-1 mt-2">
-    <template x-for="state in matchedStatesModal.slice(0, 5)" :key="state">
-      <div x-data="{ open: false }" class="w-full">
-        <button
-          @click="open = !open"
-          class="w-full text-left px-2 py-1 pl-2 rounded text-xs font-semibold transition"
-          :class="coveredStates.includes(state) ? 'bg-green-100 text-green-700' : 'bg-red-100 text-red-700'"
-        >
-          <span x-text="state"></span>
-        </button>
-
-        <ul x-show="open" x-transition class="ml-1 mt-1 space-y-1 text-xs text-gray-800">
-          <template x-for="doc in stateDoctorMap[state]" :key="doc">
-            <li class="pl-1" x-text="doc"></li>
-          </template>
-        </ul>
-      </div>
-    </template>
-  </div>
-</div>
-
-                <div class="flex flex-wrap gap-1">
-                    <template x-for="state in matchedStates.slice(0, 30)" :key="state">
-
-                      <span
-                        class="inline-block px-2 py-0.5 rounded text-xs font-semibold cursor-pointer transition relative group"
-                        :class="coveredStates.includes(state) ? 'bg-green-100 text-green-700' : 'bg-red-100 text-red-700'"
-                      >
-                        <span x-text="state"></span>
-                        <span
-                          class="absolute left-1/2 -translate-x-1/2 bottom-full mb-2 w-max bg-white border border-gray-300 rounded shadow-lg px-3 py-2 text-xs text-gray-900 opacity-0 group-hover:opacity-100 pointer-events-none transition-opacity z-50 whitespace-nowrap"
-                        >
-                          <template x-for="doc in stateDoctorMap[state]" :key="doc">
-                            <span class="block" x-text="doc"></span>
-                          </template>
-                        </span>
-                      </span>
-                    </template>
-                </div>
-            </div>
-        
-            <div>
-                <label class="block text-xs font-semibold text-gray-700 mb-1" for="facility-search">Check Facility Coverage:</label>
-                <div x-data="{ facilityQueryModal: '', matchedFacilitiesModal: [] }">
-                  <input
-                      id="facility-search"
-                      type="text"
-                      x-model="facilityQueryModal"
-                      placeholder="Enter facility name"
-                      class="w-full px-2 py-1 border rounded text-sm mb-2"
-                      @input="
-                          let fq = facilityQueryModal.trim().toLowerCase();
-                          matchedFacilitiesModal = fq ? Object.keys(facilityDoctorMap).filter(f => f.toLowerCase().includes(fq)) : [];
-                          hoveredFacility = '';
-                      "
-                  >
-                  <div class="flex flex-wrap gap-1">
-                    <template x-for="fac in matchedFacilitiesModal.slice(0, 5)" :key="fac">
-                      <div x-data="{ open: false }" class="w-full">
-                        <button
-                          @click="open = !open"
-                          class="w-full text-left px-2 py-1 pl-2 rounded text-xs font-semibold transition"
-                          :class="facilityDoctorMap[fac] && facilityDoctorMap[fac].length > 0 
-                                    ? 'bg-green-100 text-green-700' 
-                                    : 'bg-red-100 text-red-700'"
-                        >
-                          <span x-text="fac"></span>
+                <h2 class="text-sm font-semibold mb-2 text-gray-800">
+                    Scheduled Doctors
+                    <!-- What-if base RVU overrides (temporary; triggers recomputation) -->
+                    <div class="mt-2 mb-3 p-2 rounded border border-blue-200 bg-blue-50 text-xs text-blue-900 whatif-panel">
+                        <!-- Clickable header toggles the panel like a dropdown -->
+                        <button type="button"
+                                class="w-full flex items-center justify-between gap-2"
+                                @click="whatIfOpen = !whatIfOpen">
+                            <div class="font-medium whatif-title">What-if base RVUs (not saved)</div>
+                            <span class="text-gray-500"> <span x-text="whatIfOpen ? 'Hide' : 'Show'"></span> ▾</span>
                         </button>
-
-                        <ul x-show="open" x-transition class="ml-2 mt-1 space-y-1 text-xs text-gray-800">
-                          <template x-for="doc in facilityDoctorMap[fac]" :key="doc">
-                            <li class="pl-0" x-text="doc"></li>
-                          </template>
-                        </ul>
-                      </div>
+                        <div x-show="whatIfOpen" x-transition>
+                            <div class="mt-2 flex gap-2">
+                                <button class="px-2 py-1 rounded bg-white border border-blue-300 hover:bg-blue-100"
+                                        @click="hourLoading=true; fetch('{{ url_for("shifts.hour_detail") }}', {method:'POST', headers:{'Content-Type':'application/json'}, body: JSON.stringify({date, hour: Number((hourDetail&&hourDetail.hour)||0), base_overrides: baseOverrides, distribution_mode: distributionMode})}).then(r=>r.json()).then(d=>{hourDetail=d;}).finally(()=>{hourLoading=false;})">
+                                    Recalculate
+                                </button>
+                                <button class="px-2 py-1 rounded bg-white border border-gray-300 hover:bg-gray-100"
+                                        @click="baseOverrides = {}">Clear</button>
+                            </div>
+                            <template x-if="!hourLoading && hourDetail && (hourDetail.doctor_allocations||[]).length">
+                                <div class="mt-2 grid grid-cols-1 sm:grid-cols-2 gap-2">
+                                    <template x-for="doc in hourDetail.doctor_allocations" :key="doc.id">
+                                        <label class="flex items-center justify-between gap-2 bg-white rounded border border-blue-100 px-2 py-1">
+                                            <span class="truncate"
+                                                  :title="doc.name"
+                                                  x-text="doc.name || ('ID ' + doc.id)"></span>
+                                            <span class="flex items-center gap-1">
+                                                <input type="number"
+                                                       step="0.1"
+                                                       min="0"
+                                                       class="w-20 px-2 py-1 border rounded text-gray-800"
+                                                       :placeholder="String((doc.base_rvu||0).toFixed(1))"
+                                                       :value="baseOverrides[doc.id] ?? ''"
+                                                       @input="(e)=>{ let v = Number(e.target.value); if(!isFinite(v) || v<0){ v=0; } if(e.target.value===''){ delete baseOverrides[doc.id]; } else { baseOverrides[doc.id] = v; e.target.value = String(v); } }">
+                                                    <span class="text-gray-500">RVU</span>
+                                                </span>
+                                            </label>
+                                        </template>
+                                    </div>
+                                </template>
+                            </div>
+                        </div>
+                        <template x-if="!hourLoading && hourDetail && (!hourDetail.total_expected_rvus || hourDetail.total_expected_rvus <= 0)">
+                            <div class="mt-2 text-xs text-gray-500">
+                                No state/modality demand records were found for the expected prior-week hour.
+                            </div>
+                        </template>
+                    </h2>
+                    <!-- Doctor allocations (expand on doctor name; only > 0.0 entries) -->
+                    <template x-if="!hourLoading && hourDetail && (hourDetail.doctor_allocations||[]).length">
+                        <div class="space-y-2 max-h-64 overflow-y-auto">
+                            <template x-for="doc in hourDetail.doctor_allocations" :key="doc.id">
+                                <div class="border rounded p-2 bg-white"
+                                     x-data="{ open: false, showMix: false }">
+                                    <button class="flex items-center justify-between w-full text-left"
+                                            @click="open = !open">
+                                        <div>
+                                            <a @click.stop
+                                               :href="(doctors.find(d=>d.id===doc.id)||{}).url"
+                                               target="_blank"
+                                               rel="noopener"
+                                               class="text-sm font-semibold text-blue-800 hover:text-blue-900"
+                                               x-text="doc.name || ('ID ' + doc.id)"></a>
+                                            <span class="ml-2 text-[11px] text-gray-600">
+                                                <span x-text="units==='rvus' ? 'Contributing RVUs:' : 'Contributing Cases:'"></span>
+                                                <span x-text="units==='rvus' ? (() => { const v=(doc.contributing_rvus||0); return Math.abs(v) < 1 ? v.toFixed(3) : v.toFixed(1); })() : ((doc.allocations||[]).reduce((t,a)=>{ const m=(a.modality||'').toUpperCase(); const CH={XR:0.2,CT:1.1,US:0.5,MRI:1.4,MG:0.8,NM:2.5,PT:2.5,IR:4.0,RF:0.7,SC:0.6,OT:0.3,XA:0.8,ECG:0.2}; const ch=CH[m]||0.2; return t + Math.round(((a.allocated_rvus||0)/ch)); },0))"></span>
+                                            </span>
+                                        </div>
+                                        <span class="text-xs text-gray-500" x-text="open ? '▲' : '▼'"></span>
+                                    </button>
+                                    <template x-if="(doc.modality_weights || []).filter(m => ((m.weight||0) >= 0.005)).length">
+                                        <div class="mt-1 flex flex-wrap gap-1">
+                                            <template x-for="mw in (doc.modality_weights || []) .filter(m => ((m.weight||0) >= 0.005)) .slice() .sort((a,b)=> (b.weight||0)-(a.weight||0))"
+                                                      :key="mw.modality">
+                                                <span class="inline-flex items-center gap-1 text-[10px] px-1.5 py-0.5 rounded bg-blue-50 text-blue-700 border border-blue-200">
+                                                    <span x-text="mw.modality || 'Unknown'"></span>
+                                                    <span class="text-gray-500" x-text="Math.round((mw.weight||0)*100) + '%' "></span>
+                                                </span>
+                                            </template>
+                                        </div>
+                                    </template>
+                                    <div class="mt-1 text-[11px]" x-show="open" x-transition>
+                                        <template x-if="(doc.allocations||[]).length > 0">
+                                            <div class="space-y-0.5">
+                                                <template x-for="al in (doc.allocations || []).filter(a => (a.allocated_rvus||0) >= 0)"
+                                                          :key="(al.state || 'unknown') + '-' + al.modality">
+                                                    <div class="flex items-center justify-between">
+                                                        <div class="truncate">
+                                                            <span class="font-medium"
+                                                                  x-text="al.state || 'Unknown state'"
+                                                                  :title="al.state || 'Unknown state'"></span>
+                                                            <span class="ml-1 inline-block text-[10px] px-1 py-0.5 rounded bg-blue-50 text-blue-700 border border-blue-200"
+                                                                  x-text="al.modality"></span>
+                                                        </div>
+                                                        <div class="shrink-0 text-gray-800">
+                                                            <span class="text-green-700 font-semibold"
+                                                                  x-text="units==='rvus' ? (() => { const v=(al.allocated_rvus||0); return Math.abs(v) < 1 ? v.toFixed(3) : v.toFixed(1); })() : (() => { const m=(al.modality||'').toUpperCase(); const CH={XR:0.2,CT:1.1,US:0.5,MRI:1.4,MG:0.8,NM:2.5,PT:2.5,IR:4.0,RF:0.7,SC:0.6,OT:0.3,XA:0.8,ECG:0.2}; const ch=CH[m]||0.2; return Math.round(((al.allocated_rvus||0)/ch)); })()"></span>
+                                                        </div>
+                                                    </div>
+                                                </template>
+                                            </div>
+                                        </template>
+                                    </div>
+                                </div>
+                            </template>
+                        </div>
                     </template>
-                  </div>
+                    <template x-if="!hourLoading && hourDetail && !(hourDetail.doctor_allocations||[]).length">
+                        <div class="text-xs text-gray-500">No doctors contributed RVUs for this hour.</div>
+                    </template>
+                    <!-- State/Modality breakdown moved below the doctor list -->
+                    <template x-if="!hourLoading && hourDetail">
+                        <div class="mt-3 grid grid-cols-1 md:grid-cols-2 gap-2">
+                            <div>
+                                <h4 class="text-xs font-semibold text-gray-700 mb-1">By State</h4>
+                                <div class="max-h-36 overflow-y-auto space-y-1">
+                                    <template x-for="s in hourDetail.by_state_merged" :key="s.state">
+                                        <div x-data="{ open: false }" class="text-xs bg-white border rounded">
+                                            <button @click="open = !open"
+                                                    class="w-full px-2 py-1 flex items-center justify-between"
+                                                    :title="(s.state || 'Unknown') + ' — ' + ((s.expected_rvus||0).toFixed(1)) + ' RVUs'">
+                                                <span class="truncate font-medium"
+                                                      x-text="s.state || 'Unknown'"
+                                                      :title="s.state || 'Unknown'"></span>
+                                                <div class="ml-2 shrink-0 flex items-center gap-2">
+                                                    <span class="text-green-700 font-semibold"
+                                                          x-text="units==='rvus' ? (s.expected_rvus || 0).toFixed(1) : (()=>{ const CH={XR:0.2,CT:1.1,US:0.5,MRI:1.4,MG:0.8,NM:2.5,PT:2.5,IR:4.0,RF:0.7,SC:0.6,OT:0.3,XA:0.8,ECG:0.2}; const br=(hourDetail.state_breakdown[s.state]||[]); return br.reduce((t,md)=>{ const m=(md.modality||'').toUpperCase(); const ch=CH[m]||0.2; return t + Math.round(((md.expected_rvus||0)/ch)); },0); })()"></span>
+                                                    <span class="text-gray-400">|</span>
+                                                    <span :class="(() => { const sup=(hourDetail.doctor_allocations||[]).flatMap(d=>d.allocations||[]).filter(a=>a.state===s.state).reduce((t,a)=>t+(a.allocated_rvus||0),0); const pct=s.expected_rvus>0? (sup/s.expected_rvus*100):0; return pct<60?'text-red-600':(pct<90?'text-yellow-600':'text-green-700'); })()"
+                                                          x-text="(() => { const sup=(hourDetail.doctor_allocations||[]).flatMap(d=>d.allocations||[]).filter(a=>a.state===s.state).reduce((t,a)=>t+(a.allocated_rvus||0),0); return s.expected_rvus>0 ? ((sup/s.expected_rvus*100).toFixed(1)+'%') : '—%'; })()"></span>
+                                                </div>
+                                            </button>
+                                            <div x-show="open" x-transition class="px-2 pb-2">
+                                                <template x-for="md in (hourDetail.state_breakdown[s.state] || [])"
+                                                          :key="md.modality">
+                                                    <div class="flex items-center justify-between mt-1">
+                                                        <span class="inline-block text-[10px] px-1.5 py-0.5 rounded bg-blue-50 text-blue-700 border border-blue-200"
+                                                              x-text="md.modality || 'Unknown'"
+                                                              :title="(md.modality || 'Unknown') + ' — ' + ((md.expected_rvus||0).toFixed(1)) + ' RVUs'"></span>
+                                                        <div class="ml-2 shrink-0 flex items-center gap-2">
+                                                            <span class="text-green-700 font-semibold"
+                                                                  x-text="units==='rvus' ? (md.expected_rvus || 0).toFixed(1) : (()=>{ const m=(md.modality||'').toUpperCase(); const CH={XR:0.2,CT:1.1,US:0.5,MRI:1.4,MG:0.8,NM:2.5,PT:2.5,IR:4.0,RF:0.7,SC:0.6,OT:0.3,XA:0.8,ECG:0.2}; const ch=CH[m]||0.2; return Math.round(((md.expected_rvus||0)/ch)); })()"></span>
+                                                            <span class="text-gray-400">|</span>
+                                                            <span :class="(() => { const sup=(hourDetail.doctor_allocations||[]).flatMap(d=>d.allocations||[]).filter(a=>a.state===s.state && a.modality===md.modality).reduce((t,a)=>t+(a.allocated_rvus||0),0); const pct=md.expected_rvus>0? (sup/md.expected_rvus*100):0; return pct<60?'text-red-600':(pct<90?'text-yellow-600':'text-green-700'); })()"
+                                                                  x-text="(() => { const sup=(hourDetail.doctor_allocations||[]).flatMap(d=>d.allocations||[]).filter(a=>a.state===s.state && a.modality===md.modality).reduce((t,a)=>t+(a.allocated_rvus||0),0); return md.expected_rvus>0 ? ((sup/md.expected_rvus*100).toFixed(1)+'%') : '—%'; })()"></span>
+                                                        </div>
+                                                    </div>
+                                                </template>
+                                            </div>
+                                        </div>
+                                    </template>
+                                </div>
+                            </div>
+                            <div>
+                                <h4 class="text-xs font-semibold text-gray-700 mb-1">By Modality</h4>
+                                <div class="max-h-36 overflow-y-auto space-y-1">
+                                    <template x-for="m in hourDetail.by_modality" :key="m.modality">
+                                        <div x-data="{ open: false }" class="text-xs bg-white border rounded">
+                                            <button @click="open = !open"
+                                                    class="w-full px-2 py-1 flex items-center justify-between"
+                                                    :title="(m.modality || 'Unknown') + ' — ' + ((m.expected_rvus||0).toFixed(1)) + ' RVUs'">
+                                                <span class="inline-block text-[10px] px-1.5 py-0.5 rounded bg-blue-50 text-blue-700 border border-blue-200"
+                                                      x-text="m.modality || 'Unknown'"
+                                                      :title="m.modality || 'Unknown'"></span>
+                                                <div class="ml-2 shrink-0 flex items-center gap-2">
+                                                    <span class="text-green-700 font-semibold"
+                                                          x-text="units==='rvus' ? (m.expected_rvus || 0).toFixed(1) : (()=>{ const m2=(m.modality||'').toUpperCase(); const CH={XR:0.2,CT:1.1,US:0.5,MRI:1.4,MG:0.8,NM:2.5,PT:2.5,IR:4.0,RF:0.7,SC:0.6,OT:0.3,XA:0.8,ECG:0.2}; const ch=CH[m2]||0.2; return Math.round(((m.expected_rvus||0)/ch)); })()"></span>
+                                                    <span class="text-gray-400">|</span>
+                                                    <span :class="(() => { const sup=(hourDetail.doctor_allocations||[]).flatMap(d=>d.allocations||[]).filter(a=>a.modality===m.modality).reduce((t,a)=>t+(a.allocated_rvus||0),0); const pct=m.expected_rvus>0? (sup/m.expected_rvus*100):0; return pct<60?'text-red-600':(pct<90?'text-yellow-600':'text-green-700'); })()"
+                                                          x-text="(() => { const sup=(hourDetail.doctor_allocations||[]).flatMap(d=>d.allocations||[]).filter(a=>a.modality===m.modality).reduce((t,a)=>t+(a.allocated_rvus||0),0); return m.expected_rvus>0 ? ((sup/m.expected_rvus*100).toFixed(1)+'%') : '—%'; })()"></span>
+                                                </div>
+                                            </button>
+                                            <div x-show="open" x-transition class="px-2 pb-2">
+                                                <template x-for="st in (hourDetail.modality_breakdown[m.modality] || [])"
+                                                          :key="st.state">
+                                                    <div class="flex items-center justify-between mt-1">
+                                                        <span class="font-medium"
+                                                              x-text="st.state || 'Unknown'"
+                                                              :title="st.state || 'Unknown'"></span>
+                                                        <div class="ml-2 shrink-0 flex items-center gap-2">
+                                                            <span class="text-green-700 font-semibold"
+                                                                  x-text="units==='rvus' ? (st.expected_rvus || 0).toFixed(1) : (()=>{ const m3=(m.modality||'').toUpperCase(); const CH={XR:0.2,CT:1.1,US:0.5,MRI:1.4,MG:0.8,NM:2.5,PT:2.5,IR:4.0,RF:0.7,SC:0.6,OT:0.3,XA:0.8,ECG:0.2}; const ch=CH[m3]||0.2; return Math.round(((st.expected_rvus||0)/ch)); })()"></span>
+                                                            <span class="text-gray-400">|</span>
+                                                            <span :class="(() => { const sup=(hourDetail.doctor_allocations||[]).flatMap(d=>d.allocations||[]).filter(a=>a.modality===m.modality && a.state===st.state).reduce((t,a)=>t+(a.allocated_rvus||0),0); const pct=st.expected_rvus>0? (sup/st.expected_rvus*100):0; return pct<60?'text-red-600':(pct<90?'text-yellow-600':'text-green-700'); })()"
+                                                                  x-text="(() => { const sup=(hourDetail.doctor_allocations||[]).flatMap(d=>d.allocations||[]).filter(a=>a.modality===m.modality && a.state===st.state).reduce((t,a)=>t+(a.allocated_rvus||0),0); return st.expected_rvus>0 ? ((sup/st.expected_rvus*100).toFixed(1)+'%') : '—%'; })()"></span>
+                                                        </div>
+                                                    </div>
+                                                </template>
+                                            </div>
+                                        </div>
+                                    </template>
+                                </div>
+                            </div>
+                        </div>
+                    </template>
+                    <template x-if="!hourLoading && hourDetail && (!hourDetail.total_expected_rvus || hourDetail.total_expected_rvus <= 0)">
+                        <div class="mt-3 text-xs text-gray-500">
+                            No state/modality demand records were found for the expected prior-week hour.
+                        </div>
+                    </template>
+                    <div class="mt-4 grid grid-cols-1 md:grid-cols-2 gap-6">
+                        <div>
+                            <label class="block text-xs font-semibold text-gray-700 mb-1"
+                                   for="state-search">Check State Coverage:</label>
+                            <div x-data="{ stateQueryModal: '', matchedStatesModal: [] }">
+                                <input id="state-search"
+                                       type="text"
+                                       x-model="stateQueryModal"
+                                       placeholder="Enter state name"
+                                       class="w-full px-2 py-1 border rounded text-sm mb-2"
+                                       @input=" let q = stateQueryModal.trim().toLowerCase(); matchedStatesModal = q ? [...coveredStates, ...uncoveredStates].filter(s => s.toLowerCase().includes(q)) : []; hoveredState = ''; ">
+                                <div class="flex flex-wrap gap-1 mt-2">
+                                    <template x-for="state in matchedStatesModal.slice(0, 5)" :key="state">
+                                        <div x-data="{ open: false }" class="w-full">
+                                            <button @click="open = !open"
+                                                    class="w-full text-left px-2 py-1 pl-2 rounded text-xs font-semibold transition"
+                                                    :class="coveredStates.includes(state) ? 'bg-green-100 text-green-700' : 'bg-red-100 text-red-700'">
+                                                <span x-text="state"></span>
+                                            </button>
+                                            <ul x-show="open"
+                                                x-transition
+                                                class="ml-1 mt-1 space-y-1 text-xs text-gray-800">
+                                                <template x-for="doc in stateDoctorMap[state]" :key="doc">
+                                                    <li class="pl-1" x-text="doc"></li>
+                                                </template>
+                                            </ul>
+                                        </div>
+                                    </template>
+                                </div>
+                            </div>
+                            <div class="flex flex-wrap gap-1">
+                                <template x-for="state in matchedStates.slice(0, 30)" :key="state">
+                                    <span class="inline-block px-2 py-0.5 rounded text-xs font-semibold cursor-pointer transition relative group"
+                                          :class="coveredStates.includes(state) ? 'bg-green-100 text-green-700' : 'bg-red-100 text-red-700'">
+                                        <span x-text="state"></span>
+                                        <span class="absolute left-1/2 -translate-x-1/2 bottom-full mb-2 w-max bg-white border border-gray-300 rounded shadow-lg px-3 py-2 text-xs text-gray-900 opacity-0 group-hover:opacity-100 pointer-events-none transition-opacity z-50 whitespace-nowrap">
+                                            <template x-for="doc in stateDoctorMap[state]" :key="doc">
+                                                <span class="block" x-text="doc"></span>
+                                            </template>
+                                        </span>
+                                    </span>
+                                </template>
+                            </div>
+                        </div>
+                        <div>
+                            <label class="block text-xs font-semibold text-gray-700 mb-1"
+                                   for="facility-search">Check Facility Coverage:</label>
+                            <div x-data="{ facilityQueryModal: '', matchedFacilitiesModal: [] }">
+                                <input id="facility-search"
+                                       type="text"
+                                       x-model="facilityQueryModal"
+                                       placeholder="Enter facility name"
+                                       class="w-full px-2 py-1 border rounded text-sm mb-2"
+                                       @input=" let fq = facilityQueryModal.trim().toLowerCase(); matchedFacilitiesModal = fq ? Object.keys(facilityDoctorMap).filter(f => f.toLowerCase().includes(fq)) : []; hoveredFacility = ''; ">
+                                <div class="flex flex-wrap gap-1">
+                                    <template x-for="fac in matchedFacilitiesModal.slice(0, 5)" :key="fac">
+                                        <div x-data="{ open: false }" class="w-full">
+                                            <button @click="open = !open"
+                                                    class="w-full text-left px-2 py-1 pl-2 rounded text-xs font-semibold transition"
+                                                    :class="facilityDoctorMap[fac] && facilityDoctorMap[fac].length > 0 ? 'bg-green-100 text-green-700' : 'bg-red-100 text-red-700'">
+                                                <span x-text="fac"></span>
+                                            </button>
+                                            <ul x-show="open"
+                                                x-transition
+                                                class="ml-2 mt-1 space-y-1 text-xs text-gray-800">
+                                                <template x-for="doc in facilityDoctorMap[fac]" :key="doc">
+                                                    <li class="pl-0" x-text="doc"></li>
+                                                </template>
+                                            </ul>
+                                        </div>
+                                    </template>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="text-xs text-gray-400 mt-2"></div>
                 </div>
-
-
             </div>
         </div>
-        
-        <div class="text-xs text-gray-400 mt-2">
-    
-        </div>
-        
-          
-</div>
-</div>
-</div>
-</div>
-
-
-<script>
+    </div>
+    <script>
     const easternFormatter = new Intl.DateTimeFormat('en-CA', { timeZone: 'America/New_York' });
+    const shiftsBaseUrl = {{ url_for('shifts.shifts') | tojson }};
+    const currentPageDistributionMode = {{ distribution_mode | tojson }};
 
     function getEasternDateString(date = new Date()) {
       return easternFormatter.format(date);
+    }
+
+    function buildShiftsUrl(dateString) {
+      const params = new URLSearchParams();
+      if (dateString) {
+        params.set('date', dateString);
+      }
+      if (currentPageDistributionMode) {
+        params.set('distribution_mode', currentPageDistributionMode);
+      }
+      return `${shiftsBaseUrl}?${params.toString()}`;
     }
 
     let currentCalendarDate = new Date('{{ now.strftime("%Y-%m-%d") }}');
@@ -994,12 +736,12 @@
     
     function selectDate(year, month, day) {
         const dateString = `${year}-${String(month + 1).padStart(2, '0')}-${String(day).padStart(2, '0')}`;
-        window.location.href = `{{ url_for('shifts.shifts') }}?date=${dateString}`;
+        window.location.href = buildShiftsUrl(dateString);
     }
 
     function selectToday() {
         const dateString = getEasternDateString();
-        window.location.href = `{{ url_for('shifts.shifts') }}?date=${dateString}`;
+        window.location.href = buildShiftsUrl(dateString);
     }
 
     function renderCalendar() {
@@ -1038,7 +780,6 @@
 
     document.addEventListener('DOMContentLoaded', () => {
       const sortButton = document.getElementById('hour-sort-toggle');
-      const sortMetricSelect = document.getElementById('sort-metric-select');
 
       if (!sortButton) {
         document.body.classList.remove('hour-sort-initializing');
@@ -1047,7 +788,6 @@
       }
 
       let sortDescending = false;
-      let sortMetric = sortMetricSelect ? sortMetricSelect.value || 'capacity' : 'capacity';
 
       const markSortReady = () => {
         document.body.classList.remove('hour-sort-initializing');
@@ -1055,7 +795,10 @@
       };
 
       const updateButtonLabel = () => {
-        sortButton.textContent = sortDescending ? 'Direction: Descending' : 'Direction: Ascending';
+        const label = sortButton.querySelector('.sort-direction-label');
+        const arrow = sortButton.querySelector('.sort-direction-arrow');
+        if (label) label.textContent = sortDescending ? 'Descending' : 'Ascending';
+        if (arrow) arrow.innerHTML = sortDescending ? '&#x2191;' : '&#x2193;';
       };
 
       const parseSortTime = (value) => {
@@ -1063,38 +806,132 @@
         return Number.isNaN(parsed) ? null : parsed;
       };
 
-      const parseCapacityRatio = (value) => {
-        if (value === null || value === undefined || value === '') {
-          return null;
-        }
-        const parsed = Number.parseFloat(value);
-        return Number.isNaN(parsed) ? null : parsed;
-      };
-
-      const getSortValue = (wrapper, metric) => {
+      const getSortValue = (wrapper) => {
         const fallbackValue = sortDescending ? Number.NEGATIVE_INFINITY : Number.POSITIVE_INFINITY;
-
-        if (metric === 'capacity') {
-          const ratio = parseCapacityRatio(wrapper.getAttribute('data-capacity-ratio'));
-          return ratio === null ? fallbackValue : ratio;
-        }
-
         const time = parseSortTime(wrapper.getAttribute('data-sort-time'));
         return time === null ? fallbackValue : time;
+      };
+
+      const getTrickleSeverityClasses = (backlog) => {
+        if (!Number.isFinite(backlog) || backlog <= 0) {
+          return {
+            arrow: 'text-gray-400',
+            number: 'text-gray-500',
+            banner: 'text-gray-700 border-gray-300 bg-gray-50'
+          };
+        }
+
+        if (backlog <= 2) {
+          return {
+            arrow: 'text-green-300',
+            number: 'text-green-400 font-bold',
+            banner: 'text-green-800 border-green-300 bg-green-50'
+          };
+        }
+
+        if (backlog < 5) {
+          return {
+            arrow: 'text-amber-200',
+            number: 'text-amber-300 font-bold',
+            banner: 'text-amber-700 border-amber-300 bg-amber-50'
+          };
+        }
+
+        if (backlog < 10) {
+          return {
+            arrow: 'text-yellow-200',
+            number: 'text-yellow-300 font-bold',
+            banner: 'text-yellow-800 border-yellow-300 bg-yellow-50'
+          };
+        }
+
+        return {
+          arrow: 'text-red-300',
+          number: 'text-red-400 font-bold',
+          banner: 'text-red-800 border-red-300 bg-red-50'
+        };
+      };
+
+      const injectTrickleArrows = (sortedContainer, allDayBodies) => {
+        // Remove existing arrows and prev/next containers
+        sortedContainer.querySelectorAll('.trickle-arrow, .trickle-prev-next').forEach(el => el.remove());
+
+        const wrappers = Array.from(sortedContainer.querySelectorAll('.relative.group[data-sort-time]'));
+        if (!wrappers.length) return;
+
+        const getHour = (el) => parseInt(el.getAttribute('data-hour') || '0', 10);
+        const arrowChar = sortDescending ? '&#x2191;' : '&#x2193;';
+
+        // "From Prev" before hour 0 card
+        const hour0Card = wrappers.find(w => getHour(w) === 0);
+        const hour0Backlog = hour0Card ? parseFloat(hour0Card.getAttribute('data-backlog') || '0') : 0;
+
+        if (hour0Card && hour0Backlog > 0) {
+          const prevSeverityClasses = getTrickleSeverityClasses(hour0Backlog);
+          const prevDiv = document.createElement('div');
+          prevDiv.className = 'trickle-prev-next flex items-center justify-center py-1.5 text-xs font-semibold rounded border ' + prevSeverityClasses.banner;
+          prevDiv.innerHTML = 'From Prev Day: ' + hour0Backlog.toFixed(1) + ' RVUs';
+          hour0Card.parentNode.insertBefore(prevDiv, hour0Card);
+        }
+
+        // Arrows between consecutive cards
+        const currentWrappers = Array.from(sortedContainer.querySelectorAll('.relative.group[data-sort-time]'));
+        for (let i = 0; i < currentWrappers.length - 1; i++) {
+          const nextWrapper = currentWrappers[i + 1];
+          const nextBacklog = parseFloat(nextWrapper.getAttribute('data-backlog') || '0');
+          const severityClasses = getTrickleSeverityClasses(nextBacklog);
+          const trickleLabel = 'Trickle RVUs: ' + nextBacklog.toFixed(1);
+
+          const arrowDiv = document.createElement('div');
+            arrowDiv.className = 'trickle-arrow flex items-center justify-between px-3 py-1.5 text-sm rounded bg-gray-800 bg-opacity-40 border border-gray-600';
+            arrowDiv.innerHTML = '<span class="' + severityClasses.arrow + ' text-base">' + arrowChar + '</span>'
+              + '<span class="relative inline-flex items-center group">'
+              + '<span class="' + severityClasses.number + ' text-sm" title="' + trickleLabel + '">' + nextBacklog.toFixed(1) + '</span>'
+              + '<span class="absolute left-1/2 -translate-x-1/2 bottom-full mb-1 w-max bg-white border border-gray-300 rounded shadow-lg px-3 py-1 text-xs text-gray-900 opacity-0 group-hover:opacity-100 pointer-events-none transition-opacity z-50 whitespace-nowrap shifts-tooltip">' + trickleLabel + '</span>'
+              + '</span>'
+              + '<span class="' + severityClasses.arrow + ' text-base">' + arrowChar + '</span>';
+            nextWrapper.parentNode.insertBefore(arrowDiv, nextWrapper);
+        }
+
+        // "Into Next" after hour 23 — use next day column's hour 0 backlog
+        const hour23Card = wrappers.find(w => getHour(w) === 23);
+        if (hour23Card && allDayBodies) {
+          const dayBodyArr = Array.from(allDayBodies);
+          const currentDayIdx = dayBodyArr.indexOf(sortedContainer.closest('.shifts-day-body'));
+          const nextDayBody = currentDayIdx >= 0 ? dayBodyArr[currentDayIdx + 1] : null;
+          let intoNextVal = 0;
+          if (nextDayBody) {
+            const nextH0 = nextDayBody.querySelector('[data-hour="0"]');
+            intoNextVal = nextH0 ? parseFloat(nextH0.getAttribute('data-backlog') || '0') : 0;
+          }
+          if (intoNextVal > 0) {
+            const nextSeverityClasses = getTrickleSeverityClasses(intoNextVal);
+            const nextDiv = document.createElement('div');
+            nextDiv.className = 'trickle-prev-next flex items-center justify-center py-1.5 text-xs font-semibold rounded border ' + nextSeverityClasses.banner;
+            nextDiv.innerHTML = 'Into Next Day: ' + intoNextVal.toFixed(1) + ' RVUs';
+            if (hour23Card.nextSibling) {
+              hour23Card.parentNode.insertBefore(nextDiv, hour23Card.nextSibling);
+            } else {
+              sortedContainer.appendChild(nextDiv);
+            }
+          }
+        }
       };
 
       const sortHourTiles = () => {
         document.body.classList.add('hour-sort-active');
 
-        document.querySelectorAll('.shifts-day-body').forEach(dayBody => {
+        const allDayBodies = document.querySelectorAll('.shifts-day-body');
+
+        allDayBodies.forEach(dayBody => {
           const wrappers = Array.from(dayBody.querySelectorAll('.relative.group[data-sort-time]'));
           if (!wrappers.length) {
             return;
           }
 
           wrappers.sort((a, b) => {
-            const valueA = getSortValue(a, sortMetric);
-            const valueB = getSortValue(b, sortMetric);
+            const valueA = getSortValue(a);
+            const valueB = getSortValue(b);
             return sortDescending ? valueB - valueA : valueA - valueB;
           });
 
@@ -1111,6 +948,14 @@
           });
         });
 
+        // Inject arrows after all days are sorted (need cross-day access)
+        allDayBodies.forEach(dayBody => {
+          const sortedContainer = dayBody.querySelector('.sorted-hour-container');
+          if (sortedContainer) {
+            injectTrickleArrows(sortedContainer, allDayBodies);
+          }
+        });
+
         window.requestAnimationFrame(() => {
           document.dispatchEvent(new CustomEvent('shifts:refreshFilters'));
           markSortReady();
@@ -1122,13 +967,6 @@
         updateButtonLabel();
         sortHourTiles();
       });
-
-      if (sortMetricSelect) {
-        sortMetricSelect.addEventListener('change', (event) => {
-          sortMetric = event.target.value;
-          sortHourTiles();
-        });
-      }
 
       updateButtonLabel();
       sortHourTiles();
@@ -1152,6 +990,6 @@
       timeout = setTimeout(() => func.apply(this, args), wait);
     };
   }
-</script>
-{# closes Alpine scope #}
+    </script>
+    {# closes Alpine scope #}
 {% endblock %}

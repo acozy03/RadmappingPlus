@@ -1,17 +1,17 @@
 <!DOCTYPE html>
 <html lang="en">
-<head>
-  <meta charset="UTF-8">
-  <title>{% block title %}RadMapping+{% endblock %}</title>
-   <script src="https://cdn.tailwindcss.com"></script>
-  <script>
-  tailwind.config = { darkMode: ['class', '[data-theme="dark"]'] }
-</script>
-
- 
-  <link rel="icon" href="{{ url_for('static', filename='favicon.png') }}" type="image/x-icon">
-  <script defer src="https://unpkg.com/alpinejs@3.x.x/dist/cdn.min.js"></script>
-  <script>
+    <head>
+        <meta charset="UTF-8">
+        <title>
+            {% block title %}RadMapping+{% endblock %}
+        </title>
+        <script src="https://cdn.tailwindcss.com"></script>
+        <script>tailwind.config = { darkMode: ['class', '[data-theme="dark"]'] }</script>
+        <link rel="icon"
+              href="{{ url_for('static', filename='favicon.png') }}"
+              type="image/x-icon">
+        <script defer src="https://unpkg.com/alpinejs@3.x.x/dist/cdn.min.js"></script>
+        <script>
     (function() {
       try {
         const storedTheme = localStorage.getItem('theme');
@@ -24,142 +24,191 @@
         document.documentElement.setAttribute('data-theme', 'light');
       }
     })();
-  </script>
-  <link rel="stylesheet" href="{{ url_for('static', filename='dashboard.css') }}">
-  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
-</head>
-<body class="bg-gray-100 text-gray-800 overflow-x-hidden">
-<div class="dashboard-container relative min-h-screen">
-  <div class="relative z-10 {% if request.endpoint == 'landing.landing' %}h-screen flex flex-col{% endif %}">
-    {% if session.user and request.endpoint != 'auth.login' %}
-    <div class="navbar-wrapper">
-      <nav class="navbar-enhanced  {% if request.endpoint == 'landing.landing' %}flex-shrink-0{% endif %}">
-        <div class="navbar-gradient"></div>
-        
-        <div class="navbar-glass"></div>
-        
-        <div class="w-full  mx-auto px-4 relative z-10">
-          <div class="flex h-14 items-center justify-between">
-            <div class="flex-shrink-0">
-              <a href="{{ url_for('landing.landing') }}" class="navbar-logo-minimal group">
-                <div class="logo-icon-minimal">
-                  <i class="fas fa-heartbeat"></i>
-                </div>
-              </a>
+        </script>
+        <link rel="stylesheet"
+              href="{{ url_for('static', filename='dashboard.css') }}">
+        <link rel="stylesheet"
+              href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
+    </head>
+    <body class="bg-gray-100 text-gray-800 overflow-x-hidden">
+        <div id="page-loading-overlay"
+             class="page-loading-overlay"
+             aria-hidden="true">
+            <div class="page-loading-overlay__backdrop"></div>
+            <div class="page-loading-overlay__panel"
+                 role="status"
+                 aria-live="polite"
+                 aria-label="Loading">
+                <div class="page-loading-overlay__spinner" aria-hidden="true"></div>
+                <div class="page-loading-overlay__label">Loading page...</div>
             </div>
-
-            <div class="hidden lg:flex items-center space-x-3">
-              {% set routes = [
-                {'endpoint': 'daily.daily', 'label': 'Daily Schedule'},
-                {'endpoint': 'monthly.monthly', 'label': 'Monthly Schedule'},
-                {'endpoint': 'shifts.shifts', 'label': 'Capacity'},
-                {'endpoint': 'doctors.doctor_list', 'label': 'Doctors'},
-                {'endpoint': 'facilities.facilities', 'label': 'Facilities'},
-                {'endpoint': 'specialties.specialties', 'label': 'Exam Types'},
-                {'endpoint': 'licenses.licenses_page', 'label': 'Licenses'},
-                {'endpoint': 'vacations.vacations_page', 'label': 'Vacations'},
-                {'endpoint': 'info.info', 'label': 'Information'},
-                {'endpoint': 'contacts.contacts', 'label': 'Contacts'},
-                {'endpoint': 'audit.view_audit_log', 'label': 'Audit Log'}
-              ] %}
-              
-              {% for route in routes %}
-              <a href="{{ url_for(route.endpoint) }}" 
-                 class="nav-item-minimal {% if request.endpoint == route.endpoint %}nav-item-active-minimal{% endif %}">
-                <span class="nav-text-minimal">{{ route.label }}</span>
-                <div class="nav-indicator-minimal"></div>
-              </a>
-              {% endfor %}
-            </div>
-
-            <div class="lg:hidden">
-              <button class="mobile-menu-btn" onclick="toggleMobileMenu()">
-                <div class="hamburger-line"></div>
-                <div class="hamburger-line"></div>
-                <div class="hamburger-line"></div>
-              </button>
-            </div>
-
-            <div class="flex-shrink-0">
-              {% set user = session.user %}
-              {% if user %}
-              {% if user.name %}
-                {% set display_name = user.name %}
-              {% elif user.email %}
-                {% set display_name = user.email.split('@')[0] %}
-              {% else %}
-                {% set display_name = 'User' %}
-              {% endif %}
-              {% set avatar_url = user.avatar_url %}
-              {% else %}
-                {% set display_name = 'User' %}
-                {% set avatar_url = None %}
-              {% endif %}
-              <div class="user-section user-menu" id="userMenu">
-                <button type="button" id="userMenuButton" class="user-avatar-button" aria-haspopup="true" aria-expanded="false" aria-label="Open user menu" title="{{ display_name }}">
-                  {% if avatar_url %}
-                    <img src="{{ avatar_url }}" alt="{{ display_name }} avatar" class="user-avatar-image" referrerpolicy="no-referrer">
-                  {% else %}
-                    <span class="user-avatar-fallback">{{ display_name[0]|upper }}</span>
-                  {% endif %}
-                </button>
-                <div class="user-dropdown" id="userDropdown" role="menu" aria-labelledby="userMenuButton">
-                  <div class="user-dropdown-header">
-                    <span class="user-dropdown-name">{{ display_name }}</span>
-                    {% if user and user.email %}
-                    <span class="user-dropdown-email">{{ user.email }}</span>
+        </div>
+        <div class="dashboard-container relative min-h-screen">
+            <div class="relative z-10 {% if request.endpoint == 'landing.landing' %}h-screen flex flex-col{% endif %}">
+                {% if session.user and request.endpoint != 'auth.login' %}
+                    <div class="navbar-wrapper">
+                        <nav class="navbar-enhanced  {% if request.endpoint == 'landing.landing' %}flex-shrink-0{% endif %}">
+                            <div class="navbar-gradient"></div>
+                            <div class="navbar-glass"></div>
+                            <div class="w-full  mx-auto px-4 relative z-10">
+                                <div class="flex h-14 items-center justify-between">
+                                    <div class="flex-shrink-0">
+                                        <a href="{{ url_for('landing.landing') }}"
+                                           class="navbar-logo-minimal group">
+                                            <div class="logo-icon-minimal">
+                                                <i class="fas fa-heartbeat"></i>
+                                            </div>
+                                        </a>
+                                    </div>
+                                    <div class="hidden lg:flex items-center space-x-3">
+                                        {% set routes = [
+                                            {
+                                                "endpoint": "daily.daily",
+                                                "label": "Daily Schedule"
+                                            },
+                                            {
+                                                "endpoint": "monthly.monthly",
+                                                "label": "Monthly Schedule"
+                                            },
+                                            {
+                                                "endpoint": "shifts.shifts",
+                                                "label": "Capacity"
+                                            },
+                                            {
+                                                "endpoint": "doctors.doctor_list",
+                                                "label": "Doctors"
+                                            },
+                                            {
+                                                "endpoint": "facilities.facilities",
+                                                "label": "Facilities"
+                                            },
+                                            {
+                                                "endpoint": "specialties.specialties",
+                                                "label": "Exam Types"
+                                            },
+                                            {
+                                                "endpoint": "licenses.licenses_page",
+                                                "label": "Licenses"
+                                            },
+                                            {
+                                                "endpoint": "vacations.vacations_page",
+                                                "label": "Vacations"
+                                            },
+                                            {
+                                                "endpoint": "info.info",
+                                                "label": "Information"
+                                            },
+                                            {
+                                                "endpoint": "contacts.contacts",
+                                                "label": "Contacts"
+                                            },
+                                            {
+                                                "endpoint": "audit.view_audit_log",
+                                                "label": "Audit Log"
+                                            }
+                                        ] %}
+                                        {% for route in routes %}
+                                            <a href="{{ url_for(route.endpoint) }}"
+                                               class="nav-item-minimal {% if request.endpoint == route.endpoint %}nav-item-active-minimal{% endif %}">
+                                                <span class="nav-text-minimal">{{ route.label }}</span>
+                                                <div class="nav-indicator-minimal"></div>
+                                            </a>
+                                        {% endfor %}
+                                    </div>
+                                    <div class="lg:hidden">
+                                        <button class="mobile-menu-btn" onclick="toggleMobileMenu()">
+                                            <div class="hamburger-line"></div>
+                                            <div class="hamburger-line"></div>
+                                            <div class="hamburger-line"></div>
+                                        </button>
+                                    </div>
+                                    <div class="flex-shrink-0">
+                                        {% set user = session.user %}
+                                        {% if user %}
+                                            {% if user.name %}
+                                                {% set display_name = user.name %}
+                                            {% elif user.email %}
+                                                {% set display_name = user.email.split('@')[0] %}
+                                            {% else %}
+                                                {% set display_name = "User" %}
+                                            {% endif %}
+                                            {% set avatar_url = user.avatar_url %}
+                                        {% else %}
+                                            {% set display_name = "User" %}
+                                            {% set avatar_url = None %}
+                                        {% endif %}
+                                        <div class="user-section user-menu" id="userMenu">
+                                            <button type="button"
+                                                    id="userMenuButton"
+                                                    class="user-avatar-button"
+                                                    aria-haspopup="true"
+                                                    aria-expanded="false"
+                                                    aria-label="Open user menu"
+                                                    title="{{ display_name }}">
+                                                {% if avatar_url %}
+                                                    <img src="{{ avatar_url }}"
+                                                         alt="{{ display_name }} avatar"
+                                                         class="user-avatar-image"
+                                                         referrerpolicy="no-referrer">
+                                                {% else %}
+                                                    <span class="user-avatar-fallback">{{ display_name[0]|upper }}</span>
+                                                {% endif %}
+                                            </button>
+                                            <div class="user-dropdown"
+                                                 id="userDropdown"
+                                                 role="menu"
+                                                 aria-labelledby="userMenuButton">
+                                                <div class="user-dropdown-header">
+                                                    <span class="user-dropdown-name">{{ display_name }}</span>
+                                                    {% if user and user.email %}<span class="user-dropdown-email">{{ user.email }}</span>{% endif %}
+                                                </div>
+                                                <button type="button"
+                                                        id="theme-toggle"
+                                                        class="user-dropdown-item"
+                                                        role="menuitem">
+                                                    Switch to <i class="fas fa-moon"></i>
+                                                </button>
+                                                <a href="{{ url_for('auth.logout') }}"
+                                                   class="user-dropdown-item"
+                                                   role="menuitem">
+                                                    <i class="fas fa-sign-out-alt"></i>
+                                                    <span>Logout</span>
+                                                </a>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                            <div class="mobile-menu" id="mobileMenu">
+                                <div class="mobile-menu-content">
+                                    {% for route in routes %}
+                                        <a href="{{ url_for(route.endpoint) }}"
+                                           class="mobile-nav-item {% if request.endpoint == route.endpoint %}mobile-nav-active{% endif %}">
+                                            <span>{{ route.label }}</span>
+                                        </a>
+                                    {% endfor %}
+                                </div>
+                            </div>
+                        </nav>
+                    </div>
+                {% endif %}
+                {% if request.endpoint == 'auth.login' %}
+                    {% block login_content %}{% endblock %}
+                {% else %}
+                    {% if request.endpoint == 'landing.landing' %}
+                        <div class="flex-1 overflow-hidden">
+                        {% else %}
+                            <div class="max-w-[115rem] mx-auto px-6 py-8 mt-6 bg-white rounded shadow">
+                            {% endif %}
+                            {% block content %}{% endblock %}
+                        </div>
                     {% endif %}
-                  </div>
-                  <button type="button" id="theme-toggle" class="user-dropdown-item" role="menuitem">
-                    Switch to <i class="fas fa-moon"></i>
-                  </button>
-                  <a href="{{ url_for('auth.logout') }}" class="user-dropdown-item" role="menuitem">
-                    <i class="fas fa-sign-out-alt"></i>
-                    <span>Logout</span>
-                  </a>
-                </div>
-              </div>
-            </div>
-          </div>
-        </div>
-
-        <div class="mobile-menu" id="mobileMenu">
-          <div class="mobile-menu-content">
-            {% for route in routes %}
-            <a href="{{ url_for(route.endpoint) }}" 
-               class="mobile-nav-item {% if request.endpoint == route.endpoint %}mobile-nav-active{% endif %}">
-              <span>{{ route.label }}</span>
-            </a>
-            {% endfor %}
-          </div>
-        </div>
-      </nav>
-    </div>
-    {% endif %}
-
-    {% if request.endpoint == 'auth.login' %}
-      {% block login_content %}{% endblock %}
-    {% else %}
-      {% if request.endpoint == 'landing.landing' %}
-        <div class="flex-1 overflow-hidden">
-      {% else %}
-        <div class="max-w-[115rem] mx-auto px-6 py-8 mt-6 bg-white rounded shadow">
-
-      {% endif %}
-          {% block content %}{% endblock %}
-        </div>
-    {% endif %}
-
-    <!-- {% if session.user %}
+                    <!-- {% if session.user %}
       {% include 'chatbot.html' %}
     {% endif %} -->
-  </div>
-
-{% if request.endpoint == 'landing.landing' %}
-</div>
-{% endif %}
-
-<script>
+                </div>
+                {% if request.endpoint == 'landing.landing' %}</div>{% endif %}
+            <script>
 function toggleMobileMenu() {
   const menu = document.getElementById('mobileMenu');
   const btn = document.querySelector('.mobile-menu-btn');
@@ -183,6 +232,64 @@ document.addEventListener('DOMContentLoaded', function() {
   const themeToggle = document.getElementById('theme-toggle');
   const userMenuButton = document.getElementById('userMenuButton');
   const userDropdown = document.getElementById('userDropdown');
+  const pageLoadingOverlay = document.getElementById('page-loading-overlay');
+
+  const showPageLoadingOverlay = function() {
+    if (!pageLoadingOverlay) {
+      return;
+    }
+    pageLoadingOverlay.classList.add('page-loading-overlay--visible');
+    pageLoadingOverlay.setAttribute('aria-hidden', 'false');
+    document.body.classList.add('page-loading-active');
+  };
+
+  const hidePageLoadingOverlay = function() {
+    if (!pageLoadingOverlay) {
+      return;
+    }
+    pageLoadingOverlay.classList.remove('page-loading-overlay--visible');
+    pageLoadingOverlay.setAttribute('aria-hidden', 'true');
+    document.body.classList.remove('page-loading-active');
+  };
+
+  window.showPageLoadingOverlay = showPageLoadingOverlay;
+  window.hidePageLoadingOverlay = hidePageLoadingOverlay;
+
+  const shouldHandleNavigationLink = function(link, event) {
+    if (!link || event.defaultPrevented) {
+      return false;
+    }
+    if (event.button !== 0 || event.metaKey || event.ctrlKey || event.shiftKey || event.altKey) {
+      return false;
+    }
+    if (link.target && link.target.toLowerCase() === '_blank') {
+      return false;
+    }
+    if (link.hasAttribute('download')) {
+      return false;
+    }
+    const href = link.getAttribute('href');
+    if (!href || href.startsWith('#') || href.startsWith('javascript:')) {
+      return false;
+    }
+    let destination;
+    try {
+      destination = new URL(link.href, window.location.href);
+    } catch (error) {
+      return false;
+    }
+    if (destination.origin !== window.location.origin) {
+      return false;
+    }
+    if (
+      destination.pathname === window.location.pathname &&
+      destination.search === window.location.search &&
+      destination.hash === window.location.hash
+    ) {
+      return false;
+    }
+    return true;
+  };
 
   const applyTheme = function(theme) {
     root.setAttribute('data-theme', theme);
@@ -279,8 +386,38 @@ document.addEventListener('DOMContentLoaded', function() {
       }
     });
   }
-});
-</script>
 
-</body>
-</html>
+  document.addEventListener('click', function(event) {
+    const link = event.target.closest('a[href]');
+    if (!shouldHandleNavigationLink(link, event)) {
+      return;
+    }
+    showPageLoadingOverlay();
+  });
+
+  document.addEventListener('submit', function(event) {
+    if (event.defaultPrevented) {
+      return;
+    }
+    const form = event.target;
+    if (!(form instanceof HTMLFormElement)) {
+      return;
+    }
+    showPageLoadingOverlay();
+  });
+
+  window.addEventListener('beforeunload', function() {
+    showPageLoadingOverlay();
+  });
+
+  window.addEventListener('pageshow', function() {
+    hidePageLoadingOverlay();
+  });
+
+  window.addEventListener('load', function() {
+    hidePageLoadingOverlay();
+  });
+});
+            </script>
+        </body>
+    </html>
