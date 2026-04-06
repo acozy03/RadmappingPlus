@@ -1,0 +1,79 @@
+name: Build and Deploy
+
+on:
+  push:
+    branches:
+      - master
+      - pre-prod
+
+permissions:
+  contents: read
+  id-token: write
+
+env:
+  APP_DIR: RadMapping+
+  IMAGE_NAME: gcr.io/${{ secrets.GCP_PROJECT_ID }}/flask-app
+  SERVICE_NAME_PROD: radmapping
+  SERVICE_NAME_STAGING: radmapping-staging
+  RUNTIME_SERVICE_ACCOUNT: radmapping-runtime@${{ secrets.GCP_PROJECT_ID }}.iam.gserviceaccount.com
+  REGION: us-central1
+  SECRET_MAPPINGS: >-
+    SUPABASE_URL=SUPABASE_URL:latest,
+    SUPABASE_KEY=SUPABASE_KEY:latest,
+    SUPABASE_ANON_KEY=SUPABASE_KEY:latest,
+    SUPABASE_SUPER_KEY=SUPABASE_SUPER_KEY:latest,
+    SECRET_KEY=SECRET_KEY:latest,
+    N8N_WEBHOOK_URL=N8N_WEBHOOK_URL:latest,
+    N8N_WEBHOOK_SECRET=N8N_WEBHOOK_SECRET:latest
+
+jobs:
+  build-and-deploy:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Authenticate to Google Cloud
+        uses: google-github-actions/auth@v2
+        with:
+          workload_identity_provider: ${{ secrets.GCP_WIF_PROVIDER }}
+          service_account: ${{ secrets.GCP_SA_EMAIL }}
+
+      - name: Set up Cloud SDK
+        uses: google-github-actions/setup-gcloud@v2
+        with:
+          project_id: ${{ secrets.GCP_PROJECT_ID }}
+
+      - name: Submit Build
+        run: |
+          gcloud builds submit "${{ env.APP_DIR }}" \
+            --tag "${{ env.IMAGE_NAME }}:${{ github.sha }}" \
+            --project "${{ secrets.GCP_PROJECT_ID }}"
+
+      - name: Deploy to Staging
+        if: github.ref == 'refs/heads/pre-prod'
+        run: |
+          gcloud run deploy "${{ env.SERVICE_NAME_STAGING }}" \
+            --image "${{ env.IMAGE_NAME }}:${{ github.sha }}" \
+            --platform managed \
+            --region "${{ env.REGION }}" \
+            --min-instances=1 \
+            --memory=3Gi \
+            --service-account "${{ env.RUNTIME_SERVICE_ACCOUNT }}" \
+            --set-secrets "${{ env.SECRET_MAPPINGS }}" \
+            --allow-unauthenticated \
+            --project "${{ secrets.GCP_PROJECT_ID }}"
+
+      - name: Deploy to Production
+        if: github.ref == 'refs/heads/master'
+        run: |
+          gcloud run deploy "${{ env.SERVICE_NAME_PROD }}" \
+            --image "${{ env.IMAGE_NAME }}:${{ github.sha }}" \
+            --platform managed \
+            --region "${{ env.REGION }}" \
+            --min-instances=1 \
+            --memory=3Gi \
+            --service-account "${{ env.RUNTIME_SERVICE_ACCOUNT }}" \
+            --set-secrets "${{ env.SECRET_MAPPINGS }}" \
+            --allow-unauthenticated \
+            --project "${{ secrets.GCP_PROJECT_ID }}"
