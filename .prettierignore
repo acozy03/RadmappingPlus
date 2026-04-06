@@ -1,0 +1,7 @@
+node_modules/
+.husky/
+RadMapping+/app/templates/**
+RadMapping+/**/*.py
+RadMapping+/.env
+RadMapping+/.env.yaml
+RadMapping+/index_store/**
