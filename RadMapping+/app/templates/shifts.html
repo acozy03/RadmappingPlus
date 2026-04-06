@@ -51,6 +51,73 @@
   [data-theme="dark"] .shifts-modal .text-blue-700 {
     color: #93c5fd; /* blue-300 */
   }
+
+  [data-theme="dark"] .shifts-help-card {
+    background: #0f172a !important;
+    border-color: rgba(96, 165, 250, 0.35) !important;
+    color: #e2e8f0 !important;
+  }
+
+  [data-theme="dark"] .shifts-help-card .bg-white,
+  [data-theme="dark"] .shifts-help-card .bg-gray-50 {
+    background: rgba(30, 41, 59, 0.92) !important;
+  }
+
+  [data-theme="dark"] .shifts-help-card .bg-blue-50 {
+    background: rgba(30, 64, 175, 0.28) !important;
+  }
+
+  [data-theme="dark"] .shifts-help-card .bg-red-50 {
+    background: rgba(127, 29, 29, 0.38) !important;
+  }
+
+  [data-theme="dark"] .shifts-help-card .bg-amber-50 {
+    background: rgba(120, 53, 15, 0.36) !important;
+  }
+
+  [data-theme="dark"] .shifts-help-card .bg-emerald-50,
+  [data-theme="dark"] .shifts-help-card .bg-green-50 {
+    background: rgba(6, 78, 59, 0.36) !important;
+  }
+
+  [data-theme="dark"] .shifts-help-card .bg-yellow-50 {
+    background: rgba(113, 63, 18, 0.36) !important;
+  }
+
+  [data-theme="dark"] .shifts-help-card .text-gray-900,
+  [data-theme="dark"] .shifts-help-card .text-gray-700 {
+    color: #e2e8f0 !important;
+  }
+
+  [data-theme="dark"] .shifts-help-card .text-gray-600 {
+    color: #cbd5e1 !important;
+  }
+
+  [data-theme="dark"] .shifts-help-card .text-blue-950,
+  [data-theme="dark"] .shifts-help-card .text-blue-900,
+  [data-theme="dark"] .shifts-help-card .text-blue-700 {
+    color: #bfdbfe !important;
+  }
+
+  [data-theme="dark"] .shifts-help-card .text-red-900,
+  [data-theme="dark"] .shifts-help-card .text-red-700,
+  [data-theme="dark"] .shifts-help-card .text-red-800 {
+    color: #fecaca !important;
+  }
+
+  [data-theme="dark"] .shifts-help-card .text-amber-900,
+  [data-theme="dark"] .shifts-help-card .text-amber-800,
+  [data-theme="dark"] .shifts-help-card .text-amber-700,
+  [data-theme="dark"] .shifts-help-card .text-yellow-800 {
+    color: #fde68a !important;
+  }
+
+  [data-theme="dark"] .shifts-help-card .text-emerald-900,
+  [data-theme="dark"] .shifts-help-card .text-emerald-700,
+  [data-theme="dark"] .shifts-help-card .text-green-700,
+  [data-theme="dark"] .shifts-help-card .text-green-800 {
+    color: #bbf7d0 !important;
+  }
     </style>
     <div x-data="{ show: false, doctors: [], time: '', date: '', uncoveredStates: [], coveredStates: [], stateDoctorMap: {}, matchedStates: [], hoveredState: '', facilityDoctorMap: {}, hoveredFacility: '', hourDetail: null, hourLoading: false, // What-if simulation: per-doctor base RVU overrides (temporary) baseOverrides: {}, // What-if panel collapsed/expanded state whatIfOpen: true, // Units toggle for modal values: 'rvus' or 'cases' units: 'rvus', // Distribution mode for volatility adjustments pageDistributionMode: '{{ distribution_mode }}', distributionMode: '{{ distribution_mode }}', // Match backend modality RVU chunks for case conversion modalityChunks: { 'XR': 0.2, 'CT': 1.1, 'US': 0.5, 'MRI': 1.4, 'MG': 0.8, 'NM': 2.5, 'PT': 2.5, 'IR': 4.0, 'RF': 0.7, 'SC': 0.6, 'OT': 0.3, 'XA': 0.8, 'ECG': 0.2, }, chunkFor(mod) { const m = (mod || '').toUpperCase(); return this.modalityChunks[m] || 0.2; }, toCases(v, mod) { const ch = this.chunkFor(mod); if (!ch || !isFinite(ch) || ch <= 0) return 0; const n = Math.round((Number(v) || 0) / ch); return isFinite(n) ? n : 0; }, fmtNumber(v) { const val = Number(v) || 0; return Math.abs(val) < 1 ? val.toFixed(3) : val.toFixed(1); }, fmtValue(v, mod) { return this.units === 'rvus' ? this.fmtNumber(v) : String(this.toCases(v, mod)); }, sumCasesByModality(list) { return (list || []).reduce((t, m) => t + this.toCases(m?.expected_rvus || 0, m?.modality), 0); }, totalExpectedCases() { return this.sumCasesByModality(this.hourDetail?.by_modality || []); }, totalSupplyCases() { const allocs = (this.hourDetail?.doctor_allocations || []).flatMap(d => d.allocations || []); return allocs.reduce((t, a) => t + this.toCases(a?.allocated_rvus || 0, a?.modality), 0); } }"
          x-effect="document.body.classList.toggle(&quot;overflow-hidden&quot;, show)"
@@ -147,7 +214,7 @@
             </div>
         </div>
         {# Filter Controls #}
-        <div x-data="{ coverageFiltersEnabled: {{ 'true' if coverage_filters_enabled else 'false' }},
+        <div x-data="{ coverageFiltersEnabled: {{ 'true' if coverage_filters_enabled else 'false' }}, helpOpen: false,
             {% if coverage_filters_enabled %}stateQuery: '', facilityQuery: '', facilityMatches: [], matchedStates: [],{% endif %}
             init() { const reapplyFilters = () => { window.requestAnimationFrame(() => this.applyFilters()); };  document.addEventListener('shifts:refreshFilters', reapplyFilters);  this.$el.addEventListener('alpine:destroy', () => { document.removeEventListener('shifts:refreshFilters', reapplyFilters); });  this.$nextTick(() => this.applyFilters()); }, applyFilters() {
             {% if coverage_filters_enabled %}
@@ -157,8 +224,8 @@
             {% if coverage_filters_enabled %}
                 updateStateSuggestions() { const query = this.stateQuery.trim().toLowerCase(); const allStates = new Set();  document.querySelectorAll('.hour-slot-div').forEach(slotElement => { const states = JSON.parse(slotElement.getAttribute('data-covered-states') || '[]'); states.forEach(s => allStates.add(s)); });  this.matchedStates = [...allStates].filter(s => s.toLowerCase().includes(query)).slice(0, 10); },  updateFacilitySuggestions() { const query = this.facilityQuery.trim().toLowerCase(); const allFacilities = new Set();  document.querySelectorAll('.hour-slot-div').forEach(slotElement => { const facilityData = JSON.parse(slotElement.getAttribute('data-facility-doctor-map') || '{}'); Object.keys(facilityData).forEach(fac => allFacilities.add(fac)); });  this.facilityMatches = [...allFacilities] .filter(f => f.toLowerCase().includes(query)) .slice(0, 10); }
             {% endif %}
-            }"  class="mb-6 p-4 bg-white rounded-lg shadow-sm border border-gray-200 shifts-filter-panel">
-            <div class="flex flex-col gap-3 md:flex-row md:items-center md:justify-between">
+            }" @keydown.escape.window="helpOpen = false" class="mb-6 p-4 bg-white rounded-lg shadow-sm border border-gray-200 shifts-filter-panel">
+            <div class="relative flex flex-col gap-3 md:flex-row md:items-center md:justify-between">
                 <div class="flex items-center gap-3 flex-wrap">
                     <span class="text-sm font-medium text-gray-700">Distribution:</span>
                     <div class="inline-flex rounded-md border border-blue-200 overflow-hidden shadow-sm">
@@ -176,6 +243,16 @@
                         </a>
                     </div>
                 </div>
+                <div class="flex justify-center md:absolute md:left-1/2 md:-translate-x-1/2">
+                    <button type="button"
+                            @click="helpOpen = true"
+                            class="inline-flex items-center gap-2 rounded-full border border-blue-200 bg-blue-50 px-3 py-1.5 text-sm font-medium text-blue-700 shadow-sm hover:bg-blue-100 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2"
+                            aria-label="Open capacity page help">
+                        <span class="flex h-5 w-5 items-center justify-center rounded-full bg-blue-600 text-xs font-bold text-white"
+                              aria-hidden="true">i</span>
+                        <span class="hidden sm:inline">How this works</span>
+                    </button>
+                </div>
                 <div class="flex items-center gap-2 flex-wrap md:justify-end">
                     <button id="hour-sort-toggle"
                             type="button"
@@ -184,6 +261,166 @@
                         <span class="sort-direction-label">Ascending</span>
                         <span class="sort-direction-arrow">&#x2193;</span>
                     </button>
+                </div>
+            </div>
+            <div x-show="helpOpen"
+                 x-transition.opacity
+                 @click="helpOpen = false"
+                 class="fixed inset-0 z-[9999] flex items-center justify-center bg-black bg-opacity-50 px-4"
+                 style="display: none">
+                <div @click.stop
+                     class="shifts-help-card max-h-[88vh] w-full max-w-5xl overflow-y-auto rounded-3xl bg-white shadow-2xl border border-blue-100">
+                    <div class="relative overflow-hidden rounded-t-3xl bg-gradient-to-r from-blue-900 via-blue-700 to-cyan-600 p-6 text-white">
+                        <div class="absolute -right-12 -top-12 h-36 w-36 rounded-full bg-white opacity-10"></div>
+                        <div class="absolute right-20 top-10 h-16 w-16 rounded-full border border-white border-opacity-30"></div>
+                        <div class="relative flex items-start justify-between gap-4">
+                            <div>
+                                <p class="text-xs font-semibold uppercase tracking-[0.28em] text-blue-100">Capacity guide</p>
+                                <h3 class="mt-2 text-2xl font-semibold">How to read this page</h3>
+                                <p class="mt-2 max-w-2xl text-sm text-blue-50">
+                                    Use this as a quick reference for the scenario buttons, hour tiles, trickle arrows, and the detailed hour modal.
+                                </p>
+                            </div>
+                            <button type="button"
+                                    @click="helpOpen = false"
+                                    class="rounded-full bg-white bg-opacity-15 px-3 py-1 text-2xl leading-none text-white hover:bg-opacity-25"
+                                    aria-label="Close capacity page help">&times;</button>
+                        </div>
+                    </div>
+                    <div class="space-y-5 p-5 text-sm text-gray-700">
+                        <section class="rounded-2xl border border-blue-100 bg-blue-50 p-4">
+                            <div class="flex flex-col gap-3 md:flex-row md:items-center md:justify-between">
+                                <div>
+                                    <h4 class="text-base font-semibold text-blue-950">Core idea</h4>
+                                    <p class="mt-1 text-blue-900">
+                                        Every hour is a supply-vs-demand comparison. Supply comes from doctors scheduled in that hour. Demand comes from the matching prior-week hour, adjusted by the selected distribution scenario.
+                                    </p>
+                                </div>
+                                <div class="grid grid-cols-3 gap-2 text-center text-xs font-semibold">
+                                    <div class="rounded-xl bg-white px-3 py-2 text-blue-700 shadow-sm">Blue = supply</div>
+                                    <div class="rounded-xl bg-white px-3 py-2 text-green-700 shadow-sm">Green = demand</div>
+                                    <div class="rounded-xl bg-white px-3 py-2 text-gray-700 shadow-sm">Percent = coverage</div>
+                                </div>
+                            </div>
+                        </section>
+                        <section>
+                            <div class="mb-3 flex items-center justify-between gap-3">
+                                <h4 class="text-base font-semibold text-gray-900">Distribution Scenarios</h4>
+                                <span class="rounded-full bg-gray-100 px-3 py-1 text-xs font-medium text-gray-600">Changes demand, supply, and trickle display</span>
+                            </div>
+                            <div class="grid gap-3 md:grid-cols-3">
+                                <article class="rounded-2xl border border-red-200 bg-red-50 p-4">
+                                    <div class="flex items-center justify-between">
+                                        <h5 class="font-semibold text-red-900">Worst</h5>
+                                        <span class="rounded-full bg-red-100 px-2 py-1 text-xs font-semibold text-red-700">High pressure</span>
+                                    </div>
+                                    <div class="mt-3 rounded-lg bg-white px-3 py-2 font-mono text-xs text-red-900 shadow-sm">
+                                        base + max(queue signals)
+                                    </div>
+                                    <p class="mt-3 text-red-900">
+                                        Uses the strongest queue pressure available, such as inherited backlog, trickle added, or inferred total-over-base demand.
+                                    </p>
+                                </article>
+                                <article class="rounded-2xl border border-amber-200 bg-amber-50 p-4">
+                                    <div class="flex items-center justify-between">
+                                        <h5 class="font-semibold text-amber-900">Normal</h5>
+                                        <span class="rounded-full bg-amber-100 px-2 py-1 text-xs font-semibold text-amber-700">Expected</span>
+                                    </div>
+                                    <div class="mt-3 rounded-lg bg-white px-3 py-2 font-mono text-xs text-amber-900 shadow-sm">base + trickle_added</div>
+                                    <p class="mt-3 text-amber-900">
+                                        Keeps the real trickle component in the hour instead of removing queue effects entirely.
+                                    </p>
+                                </article>
+                                <article class="rounded-2xl border border-emerald-200 bg-emerald-50 p-4">
+                                    <div class="flex items-center justify-between">
+                                        <h5 class="font-semibold text-emerald-900">Best</h5>
+                                        <span class="rounded-full bg-emerald-100 px-2 py-1 text-xs font-semibold text-emerald-700">Lower pressure</span>
+                                    </div>
+                                    <div class="mt-3 rounded-lg bg-white px-3 py-2 font-mono text-xs text-emerald-900 shadow-sm">
+                                        base + trickle_added - dropped
+                                    </div>
+                                    <p class="mt-3 text-emerald-900">
+                                        Assumes some queued work drops out when that column is available; otherwise it falls back to multiplier-based scaling.
+                                    </p>
+                                </article>
+                            </div>
+                        </section>
+                        <section class="grid gap-4 lg:grid-cols-[1.05fr_0.95fr]">
+                            <div class="rounded-2xl border border-gray-200 bg-gray-50 p-4">
+                                <h4 class="text-base font-semibold text-gray-900">Hour Tiles And Trickle Arrows</h4>
+                                <div class="mt-4 space-y-3">
+                                    <div class="rounded-xl bg-white p-3 shadow-sm">
+                                        <div class="flex items-center justify-between gap-3">
+                                            <span class="font-semibold text-gray-900">Tile numbers</span>
+                                            <span><span class="font-semibold text-blue-700">scheduled supply</span> vs <span class="font-semibold text-green-700">expected demand</span></span>
+                                        </div>
+                                        <p class="mt-1 text-xs text-gray-600">Hovering a tile shows the capacity ratio percentage.</p>
+                                    </div>
+                                    <div class="rounded-xl bg-white p-3 shadow-sm">
+                                        <div class="flex items-center justify-between gap-3">
+                                            <span class="font-semibold text-gray-900">Arrows</span>
+                                            <span class="font-mono text-xs text-gray-700">queue RVUs entering the next hour</span>
+                                        </div>
+                                        <p class="mt-1 text-xs text-gray-600">
+                                            The arrow number changes with the distribution mode because the queue component is scenario-adjusted.
+                                        </p>
+                                    </div>
+                                    <div class="grid grid-cols-2 gap-2 text-xs sm:grid-cols-4">
+                                        <span class="rounded-lg border border-green-200 bg-green-50 px-2 py-2 text-green-800">0-2: low</span>
+                                        <span class="rounded-lg border border-amber-200 bg-amber-50 px-2 py-2 text-amber-800">2-5: building</span>
+                                        <span class="rounded-lg border border-yellow-200 bg-yellow-50 px-2 py-2 text-yellow-800">5-10: heavy</span>
+                                        <span class="rounded-lg border border-red-200 bg-red-50 px-2 py-2 text-red-800">10+: critical</span>
+                                    </div>
+                                </div>
+                            </div>
+                            <div class="rounded-2xl border border-gray-200 bg-gray-50 p-4">
+                                <h4 class="text-base font-semibold text-gray-900">Sorting And Filters</h4>
+                                <div class="mt-4 space-y-3">
+                                    <div class="flex gap-3 rounded-xl bg-white p-3 shadow-sm">
+                                        <span class="flex h-7 w-7 shrink-0 items-center justify-center rounded-full bg-blue-100 font-semibold text-blue-700">1</span>
+                                        <p>Direction reorders the visible hour cards by time. It does not change any calculations.</p>
+                                    </div>
+                                    <div class="flex gap-3 rounded-xl bg-white p-3 shadow-sm">
+                                        <span class="flex h-7 w-7 shrink-0 items-center justify-center rounded-full bg-blue-100 font-semibold text-blue-700">2</span>
+                                        <p>State and facility filters highlight matching hours based on who is licensed or assigned.</p>
+                                    </div>
+                                    <div class="flex gap-3 rounded-xl bg-white p-3 shadow-sm">
+                                        <span class="flex h-7 w-7 shrink-0 items-center justify-center rounded-full bg-blue-100 font-semibold text-blue-700">3</span>
+                                        <p>Calendar navigation preserves the selected distribution when you move between weeks.</p>
+                                    </div>
+                                </div>
+                            </div>
+                        </section>
+                        <section class="rounded-2xl border border-gray-200 bg-white p-4 shadow-sm">
+                            <h4 class="text-base font-semibold text-gray-900">Inside The Hour Modal</h4>
+                            <div class="mt-4 grid gap-3 md:grid-cols-2">
+                                <div class="rounded-xl border border-gray-200 p-3">
+                                    <h5 class="font-semibold text-gray-900">Allocation detail</h5>
+                                    <p class="mt-1 text-gray-600">
+                                        The modal breaks demand into state and modality groups, then allocates each scheduled doctor&apos;s RVUs based on license coverage and modality fit.
+                                    </p>
+                                </div>
+                                <div class="rounded-xl border border-gray-200 p-3">
+                                    <h5 class="font-semibold text-gray-900">RVUs vs Cases</h5>
+                                    <p class="mt-1 text-gray-600">
+                                        This only changes display units. Case counts are derived from modality chunks, so the underlying allocation remains the same.
+                                    </p>
+                                </div>
+                                <div class="rounded-xl border border-gray-200 p-3">
+                                    <h5 class="font-semibold text-gray-900">Modal distribution menu</h5>
+                                    <p class="mt-1 text-gray-600">
+                                        Changing the scenario inside the modal refetches that hour and recalculates demand, queue multiplier, supply, and doctor allocations.
+                                    </p>
+                                </div>
+                                <div class="rounded-xl border border-gray-200 p-3">
+                                    <h5 class="font-semibold text-gray-900">What-if base RVUs</h5>
+                                    <p class="mt-1 text-gray-600">
+                                        Enter temporary doctor RVU overrides, then recalculate. Overrides are not saved and reset when the hour is reopened.
+                                    </p>
+                                </div>
+                            </div>
+                        </section>
+                    </div>
                 </div>
             </div>
             <div class="mt-4 pt-4 border-t border-gray-200 flex flex-col md:flex-row gap-4">
