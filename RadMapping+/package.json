@@ -3,15 +3,15 @@
   "private": true,
   "packageManager": "pnpm@10.6.5",
   "scripts": {
-    "prepare": "husky",
+    "prepare": "git config core.hooksPath RadMapping+/.husky/_",
     "format": "pnpm run format:prettier && pnpm run format:python && pnpm run format:templates",
     "format:prettier": "prettier --write . --ignore-unknown",
-    "format:python": "python -m ruff format RadMapping+",
-    "format:templates": "python -m djlint RadMapping+/app/templates --reformat --profile=jinja",
+    "format:python": "python -m ruff format .",
+    "format:templates": "python -m djlint app/templates --reformat --profile=jinja",
     "format:check": "pnpm run format:check:prettier && pnpm run format:check:python && pnpm run format:check:templates",
     "format:check:prettier": "prettier --check . --ignore-unknown",
-    "format:check:python": "python -m ruff format --check RadMapping+",
-    "format:check:templates": "python -m djlint RadMapping+/app/templates --check --profile=jinja",
+    "format:check:python": "python -m ruff format --check .",
+    "format:check:templates": "python -m djlint app/templates --check --profile=jinja",
     "commitlint": "commitlint --edit"
   },
   "devDependencies": {
@@ -22,7 +22,7 @@
     "prettier": "^3.5.3"
   },
   "lint-staged": {
-    "**/*.{md,json,yml,yaml,css}": "prettier --write",
+    "**/*.{md,json,yml,yaml,css}": "pnpm --dir RadMapping+ exec prettier --write",
     "RadMapping+/**/*.py": "python -m ruff format",
     "RadMapping+/app/templates/**/*.html": "python -m djlint --reformat --profile=jinja"
   }

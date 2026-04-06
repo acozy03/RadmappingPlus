@@ -1,0 +1,5 @@
+#!/usr/bin/env sh
+repo_root="$(git rev-parse --show-toplevel)"
+tool_root="$repo_root/RadMapping+"
+export PATH="$tool_root/node_modules/.bin:$PATH"
+"$tool_root/node_modules/.bin/commitlint" --config "$tool_root/commitlint.config.cjs" --edit "$1"
