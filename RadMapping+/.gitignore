@@ -1,8 +1,11 @@
+node_modules/
+.husky/_/
+.ruff_cache/
 __pycache__/
-utils/
+app/**/__pycache__/
+app/utils/
 *.env
 .env.yaml
 index_store/
 venv/
 myenv/
-

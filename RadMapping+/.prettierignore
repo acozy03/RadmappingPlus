@@ -1,0 +1,7 @@
+node_modules/
+.husky/
+app/templates/**
+**/*.py
+.env
+.env.yaml
+index_store/**
