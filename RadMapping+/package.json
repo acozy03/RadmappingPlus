@@ -22,8 +22,8 @@
     "prettier": "^3.5.3"
   },
   "lint-staged": {
-    "**/*.{md,json,yml,yaml,css}": "pnpm --dir RadMapping+ exec prettier --write",
-    "RadMapping+/**/*.py": "python -m ruff format",
-    "RadMapping+/app/templates/**/*.html": "python -m djlint --reformat --profile=jinja"
+    "**/*.{md,json,yml,yaml,css}": "pnpm exec prettier --write",
+    "**/*.py": "python -m ruff format",
+    "app/templates/**/*.html": "python scripts/run_djlint_reformat.py"
   }
 }

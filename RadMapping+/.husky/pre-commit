@@ -2,4 +2,4 @@
 repo_root="$(git rev-parse --show-toplevel)"
 tool_root="$repo_root/RadMapping+"
 export PATH="$tool_root/node_modules/.bin:$PATH"
-"$tool_root/node_modules/.bin/lint-staged" --cwd "$repo_root"
+"$tool_root/node_modules/.bin/lint-staged" --cwd "$tool_root"

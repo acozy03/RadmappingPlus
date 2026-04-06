@@ -9,11 +9,14 @@ from app.time_utils import eastern_now
 from app.middleware import with_supabase_auth
 from app.supabase_helper import fetch_all_rows
 
-shifts_bp = Blueprint('shifts', __name__)
+shifts_bp = Blueprint("shifts", __name__)
+
+
 def get_prev_week_same_day_and_hour(dt):
     return dt.date().isoformat(), dt.hour
 
-# not being used 
+
+# not being used
 # def get_prev_month_same_dow_and_hour(dt):
 #     year = dt.year
 #     month = dt.month
@@ -43,6 +46,8 @@ def get_prev_week_same_day_and_hour(dt):
 
 # Helper: Get latest non-zero monthly RVU for a doctor
 DAY_KEYS = ["mon", "tue", "wed", "thu", "fri", "sat", "sun"]
+
+
 def weekday_key(dt):
     try:
         return DAY_KEYS[dt.weekday()]
@@ -177,24 +182,108 @@ def adjusted_rvu_from_metrics(base_rvu, volatility, weights, distribution_mode):
         adjusted_rvu = base_val
     return adjusted_rvu
 
+
+def normalize_distribution_mode(mode):
+    clean_mode = str(mode or "normal").lower()
+    if clean_mode not in ("worst", "normal", "best"):
+        return "normal"
+    return clean_mode
+
+
+def adjusted_expected_rvus(
+    total_rvus, base_rvus, trickle_multiplier, distribution_mode
+):
+    try:
+        total_val = float(total_rvus or 0)
+    except Exception:
+        total_val = 0.0
+    try:
+        base_val = float(base_rvus) if base_rvus is not None else None
+    except Exception:
+        base_val = None
+    try:
+        tm_val = float(trickle_multiplier) if trickle_multiplier is not None else 1.0
+    except Exception:
+        tm_val = 1.0
+    if tm_val <= 0:
+        tm_val = 1.0
+
+    mode = normalize_distribution_mode(distribution_mode)
+    if mode == "normal" and base_val is not None:
+        return base_val
+    if mode == "best":
+        if base_val is not None:
+            return base_val / tm_val
+        return total_val / tm_val
+    return total_val
+
+
 def get_rvu_bg_color_class(ratio):
     if ratio is not None:
         if ratio < 0.5:
-            return 'bg-red-50'
+            return "bg-red-50"
         elif ratio < 0.7:
-            return 'bg-red-200'
+            return "bg-red-200"
         elif ratio <= 1.0:
-            return 'bg-yellow-100'
+            return "bg-yellow-100"
         else:
-            return 'bg-green-100'
-    return 'bg-gray-100' 
+            return "bg-green-100"
+    return "bg-gray-100"
+
+
 US_STATES = [
-    'Alabama', 'Alaska', 'Arizona', 'Arkansas', 'California', 'Colorado', 'Connecticut', 'Delaware', 'Florida', 'Georgia',
-    'Hawaii', 'Idaho', 'Illinois', 'Indiana', 'Iowa', 'Kansas', 'Kentucky', 'Louisiana', 'Maine', 'Maryland', 'Massachusetts',
-    'Michigan', 'Minnesota', 'Mississippi', 'Missouri', 'Montana', 'Nebraska', 'Nevada', 'New Hampshire', 'New Jersey',
-    'New Mexico', 'New York', 'North Carolina', 'North Dakota', 'Ohio', 'Oklahoma', 'Oregon', 'Pennsylvania', 'Puerto Rico', 'Rhode Island',
-    'South Carolina', 'South Dakota', 'Tennessee', 'Texas', 'Utah', 'Vermont', 'Virginia', 'Washington', 'District of Columbia', 'West Virginia',
-    'Wisconsin', 'Wyoming'
+    "Alabama",
+    "Alaska",
+    "Arizona",
+    "Arkansas",
+    "California",
+    "Colorado",
+    "Connecticut",
+    "Delaware",
+    "Florida",
+    "Georgia",
+    "Hawaii",
+    "Idaho",
+    "Illinois",
+    "Indiana",
+    "Iowa",
+    "Kansas",
+    "Kentucky",
+    "Louisiana",
+    "Maine",
+    "Maryland",
+    "Massachusetts",
+    "Michigan",
+    "Minnesota",
+    "Mississippi",
+    "Missouri",
+    "Montana",
+    "Nebraska",
+    "Nevada",
+    "New Hampshire",
+    "New Jersey",
+    "New Mexico",
+    "New York",
+    "North Carolina",
+    "North Dakota",
+    "Ohio",
+    "Oklahoma",
+    "Oregon",
+    "Pennsylvania",
+    "Puerto Rico",
+    "Rhode Island",
+    "South Carolina",
+    "South Dakota",
+    "Tennessee",
+    "Texas",
+    "Utah",
+    "Vermont",
+    "Virginia",
+    "Washington",
+    "District of Columbia",
+    "West Virginia",
+    "Wisconsin",
+    "Wyoming",
 ]
 
 # Study-sized RVU chunks per modality (minimum contribution unit)
@@ -222,50 +311,59 @@ COVERAGE_FILTERS_ENABLED = True
 # if nothing else can take the chunk, but we prefer higher-weight modalities.
 SOFT_WEIGHT_THRESHOLD = 0.01  # 1%
 
+
 def modality_chunk(mod):
     if not mod:
         return 0.2
     return float(MODALITY_RVU.get(str(mod).upper(), 0.2))
 
-@shifts_bp.route('/shifts')
+
+@shifts_bp.route("/shifts")
 @with_supabase_auth
 def shifts():
     supabase = get_supabase_client()
-    
-    date_str = request.args.get('date')
+
+    date_str = request.args.get("date")
+    distribution_mode = normalize_distribution_mode(
+        request.args.get("distribution_mode")
+    )
     print(f"Shifts date param: {date_str}")
     if date_str:
-        now = datetime.strptime(date_str, '%Y-%m-%d')
+        now = datetime.strptime(date_str, "%Y-%m-%d")
     else:
         now = eastern_now().replace(tzinfo=None)
-    
+
     start_of_week = now - timedelta(days=now.weekday())
     end_of_week = start_of_week + timedelta(days=6)
-    
+
     start_date_str = start_of_week.strftime("%Y-%m-%d")
     end_date_str = end_of_week.strftime("%Y-%m-%d")
 
-    prev_week_start = (start_of_week - timedelta(weeks=1)).strftime('%Y-%m-%d')
-    next_week_start = (start_of_week + timedelta(weeks=1)).strftime('%Y-%m-%d')
+    prev_week_start = (start_of_week - timedelta(weeks=1)).strftime("%Y-%m-%d")
+    next_week_start = (start_of_week + timedelta(weeks=1)).strftime("%Y-%m-%d")
 
     hour_slots_by_day = defaultdict(list)
     current_day = start_of_week.replace(hour=0, minute=0, second=0, microsecond=0)
     while current_day <= end_of_week.replace(hour=0, minute=0, second=0, microsecond=0):
         current_hour = current_day.replace(hour=0)
         while current_hour < current_day + timedelta(days=1):
-            hour_slots_by_day[current_day.date()].append({
-                "datetime": current_hour,
-                "label": current_hour.strftime("%I %p").lstrip("0"),
-                "hour": current_hour.hour,
-                "date": current_hour.strftime("%Y-%m-%d"),
-                "day_label": current_day.strftime("%A") 
-            })
+            hour_slots_by_day[current_day.date()].append(
+                {
+                    "datetime": current_hour,
+                    "label": current_hour.strftime("%I %p").lstrip("0"),
+                    "hour": current_hour.hour,
+                    "date": current_hour.strftime("%Y-%m-%d"),
+                    "day_label": current_day.strftime("%A"),
+                }
+            )
             current_hour += timedelta(hours=1)
         current_day += timedelta(days=1)
-    query = supabase.table("monthly_schedule") \
-        .select("*, radiologists(*)") \
-        .lte("start_date", end_date_str) \
+    query = (
+        supabase.table("monthly_schedule")
+        .select("*, radiologists(*)")
+        .lte("start_date", end_date_str)
         .gte("end_date", start_date_str)
+    )
 
     # Paginate to avoid 1000-row default limit
     batch_size = 1000
@@ -281,25 +379,37 @@ def shifts():
 
     doctors_on_shift = []
     for entry in schedule_rows:
-         if entry.get("radiologists") and entry.get("start_time") and entry.get("end_time"):
+        if (
+            entry.get("radiologists")
+            and entry.get("start_time")
+            and entry.get("end_time")
+        ):
             doc = entry["radiologists"]
-            
-            start_date = entry.get("start_date") or start_date_str 
-            end_date = entry.get("end_date") or end_date_str 
+
+            start_date = entry.get("start_date") or start_date_str
+            end_date = entry.get("end_date") or end_date_str
 
             try:
-                shift_start_dt = datetime.strptime(f"{start_date} {entry['start_time']}", "%Y-%m-%d %H:%M:%S")
-                shift_end_dt = datetime.strptime(f"{end_date} {entry['end_time']}", "%Y-%m-%d %H:%M:%S")
+                shift_start_dt = datetime.strptime(
+                    f"{start_date} {entry['start_time']}", "%Y-%m-%d %H:%M:%S"
+                )
+                shift_end_dt = datetime.strptime(
+                    f"{end_date} {entry['end_time']}", "%Y-%m-%d %H:%M:%S"
+                )
                 if shift_end_dt < shift_start_dt:
-                    shift_end_dt += timedelta(days=1) 
+                    shift_end_dt += timedelta(days=1)
 
                 break_start_dt = None
                 break_end_dt = None
                 if entry.get("break_start") and entry.get("break_end"):
-                    break_start_dt_candidate = datetime.strptime(f"{start_date} {entry['break_start']}", "%Y-%m-%d %H:%M:%S")
-                    break_end_dt_candidate = datetime.strptime(f"{start_date} {entry['break_end']}", "%Y-%m-%d %H:%M:%S")
+                    break_start_dt_candidate = datetime.strptime(
+                        f"{start_date} {entry['break_start']}", "%Y-%m-%d %H:%M:%S"
+                    )
+                    break_end_dt_candidate = datetime.strptime(
+                        f"{start_date} {entry['break_end']}", "%Y-%m-%d %H:%M:%S"
+                    )
                     if break_end_dt_candidate < break_start_dt_candidate:
-                         break_end_dt_candidate += timedelta(days=1) 
+                        break_end_dt_candidate += timedelta(days=1)
 
                     break_start_dt = break_start_dt_candidate
                     break_end_dt = break_end_dt_candidate
@@ -312,49 +422,62 @@ def shifts():
                     "start_dt": shift_start_dt,
                     "end_dt": shift_end_dt,
                     "break_start_dt": break_start_dt,
-                    "break_end_dt": break_end_dt
+                    "break_end_dt": break_end_dt,
                 }
                 full_doc_info = doc.copy()
                 full_doc_info.update(doc_schedule_details)
                 doctors_on_shift.append(full_doc_info)
 
             except Exception as e:
-                print(f"Error parsing datetime for doc {doc.get('name', 'Unknown')}: {e}")
+                print(
+                    f"Error parsing datetime for doc {doc.get('name', 'Unknown')}: {e}"
+                )
 
-    doctors_by_hour = defaultdict(list) 
+    doctors_by_hour = defaultdict(list)
     for doc in doctors_on_shift:
         for day, hour_slots in hour_slots_by_day.items():
             for slot in hour_slots:
                 slot_start = slot["datetime"]
                 slot_end = slot_start + timedelta(hours=1)
-                
+
                 is_on_break = False
                 if doc.get("break_start_dt") and doc.get("break_end_dt"):
-                    
-                    break_start_on_slot_day = datetime.combine(slot_start.date(), doc["break_start_dt"].timetz())
-                    break_end_on_slot_day = datetime.combine(slot_start.date(), doc["break_end_dt"].timetz())
-                    
-                    if doc["break_end_dt"].date() > doc["break_start_dt"].date(): 
+                    break_start_on_slot_day = datetime.combine(
+                        slot_start.date(), doc["break_start_dt"].timetz()
+                    )
+                    break_end_on_slot_day = datetime.combine(
+                        slot_start.date(), doc["break_end_dt"].timetz()
+                    )
+
+                    if doc["break_end_dt"].date() > doc["break_start_dt"].date():
                         break_end_on_slot_day += timedelta(days=1)
 
-                    is_on_break = (break_start_on_slot_day < slot_end and break_end_on_slot_day > slot_start)
+                    is_on_break = (
+                        break_start_on_slot_day < slot_end
+                        and break_end_on_slot_day > slot_start
+                    )
 
-                is_on_shift = (doc["start_dt"] < slot_end and doc["end_dt"] > slot_start)
+                is_on_shift = doc["start_dt"] < slot_end and doc["end_dt"] > slot_start
 
                 if is_on_shift and not is_on_break:
                     doctors_by_hour[slot_start].append(doc)
 
-
-    metrics_res = supabase.table("rad_metrics").select("radiologist_id,rvu,volatility").execute()
+    metrics_res = (
+        supabase.table("rad_metrics").select("radiologist_id,rvu,volatility").execute()
+    )
     metrics_rows = {row["radiologist_id"]: row for row in (metrics_res.data or [])}
 
-    all_hour_slots = [slot for day_slots in hour_slots_by_day.values() for slot in day_slots]
+    all_hour_slots = [
+        slot for day_slots in hour_slots_by_day.values() for slot in day_slots
+    ]
 
     prev_dates_hours_map = {}
     for slot in all_hour_slots:
         prev_date_str, prev_hour_int = get_prev_week_same_day_and_hour(slot["datetime"])
         if prev_date_str is not None:
-            prev_dates_hours_map[(slot["datetime"], (prev_date_str, prev_hour_int))] = True
+            prev_dates_hours_map[(slot["datetime"], (prev_date_str, prev_hour_int))] = (
+                True
+            )
 
     unique_prev_keys = list({pair for _, pair in prev_dates_hours_map.keys()})
 
@@ -365,9 +488,15 @@ def shifts():
     _batch = 1000
     while True:
         _res = (
-            supabase
-            .table("capacity_per_hour")
-            .select("date", "hour", "total_rvus")
+            supabase.table("capacity_per_hour")
+            .select(
+                "date",
+                "hour",
+                "total_rvus",
+                "trickle_multiplier",
+                "base_total_rvus",
+                "avg_inherited_backlog_rvus",
+            )
             .in_("date", cap_dates)
             .range(_offset, _offset + _batch - 1)
             .execute()
@@ -379,6 +508,8 @@ def shifts():
         _offset += _batch
 
     historical_rvu_lookup = {}
+    trickle_multiplier_lookup = {}
+    backlog_lookup = {}
     for row in cap_rows_all:
         d = row.get("date")
         h = row.get("hour")
@@ -392,7 +523,16 @@ def shifts():
                 h_int = int(hs)
             except Exception:
                 continue
-        historical_rvu_lookup[(d, h_int)] = row.get("total_rvus")
+        historical_rvu_lookup[(d, h_int)] = adjusted_expected_rvus(
+            row.get("total_rvus"),
+            row.get("base_total_rvus"),
+            row.get("trickle_multiplier"),
+            distribution_mode,
+        )
+        trickle_multiplier_lookup[(d, h_int)] = float(
+            row.get("trickle_multiplier") or 1.0
+        )
+        backlog_lookup[(d, h_int)] = float(row.get("avg_inherited_backlog_rvus") or 0.0)
 
     # --- New effective capacity computation ---
     # We will estimate per-hour supply by allocating each on-shift doctor's
@@ -412,9 +552,10 @@ def shifts():
         _batch = 1000
         while True:
             _res = (
-                supabase
-                .table("capacity_per_hour_breakdown")
-                .select("date,hour,state,modality,total_rvus")
+                supabase.table("capacity_per_hour_breakdown")
+                .select(
+                    "date,hour,state,modality,total_rvus,base_rvus,trickle_multiplier"
+                )
                 .in_("date", prev_dates)
                 .range(_offset, _offset + _batch - 1)
                 .execute()
@@ -447,34 +588,96 @@ def shifts():
         d = r.get("date")
         if d is None:
             continue
+        adjusted_row = dict(r)
+        adjusted_row["total_rvus"] = adjusted_expected_rvus(
+            r.get("total_rvus"),
+            r.get("base_rvus"),
+            r.get("trickle_multiplier"),
+            distribution_mode,
+        )
         if h is not None:
-            breakdown_by_date_hour[(d, h)].append(r)
-        breakdown_by_date[d].append(r)
+            breakdown_by_date_hour[(d, h)].append(adjusted_row)
+        breakdown_by_date[d].append(adjusted_row)
 
     # Optional debug: summarize fetched rows per date
-    dbg = request.args.get('debug')
+    dbg = request.args.get("debug")
     if dbg and str(dbg).lower() in ("1", "true", "yes"):
         try:
             from collections import Counter
+
             fac_counts = Counter([r.get("date") for r in breakdown_rows_all])
             cap_counts = Counter([k[0] for k in historical_rvu_lookup.keys()])
-            print(f"[shifts][DEBUG] capacity_per_hour_breakdown counts: {dict(fac_counts)}")
-            print(f"[shifts][DEBUG] capacity_per_hour dates present: {sorted(set(cap_counts.elements()))}")
+            print(
+                f"[shifts][DEBUG] capacity_per_hour_breakdown counts: {dict(fac_counts)}"
+            )
+            print(
+                f"[shifts][DEBUG] capacity_per_hour dates present: {sorted(set(cap_counts.elements()))}"
+            )
         except Exception as _e:
             print(f"[shifts][DEBUG] counting error: {_e}")
 
     # 2) Prefetch authorizations, certifications, and modality weights for any doctor on this week
-    week_doctor_ids = list({d['id'] for d in doctors_on_shift if d.get('id') is not None})
+    week_doctor_ids = list(
+        {d["id"] for d in doctors_on_shift if d.get("id") is not None}
+    )
 
     # Certifications by state
     STATE_NAME_TO_CODE = {
-        'Alabama':'AL','Alaska':'AK','Arizona':'AZ','Arkansas':'AR','California':'CA','Colorado':'CO','Connecticut':'CT','Delaware':'DE','Florida':'FL','Georgia':'GA',
-        'Hawaii':'HI','Idaho':'ID','Illinois':'IL','Indiana':'IN','Iowa':'IA','Kansas':'KS','Kentucky':'KY','Louisiana':'LA','Maine':'ME','Maryland':'MD','Massachusetts':'MA',
-        'Michigan':'MI','Minnesota':'MN','Mississippi':'MS','Missouri':'MO','Montana':'MT','Nebraska':'NE','Nevada':'NV','New Hampshire':'NH','New Jersey':'NJ','New Mexico':'NM',
-        'New York':'NY','North Carolina':'NC','North Dakota':'ND','Ohio':'OH','Oklahoma':'OK','Oregon':'OR','Pennsylvania':'PA','Rhode Island':'RI','South Carolina':'SC',
-        'South Dakota':'SD','Tennessee':'TN','Texas':'TX','Utah':'UT','Vermont':'VT','Virginia':'VA','Washington':'WA','District of Columbia':'DC','West Virginia':'WV','Wisconsin':'WI','Wyoming':'WY',
-        'Puerto Rico':'PR','District Of Columbia':'DC'
+        "Alabama": "AL",
+        "Alaska": "AK",
+        "Arizona": "AZ",
+        "Arkansas": "AR",
+        "California": "CA",
+        "Colorado": "CO",
+        "Connecticut": "CT",
+        "Delaware": "DE",
+        "Florida": "FL",
+        "Georgia": "GA",
+        "Hawaii": "HI",
+        "Idaho": "ID",
+        "Illinois": "IL",
+        "Indiana": "IN",
+        "Iowa": "IA",
+        "Kansas": "KS",
+        "Kentucky": "KY",
+        "Louisiana": "LA",
+        "Maine": "ME",
+        "Maryland": "MD",
+        "Massachusetts": "MA",
+        "Michigan": "MI",
+        "Minnesota": "MN",
+        "Mississippi": "MS",
+        "Missouri": "MO",
+        "Montana": "MT",
+        "Nebraska": "NE",
+        "Nevada": "NV",
+        "New Hampshire": "NH",
+        "New Jersey": "NJ",
+        "New Mexico": "NM",
+        "New York": "NY",
+        "North Carolina": "NC",
+        "North Dakota": "ND",
+        "Ohio": "OH",
+        "Oklahoma": "OK",
+        "Oregon": "OR",
+        "Pennsylvania": "PA",
+        "Rhode Island": "RI",
+        "South Carolina": "SC",
+        "South Dakota": "SD",
+        "Tennessee": "TN",
+        "Texas": "TX",
+        "Utah": "UT",
+        "Vermont": "VT",
+        "Virginia": "VA",
+        "Washington": "WA",
+        "District of Columbia": "DC",
+        "West Virginia": "WV",
+        "Wisconsin": "WI",
+        "Wyoming": "WY",
+        "Puerto Rico": "PR",
+        "District Of Columbia": "DC",
     }
+
     def to_state_code(val):
         if not val:
             return None
@@ -488,13 +691,12 @@ def shifts():
     alloc_doctor_states = defaultdict(set)  # doctor_id -> set(state_code)
     if week_doctor_ids:
         cert_all = (
-            supabase
-            .table("certifications")
+            supabase.table("certifications")
             .select("radiologist_id,state")
             .in_("radiologist_id", week_doctor_ids)
             .execute()
         )
-        for c in (cert_all.data or []):
+        for c in cert_all.data or []:
             rid = c.get("radiologist_id")
             st = to_state_code(c.get("state"))
             if rid is not None and st:
@@ -503,11 +705,11 @@ def shifts():
     # Modality weights: attempt common table names; fall back to empty
     modality_weights = {}
     if week_doctor_ids:
+
         def try_fetch_weights(table_name):
             try:
                 res = (
-                    supabase
-                    .table(table_name)
+                    supabase.table(table_name)
                     .select("radiologist_id,modality_weights")
                     .in_("radiologist_id", week_doctor_ids)
                     .execute()
@@ -517,7 +719,11 @@ def shifts():
                 return []
 
         weight_rows = []
-        for t in ("radiologist_modality_weights", "modality_weights", "rad_modality_weights"):
+        for t in (
+            "radiologist_modality_weights",
+            "modality_weights",
+            "rad_modality_weights",
+        ):
             if not weight_rows:
                 weight_rows = try_fetch_weights(t)
         for row in weight_rows:
@@ -549,11 +755,17 @@ def shifts():
                     by_hour[ph].append(r)
                 if by_hour:
                     hours_available = sorted(by_hour.keys())
-                    nearest_hour = min(hours_available, key=lambda h: abs(h - prev_hour_int))
+                    nearest_hour = min(
+                        hours_available, key=lambda h: abs(h - prev_hour_int)
+                    )
                     demand_rows = by_hour.get(nearest_hour, [])
                     # scale distribution to expected total for target hour
-                    hist_total = historical_rvu_lookup.get((prev_date_str, prev_hour_int))
-                    sum_nearest = sum(float(x.get("total_rvus") or 0) for x in demand_rows)
+                    hist_total = historical_rvu_lookup.get(
+                        (prev_date_str, prev_hour_int)
+                    )
+                    sum_nearest = sum(
+                        float(x.get("total_rvus") or 0) for x in demand_rows
+                    )
                     if hist_total is not None and sum_nearest > 0:
                         scale_factor = float(hist_total) / float(sum_nearest)
 
@@ -565,14 +777,16 @@ def shifts():
             st = to_state_code(r.get("state"))
             if dem <= 0:
                 continue
-            groups.append({
-                "state": st,
-                "mod": mod,
-                # Keep the original demand as base for proportional distribution,
-                # even if we allow overfilling beyond historical demand.
-                "base": dem,
-                "remaining": dem
-            })
+            groups.append(
+                {
+                    "state": st,
+                    "mod": mod,
+                    # Keep the original demand as base for proportional distribution,
+                    # even if we allow overfilling beyond historical demand.
+                    "base": dem,
+                    "remaining": dem,
+                }
+            )
 
         # Prepare doctor list for this slot
         slot_doctors = doctors_by_hour.get(slot_dt, [])
@@ -591,10 +805,14 @@ def shifts():
                 volatility = float(rr.get("volatility") or 0)
             except Exception:
                 volatility = 0.0
-            conversion_weights = get_doc_modality_weights(modality_weights, did, slot_dt)
+            conversion_weights = get_doc_modality_weights(
+                modality_weights, did, slot_dt
+            )
             if not conversion_weights:
                 conversion_weights = demand_modality_weights or uniform_weights
-            return adjusted_rvu_from_metrics(base_rvu, volatility, conversion_weights, "normal")
+            return adjusted_rvu_from_metrics(
+                base_rvu, volatility, conversion_weights, distribution_mode
+            )
 
         # Multi-pass allocation with rebalancing across modalities
         matched_supply = 0.0
@@ -651,18 +869,25 @@ def shifts():
                         gap_by_mod[mod] = gap_sum
                 if not gap_by_mod:
                     break
+
                 # pick modality using weighted score (gap * weight),
                 # preferring weights >= SOFT_WEIGHT_THRESHOLD first
                 def pick_mod(prefer_threshold=True):
                     candidates = list(gap_by_mod.keys())
                     if prefer_threshold:
-                        preferred = [m for m in candidates if (base_weights.get(m, 0.0) >= SOFT_WEIGHT_THRESHOLD)]
+                        preferred = [
+                            m
+                            for m in candidates
+                            if (base_weights.get(m, 0.0) >= SOFT_WEIGHT_THRESHOLD)
+                        ]
                         if preferred:
                             candidates = preferred
+
                     # score: gap * max(weight, tiny)
                     def score(m):
                         w = base_weights.get(m, 0.0)
                         return gap_by_mod[m] * (w if w > 0 else 1e-9)
+
                     return max(candidates, key=score)
 
                 try:
@@ -675,8 +900,10 @@ def shifts():
                     break
                 # choose group with max gap within modality that fits a chunk
                 candidates = [
-                    g for g in groups_by_mod.get(sel_mod, [])
-                    if (not g["state"] or g["state"] in lic_states) and (float(g.get("gap", 0.0)) + EPS >= ch)
+                    g
+                    for g in groups_by_mod.get(sel_mod, [])
+                    if (not g["state"] or g["state"] in lic_states)
+                    and (float(g.get("gap", 0.0)) + EPS >= ch)
                 ]
                 if not candidates:
                     # nothing fits in this modality; remove and continue
@@ -720,7 +947,10 @@ def shifts():
                                 if R >= OVERFILL_CAP_R - 1e-9:
                                     continue
                                 key = (g["state"], mod)
-                                if per_group_chunks.get(key, 0) >= MAX_CHUNKS_PER_GROUP_PER_DOC:
+                                if (
+                                    per_group_chunks.get(key, 0)
+                                    >= MAX_CHUNKS_PER_GROUP_PER_DOC
+                                ):
                                     continue
                                 # Prefer lower coverage; tie-break by weight (higher is better)
                                 score = (R, -w)
@@ -753,7 +983,15 @@ def shifts():
     for slot in all_hour_slots:
         slot_dt = slot["datetime"]
         hist, eff = compute_effective_supply(slot_dt)
-        hourly_rvu_stats[slot_dt] = {"historical": hist, "current": eff}
+        prev_d, prev_h = get_prev_week_same_day_and_hour(slot_dt)
+        tm = trickle_multiplier_lookup.get((prev_d, prev_h), 1.0) if prev_d else 1.0
+        bl = backlog_lookup.get((prev_d, prev_h), 0.0) if prev_d else 0.0
+        hourly_rvu_stats[slot_dt] = {
+            "historical": hist,
+            "current": eff,
+            "trickle_multiplier": tm,
+            "backlog": bl,
+        }
 
     # Debug: per-day coverage summary
     if dbg and str(dbg).lower() in ("1", "true", "yes"):
@@ -767,52 +1005,71 @@ def shifts():
                     if doctors_by_hour.get(slot["datetime"]):
                         with_docs += 1
                     prev_d, prev_h = get_prev_week_same_day_and_hour(slot["datetime"])
-                    if breakdown_by_date_hour.get((prev_d, prev_h)) or breakdown_by_date.get(prev_d):
+                    if breakdown_by_date_hour.get(
+                        (prev_d, prev_h)
+                    ) or breakdown_by_date.get(prev_d):
                         with_demand += 1
-                print(f"[shifts][DEBUG] {day.isoformat()} tiles={tiles} doctors_hours={with_docs} demand_hours={with_demand}")
+                print(
+                    f"[shifts][DEBUG] {day.isoformat()} tiles={tiles} doctors_hours={with_docs} demand_hours={with_demand}"
+                )
         except Exception as _e:
             print(f"[shifts][DEBUG] per-day summary error: {_e}")
 
-    weekly_data_by_day_and_color = {} 
+    weekly_data_by_day_and_color = {}
     for day, hour_slots in hour_slots_by_day.items():
         filtered_day_slots = [
-            slot for slot in hour_slots 
-            if doctors_by_hour.get(slot["datetime"]) or 
-               (hourly_rvu_stats.get(slot["datetime"]) and (hourly_rvu_stats[slot["datetime"]]['current'] is not None or hourly_rvu_stats[slot["datetime"]]['historical'] is not None))
+            slot
+            for slot in hour_slots
+            if doctors_by_hour.get(slot["datetime"])
+            or (
+                hourly_rvu_stats.get(slot["datetime"])
+                and (
+                    hourly_rvu_stats[slot["datetime"]]["current"] is not None
+                    or hourly_rvu_stats[slot["datetime"]]["historical"] is not None
+                )
+            )
         ]
 
         def sort_key(slot):
             stats = hourly_rvu_stats.get(slot["datetime"])
             if not stats or stats["historical"] is None or stats["historical"] <= 0:
                 if not stats or stats["current"] is None:
-                     return -2
+                    return -2
                 return -1
             if stats["current"] is None:
-                 return -1
+                return -1
 
-            return (stats["current"] / stats["historical"])
+            return stats["current"] / stats["historical"]
 
         sorted_day_slots = sorted(filtered_day_slots, key=sort_key)
-        
+
         grouped_slots_by_color = defaultdict(list)
         for slot in sorted_day_slots:
-             stats = hourly_rvu_stats.get(slot["datetime"])
-             current = stats['current'] if stats else None
-             expected = stats['historical'] if stats else None
-             ratio = (current / expected) if current is not None and expected and expected > 0 else None
-             color_class = get_rvu_bg_color_class(ratio)
-             grouped_slots_by_color[color_class].append(slot)
+            stats = hourly_rvu_stats.get(slot["datetime"])
+            current = stats["current"] if stats else None
+            expected = stats["historical"] if stats else None
+            ratio = (
+                (current / expected)
+                if current is not None and expected and expected > 0
+                else None
+            )
+            color_class = get_rvu_bg_color_class(ratio)
+            grouped_slots_by_color[color_class].append(slot)
 
         if grouped_slots_by_color:
-             weekly_data_by_day_and_color[day] = dict(grouped_slots_by_color) 
+            weekly_data_by_day_and_color[day] = dict(grouped_slots_by_color)
     sorted_days = sorted(weekly_data_by_day_and_color.keys())
-    sorted_weekly_data_by_day_and_color = {day: weekly_data_by_day_and_color[day] for day in sorted_days}
+    sorted_weekly_data_by_day_and_color = {
+        day: weekly_data_by_day_and_color[day] for day in sorted_days
+    }
 
     template_payload = {
         "weekly_data_by_day_and_color": sorted_weekly_data_by_day_and_color,
         "hourly_rvu_stats": hourly_rvu_stats,
         "start_date": start_of_week.strftime("%B %d, %Y"),
         "end_date": end_of_week.strftime("%B %d, %Y"),
+        "selected_date": now.strftime("%Y-%m-%d"),
+        "distribution_mode": distribution_mode,
         "prev_week_start": prev_week_start,
         "next_week_start": next_week_start,
         "doctors_by_hour": doctors_by_hour,
@@ -823,13 +1080,18 @@ def shifts():
     }
 
     if COVERAGE_FILTERS_ENABLED:
-        doctor_ids = list({doc['id'] for doc in doctors_on_shift})
-        cert_res = supabase.table("certifications").select("radiologist_id,state").in_("radiologist_id", doctor_ids).execute()
+        doctor_ids = list({doc["id"] for doc in doctors_on_shift})
+        cert_res = (
+            supabase.table("certifications")
+            .select("radiologist_id,state")
+            .in_("radiologist_id", doctor_ids)
+            .execute()
+        )
         certifications = cert_res.data or []
         doctor_states = {}
         for cert in certifications:
-            rid = str(cert['radiologist_id']).strip()
-            state = cert['state']
+            rid = str(cert["radiologist_id"]).strip()
+            state = cert["state"]
             if rid not in doctor_states:
                 doctor_states[rid] = set()
             if state:
@@ -837,38 +1099,37 @@ def shifts():
 
         uncovered_states_by_hour = {}
         for slot in all_hour_slots:
-            slot_doctors = doctors_by_hour.get(slot['datetime'], [])
+            slot_doctors = doctors_by_hour.get(slot["datetime"], [])
             covered_states = set()
             for doc in slot_doctors:
-                doc_id = str(doc['id']).strip()  # Ensure string and trimmed
+                doc_id = str(doc["id"]).strip()  # Ensure string and trimmed
                 covered_states.update(doctor_states.get(doc_id, set()))
             uncovered = sorted(set(US_STATES) - covered_states)
-            uncovered_states_by_hour[slot['datetime'].isoformat()] = uncovered
+            uncovered_states_by_hour[slot["datetime"].isoformat()] = uncovered
 
         covered_states_by_hour = {}
         for slot in all_hour_slots:
-            uncovered = uncovered_states_by_hour[slot['datetime'].isoformat()]
+            uncovered = uncovered_states_by_hour[slot["datetime"].isoformat()]
             covered = sorted(set(US_STATES) - set(uncovered))
-            covered_states_by_hour[slot['datetime'].isoformat()] = covered
+            covered_states_by_hour[slot["datetime"].isoformat()] = covered
 
         state_doctor_map_by_hour = {}
         for slot in all_hour_slots:
-            slot_dt = slot['datetime']
+            slot_dt = slot["datetime"]
             slot_doctors = doctors_by_hour.get(slot_dt, [])
             state_doctor_map = {}
 
             for doc in slot_doctors:
-                doc_states = doctor_states.get(str(doc['id']).strip(), set())
+                doc_states = doctor_states.get(str(doc["id"]).strip(), set())
                 for state in doc_states:
-                    name = doc.get('name')
+                    name = doc.get("name")
                     if name:
                         state_doctor_map.setdefault(state, []).append(str(name).strip())
 
             state_doctor_map_by_hour[slot_dt.isoformat()] = state_doctor_map
 
         facility_assignments_data = fetch_all_rows(
-            "doctor_facility_assignments",
-            "radiologist_id, can_read, facilities(name)"
+            "doctor_facility_assignments", "radiologist_id, can_read, facilities(name)"
         )
 
         facility_map = defaultdict(list)
@@ -882,9 +1143,13 @@ def shifts():
                 facility_map[rad_id].append(facility_name.strip())
 
         all_facilities_res = supabase.table("facilities").select("name").execute()
-        all_facility_names = sorted([
-            f["name"].strip() for f in (all_facilities_res.data or []) if f.get("name")
-        ])
+        all_facility_names = sorted(
+            [
+                f["name"].strip()
+                for f in (all_facilities_res.data or [])
+                if f.get("name")
+            ]
+        )
 
         facility_doctor_map_by_hour = {}
         for slot in all_hour_slots:
@@ -901,17 +1166,19 @@ def shifts():
             complete_map = {fac: fac_map.get(fac, []) for fac in all_facility_names}
             facility_doctor_map_by_hour[slot_dt.isoformat()] = complete_map
 
-        template_payload.update({
-            "uncovered_states_by_hour": uncovered_states_by_hour,
-            "covered_states_by_hour": covered_states_by_hour,
-            "state_doctor_map_by_hour": state_doctor_map_by_hour,
-            "facility_doctor_map_by_hour": facility_doctor_map_by_hour
-        })
+        template_payload.update(
+            {
+                "uncovered_states_by_hour": uncovered_states_by_hour,
+                "covered_states_by_hour": covered_states_by_hour,
+                "state_doctor_map_by_hour": state_doctor_map_by_hour,
+                "facility_doctor_map_by_hour": facility_doctor_map_by_hour,
+            }
+        )
 
-    return render_template('shifts.html', **template_payload)
+    return render_template("shifts.html", **template_payload)
 
 
-@shifts_bp.route('/shifts/hour_detail', methods=["GET", "POST"])
+@shifts_bp.route("/shifts/hour_detail", methods=["GET", "POST"])
 @with_supabase_auth
 def hour_detail():
     """
@@ -929,50 +1196,54 @@ def hour_detail():
     distribution_mode = "normal"
     if request.method == "POST":
         payload = request.get_json(silent=True) or {}
-        date_str = payload.get('date')
-        hour = payload.get('hour')
+        date_str = payload.get("date")
+        hour = payload.get("hour")
         try:
             hour = int(hour) if hour is not None else None
         except Exception:
             hour = None
-        bo = payload.get('base_overrides') or {}
+        bo = payload.get("base_overrides") or {}
         distribution_mode = payload.get("distribution_mode") or "normal"
         # Normalize override keys to str for consistent lookups
         if isinstance(bo, dict):
             try:
-                base_overrides = {str(k): float(v) for k, v in bo.items() if v is not None}
+                base_overrides = {
+                    str(k): float(v) for k, v in bo.items() if v is not None
+                }
             except Exception:
                 base_overrides = {str(k): v for k, v in bo.items()}
     else:
-        date_str = request.args.get('date')
-        hour = request.args.get('hour', type=int)
+        date_str = request.args.get("date")
+        hour = request.args.get("hour", type=int)
         distribution_mode = request.args.get("distribution_mode") or "normal"
         # Optional overrides via query string as JSON: overrides={"doc_id": 0}
         try:
             import json as _json
-            q_over = request.args.get('overrides')
+
+            q_over = request.args.get("overrides")
             if q_over:
                 d = _json.loads(q_over)
                 if isinstance(d, dict):
-                    base_overrides = {str(k): float(v) for k, v in d.items() if v is not None}
+                    base_overrides = {
+                        str(k): float(v) for k, v in d.items() if v is not None
+                    }
         except Exception:
             base_overrides = {}
     if not date_str or hour is None:
         return jsonify({"error": "Missing date or hour"}), 400
 
-    distribution_mode = str(distribution_mode or "normal").lower()
-    if distribution_mode not in ("worst", "normal", "best"):
-        distribution_mode = "normal"
+    distribution_mode = normalize_distribution_mode(distribution_mode)
 
     # 1) State/modality demand for this hour (EXPECTED = same day/hour)
     prev_date_str, prev_hour_int = get_prev_week_same_day_and_hour(
         datetime.strptime(f"{date_str} {hour:02d}:00:00", "%Y-%m-%d %H:%M:%S")
     )
-    print(f"[hour_detail] incoming date={date_str} hour={hour}; expected_source date={prev_date_str} hour={prev_hour_int}")
+    print(
+        f"[hour_detail] incoming date={date_str} hour={hour}; expected_source date={prev_date_str} hour={prev_hour_int}"
+    )
     breakdown_res = (
-        supabase
-        .table("capacity_per_hour_breakdown")
-        .select("state,total_rvus,modality")
+        supabase.table("capacity_per_hour_breakdown")
+        .select("state,total_rvus,modality,base_rvus,trickle_multiplier")
         .eq("date", prev_date_str)
         .eq("hour", prev_hour_int)
         .execute()
@@ -984,13 +1255,14 @@ def hour_detail():
     # and scale the distribution to the expected total from capacity_per_hour for the requested hour.
     fallback_info = {"used": False}
     if not breakdown_rows:
-        print("[hour_detail] No breakdown rows found for expected HOUR. Attempting nearest-hour fallback on same date…")
+        print(
+            "[hour_detail] No breakdown rows found for expected HOUR. Attempting nearest-hour fallback on same date…"
+        )
 
         # Fetch day data and group by hour
         day_res = (
-            supabase
-            .table("capacity_per_hour_breakdown")
-            .select("state,total_rvus,modality,hour")
+            supabase.table("capacity_per_hour_breakdown")
+            .select("state,total_rvus,modality,hour,base_rvus,trickle_multiplier")
             .eq("date", prev_date_str)
             .execute()
         )
@@ -1008,35 +1280,58 @@ def hour_detail():
             hours_available = sorted(by_hour.keys())
             nearest_hour = min(hours_available, key=lambda h: abs(h - prev_hour_int))
             breakdown_rows = by_hour.get(nearest_hour, [])
-            fallback_info = {"used": True, "source": {"date": prev_date_str, "hour": nearest_hour}, "reason": "nearest_hour_same_date"}
-            print(f"[hour_detail] Fallback using nearest hour {nearest_hour} with {len(breakdown_rows)} rows.")
+            fallback_info = {
+                "used": True,
+                "source": {"date": prev_date_str, "hour": nearest_hour},
+                "reason": "nearest_hour_same_date",
+            }
+            print(
+                f"[hour_detail] Fallback using nearest hour {nearest_hour} with {len(breakdown_rows)} rows."
+            )
         else:
-            print("[hour_detail] No breakdown rows for any hour on the date; returning empty payload.")
-            return jsonify({
-                "date": date_str,
-                "hour": hour,
-                "expected_source": {"date": prev_date_str, "hour": prev_hour_int},
-                "fallback": {"used": False, "reason": "no_rows_on_date"},
-                "total_expected_rvus": 0,
-                "by_state": [],
-                "by_state_merged": [],
-                "by_modality": [],
-                "state_breakdown": {},
-                "modality_breakdown": {},
-                "supply_overall_rvus": 0,
-                "supply_licensed_rvus": 0,
-                "supply_effective_allocated_rvus": 0,
-                "doctor_allocations": []
-            })
+            print(
+                "[hour_detail] No breakdown rows for any hour on the date; returning empty payload."
+            )
+            return jsonify(
+                {
+                    "date": date_str,
+                    "hour": hour,
+                    "expected_source": {"date": prev_date_str, "hour": prev_hour_int},
+                    "fallback": {"used": False, "reason": "no_rows_on_date"},
+                    "total_expected_rvus": 0,
+                    "by_state": [],
+                    "by_state_merged": [],
+                    "by_modality": [],
+                    "state_breakdown": {},
+                    "modality_breakdown": {},
+                    "supply_overall_rvus": 0,
+                    "supply_licensed_rvus": 0,
+                    "supply_effective_allocated_rvus": 0,
+                    "doctor_allocations": [],
+                }
+            )
+
+    # 2) Adjust demand per distribution_mode using trickle columns
+    #    worst  = total_rvus (already includes trickle backlog — default/worst case)
+    #    normal = base_rvus  (forecast before trickle was applied)
+    #    best   = base_rvus / trickle_multiplier (optimistic: less than base)
+    for row in breakdown_rows:
+        row["total_rvus"] = adjusted_expected_rvus(
+            row.get("total_rvus"),
+            row.get("base_rvus"),
+            row.get("trickle_multiplier"),
+            distribution_mode,
+        )
 
     # 3) Determine doctors on shift for this specific hour
     #    Reuse the same logic as the weekly view but constrained to one hour window
-    window_start = datetime.strptime(f"{date_str} {hour:02d}:00:00", "%Y-%m-%d %H:%M:%S")
+    window_start = datetime.strptime(
+        f"{date_str} {hour:02d}:00:00", "%Y-%m-%d %H:%M:%S"
+    )
     window_end = window_start + timedelta(hours=1)
 
     sched_q = (
-        supabase
-        .table("monthly_schedule")
+        supabase.table("monthly_schedule")
         .select("*, radiologists(*)")
         .lte("start_date", date_str)
         .gte("end_date", date_str)
@@ -1045,23 +1340,35 @@ def hour_detail():
     print(f"[hour_detail] schedule rows in date range: {len(sched_res.data or [])}")
 
     on_shift = []
-    for entry in (sched_res.data or []):
+    for entry in sched_res.data or []:
         try:
-            if not (entry.get("radiologists") and entry.get("start_time") and entry.get("end_time")):
+            if not (
+                entry.get("radiologists")
+                and entry.get("start_time")
+                and entry.get("end_time")
+            ):
                 continue
             doc = entry["radiologists"].copy()
             start_date = entry.get("start_date") or date_str
             end_date = entry.get("end_date") or date_str
-            shift_start_dt = datetime.strptime(f"{start_date} {entry['start_time']}", "%Y-%m-%d %H:%M:%S")
-            shift_end_dt = datetime.strptime(f"{end_date} {entry['end_time']}", "%Y-%m-%d %H:%M:%S")
+            shift_start_dt = datetime.strptime(
+                f"{start_date} {entry['start_time']}", "%Y-%m-%d %H:%M:%S"
+            )
+            shift_end_dt = datetime.strptime(
+                f"{end_date} {entry['end_time']}", "%Y-%m-%d %H:%M:%S"
+            )
             if shift_end_dt < shift_start_dt:
                 shift_end_dt += timedelta(days=1)
 
             break_start_dt = None
             break_end_dt = None
             if entry.get("break_start") and entry.get("break_end"):
-                bstart = datetime.strptime(f"{start_date} {entry['break_start']}", "%Y-%m-%d %H:%M:%S")
-                bend = datetime.strptime(f"{start_date} {entry['break_end']}", "%Y-%m-%d %H:%M:%S")
+                bstart = datetime.strptime(
+                    f"{start_date} {entry['break_start']}", "%Y-%m-%d %H:%M:%S"
+                )
+                bend = datetime.strptime(
+                    f"{start_date} {entry['break_end']}", "%Y-%m-%d %H:%M:%S"
+                )
                 if bend < bstart:
                     bend += timedelta(days=1)
                 break_start_dt, break_end_dt = bstart, bend
@@ -1069,19 +1376,20 @@ def hour_detail():
             is_on_break = False
             if break_start_dt and break_end_dt:
                 # Map break times onto the hour window's day
-                bstart_on_day = datetime.combine(window_start.date(), break_start_dt.timetz())
-                bend_on_day = datetime.combine(window_start.date(), break_end_dt.timetz())
+                bstart_on_day = datetime.combine(
+                    window_start.date(), break_start_dt.timetz()
+                )
+                bend_on_day = datetime.combine(
+                    window_start.date(), break_end_dt.timetz()
+                )
                 if bend_on_day < bstart_on_day:
                     bend_on_day += timedelta(days=1)
-                is_on_break = (bstart_on_day < window_end and bend_on_day > window_start)
+                is_on_break = bstart_on_day < window_end and bend_on_day > window_start
 
-            is_on_shift = (shift_start_dt < window_end and shift_end_dt > window_start)
+            is_on_shift = shift_start_dt < window_end and shift_end_dt > window_start
 
             if is_on_shift and not is_on_break:
-                doc.update({
-                    "_start_dt": shift_start_dt,
-                    "_end_dt": shift_end_dt
-                })
+                doc.update({"_start_dt": shift_start_dt, "_end_dt": shift_end_dt})
                 on_shift.append(doc)
         except Exception:
             continue
@@ -1089,17 +1397,19 @@ def hour_detail():
     doctor_ids = [d.get("id") for d in on_shift if d.get("id") is not None]
 
     # 4) RVU supply numbers based on metrics (same logic as page)
-    metrics_res = supabase.table("rad_metrics").select("radiologist_id,rvu,volatility").execute()
+    metrics_res = (
+        supabase.table("rad_metrics").select("radiologist_id,rvu,volatility").execute()
+    )
     metrics_rows = {row["radiologist_id"]: row for row in (metrics_res.data or [])}
 
     # 5) Modality weights for doctors on this hour
     modality_weights = {}
     if doctor_ids:
+
         def try_fetch_weights(table_name):
             try:
                 res = (
-                    supabase
-                    .table(table_name)
+                    supabase.table(table_name)
                     .select("radiologist_id,modality_weights")
                     .in_("radiologist_id", doctor_ids)
                     .execute()
@@ -1107,8 +1417,13 @@ def hour_detail():
                 return res.data or []
             except Exception:
                 return []
+
         weight_rows = []
-        for t in ("radiologist_modality_weights", "modality_weights", "rad_modality_weights"):
+        for t in (
+            "radiologist_modality_weights",
+            "modality_weights",
+            "rad_modality_weights",
+        ):
             if not weight_rows:
                 weight_rows = try_fetch_weights(t)
         for row in weight_rows:
@@ -1124,7 +1439,9 @@ def hour_detail():
             return 0.0
         base_rvu = rvu_row.get("rvu") if rvu_row is not None else 0
         volatility = rvu_row.get("volatility") if rvu_row is not None else 0
-        return adjusted_rvu_from_metrics(base_rvu, volatility, weights, distribution_mode)
+        return adjusted_rvu_from_metrics(
+            base_rvu, volatility, weights, distribution_mode
+        )
 
     demand_modality_weights = derive_demand_modality_weights(breakdown_rows)
     uniform_weights = uniform_modality_weights()
@@ -1132,7 +1449,9 @@ def hour_detail():
     supply_overall = 0
     for d in on_shift:
         did = d.get("id")
-        conversion_weights = get_doc_modality_weights(modality_weights, did, window_start)
+        conversion_weights = get_doc_modality_weights(
+            modality_weights, did, window_start
+        )
         if not conversion_weights:
             conversion_weights = demand_modality_weights or uniform_weights
         rr = metrics_rows.get(did)
@@ -1140,13 +1459,61 @@ def hour_detail():
 
     # Helper to normalize state values to 2-letter codes
     STATE_NAME_TO_CODE = {
-        'Alabama':'AL','Alaska':'AK','Arizona':'AZ','Arkansas':'AR','California':'CA','Colorado':'CO','Connecticut':'CT','Delaware':'DE','Florida':'FL','Georgia':'GA',
-        'Hawaii':'HI','Idaho':'ID','Illinois':'IL','Indiana':'IN','Iowa':'IA','Kansas':'KS','Kentucky':'KY','Louisiana':'LA','Maine':'ME','Maryland':'MD','Massachusetts':'MA',
-        'Michigan':'MI','Minnesota':'MN','Mississippi':'MS','Missouri':'MO','Montana':'MT','Nebraska':'NE','Nevada':'NV','New Hampshire':'NH','New Jersey':'NJ','New Mexico':'NM',
-        'New York':'NY','North Carolina':'NC','North Dakota':'ND','Ohio':'OH','Oklahoma':'OK','Oregon':'OR','Pennsylvania':'PA','Rhode Island':'RI','South Carolina':'SC',
-        'South Dakota':'SD','Tennessee':'TN','Texas':'TX','Utah':'UT','Vermont':'VT','Virginia':'VA','Washington':'WA','District of Columbia':'DC','West Virginia':'WV','Wisconsin':'WI','Wyoming':'WY',
-        'Puerto Rico':'PR','District Of Columbia':'DC'
+        "Alabama": "AL",
+        "Alaska": "AK",
+        "Arizona": "AZ",
+        "Arkansas": "AR",
+        "California": "CA",
+        "Colorado": "CO",
+        "Connecticut": "CT",
+        "Delaware": "DE",
+        "Florida": "FL",
+        "Georgia": "GA",
+        "Hawaii": "HI",
+        "Idaho": "ID",
+        "Illinois": "IL",
+        "Indiana": "IN",
+        "Iowa": "IA",
+        "Kansas": "KS",
+        "Kentucky": "KY",
+        "Louisiana": "LA",
+        "Maine": "ME",
+        "Maryland": "MD",
+        "Massachusetts": "MA",
+        "Michigan": "MI",
+        "Minnesota": "MN",
+        "Mississippi": "MS",
+        "Missouri": "MO",
+        "Montana": "MT",
+        "Nebraska": "NE",
+        "Nevada": "NV",
+        "New Hampshire": "NH",
+        "New Jersey": "NJ",
+        "New Mexico": "NM",
+        "New York": "NY",
+        "North Carolina": "NC",
+        "North Dakota": "ND",
+        "Ohio": "OH",
+        "Oklahoma": "OK",
+        "Oregon": "OR",
+        "Pennsylvania": "PA",
+        "Rhode Island": "RI",
+        "South Carolina": "SC",
+        "South Dakota": "SD",
+        "Tennessee": "TN",
+        "Texas": "TX",
+        "Utah": "UT",
+        "Vermont": "VT",
+        "Virginia": "VA",
+        "Washington": "WA",
+        "District of Columbia": "DC",
+        "West Virginia": "WV",
+        "Wisconsin": "WI",
+        "Wyoming": "WY",
+        "Puerto Rico": "PR",
+        "District Of Columbia": "DC",
     }
+
     def to_state_code(val):
         if not val:
             return None
@@ -1164,8 +1531,7 @@ def hour_detail():
     if doctor_ids:
         # Do not filter by state here; certs may be stored as names or codes.
         cert_res = (
-            supabase
-            .table("certifications")
+            supabase.table("certifications")
             .select("radiologist_id,state")
             .in_("radiologist_id", doctor_ids)
             .execute()
@@ -1201,8 +1567,7 @@ def hour_detail():
     covered_states = sorted(set(US_STATES) - set(uncovered_states))
 
     facility_assignments_data = fetch_all_rows(
-        "doctor_facility_assignments",
-        "radiologist_id, can_read, facilities(name)"
+        "doctor_facility_assignments", "radiologist_id, can_read, facilities(name)"
     )
     facility_map = defaultdict(list)
     for row in facility_assignments_data:
@@ -1214,9 +1579,9 @@ def hour_detail():
             facility_map[rad_id].append(str(facility_name).strip())
 
     all_facilities_res = supabase.table("facilities").select("name").execute()
-    all_facility_names = sorted([
-        f["name"].strip() for f in (all_facilities_res.data or []) if f.get("name")
-    ])
+    all_facility_names = sorted(
+        [f["name"].strip() for f in (all_facilities_res.data or []) if f.get("name")]
+    )
 
     fac_map = defaultdict(list)
     for doc in on_shift:
@@ -1231,11 +1596,15 @@ def hour_detail():
     for d in on_shift:
         if d.get("id") in licensed_ids:
             did = d.get("id")
-            conversion_weights = get_doc_modality_weights(modality_weights, did, window_start)
+            conversion_weights = get_doc_modality_weights(
+                modality_weights, did, window_start
+            )
             if not conversion_weights:
                 conversion_weights = demand_modality_weights or uniform_weights
             rr = metrics_rows.get(did)
-            supply_licensed += latest_nonzero_rvu(rr, conversion_weights, distribution_mode)
+            supply_licensed += latest_nonzero_rvu(
+                rr, conversion_weights, distribution_mode
+            )
 
     # Prepare demand groups for allocation and build state breakdowns
     # 6) Assemble state breakdowns
@@ -1264,29 +1633,30 @@ def hour_detail():
     for (st, mod), total in by_state_mod.items():
         if total <= 0:
             continue
-        by_state_payload.append({
-            "state": st,
-            "modality": mod,
-            "expected_rvus": float(total)
-        })
+        by_state_payload.append(
+            {"state": st, "modality": mod, "expected_rvus": float(total)}
+        )
 
     by_state_merged_payload = [
-        {"state": st, "expected_rvus": float(total)} for st, total in by_state_totals.items()
+        {"state": st, "expected_rvus": float(total)}
+        for st, total in by_state_totals.items()
         if total > 0
     ]
     by_modality_payload = [
-        {"modality": m, "expected_rvus": float(v)} for m, v in by_modality_totals.items()
+        {"modality": m, "expected_rvus": float(v)}
+        for m, v in by_modality_totals.items()
         if v > 0
     ]
 
     # If we used fallback from a different hour, optionally scale to match the expected total
     # from capacity_per_hour for the requested hour.
-    total_expected = float(sum((float(r.get("total_rvus") or 0) for r in breakdown_rows)))
+    total_expected = float(
+        sum((float(r.get("total_rvus") or 0) for r in breakdown_rows))
+    )
     if fallback_info.get("used"):
         # Fetch tile expected from capacity_per_hour for prev_date_str/prev_hour_int
         cap_row = (
-            supabase
-            .table("capacity_per_hour")
+            supabase.table("capacity_per_hour")
             .select("total_rvus")
             .eq("date", prev_date_str)
             .eq("hour", prev_hour_int)
@@ -1298,10 +1668,14 @@ def hour_detail():
                 cap_total = float((cap_row.data or [{}])[0].get("total_rvus") or 0)
             except Exception:
                 cap_total = None
-        print(f"[hour_detail] Tile expected (capacity_per_hour) for scaling: {cap_total}")
+        print(
+            f"[hour_detail] Tile expected (capacity_per_hour) for scaling: {cap_total}"
+        )
         if cap_total is not None and total_expected > 0:
             scale = cap_total / total_expected
-            print(f"[hour_detail] Applying scale factor {scale:.4f} to fallback breakdown rows")
+            print(
+                f"[hour_detail] Applying scale factor {scale:.4f} to fallback breakdown rows"
+            )
             for s in by_state_payload:
                 s["expected_rvus"] = float(s["expected_rvus"]) * scale
             for s in by_state_merged_payload:
@@ -1324,18 +1698,24 @@ def hour_detail():
     # 7) Doctor-by-doctor allocation details
     # Build demand groups: one per (state, modality), with base demand (and track remaining for reference)
     groups = []
-    scale_factor = float(fallback_info.get("scale_factor") or 1.0) if fallback_info.get("used") and fallback_info.get("scaled_to_expected") else 1.0
+    scale_factor = (
+        float(fallback_info.get("scale_factor") or 1.0)
+        if fallback_info.get("used") and fallback_info.get("scaled_to_expected")
+        else 1.0
+    )
     for row in breakdown_rows:
         mod = (row.get("modality") or "").upper() or None
         remaining = float(row.get("total_rvus") or 0) * scale_factor
         st = to_state_code(row.get("state"))
-        groups.append({
-            "state": st,
-            "mod": mod,
-            # Preserve original demand as base for proportional distribution
-            "base": remaining,
-            "remaining": remaining
-        })
+        groups.append(
+            {
+                "state": st,
+                "mod": mod,
+                # Preserve original demand as base for proportional distribution
+                "base": remaining,
+                "remaining": remaining,
+            }
+        )
     # Index groups by modality
     groups_by_mod = defaultdict(list)
     for g in groups:
@@ -1343,11 +1723,14 @@ def hour_detail():
 
     doctor_allocations = []
     matched_supply_detail = 0.0
+
     # Helper to get doc base RVU
     def latest_nonzero_rvu(rr, weights, distribution_mode):
         if not rr:
             return 0.0
-        return adjusted_rvu_from_metrics(rr.get("rvu"), rr.get("volatility"), weights, distribution_mode)
+        return adjusted_rvu_from_metrics(
+            rr.get("rvu"), rr.get("volatility"), weights, distribution_mode
+        )
 
     # Iterate doctors on this hour
     EPS = 1e-6
@@ -1355,7 +1738,9 @@ def hour_detail():
         did = d.get("id")
         name = d.get("name")
         rr = metrics_rows.get(did) if did is not None else None
-        conversion_weights = get_doc_modality_weights(modality_weights, did, window_start)
+        conversion_weights = get_doc_modality_weights(
+            modality_weights, did, window_start
+        )
         if not conversion_weights:
             conversion_weights = demand_modality_weights or uniform_weights
         original_base = latest_nonzero_rvu(rr, conversion_weights, distribution_mode)
@@ -1366,7 +1751,12 @@ def hour_detail():
                 ov = float(base_overrides[str(did)])
                 if not (ov >= 0):
                     ov = 0.0
-                base = adjusted_rvu_from_metrics(ov, rr.get("volatility") if rr else 0.0, conversion_weights, distribution_mode)
+                base = adjusted_rvu_from_metrics(
+                    ov,
+                    rr.get("volatility") if rr else 0.0,
+                    conversion_weights,
+                    distribution_mode,
+                )
             except Exception:
                 base = original_base
         doc_weights = get_doc_modality_weights(modality_weights, did, window_start)
@@ -1404,17 +1794,25 @@ def hour_detail():
                     gap_by_mod[mod] = sum_gap
             if not gap_by_mod:
                 break
+
             # Prefer modalities with higher weight first; if none meet threshold, fall back
             def _pick_mod(prefer_threshold=True):
                 mods = list(gap_by_mod.keys())
                 if prefer_threshold:
-                    preferred = [m for m in mods if (doc_weights.get(m, 0.0) >= SOFT_WEIGHT_THRESHOLD)]
+                    preferred = [
+                        m
+                        for m in mods
+                        if (doc_weights.get(m, 0.0) >= SOFT_WEIGHT_THRESHOLD)
+                    ]
                     if preferred:
                         mods = preferred
+
                 def _score(m):
                     w = doc_weights.get(m, 0.0)
                     return gap_by_mod[m] * (w if w > 0 else 1e-9)
+
                 return max(mods, key=_score)
+
             try:
                 sel_mod = _pick_mod(True)
             except ValueError:
@@ -1444,7 +1842,7 @@ def hour_detail():
             if key not in per_key_meta:
                 per_key_meta[key] = {
                     "state": best.get("state"),
-                    "modality": (sel_mod or "")
+                    "modality": (sel_mod or ""),
                 }
 
         # PASS 2: overflow coverage-aware with cap and round-robin (soft preferences)
@@ -1458,6 +1856,7 @@ def hour_detail():
                     if "overfill" not in g:
                         g["overfill"] = 0.0
             while remaining_cap > EPS:
+
                 def _pick_overflow(allow_low_weight: bool):
                     best_g = None
                     best_mod = None
@@ -1484,7 +1883,10 @@ def hour_detail():
                             if R >= OVERFILL_CAP_R - 1e-9:
                                 continue
                             key = (g["state"], mod)
-                            if per_group_chunks.get(key, 0) >= MAX_CHUNKS_PER_GROUP_PER_DOC:
+                            if (
+                                per_group_chunks.get(key, 0)
+                                >= MAX_CHUNKS_PER_GROUP_PER_DOC
+                            ):
                                 continue
                             score = (R, -w)
                             if best_score is None or score < best_score:
@@ -1507,17 +1909,14 @@ def hour_detail():
                 if key not in per_key_meta:
                     per_key_meta[key] = {
                         "state": g.get("state"),
-                        "modality": (mod or "")
+                        "modality": (mod or ""),
                     }
 
         # Materialize aggregated allocations and filter small values
         allocs = []
         for key, amt in per_key_amounts.items():
             meta = per_key_meta.get(key, {})
-            allocs.append({
-                **meta,
-                "allocated_rvus": float(amt)
-            })
+            allocs.append({**meta, "allocated_rvus": float(amt)})
 
         contributed = float(sum(a.get("allocated_rvus", 0.0) for a in allocs))
         # Prepare modality weights list for UI (sorted desc)
@@ -1533,30 +1932,45 @@ def hour_detail():
         except Exception:
             mw_list = []
 
-        doctor_allocations.append({
-            "id": did,
-            "name": name,
-            "base_rvu": base,
-            "original_base_rvu": original_base,
-            "contributing_rvus": contributed,
-            "unused_rvus": max(0.0, float(base - contributed)),
-            "allocations": allocs,
-            "modality_weights": mw_list
-        })
+        doctor_allocations.append(
+            {
+                "id": did,
+                "name": name,
+                "base_rvu": base,
+                "original_base_rvu": original_base,
+                "contributing_rvus": contributed,
+                "unused_rvus": max(0.0, float(base - contributed)),
+                "allocations": allocs,
+                "modality_weights": mw_list,
+            }
+        )
 
     # Convert breakdown dicts to lists for JSON friendliness
     state_breakdown_list = {
-        st: [
-            {"modality": md, "expected_rvus": float(val)} for md, val in mods.items()
-        ]
+        st: [{"modality": md, "expected_rvus": float(val)} for md, val in mods.items()]
         for st, mods in state_breakdown.items()
     }
     modality_breakdown_list = {
-        md: [
-            {"state": st, "expected_rvus": float(val)} for st, val in states.items()
-        ]
+        md: [{"state": st, "expected_rvus": float(val)} for st, val in states.items()]
         for md, states in modality_breakdown.items()
     }
+
+    # Fetch hourly trickle_multiplier from capacity_per_hour for display
+    hour_trickle_multiplier = 1.0
+    try:
+        tm_res = (
+            supabase.table("capacity_per_hour")
+            .select("trickle_multiplier")
+            .eq("date", prev_date_str)
+            .eq("hour", prev_hour_int)
+            .execute()
+        )
+        if tm_res.data:
+            hour_trickle_multiplier = float(
+                (tm_res.data[0]).get("trickle_multiplier") or 1.0
+            )
+    except Exception:
+        hour_trickle_multiplier = 1.0
 
     payload = {
         "date": date_str,
@@ -1565,6 +1979,8 @@ def hour_detail():
         "fallback": fallback_info,
         "applied_overrides": base_overrides,
         "total_expected_rvus": total_expected,
+        "trickle_multiplier": hour_trickle_multiplier,
+        "distribution_mode": distribution_mode,
         "by_state": by_state_payload,
         "by_state_merged": by_state_merged_payload,
         "by_modality": by_modality_payload,
@@ -1577,21 +1993,29 @@ def hour_detail():
         "supply_overall_rvus": supply_overall,
         "supply_licensed_rvus": supply_licensed,
         "supply_effective_allocated_rvus": matched_supply_detail,
-        "doctor_allocations": doctor_allocations
+        "doctor_allocations": doctor_allocations,
     }
     # Optional debug: log full distribution details
-    dbg = request.args.get('debug')
-    if dbg and str(dbg).lower() in ("1", "true", "yes"): 
+    dbg = request.args.get("debug")
+    if dbg and str(dbg).lower() in ("1", "true", "yes"):
         try:
             print("[hour_detail][DEBUG] payload doctor_allocations:")
-            print(json.dumps({
-                "date": date_str,
-                "hour": hour,
-                "expected_total": total_expected,
-                "effective_allocated": matched_supply_detail,
-                "allocations": doctor_allocations
-            }, ensure_ascii=False, default=str))
+            print(
+                json.dumps(
+                    {
+                        "date": date_str,
+                        "hour": hour,
+                        "expected_total": total_expected,
+                        "effective_allocated": matched_supply_detail,
+                        "allocations": doctor_allocations,
+                    },
+                    ensure_ascii=False,
+                    default=str,
+                )
+            )
         except Exception as _e:
             print(f"[hour_detail][DEBUG] logging error: {_e}")
-    print(f"[hour_detail] response summary: expected={total_expected:.2f}, states={len(by_state_payload)}, on_shift={len(on_shift)}")
+    print(
+        f"[hour_detail] response summary: expected={total_expected:.2f}, states={len(by_state_payload)}, on_shift={len(on_shift)}"
+    )
     return jsonify(payload)
