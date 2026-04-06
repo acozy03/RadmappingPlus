@@ -48,6 +48,7 @@ jobs:
         run: |
           gcloud builds submit "${{ env.APP_DIR }}" \
             --tag "${{ env.IMAGE_NAME }}:${{ github.sha }}" \
+            --suppress-logs \
             --project "${{ secrets.GCP_PROJECT_ID }}"
 
       - name: Deploy to Staging
