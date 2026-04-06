@@ -190,8 +190,76 @@ def normalize_distribution_mode(mode):
     return clean_mode
 
 
+def float_or_none(value):
+    try:
+        if value is None:
+            return None
+        return float(value)
+    except Exception:
+        return None
+
+
+def nonnegative_float(value, default=0.0):
+    parsed = float_or_none(value)
+    if parsed is None:
+        return default
+    return max(0.0, parsed)
+
+
+def adjusted_trickle_rvus(
+    total_rvus,
+    base_rvus,
+    trickle_multiplier,
+    distribution_mode,
+    trickle_added_rvus=None,
+    dropped_rvus=None,
+    avg_inherited_backlog_rvus=None,
+):
+    total_val = nonnegative_float(total_rvus)
+    base_val = float_or_none(base_rvus)
+    if base_val is None:
+        base_val = max(0.0, total_val)
+    else:
+        base_val = max(0.0, base_val)
+
+    tm_val = nonnegative_float(trickle_multiplier, 1.0)
+    if tm_val <= 0:
+        tm_val = 1.0
+
+    inferred_trickle = max(0.0, total_val - base_val)
+    added_val = float_or_none(trickle_added_rvus)
+    inherited_val = float_or_none(avg_inherited_backlog_rvus)
+    dropped_val = float_or_none(dropped_rvus)
+    mode = normalize_distribution_mode(distribution_mode)
+
+    if mode == "worst":
+        candidates = [inferred_trickle]
+        if inherited_val is not None:
+            candidates.append(max(0.0, inherited_val))
+        if added_val is not None:
+            candidates.append(max(0.0, added_val))
+        return max(candidates)
+
+    if mode == "normal":
+        if added_val is not None:
+            return max(0.0, added_val)
+        return inferred_trickle / tm_val
+
+    if added_val is not None:
+        if dropped_val is not None:
+            return max(0.0, added_val - max(0.0, dropped_val))
+        return max(0.0, added_val / tm_val)
+    return inferred_trickle / (tm_val * tm_val)
+
+
 def adjusted_expected_rvus(
-    total_rvus, base_rvus, trickle_multiplier, distribution_mode
+    total_rvus,
+    base_rvus,
+    trickle_multiplier,
+    distribution_mode,
+    trickle_added_rvus=None,
+    dropped_rvus=None,
+    avg_inherited_backlog_rvus=None,
 ):
     try:
         total_val = float(total_rvus or 0)
@@ -209,13 +277,43 @@ def adjusted_expected_rvus(
         tm_val = 1.0
 
     mode = normalize_distribution_mode(distribution_mode)
-    if mode == "normal" and base_val is not None:
-        return base_val
-    if mode == "best":
-        if base_val is not None:
-            return base_val / tm_val
-        return total_val / tm_val
-    return total_val
+    if mode == "worst" and avg_inherited_backlog_rvus is None:
+        return total_val
+
+    base_for_adjustment = base_val if base_val is not None else max(0.0, total_val)
+    return base_for_adjustment + adjusted_trickle_rvus(
+        total_val,
+        base_for_adjustment,
+        tm_val,
+        mode,
+        trickle_added_rvus=trickle_added_rvus,
+        dropped_rvus=dropped_rvus,
+        avg_inherited_backlog_rvus=avg_inherited_backlog_rvus,
+    )
+
+
+def adjusted_trickle_display(
+    total_rvus,
+    base_rvus,
+    trickle_multiplier,
+    distribution_mode,
+    trickle_added_rvus=None,
+    dropped_rvus=None,
+    avg_inherited_backlog_rvus=None,
+):
+    base_val = nonnegative_float(base_rvus)
+    if base_val <= 0:
+        return max(1.0, nonnegative_float(trickle_multiplier, 1.0))
+    adjusted_total = adjusted_expected_rvus(
+        total_rvus,
+        base_val,
+        trickle_multiplier,
+        distribution_mode,
+        trickle_added_rvus=trickle_added_rvus,
+        dropped_rvus=dropped_rvus,
+        avg_inherited_backlog_rvus=avg_inherited_backlog_rvus,
+    )
+    return max(1.0, adjusted_total / base_val)
 
 
 def get_rvu_bg_color_class(ratio):
@@ -495,6 +593,9 @@ def shifts():
                 "total_rvus",
                 "trickle_multiplier",
                 "base_total_rvus",
+                "trickle_added_rvus",
+                "dropped_rvus",
+                "avg_arriving_rvus",
                 "avg_inherited_backlog_rvus",
             )
             .in_("date", cap_dates)
@@ -528,11 +629,28 @@ def shifts():
             row.get("base_total_rvus"),
             row.get("trickle_multiplier"),
             distribution_mode,
+            trickle_added_rvus=row.get("trickle_added_rvus"),
+            dropped_rvus=row.get("dropped_rvus"),
+            avg_inherited_backlog_rvus=row.get("avg_inherited_backlog_rvus"),
         )
-        trickle_multiplier_lookup[(d, h_int)] = float(
-            row.get("trickle_multiplier") or 1.0
+        trickle_multiplier_lookup[(d, h_int)] = adjusted_trickle_display(
+            row.get("total_rvus"),
+            row.get("base_total_rvus"),
+            row.get("trickle_multiplier"),
+            distribution_mode,
+            trickle_added_rvus=row.get("trickle_added_rvus"),
+            dropped_rvus=row.get("dropped_rvus"),
+            avg_inherited_backlog_rvus=row.get("avg_inherited_backlog_rvus"),
         )
-        backlog_lookup[(d, h_int)] = float(row.get("avg_inherited_backlog_rvus") or 0.0)
+        backlog_lookup[(d, h_int)] = adjusted_trickle_rvus(
+            row.get("total_rvus"),
+            row.get("base_total_rvus"),
+            row.get("trickle_multiplier"),
+            distribution_mode,
+            trickle_added_rvus=row.get("trickle_added_rvus"),
+            dropped_rvus=row.get("dropped_rvus"),
+            avg_inherited_backlog_rvus=row.get("avg_inherited_backlog_rvus"),
+        )
 
     # --- New effective capacity computation ---
     # We will estimate per-hour supply by allocating each on-shift doctor's
@@ -1311,10 +1429,9 @@ def hour_detail():
                 }
             )
 
-    # 2) Adjust demand per distribution_mode using trickle columns
-    #    worst  = total_rvus (already includes trickle backlog — default/worst case)
-    #    normal = base_rvus  (forecast before trickle was applied)
-    #    best   = base_rvus / trickle_multiplier (optimistic: less than base)
+    # 2) Adjust demand per distribution_mode while keeping some trickle in every mode.
+    # Breakdown rows do not expose the full hourly trickle columns, so this falls back
+    # to scaling the inferred trickle component from total/base/multiplier.
     for row in breakdown_rows:
         row["total_rvus"] = adjusted_expected_rvus(
             row.get("total_rvus"),
@@ -1657,7 +1774,9 @@ def hour_detail():
         # Fetch tile expected from capacity_per_hour for prev_date_str/prev_hour_int
         cap_row = (
             supabase.table("capacity_per_hour")
-            .select("total_rvus")
+            .select(
+                "total_rvus,base_total_rvus,trickle_multiplier,trickle_added_rvus,dropped_rvus,avg_arriving_rvus,avg_inherited_backlog_rvus"
+            )
             .eq("date", prev_date_str)
             .eq("hour", prev_hour_int)
             .execute()
@@ -1665,7 +1784,18 @@ def hour_detail():
         cap_total = None
         if cap_row.data:
             try:
-                cap_total = float((cap_row.data or [{}])[0].get("total_rvus") or 0)
+                cap_data = (cap_row.data or [{}])[0]
+                cap_total = adjusted_expected_rvus(
+                    cap_data.get("total_rvus"),
+                    cap_data.get("base_total_rvus"),
+                    cap_data.get("trickle_multiplier"),
+                    distribution_mode,
+                    trickle_added_rvus=cap_data.get("trickle_added_rvus"),
+                    dropped_rvus=cap_data.get("dropped_rvus"),
+                    avg_inherited_backlog_rvus=cap_data.get(
+                        "avg_inherited_backlog_rvus"
+                    ),
+                )
             except Exception:
                 cap_total = None
         print(
@@ -1960,14 +2090,23 @@ def hour_detail():
     try:
         tm_res = (
             supabase.table("capacity_per_hour")
-            .select("trickle_multiplier")
+            .select(
+                "total_rvus,base_total_rvus,trickle_multiplier,trickle_added_rvus,dropped_rvus,avg_arriving_rvus,avg_inherited_backlog_rvus"
+            )
             .eq("date", prev_date_str)
             .eq("hour", prev_hour_int)
             .execute()
         )
         if tm_res.data:
-            hour_trickle_multiplier = float(
-                (tm_res.data[0]).get("trickle_multiplier") or 1.0
+            tm_data = tm_res.data[0]
+            hour_trickle_multiplier = adjusted_trickle_display(
+                tm_data.get("total_rvus"),
+                tm_data.get("base_total_rvus"),
+                tm_data.get("trickle_multiplier"),
+                distribution_mode,
+                trickle_added_rvus=tm_data.get("trickle_added_rvus"),
+                dropped_rvus=tm_data.get("dropped_rvus"),
+                avg_inherited_backlog_rvus=tm_data.get("avg_inherited_backlog_rvus"),
             )
     except Exception:
         hour_trickle_multiplier = 1.0
