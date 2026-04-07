@@ -119,7 +119,73 @@
     color: #bbf7d0 !important;
   }
     </style>
-    <div x-data="{ show: false, doctors: [], time: '', date: '', uncoveredStates: [], coveredStates: [], stateDoctorMap: {}, matchedStates: [], hoveredState: '', facilityDoctorMap: {}, hoveredFacility: '', hourDetail: null, hourLoading: false, // What-if simulation: per-doctor base RVU overrides (temporary) baseOverrides: {}, // What-if panel collapsed/expanded state whatIfOpen: true, // Units toggle for modal values: 'rvus' or 'cases' units: 'rvus', // Distribution mode for volatility adjustments pageDistributionMode: '{{ distribution_mode }}', distributionMode: '{{ distribution_mode }}', // Match backend modality RVU chunks for case conversion modalityChunks: { 'XR': 0.2, 'CT': 1.1, 'US': 0.5, 'MRI': 1.4, 'MG': 0.8, 'NM': 2.5, 'PT': 2.5, 'IR': 4.0, 'RF': 0.7, 'SC': 0.6, 'OT': 0.3, 'XA': 0.8, 'ECG': 0.2, }, chunkFor(mod) { const m = (mod || '').toUpperCase(); return this.modalityChunks[m] || 0.2; }, toCases(v, mod) { const ch = this.chunkFor(mod); if (!ch || !isFinite(ch) || ch <= 0) return 0; const n = Math.round((Number(v) || 0) / ch); return isFinite(n) ? n : 0; }, fmtNumber(v) { const val = Number(v) || 0; return Math.abs(val) < 1 ? val.toFixed(3) : val.toFixed(1); }, fmtValue(v, mod) { return this.units === 'rvus' ? this.fmtNumber(v) : String(this.toCases(v, mod)); }, sumCasesByModality(list) { return (list || []).reduce((t, m) => t + this.toCases(m?.expected_rvus || 0, m?.modality), 0); }, totalExpectedCases() { return this.sumCasesByModality(this.hourDetail?.by_modality || []); }, totalSupplyCases() { const allocs = (this.hourDetail?.doctor_allocations || []).flatMap(d => d.allocations || []); return allocs.reduce((t, a) => t + this.toCases(a?.allocated_rvus || 0, a?.modality), 0); } }"
+    <script>
+  window.shiftsCapacityState = function shiftsCapacityState(distributionMode) {
+    return {
+      show: false,
+      doctors: [],
+      time: '',
+      date: '',
+      uncoveredStates: [],
+      coveredStates: [],
+      stateDoctorMap: {},
+      matchedStates: [],
+      hoveredState: '',
+      facilityDoctorMap: {},
+      hoveredFacility: '',
+      hourDetail: null,
+      hourLoading: false,
+      baseOverrides: {},
+      whatIfOpen: true,
+      units: 'rvus',
+      pageDistributionMode: distributionMode,
+      distributionMode,
+      modalityChunks: {
+        XR: 0.2,
+        CT: 1.1,
+        US: 0.5,
+        MRI: 1.4,
+        MG: 0.8,
+        NM: 2.5,
+        PT: 2.5,
+        IR: 4.0,
+        RF: 0.7,
+        SC: 0.6,
+        OT: 0.3,
+        XA: 0.8,
+        ECG: 0.2,
+      },
+      chunkFor(mod) {
+        const m = (mod || '').toUpperCase();
+        return this.modalityChunks[m] || 0.2;
+      },
+      toCases(v, mod) {
+        const ch = this.chunkFor(mod);
+        if (!ch || !isFinite(ch) || ch <= 0) return 0;
+        const n = Math.round((Number(v) || 0) / ch);
+        return isFinite(n) ? n : 0;
+      },
+      fmtNumber(v) {
+        const val = Number(v) || 0;
+        return Math.abs(val) < 1 ? val.toFixed(3) : val.toFixed(1);
+      },
+      fmtValue(v, mod) {
+        return this.units === 'rvus' ? this.fmtNumber(v) : String(this.toCases(v, mod));
+      },
+      sumCasesByModality(list) {
+        return (list || []).reduce((t, m) => t + this.toCases(m?.expected_rvus || 0, m?.modality), 0);
+      },
+      totalExpectedCases() {
+        return this.sumCasesByModality(this.hourDetail?.by_modality || []);
+      },
+      totalSupplyCases() {
+        const allocs = (this.hourDetail?.doctor_allocations || []).flatMap(d => d.allocations || []);
+        return allocs.reduce((t, a) => t + this.toCases(a?.allocated_rvus || 0, a?.modality), 0);
+      },
+    };
+  };
+    </script>
+    <div x-data="shiftsCapacityState('{{ distribution_mode }}')"
          x-effect="document.body.classList.toggle(&quot;overflow-hidden&quot;, show)"
          class="shifts-page">
         <div class="shifts-filter-bar rounded-xl shadow-sm p-4 sm:p-6 mb-6 w-full border border-blue-100">
@@ -523,7 +589,7 @@
                                                  data-capacity-ratio="{{ ratio if ratio is not none else '' }}"
                                                  data-backlog="{{ backlog | round(1) }}"
                                                  data-hour="{{ slot.hour }}">
-                                                <div @click=" show = true; doctors = JSON.parse($el.getAttribute('data-doctors')); time = '{{ slot.label }}'; date = '{{ slot.datetime.strftime("%Y-%m-%d") }}'; const uncoveredStatesRaw = $el.getAttribute('data-uncovered-states'); const coveredStatesRaw = $el.getAttribute('data-covered-states'); const stateDoctorMapRaw = $el.getAttribute('data-state-doctor-map'); const facilityDoctorMapRaw = $el.getAttribute('data-facility-doctor-map'); uncoveredStates = uncoveredStatesRaw ? JSON.parse(uncoveredStatesRaw) : []; coveredStates = coveredStatesRaw ? JSON.parse(coveredStatesRaw) : []; stateDoctorMap = stateDoctorMapRaw ? JSON.parse(stateDoctorMapRaw) : {}; facilityDoctorMap = facilityDoctorMapRaw ? JSON.parse(facilityDoctorMapRaw) : {}; const rvu = JSON.parse($el.getAttribute('data-rvu')); if (doctors.length > 0) { doctors[0].current = rvu.current; doctors[0].expected = rvu.expected; doctors[0].ratio = rvu.ratio; } distributionMode = pageDistributionMode; // Load per-facility/state demand for this hour hourDetail = null; hourLoading = true; const _date = $el.getAttribute('data-date'); const _hour = $el.getAttribute('data-hour'); const url = '{{ url_for("shifts.hour_detail") }}?date=' + encodeURIComponent(_date) + '&hour=' + encodeURIComponent(_hour); try { console.log('[shifts] Fetch hour_detail', { date: _date, hour: _hour, url }); } catch {} fetch(url + '&distribution_mode=' + encodeURIComponent(distributionMode)) .then(r => { try { console.log('[shifts] hour_detail status', r.status); } catch {} if (!r.ok) throw new Error('HTTP '+r.status); return r.json(); }) .then(data => { try { console.log('[shifts] hour_detail data', data); } catch {} hourDetail = data; if (Array.isArray(data.covered_states)) { coveredStates = data.covered_states; } if (Array.isArray(data.uncovered_states)) { uncoveredStates = data.uncovered_states; } if (data.state_doctor_map && typeof data.state_doctor_map === 'object') { stateDoctorMap = data.state_doctor_map; } if (data.facility_doctor_map && typeof data.facility_doctor_map === 'object') { facilityDoctorMap = data.facility_doctor_map; } baseOverrides = {}; // reset overrides on fresh load }) .catch(err => { try { console.error('[shifts] hour_detail error', err); } catch {} hourDetail = { error: 'Failed to load' }; }) .finally(() => { hourLoading = false; }); " data-doctors='{{ modal_doctors | tojson | escape }}'
+                                                <div @click=" show = true; doctors = JSON.parse($el.getAttribute('data-doctors')); time = '{{ slot.label }}'; date = '{{ slot.datetime.strftime("%Y-%m-%d") }}'; const uncoveredStatesRaw = $el.getAttribute('data-uncovered-states'); const coveredStatesRaw = $el.getAttribute('data-covered-states'); const stateDoctorMapRaw = $el.getAttribute('data-state-doctor-map'); const facilityDoctorMapRaw = $el.getAttribute('data-facility-doctor-map'); uncoveredStates = uncoveredStatesRaw ? JSON.parse(uncoveredStatesRaw) : []; coveredStates = coveredStatesRaw ? JSON.parse(coveredStatesRaw) : []; stateDoctorMap = stateDoctorMapRaw ? JSON.parse(stateDoctorMapRaw) : {}; facilityDoctorMap = facilityDoctorMapRaw ? JSON.parse(facilityDoctorMapRaw) : {}; const rvu = JSON.parse($el.getAttribute('data-rvu')); if (doctors.length > 0) { doctors[0].current = rvu.current; doctors[0].expected = rvu.expected; doctors[0].ratio = rvu.ratio; } distributionMode = pageDistributionMode; hourDetail = null; hourLoading = true; const _date = $el.getAttribute('data-date'); const _hour = $el.getAttribute('data-hour'); const url = '{{ url_for("shifts.hour_detail") }}?date=' + encodeURIComponent(_date) + '&hour=' + encodeURIComponent(_hour); try { console.log('[shifts] Fetch hour_detail', { date: _date, hour: _hour, url }); } catch {} fetch(url + '&distribution_mode=' + encodeURIComponent(distributionMode)) .then(r => { try { console.log('[shifts] hour_detail status', r.status); } catch {} if (!r.ok) throw new Error('HTTP '+r.status); return r.json(); }) .then(data => { try { console.log('[shifts] hour_detail data', data); } catch {} hourDetail = data; if (Array.isArray(data.covered_states)) { coveredStates = data.covered_states; } if (Array.isArray(data.uncovered_states)) { uncoveredStates = data.uncovered_states; } if (data.state_doctor_map && typeof data.state_doctor_map === 'object') { stateDoctorMap = data.state_doctor_map; } if (data.facility_doctor_map && typeof data.facility_doctor_map === 'object') { facilityDoctorMap = data.facility_doctor_map; } baseOverrides = {}; }) .catch(err => { try { console.error('[shifts] hour_detail error', err); } catch {} hourDetail = { error: 'Failed to load' }; }) .finally(() => { hourLoading = false; }); " data-doctors='{{ modal_doctors | tojson | escape }}'
                                                     {% if coverage_filters_enabled %}
                                                         data-uncovered-states='{{ uncovered_states | tojson | escape }}' data-covered-states='{{ covered_states | tojson | escape }}' data-state-doctor-map='{{ state_doctor_map | tojson | escape }}' data-facility-doctor-map='{{ facility_doctor_map | tojson | safe }}'
                                                     {% endif %}
