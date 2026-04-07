@@ -132,6 +132,7 @@
       matchedStates: [],
       hoveredState: '',
       facilityDoctorMap: {},
+      allFacilityNames: [],
       hoveredFacility: '',
       hourDetail: null,
       hourLoading: false,
@@ -181,6 +182,189 @@
       totalSupplyCases() {
         const allocs = (this.hourDetail?.doctor_allocations || []).flatMap(d => d.allocations || []);
         return allocs.reduce((t, a) => t + this.toCases(a?.allocated_rvus || 0, a?.modality), 0);
+      },
+    };
+  };
+
+  window.shiftsCoverageFilterState = function shiftsCoverageFilterState(config) {
+    const coverageClasses = ['ring-red-500', 'ring-green-500', 'ring-2', 'shifts-coverage-match', 'shifts-coverage-miss'];
+
+    return {
+      coverageFiltersEnabled: Boolean(config.enabled),
+      helpOpen: false,
+      stateQuery: '',
+      facilityQuery: '',
+      facilityMatches: [],
+      matchedStates: [],
+      allStates: [],
+      allFacilityNames: config.allFacilityNames || [],
+      coverageLoaded: false,
+      coverageLoading: false,
+      coverageLoadPromise: null,
+      coverageUrl: config.coverageUrl,
+      updateTimer: null,
+
+      init() {
+        const reapplyFilters = () => window.requestAnimationFrame(() => this.applyFilters());
+        document.addEventListener('shifts:refreshFilters', reapplyFilters);
+        this.$el.addEventListener('alpine:destroy', () => {
+          document.removeEventListener('shifts:refreshFilters', reapplyFilters);
+        });
+        this.$nextTick(() => this.applyFilters());
+      },
+
+      normalize(value) {
+        return String(value || '').toLowerCase().replace(/\s+/g, ' ').trim();
+      },
+
+      parseList(raw) {
+        try {
+          const parsed = JSON.parse(raw || '[]');
+          return Array.isArray(parsed) ? parsed : [];
+        } catch {
+          return [];
+        }
+      },
+
+      clearSlotClasses(slotElement) {
+        slotElement.classList.remove(...coverageClasses);
+      },
+
+      clearAllSlotClasses() {
+        document.querySelectorAll('.hour-slot-div').forEach(slotElement => this.clearSlotClasses(slotElement));
+      },
+
+      loadCoverageFilters() {
+        if (!this.coverageFiltersEnabled) return Promise.resolve(false);
+        if (this.coverageLoaded) return Promise.resolve(true);
+        if (this.coverageLoadPromise) return this.coverageLoadPromise;
+
+        this.coverageLoading = true;
+        this.coverageLoadPromise = fetch(this.coverageUrl)
+          .then(response => {
+            if (!response.ok) throw new Error(`HTTP ${response.status}`);
+            return response.json();
+          })
+          .then(data => {
+            this.allStates = data.all_states || [];
+            if (Array.isArray(data.all_facility_names) && data.all_facility_names.length > 0) {
+              this.allFacilityNames = data.all_facility_names;
+            }
+
+            const slotElements = new Map(
+              Array.from(document.querySelectorAll('.hour-slot-div[data-slot-key]')).map(slotElement => [
+                slotElement.getAttribute('data-slot-key'),
+                slotElement,
+              ])
+            );
+
+            Object.entries(data.hours || {}).forEach(([key, coverage]) => {
+              const slotElement = slotElements.get(key);
+              if (!slotElement) return;
+              slotElement.setAttribute('data-covered-states', JSON.stringify(coverage.covered_states || []));
+              slotElement.setAttribute('data-uncovered-states', JSON.stringify(coverage.uncovered_states || []));
+              slotElement.setAttribute('data-facility-names', JSON.stringify(coverage.facility_names || []));
+            });
+
+            this.coverageLoaded = true;
+            return true;
+          })
+          .catch(error => {
+            console.error('[shifts] coverage filter load error', error);
+            this.coverageLoadPromise = null;
+            return false;
+          })
+          .finally(() => {
+            this.coverageLoading = false;
+          });
+
+        return this.coverageLoadPromise;
+      },
+
+      applyFilters() {
+        if (!this.coverageFiltersEnabled) return;
+
+        const stateQuery = this.normalize(this.stateQuery);
+        const facilityQuery = this.normalize(this.facilityQuery);
+        if (!stateQuery && !facilityQuery) {
+          this.clearAllSlotClasses();
+          return;
+        }
+
+        if (!this.coverageLoaded) {
+          this.loadCoverageFilters().then(loaded => {
+            if (loaded) this.applyFilters();
+          });
+          return;
+        }
+
+        document.querySelectorAll('.hour-slot-div').forEach(slotElement => {
+          const facilityNames = this.parseList(slotElement.getAttribute('data-facility-names'));
+          const coveredStates = this.parseList(slotElement.getAttribute('data-covered-states'));
+          const stateMatch = stateQuery
+            ? coveredStates.some(state => this.normalize(state).includes(stateQuery))
+            : true;
+          const facilityMatch = facilityQuery
+            ? facilityNames.some(name => this.normalize(name).includes(facilityQuery))
+            : true;
+          const match = stateMatch && facilityMatch;
+
+          this.clearSlotClasses(slotElement);
+          slotElement.classList.add(
+            match ? 'ring-green-500' : 'ring-red-500',
+            match ? 'shifts-coverage-match' : 'shifts-coverage-miss',
+            'ring-2'
+          );
+        });
+      },
+
+      updateFilters() {
+        clearTimeout(this.updateTimer);
+        this.updateTimer = setTimeout(() => this.applyFilters(), 150);
+      },
+
+      updateStateSuggestions() {
+        const query = this.normalize(this.stateQuery);
+        if (!query) {
+          this.matchedStates = [];
+          return;
+        }
+
+        this.loadCoverageFilters().then(() => {
+          this.matchedStates = (this.allStates || [])
+            .filter(state => this.normalize(state).includes(query))
+            .slice(0, 10);
+        });
+      },
+
+      updateFacilitySuggestions() {
+        const query = this.normalize(this.facilityQuery);
+        if (!query) {
+          this.facilityMatches = [];
+          return;
+        }
+
+        this.facilityMatches = (this.allFacilityNames || [])
+          .filter(name => this.normalize(name).includes(query))
+          .slice(0, 10);
+      },
+
+      selectFacility(facilityName) {
+        if (!facilityName) return;
+        this.facilityQuery = facilityName;
+        this.facilityMatches = [];
+        this.applyFilters();
+      },
+
+      selectFacilityFromInput() {
+        const query = this.normalize(this.facilityQuery);
+        if (!query) return;
+        const exactMatch = this.facilityMatches.find(name => this.normalize(name) === query);
+        if (exactMatch || this.facilityMatches[0]) {
+          this.selectFacility(exactMatch || this.facilityMatches[0]);
+          return;
+        }
+        this.applyFilters();
       },
     };
   };
@@ -280,17 +464,13 @@
             </div>
         </div>
         {# Filter Controls #}
-        <div x-data="{ coverageFiltersEnabled: {{ 'true' if coverage_filters_enabled else 'false' }}, helpOpen: false,
-            {% if coverage_filters_enabled %}stateQuery: '', facilityQuery: '', facilityMatches: [], matchedStates: [],{% endif %}
-            init() { const reapplyFilters = () => { window.requestAnimationFrame(() => this.applyFilters()); };  document.addEventListener('shifts:refreshFilters', reapplyFilters);  this.$el.addEventListener('alpine:destroy', () => { document.removeEventListener('shifts:refreshFilters', reapplyFilters); });  this.$nextTick(() => this.applyFilters()); }, applyFilters() {
-            {% if coverage_filters_enabled %}
-                const normalize = s => s.toLowerCase().replace(/\s+/g, ' ').replace(/\n/g, ' ').trim(); const facilityQuery = normalize(this.facilityQuery); const stateQuery = normalize(this.stateQuery || '');  document.querySelectorAll('.hour-slot-div').forEach(slotElement => { const facilityDataRaw = slotElement.getAttribute('data-facility-doctor-map') || '{}'; const coveredStatesRaw = slotElement.getAttribute('data-covered-states') || '[]'; let facilityData = {}; let coveredStates = []; try { facilityData = JSON.parse(facilityDataRaw); coveredStates = JSON.parse(coveredStatesRaw); } catch { return; }  const facilityNames = Object.keys(facilityData); const stateMatch = stateQuery ? coveredStates.some(state => normalize(state).includes(stateQuery)) : true; const facilityMatch = facilityQuery ? facilityNames.some(name => normalize(name).includes(facilityQuery) && facilityData[name].length > 0) : true;  const match = stateMatch && facilityMatch;  slotElement.classList.remove('ring-red-500', 'ring-green-500', 'ring-2', 'shifts-coverage-match', 'shifts-coverage-miss');  if (stateQuery || facilityQuery) { slotElement.classList.add(match ? 'ring-green-500' : 'ring-red-500', match ? 'shifts-coverage-match' : 'shifts-coverage-miss', 'ring-2'); } });
-            {% endif %}
-            }, updateFilters: debounce(function () { this.applyFilters(); }, 150),
-            {% if coverage_filters_enabled %}
-                updateStateSuggestions() { const query = this.stateQuery.trim().toLowerCase(); const allStates = new Set();  document.querySelectorAll('.hour-slot-div').forEach(slotElement => { const states = JSON.parse(slotElement.getAttribute('data-covered-states') || '[]'); states.forEach(s => allStates.add(s)); });  this.matchedStates = [...allStates].filter(s => s.toLowerCase().includes(query)).slice(0, 10); },  updateFacilitySuggestions() { const query = this.facilityQuery.trim().toLowerCase(); const allFacilities = new Set();  document.querySelectorAll('.hour-slot-div').forEach(slotElement => { const facilityData = JSON.parse(slotElement.getAttribute('data-facility-doctor-map') || '{}'); Object.keys(facilityData).forEach(fac => allFacilities.add(fac)); });  this.facilityMatches = [...allFacilities] .filter(f => f.toLowerCase().includes(query)) .slice(0, 10); }
-            {% endif %}
-            }" @keydown.escape.window="helpOpen = false" class="mb-6 p-4 bg-white rounded-lg shadow-sm border border-gray-200 shifts-filter-panel">
+        <div x-data="shiftsCoverageFilterState({
+                enabled: {{ 'true' if coverage_filters_enabled else 'false' }},
+                allFacilityNames: {{ all_facility_names | default([]) | tojson | forceescape }},
+                coverageUrl: '{{ url_for("shifts.coverage_filters", date=selected_date) }}'
+            })"
+             @keydown.escape.window="helpOpen = false"
+             class="mb-6 p-4 bg-white rounded-lg shadow-sm border border-gray-200 shifts-filter-panel">
             <div class="relative flex flex-col gap-3 md:flex-row md:items-center md:justify-between">
                 <div class="flex items-center gap-3 flex-wrap">
                     <span class="text-sm font-medium text-gray-700">Distribution:</span>
@@ -501,7 +681,7 @@
                                    class="w-full px-2 py-1 border rounded text-sm shifts-coverage-input"
                                    x-model="stateQuery"
                                    @input="updateFilters(); updateStateSuggestions();"
-                                   @focus="updateStateSuggestions()"
+                                   @focus="stateQuery.trim() && updateStateSuggestions()"
                                    @click.outside="matchedStates = []" />
                             <ul x-show="matchedStates.length > 0"
                                 class="absolute z-50 bg-white border border-gray-300 mt-1 w-full rounded shadow text-sm shifts-suggestion">
@@ -523,13 +703,14 @@
                                    class="w-full px-2 py-1 border rounded text-sm shifts-coverage-input"
                                    x-model="facilityQuery"
                                    @input="updateFilters(); updateFacilitySuggestions();"
-                                   @focus="updateFacilitySuggestions()"
+                                   @keydown.enter.prevent="selectFacilityFromInput();"
+                                   @focus="facilityQuery.trim() && updateFacilitySuggestions()"
                                    @click.outside="facilityMatches = []" />
                             <ul x-show="facilityMatches.length > 0"
                                 class="absolute z-50 bg-white border border-gray-300 mt-1 w-full rounded shadow text-sm shifts-suggestion">
                                 <template x-for="fac in facilityMatches" :key="fac">
                                     <li class="px-3 py-1 hover:bg-gray-100 cursor-pointer shifts-suggestion__item"
-                                        @click="facilityQuery = fac; facilityMatches = []; updateFilters();"
+                                        @click="selectFacility(fac);"
                                         x-text="fac"></li>
                                 </template>
                             </ul>
@@ -571,10 +752,6 @@
                                             {% set ratio = (current / expected) if current is not none and expected and expected > 0 else None %}
                                             {% set ratio_percent = (ratio * 100) | round(1) if ratio is not none else None %}
                                             {% set slot_key = slot.datetime.isoformat() %}
-                                            {% set facility_doctor_map = facility_doctor_map_by_hour.get(slot_key, {}) if coverage_filters_enabled else {} %}
-                                            {% set uncovered_states = uncovered_states_by_hour.get(slot_key, []) if coverage_filters_enabled else [] %}
-                                            {% set covered_states = covered_states_by_hour.get(slot_key, []) if coverage_filters_enabled else [] %}
-                                            {% set state_doctor_map = state_doctor_map_by_hour.get(slot_key, {}) if coverage_filters_enabled else {} %}
                                             {% set modal_doctors = [] %}
                                             {% for doc in doctors_by_hour.get(slot.datetime, []) %}
                                                 {% set _ = modal_doctors.append({
@@ -589,11 +766,11 @@
                                                  data-capacity-ratio="{{ ratio if ratio is not none else '' }}"
                                                  data-backlog="{{ backlog | round(1) }}"
                                                  data-hour="{{ slot.hour }}">
-                                                <div @click=" show = true; doctors = JSON.parse($el.getAttribute('data-doctors')); time = '{{ slot.label }}'; date = '{{ slot.datetime.strftime("%Y-%m-%d") }}'; const uncoveredStatesRaw = $el.getAttribute('data-uncovered-states'); const coveredStatesRaw = $el.getAttribute('data-covered-states'); const stateDoctorMapRaw = $el.getAttribute('data-state-doctor-map'); const facilityDoctorMapRaw = $el.getAttribute('data-facility-doctor-map'); uncoveredStates = uncoveredStatesRaw ? JSON.parse(uncoveredStatesRaw) : []; coveredStates = coveredStatesRaw ? JSON.parse(coveredStatesRaw) : []; stateDoctorMap = stateDoctorMapRaw ? JSON.parse(stateDoctorMapRaw) : {}; facilityDoctorMap = facilityDoctorMapRaw ? JSON.parse(facilityDoctorMapRaw) : {}; const rvu = JSON.parse($el.getAttribute('data-rvu')); if (doctors.length > 0) { doctors[0].current = rvu.current; doctors[0].expected = rvu.expected; doctors[0].ratio = rvu.ratio; } distributionMode = pageDistributionMode; hourDetail = null; hourLoading = true; const _date = $el.getAttribute('data-date'); const _hour = $el.getAttribute('data-hour'); const url = '{{ url_for("shifts.hour_detail") }}?date=' + encodeURIComponent(_date) + '&hour=' + encodeURIComponent(_hour); try { console.log('[shifts] Fetch hour_detail', { date: _date, hour: _hour, url }); } catch {} fetch(url + '&distribution_mode=' + encodeURIComponent(distributionMode)) .then(r => { try { console.log('[shifts] hour_detail status', r.status); } catch {} if (!r.ok) throw new Error('HTTP '+r.status); return r.json(); }) .then(data => { try { console.log('[shifts] hour_detail data', data); } catch {} hourDetail = data; if (Array.isArray(data.covered_states)) { coveredStates = data.covered_states; } if (Array.isArray(data.uncovered_states)) { uncoveredStates = data.uncovered_states; } if (data.state_doctor_map && typeof data.state_doctor_map === 'object') { stateDoctorMap = data.state_doctor_map; } if (data.facility_doctor_map && typeof data.facility_doctor_map === 'object') { facilityDoctorMap = data.facility_doctor_map; } baseOverrides = {}; }) .catch(err => { try { console.error('[shifts] hour_detail error', err); } catch {} hourDetail = { error: 'Failed to load' }; }) .finally(() => { hourLoading = false; }); " data-doctors='{{ modal_doctors | tojson | escape }}'
+                                                <div @click=" show = true; doctors = JSON.parse($el.getAttribute('data-doctors')); time = '{{ slot.label }}'; date = '{{ slot.datetime.strftime("%Y-%m-%d") }}'; const uncoveredStatesRaw = $el.getAttribute('data-uncovered-states'); const coveredStatesRaw = $el.getAttribute('data-covered-states'); const facilityNamesRaw = $el.getAttribute('data-facility-names'); uncoveredStates = uncoveredStatesRaw ? JSON.parse(uncoveredStatesRaw) : []; coveredStates = coveredStatesRaw ? JSON.parse(coveredStatesRaw) : []; stateDoctorMap = {}; const parsedFacilityNames = facilityNamesRaw ? JSON.parse(facilityNamesRaw) : []; facilityDoctorMap = Object.fromEntries(parsedFacilityNames.map(name => [name, []])); const rvu = JSON.parse($el.getAttribute('data-rvu')); if (doctors.length > 0) { doctors[0].current = rvu.current; doctors[0].expected = rvu.expected; doctors[0].ratio = rvu.ratio; } distributionMode = pageDistributionMode; hourDetail = null; hourLoading = true; const _date = $el.getAttribute('data-date'); const _hour = $el.getAttribute('data-hour'); const url = '{{ url_for("shifts.hour_detail") }}?date=' + encodeURIComponent(_date) + '&hour=' + encodeURIComponent(_hour); try { console.log('[shifts] Fetch hour_detail', { date: _date, hour: _hour, url }); } catch {} fetch(url + '&distribution_mode=' + encodeURIComponent(distributionMode)) .then(r => { try { console.log('[shifts] hour_detail status', r.status); } catch {} if (!r.ok) throw new Error('HTTP '+r.status); return r.json(); }) .then(data => { try { console.log('[shifts] hour_detail data', data); } catch {} hourDetail = data; if (Array.isArray(data.covered_states)) { coveredStates = data.covered_states; } if (Array.isArray(data.uncovered_states)) { uncoveredStates = data.uncovered_states; } if (data.state_doctor_map && typeof data.state_doctor_map === 'object') { stateDoctorMap = data.state_doctor_map; } if (data.facility_doctor_map && typeof data.facility_doctor_map === 'object') { facilityDoctorMap = data.facility_doctor_map; } baseOverrides = {}; }) .catch(err => { try { console.error('[shifts] hour_detail error', err); } catch {} hourDetail = { error: 'Failed to load' }; }) .finally(() => { hourLoading = false; }); " data-doctors='{{ modal_doctors | tojson | escape }}'
                                                     {% if coverage_filters_enabled %}
-                                                        data-uncovered-states='{{ uncovered_states | tojson | escape }}' data-covered-states='{{ covered_states | tojson | escape }}' data-state-doctor-map='{{ state_doctor_map | tojson | escape }}' data-facility-doctor-map='{{ facility_doctor_map | tojson | safe }}'
+                                                        data-uncovered-states="[]" data-covered-states="[]" data-facility-names="[]"
                                                     {% endif %}
-                                                    data-rvu='{{ { "current": current, "expected": expected, "ratio": ratio } | tojson | escape }}' data-date='{{ slot.date }}' data-hour='{{ slot.hour }}' class="group rounded-md p-2 md:p-3 shadow-sm border border-gray-300 {{ color_class }} relative cursor-pointer hour-slot-div shifts-slot-card min-w-0">
+                                                    data-rvu='{{ { "current": current, "expected": expected, "ratio": ratio } | tojson | escape }}' data-date='{{ slot.date }}' data-hour='{{ slot.hour }}' data-slot-key="{{ slot_key }}" class="group rounded-md p-2 md:p-3 shadow-sm border border-gray-300 {{ color_class }} relative cursor-pointer hour-slot-div shifts-slot-card min-w-0">
                                                     <div class="flex flex-col gap-1">
                                                         <div class="flex flex-col md:flex-row md:items-center md:justify-between gap-1 md:gap-0">
                                                             <h4 class="text-xs md:text-sm font-semibold text-gray-800">
