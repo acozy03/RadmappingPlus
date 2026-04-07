@@ -284,7 +284,7 @@
             {% if coverage_filters_enabled %}stateQuery: '', facilityQuery: '', facilityMatches: [], matchedStates: [],{% endif %}
             init() { const reapplyFilters = () => { window.requestAnimationFrame(() => this.applyFilters()); };  document.addEventListener('shifts:refreshFilters', reapplyFilters);  this.$el.addEventListener('alpine:destroy', () => { document.removeEventListener('shifts:refreshFilters', reapplyFilters); });  this.$nextTick(() => this.applyFilters()); }, applyFilters() {
             {% if coverage_filters_enabled %}
-                const normalize = s => s.toLowerCase().replace(/\s+/g, ' ').replace(/\n/g, ' ').trim(); const facilityQuery = normalize(this.facilityQuery); const stateQuery = normalize(this.stateQuery || '');  document.querySelectorAll('.hour-slot-div').forEach(slotElement => { const facilityDataRaw = slotElement.getAttribute('data-facility-doctor-map') || '{}'; const coveredStatesRaw = slotElement.getAttribute('data-covered-states') || '[]'; let facilityData = {}; let coveredStates = []; try { facilityData = JSON.parse(facilityDataRaw); coveredStates = JSON.parse(coveredStatesRaw); } catch { return; }  const facilityNames = Object.keys(facilityData); const stateMatch = stateQuery ? coveredStates.some(state => normalize(state).includes(stateQuery)) : true; const facilityMatch = facilityQuery ? facilityNames.some(name => normalize(name).includes(facilityQuery) && facilityData[name].length > 0) : true;  const match = stateMatch && facilityMatch;  slotElement.classList.remove('ring-red-500', 'ring-green-500', 'ring-2');  if (stateQuery || facilityQuery) { slotElement.classList.add(match ? 'ring-green-500' : 'ring-red-500', 'ring-2'); } });
+                const normalize = s => s.toLowerCase().replace(/\s+/g, ' ').replace(/\n/g, ' ').trim(); const facilityQuery = normalize(this.facilityQuery); const stateQuery = normalize(this.stateQuery || '');  document.querySelectorAll('.hour-slot-div').forEach(slotElement => { const facilityDataRaw = slotElement.getAttribute('data-facility-doctor-map') || '{}'; const coveredStatesRaw = slotElement.getAttribute('data-covered-states') || '[]'; let facilityData = {}; let coveredStates = []; try { facilityData = JSON.parse(facilityDataRaw); coveredStates = JSON.parse(coveredStatesRaw); } catch { return; }  const facilityNames = Object.keys(facilityData); const stateMatch = stateQuery ? coveredStates.some(state => normalize(state).includes(stateQuery)) : true; const facilityMatch = facilityQuery ? facilityNames.some(name => normalize(name).includes(facilityQuery) && facilityData[name].length > 0) : true;  const match = stateMatch && facilityMatch;  slotElement.classList.remove('ring-red-500', 'ring-green-500', 'ring-2', 'shifts-coverage-match', 'shifts-coverage-miss');  if (stateQuery || facilityQuery) { slotElement.classList.add(match ? 'ring-green-500' : 'ring-red-500', match ? 'shifts-coverage-match' : 'shifts-coverage-miss', 'ring-2'); } });
             {% endif %}
             }, updateFilters: debounce(function () { this.applyFilters(); }, 150),
             {% if coverage_filters_enabled %}
@@ -498,7 +498,7 @@
                             <input id="global-state-search"
                                    type="text"
                                    placeholder="Enter state name"
-                                   class="w-full px-2 py-1 border rounded text-sm"
+                                   class="w-full px-2 py-1 border rounded text-sm shifts-coverage-input"
                                    x-model="stateQuery"
                                    @input="updateFilters(); updateStateSuggestions();"
                                    @focus="updateStateSuggestions()"
@@ -520,7 +520,7 @@
                             <input id="global-facility-search"
                                    type="text"
                                    placeholder="Enter facility name"
-                                   class="w-full px-2 py-1 border rounded text-sm"
+                                   class="w-full px-2 py-1 border rounded text-sm shifts-coverage-input"
                                    x-model="facilityQuery"
                                    @input="updateFilters(); updateFacilitySuggestions();"
                                    @focus="updateFacilitySuggestions()"
@@ -1186,7 +1186,7 @@
           const trickleLabel = 'Trickle RVUs: ' + nextBacklog.toFixed(1);
 
           const arrowDiv = document.createElement('div');
-            arrowDiv.className = 'trickle-arrow flex items-center justify-between px-3 py-1.5 text-sm rounded bg-gray-800 bg-opacity-40 border border-gray-600';
+            arrowDiv.className = 'trickle-arrow shifts-trickle-arrow flex items-center justify-between px-3 py-1.5 text-sm rounded';
             arrowDiv.innerHTML = '<span class="' + severityClasses.arrow + ' text-base">' + arrowChar + '</span>'
               + '<span class="relative inline-flex items-center group">'
               + '<span class="' + severityClasses.number + ' text-sm" title="' + trickleLabel + '">' + nextBacklog.toFixed(1) + '</span>'
