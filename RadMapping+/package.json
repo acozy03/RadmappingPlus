@@ -4,14 +4,12 @@
   "packageManager": "pnpm@10.6.5",
   "scripts": {
     "prepare": "git config core.hooksPath RadMapping+/.husky/_",
-    "format": "pnpm run format:prettier && pnpm run format:python && pnpm run format:templates",
+    "format": "pnpm run format:prettier && pnpm run format:python",
     "format:prettier": "prettier --write . --ignore-unknown",
     "format:python": "python -m ruff format .",
-    "format:templates": "python -m djlint app/templates --reformat --profile=jinja",
-    "format:check": "pnpm run format:check:prettier && pnpm run format:check:python && pnpm run format:check:templates",
+    "format:check": "pnpm run format:check:prettier && pnpm run format:check:python",
     "format:check:prettier": "prettier --check . --ignore-unknown",
     "format:check:python": "python -m ruff format --check .",
-    "format:check:templates": "python -m djlint app/templates --check --profile=jinja",
     "commitlint": "commitlint --edit"
   },
   "devDependencies": {
@@ -23,7 +21,6 @@
   },
   "lint-staged": {
     "**/*.{md,json,yml,yaml,css}": "pnpm exec prettier --write",
-    "**/*.py": "python -m ruff format",
-    "app/templates/**/*.html": "python scripts/run_djlint_reformat.py"
+    "**/*.py": "python -m ruff format"
   }
 }

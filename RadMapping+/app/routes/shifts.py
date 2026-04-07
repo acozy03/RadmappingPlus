@@ -2,6 +2,7 @@
 
 from flask import Blueprint, render_template, request, jsonify
 import json
+import time
 from datetime import datetime, timedelta
 from collections import defaultdict
 from app.supabase_client import get_supabase_client
@@ -401,7 +402,7 @@ MODALITY_RVU = {
     "ECG": 0.2,
 }
 
-# Feature flag: global coverage filters are enabled on shifts load.
+# Feature flag: global coverage filters are shown, then loaded lazily on first use.
 COVERAGE_FILTERS_ENABLED = True
 
 # Soft-preference tuning: modalities with a weight below this threshold are
@@ -416,9 +417,163 @@ def modality_chunk(mod):
     return float(MODALITY_RVU.get(str(mod).upper(), 0.2))
 
 
+def build_week_hour_slots(start_of_week, end_of_week):
+    hour_slots_by_day = defaultdict(list)
+    current_day = start_of_week.replace(hour=0, minute=0, second=0, microsecond=0)
+    while current_day <= end_of_week.replace(hour=0, minute=0, second=0, microsecond=0):
+        current_hour = current_day.replace(hour=0)
+        while current_hour < current_day + timedelta(days=1):
+            hour_slots_by_day[current_day.date()].append(
+                {
+                    "datetime": current_hour,
+                    "label": current_hour.strftime("%I %p").lstrip("0"),
+                    "hour": current_hour.hour,
+                    "date": current_hour.strftime("%Y-%m-%d"),
+                    "day_label": current_day.strftime("%A"),
+                }
+            )
+            current_hour += timedelta(hours=1)
+        current_day += timedelta(days=1)
+
+    all_hour_slots = [
+        slot for day_slots in hour_slots_by_day.values() for slot in day_slots
+    ]
+    return hour_slots_by_day, all_hour_slots
+
+
+def fetch_week_doctors_by_hour(supabase, start_of_week, end_of_week):
+    start_date_str = start_of_week.strftime("%Y-%m-%d")
+    end_date_str = end_of_week.strftime("%Y-%m-%d")
+    hour_slots_by_day, all_hour_slots = build_week_hour_slots(
+        start_of_week, end_of_week
+    )
+
+    query = (
+        supabase.table("monthly_schedule")
+        .select("*, radiologists(*)")
+        .lte("start_date", end_date_str)
+        .gte("end_date", start_date_str)
+    )
+
+    batch_size = 1000
+    offset = 0
+    schedule_rows = []
+    while True:
+        res = query.range(offset, offset + batch_size - 1).execute()
+        batch = res.data or []
+        schedule_rows.extend(batch)
+        if len(batch) < batch_size:
+            break
+        offset += batch_size
+
+    doctors_on_shift = []
+    for entry in schedule_rows:
+        if not (
+            entry.get("radiologists")
+            and entry.get("start_time")
+            and entry.get("end_time")
+        ):
+            continue
+
+        doc = entry["radiologists"]
+        start_date = entry.get("start_date") or start_date_str
+        end_date = entry.get("end_date") or end_date_str
+
+        try:
+            shift_start_dt = datetime.strptime(
+                f"{start_date} {entry['start_time']}", "%Y-%m-%d %H:%M:%S"
+            )
+            shift_end_dt = datetime.strptime(
+                f"{end_date} {entry['end_time']}", "%Y-%m-%d %H:%M:%S"
+            )
+            if shift_end_dt < shift_start_dt:
+                shift_end_dt += timedelta(days=1)
+
+            break_start_dt = None
+            break_end_dt = None
+            if entry.get("break_start") and entry.get("break_end"):
+                break_start_dt = datetime.strptime(
+                    f"{start_date} {entry['break_start']}", "%Y-%m-%d %H:%M:%S"
+                )
+                break_end_dt = datetime.strptime(
+                    f"{start_date} {entry['break_end']}", "%Y-%m-%d %H:%M:%S"
+                )
+                if break_end_dt < break_start_dt:
+                    break_end_dt += timedelta(days=1)
+
+            full_doc_info = doc.copy()
+            full_doc_info.update(
+                {
+                    "start_time": entry["start_time"],
+                    "end_time": entry["end_time"],
+                    "start_date": start_date,
+                    "end_date": end_date,
+                    "start_dt": shift_start_dt,
+                    "end_dt": shift_end_dt,
+                    "break_start_dt": break_start_dt,
+                    "break_end_dt": break_end_dt,
+                }
+            )
+            doctors_on_shift.append(full_doc_info)
+        except Exception as e:
+            print(f"Error parsing datetime for doc {doc.get('name', 'Unknown')}: {e}")
+
+    doctors_by_hour = defaultdict(list)
+    for doc in doctors_on_shift:
+        for slot in all_hour_slots:
+            slot_start = slot["datetime"]
+            slot_end = slot_start + timedelta(hours=1)
+
+            is_on_break = False
+            if doc.get("break_start_dt") and doc.get("break_end_dt"):
+                break_start_on_slot_day = datetime.combine(
+                    slot_start.date(), doc["break_start_dt"].timetz()
+                )
+                break_end_on_slot_day = datetime.combine(
+                    slot_start.date(), doc["break_end_dt"].timetz()
+                )
+
+                if doc["break_end_dt"].date() > doc["break_start_dt"].date():
+                    break_end_on_slot_day += timedelta(days=1)
+
+                is_on_break = (
+                    break_start_on_slot_day < slot_end
+                    and break_end_on_slot_day > slot_start
+                )
+
+            is_on_shift = doc["start_dt"] < slot_end and doc["end_dt"] > slot_start
+
+            if is_on_shift and not is_on_break:
+                doctors_by_hour[slot_start].append(doc)
+
+    return {
+        "all_hour_slots": all_hour_slots,
+        "doctors_by_hour": doctors_by_hour,
+        "doctors_on_shift": doctors_on_shift,
+        "schedule_rows_count": len(schedule_rows),
+    }
+
+
+def is_active_facility_assignment(row):
+    return str(row.get("can_read", "")).strip().lower() == "true"
+
+
+def get_assignment_facility_name(row):
+    facility = row.get("facilities") or {}
+    if not isinstance(facility, dict):
+        return ""
+    return str(facility.get("name") or "").strip()
+
+
 @shifts_bp.route("/shifts")
 @with_supabase_auth
 def shifts():
+    route_started = time.perf_counter()
+    timings = []
+
+    def mark_timing(label):
+        timings.append((label, time.perf_counter() - route_started))
+
     supabase = get_supabase_client()
 
     date_str = request.args.get("date")
@@ -456,6 +611,7 @@ def shifts():
             )
             current_hour += timedelta(hours=1)
         current_day += timedelta(days=1)
+    mark_timing("hour_slots")
     query = (
         supabase.table("monthly_schedule")
         .select("*, radiologists(*)")
@@ -559,6 +715,7 @@ def shifts():
 
                 if is_on_shift and not is_on_break:
                     doctors_by_hour[slot_start].append(doc)
+    mark_timing(f"schedule rows={len(schedule_rows)} on_shift={len(doctors_on_shift)}")
 
     metrics_res = (
         supabase.table("rad_metrics").select("radiologist_id,rvu,volatility").execute()
@@ -607,6 +764,7 @@ def shifts():
         if len(_data) < _batch:
             break
         _offset += _batch
+    mark_timing(f"capacity rows={len(cap_rows_all)}")
 
     historical_rvu_lookup = {}
     trickle_multiplier_lookup = {}
@@ -683,6 +841,7 @@ def shifts():
             if len(_data) < _batch:
                 break
             _offset += _batch
+    mark_timing(f"breakdown rows={len(breakdown_rows_all)}")
 
     # Robust hour parser: handle numeric, zero-padded strings, and float-ish strings
     def parse_hour(val):
@@ -807,6 +966,7 @@ def shifts():
         return STATE_NAME_TO_CODE.get(s.title(), s.upper())
 
     alloc_doctor_states = defaultdict(set)  # doctor_id -> set(state_code)
+    week_certifications = []
     if week_doctor_ids:
         cert_all = (
             supabase.table("certifications")
@@ -814,7 +974,8 @@ def shifts():
             .in_("radiologist_id", week_doctor_ids)
             .execute()
         )
-        for c in cert_all.data or []:
+        week_certifications = cert_all.data or []
+        for c in week_certifications:
             rid = c.get("radiologist_id")
             st = to_state_code(c.get("state"))
             if rid is not None and st:
@@ -851,6 +1012,9 @@ def shifts():
             parsed = extract_modality_weights(row)
             if parsed:
                 modality_weights[rid] = parsed
+    mark_timing(
+        f"doctor lookups doctors={len(week_doctor_ids)} certs={len(week_certifications)}"
+    )
 
     # Helper: allocate supply for a given slot
     def compute_effective_supply(slot_dt):
@@ -1110,6 +1274,7 @@ def shifts():
             "trickle_multiplier": tm,
             "backlog": bl,
         }
+    mark_timing("effective_supply")
 
     # Debug: per-day coverage summary
     if dbg and str(dbg).lower() in ("1", "true", "yes"):
@@ -1181,6 +1346,12 @@ def shifts():
         day: weekly_data_by_day_and_color[day] for day in sorted_days
     }
 
+    all_facilities_res = supabase.table("facilities").select("name").execute()
+    all_facility_names = sorted(
+        [f["name"].strip() for f in (all_facilities_res.data or []) if f.get("name")]
+    )
+    mark_timing(f"facility names={len(all_facility_names)}")
+
     template_payload = {
         "weekly_data_by_day_and_color": sorted_weekly_data_by_day_and_color,
         "hourly_rvu_stats": hourly_rvu_stats,
@@ -1195,10 +1366,56 @@ def shifts():
         "datetime": datetime,
         "now": now,
         "eastern_today": eastern_now().date(),
+        "all_facility_names": all_facility_names,
+        "uncovered_states_by_hour": {},
+        "covered_states_by_hour": {},
+        "facility_names_by_hour": {},
     }
 
-    if COVERAGE_FILTERS_ENABLED:
-        doctor_ids = list({doc["id"] for doc in doctors_on_shift})
+    rendered = render_template("shifts.html", **template_payload)
+    mark_timing(f"render bytes={len(rendered)}")
+    print(
+        "[shifts][timing] "
+        + " | ".join(f"{label}: {elapsed:.3f}s" for label, elapsed in timings)
+        + f" | total: {time.perf_counter() - route_started:.3f}s"
+    )
+    return rendered
+
+
+@shifts_bp.route("/shifts/coverage_filters")
+@with_supabase_auth
+def coverage_filters():
+    route_started = time.perf_counter()
+    timings = []
+
+    def mark_timing(label):
+        timings.append((label, time.perf_counter() - route_started))
+
+    supabase = get_supabase_client()
+    date_str = request.args.get("date")
+    if date_str:
+        try:
+            now = datetime.strptime(date_str, "%Y-%m-%d")
+        except ValueError:
+            return jsonify({"error": "Invalid date"}), 400
+    else:
+        now = eastern_now().replace(tzinfo=None)
+
+    start_of_week = now - timedelta(days=now.weekday())
+    end_of_week = start_of_week + timedelta(days=6)
+
+    week_data = fetch_week_doctors_by_hour(supabase, start_of_week, end_of_week)
+    all_hour_slots = week_data["all_hour_slots"]
+    doctors_by_hour = week_data["doctors_by_hour"]
+    doctors_on_shift = week_data["doctors_on_shift"]
+    mark_timing(
+        f"schedule rows={week_data['schedule_rows_count']} on_shift={len(doctors_on_shift)}"
+    )
+
+    doctor_ids = list({doc["id"] for doc in doctors_on_shift if doc.get("id")})
+
+    certifications = []
+    if doctor_ids:
         cert_res = (
             supabase.table("certifications")
             .select("radiologist_id,state")
@@ -1206,94 +1423,82 @@ def shifts():
             .execute()
         )
         certifications = cert_res.data or []
-        doctor_states = {}
-        for cert in certifications:
-            rid = str(cert["radiologist_id"]).strip()
-            state = cert["state"]
-            if rid not in doctor_states:
-                doctor_states[rid] = set()
-            if state:
-                doctor_states[rid].add(state.strip().title())
+    mark_timing(f"certs={len(certifications)}")
 
-        uncovered_states_by_hour = {}
-        for slot in all_hour_slots:
-            slot_doctors = doctors_by_hour.get(slot["datetime"], [])
-            covered_states = set()
-            for doc in slot_doctors:
-                doc_id = str(doc["id"]).strip()  # Ensure string and trimmed
-                covered_states.update(doctor_states.get(doc_id, set()))
-            uncovered = sorted(set(US_STATES) - covered_states)
-            uncovered_states_by_hour[slot["datetime"].isoformat()] = uncovered
+    doctor_states = {}
+    for cert in certifications:
+        rid = str(cert["radiologist_id"]).strip()
+        state = cert["state"]
+        if rid not in doctor_states:
+            doctor_states[rid] = set()
+        if state:
+            doctor_states[rid].add(state.strip().title())
 
-        covered_states_by_hour = {}
-        for slot in all_hour_slots:
-            uncovered = uncovered_states_by_hour[slot["datetime"].isoformat()]
-            covered = sorted(set(US_STATES) - set(uncovered))
-            covered_states_by_hour[slot["datetime"].isoformat()] = covered
+    facility_assignments_data = []
+    if doctor_ids:
+        _offset = 0
+        _batch = 1000
+        while True:
+            _res = (
+                supabase.table("doctor_facility_assignments")
+                .select("radiologist_id, can_read, facilities(name)")
+                .in_("radiologist_id", doctor_ids)
+                .range(_offset, _offset + _batch - 1)
+                .execute()
+            )
+            _data = _res.data or []
+            facility_assignments_data.extend(_data)
+            if len(_data) < _batch:
+                break
+            _offset += _batch
 
-        state_doctor_map_by_hour = {}
-        for slot in all_hour_slots:
-            slot_dt = slot["datetime"]
-            slot_doctors = doctors_by_hour.get(slot_dt, [])
-            state_doctor_map = {}
+    facility_map = defaultdict(list)
+    for row in facility_assignments_data:
+        if not is_active_facility_assignment(row):
+            continue
+        rad_id = str(row.get("radiologist_id") or "").strip()
+        facility_name = get_assignment_facility_name(row)
+        if rad_id and facility_name:
+            facility_map[rad_id].append(facility_name)
+    mark_timing(f"assignments={len(facility_assignments_data)}")
 
-            for doc in slot_doctors:
-                doc_states = doctor_states.get(str(doc["id"]).strip(), set())
-                for state in doc_states:
-                    name = doc.get("name")
-                    if name:
-                        state_doctor_map.setdefault(state, []).append(str(name).strip())
+    all_facilities_res = supabase.table("facilities").select("name").execute()
+    all_facility_names = sorted(
+        [f["name"].strip() for f in (all_facilities_res.data or []) if f.get("name")]
+    )
+    mark_timing(f"facilities={len(all_facility_names)}")
 
-            state_doctor_map_by_hour[slot_dt.isoformat()] = state_doctor_map
+    hours = {}
+    for slot in all_hour_slots:
+        slot_dt = slot["datetime"]
+        slot_doctors = doctors_by_hour.get(slot_dt, [])
+        covered_states = set()
+        facility_names = set()
 
-        facility_assignments_data = fetch_all_rows(
-            "doctor_facility_assignments", "radiologist_id, can_read, facilities(name)"
-        )
+        for doc in slot_doctors:
+            doc_id = str(doc["id"]).strip()
+            covered_states.update(doctor_states.get(doc_id, set()))
+            facility_names.update(facility_map.get(doc_id, []))
 
-        facility_map = defaultdict(list)
-        for row in facility_assignments_data:
-            if str(row.get("can_read")).strip().lower() != "true":
-                continue
+        covered = sorted(covered_states)
+        hours[slot_dt.isoformat()] = {
+            "covered_states": covered,
+            "uncovered_states": sorted(set(US_STATES) - set(covered)),
+            "facility_names": sorted(facility_names),
+        }
 
-            rad_id = str(row["radiologist_id"]).strip()
-            facility_name = row.get("facilities", {}).get("name")
-            if rad_id and facility_name:
-                facility_map[rad_id].append(facility_name.strip())
-
-        all_facilities_res = supabase.table("facilities").select("name").execute()
-        all_facility_names = sorted(
-            [
-                f["name"].strip()
-                for f in (all_facilities_res.data or [])
-                if f.get("name")
-            ]
-        )
-
-        facility_doctor_map_by_hour = {}
-        for slot in all_hour_slots:
-            slot_dt = slot["datetime"]
-            slot_doctors = doctors_by_hour.get(slot_dt, [])
-            fac_map = defaultdict(list)
-
-            for doc in slot_doctors:
-                doc_id = str(doc["id"]).strip()
-                doc_name = doc.get("name", "").strip()
-                for fac in facility_map.get(doc_id, []):
-                    fac_map[fac].append(doc_name)
-
-            complete_map = {fac: fac_map.get(fac, []) for fac in all_facility_names}
-            facility_doctor_map_by_hour[slot_dt.isoformat()] = complete_map
-
-        template_payload.update(
-            {
-                "uncovered_states_by_hour": uncovered_states_by_hour,
-                "covered_states_by_hour": covered_states_by_hour,
-                "state_doctor_map_by_hour": state_doctor_map_by_hour,
-                "facility_doctor_map_by_hour": facility_doctor_map_by_hour,
-            }
-        )
-
-    return render_template("shifts.html", **template_payload)
+    payload = {
+        "all_states": sorted(US_STATES),
+        "all_facility_names": all_facility_names,
+        "hours": hours,
+    }
+    mark_timing(f"payload hours={len(hours)}")
+    print(
+        "[shifts][coverage_timing] "
+        + " | ".join(f"{label}: {elapsed:.3f}s" for label, elapsed in timings)
+        + f" | total: {time.perf_counter() - route_started:.3f}s"
+    )
+    return jsonify(payload)
 
 
 @shifts_bp.route("/shifts/hour_detail", methods=["GET", "POST"])
@@ -1688,12 +1893,12 @@ def hour_detail():
     )
     facility_map = defaultdict(list)
     for row in facility_assignments_data:
-        if str(row.get("can_read")).strip().lower() != "true":
+        if not is_active_facility_assignment(row):
             continue
         rad_id = str(row.get("radiologist_id", "")).strip()
-        facility_name = row.get("facilities", {}).get("name")
+        facility_name = get_assignment_facility_name(row)
         if rad_id and facility_name:
-            facility_map[rad_id].append(str(facility_name).strip())
+            facility_map[rad_id].append(facility_name)
 
     all_facilities_res = supabase.table("facilities").select("name").execute()
     all_facility_names = sorted(
