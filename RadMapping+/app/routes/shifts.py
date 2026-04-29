@@ -717,11 +717,6 @@ def shifts():
                     doctors_by_hour[slot_start].append(doc)
     mark_timing(f"schedule rows={len(schedule_rows)} on_shift={len(doctors_on_shift)}")
 
-    metrics_res = (
-        supabase.table("rad_metrics").select("radiologist_id,rvu,volatility").execute()
-    )
-    metrics_rows = {row["radiologist_id"]: row for row in (metrics_res.data or [])}
-
     all_hour_slots = [
         slot for day_slots in hour_slots_by_day.values() for slot in day_slots
     ]
@@ -754,6 +749,9 @@ def shifts():
                 "dropped_rvus",
                 "avg_arriving_rvus",
                 "avg_inherited_backlog_rvus",
+                "doctor_capacity_worst_rvus",
+                "doctor_capacity_normal_rvus",
+                "doctor_capacity_best_rvus",
             )
             .in_("date", cap_dates)
             .range(_offset, _offset + _batch - 1)
@@ -769,6 +767,7 @@ def shifts():
     historical_rvu_lookup = {}
     trickle_multiplier_lookup = {}
     backlog_lookup = {}
+    doctor_capacity_lookup = {}
     for row in cap_rows_all:
         d = row.get("date")
         h = row.get("hour")
@@ -809,74 +808,20 @@ def shifts():
             dropped_rvus=row.get("dropped_rvus"),
             avg_inherited_backlog_rvus=row.get("avg_inherited_backlog_rvus"),
         )
-
-    # --- New effective capacity computation ---
-    # We will estimate per-hour supply by allocating each on-shift doctor's
-    # overall RVU across state/modality demand using their modality mix
-    # and licensure constraints. Demand source = same day+hour
-    # capacity_per_hour_breakdown distribution.
-
-    # 1) Prefetch state/modality demand rows for all (date,hour) pairs
-    prev_dates = list({d for d, _ in unique_prev_keys})
-    # Note: some deployments store the "hour" column as text. Using an IN filter with
-    # integer hours can silently return no rows, which makes weekly tiles show 0 even
-    # though per-hour modal fallback finds day data.
-    # To avoid type-mismatch issues, prefetch by date only and handle hours in-memory.
-    breakdown_rows_all = []
-    if prev_dates:
-        _offset = 0
-        _batch = 1000
-        while True:
-            _res = (
-                supabase.table("capacity_per_hour_breakdown")
-                .select(
-                    "date,hour,state,modality,total_rvus,base_rvus,trickle_multiplier"
-                )
-                .in_("date", prev_dates)
-                .range(_offset, _offset + _batch - 1)
-                .execute()
+        if distribution_mode == "worst":
+            doctor_capacity_lookup[(d, h_int)] = float(
+                row.get("doctor_capacity_worst_rvus") or 0.0
             )
-            _data = _res.data or []
-            breakdown_rows_all.extend(_data)
-            if len(_data) < _batch:
-                break
-            _offset += _batch
-    mark_timing(f"breakdown rows={len(breakdown_rows_all)}")
+        elif distribution_mode == "best":
+            doctor_capacity_lookup[(d, h_int)] = float(
+                row.get("doctor_capacity_best_rvus") or 0.0
+            )
+        else:
+            doctor_capacity_lookup[(d, h_int)] = float(
+                row.get("doctor_capacity_normal_rvus") or 0.0
+            )
 
-    # Robust hour parser: handle numeric, zero-padded strings, and float-ish strings
-    def parse_hour(val):
-        try:
-            if isinstance(val, (int, float)):
-                return int(val)
-            s = str(val).strip()
-            if not s:
-                return None
-            if "." in s:
-                s = s.split(".")[0]
-            return int(s)
-        except Exception:
-            return None
-
-    # Group by (date,hour) and by date (for nearest-hour fallback)
-    breakdown_by_date_hour = defaultdict(list)
-    breakdown_by_date = defaultdict(list)
-    for r in breakdown_rows_all:
-        h = parse_hour(r.get("hour"))
-        d = r.get("date")
-        if d is None:
-            continue
-        adjusted_row = dict(r)
-        adjusted_row["total_rvus"] = adjusted_expected_rvus(
-            r.get("total_rvus"),
-            r.get("base_rvus"),
-            r.get("trickle_multiplier"),
-            distribution_mode,
-        )
-        if h is not None:
-            breakdown_by_date_hour[(d, h)].append(adjusted_row)
-        breakdown_by_date[d].append(adjusted_row)
-
-    # Optional debug: summarize fetched rows per date
+    # # Optional debug: summarize fetched rows per date
     dbg = request.args.get("debug")
     if dbg and str(dbg).lower() in ("1", "true", "yes"):
         try:
@@ -893,388 +838,26 @@ def shifts():
         except Exception as _e:
             print(f"[shifts][DEBUG] counting error: {_e}")
 
-    # 2) Prefetch authorizations, certifications, and modality weights for any doctor on this week
-    week_doctor_ids = list(
-        {d["id"] for d in doctors_on_shift if d.get("id") is not None}
-    )
-
-    # Certifications by state
-    STATE_NAME_TO_CODE = {
-        "Alabama": "AL",
-        "Alaska": "AK",
-        "Arizona": "AZ",
-        "Arkansas": "AR",
-        "California": "CA",
-        "Colorado": "CO",
-        "Connecticut": "CT",
-        "Delaware": "DE",
-        "Florida": "FL",
-        "Georgia": "GA",
-        "Hawaii": "HI",
-        "Idaho": "ID",
-        "Illinois": "IL",
-        "Indiana": "IN",
-        "Iowa": "IA",
-        "Kansas": "KS",
-        "Kentucky": "KY",
-        "Louisiana": "LA",
-        "Maine": "ME",
-        "Maryland": "MD",
-        "Massachusetts": "MA",
-        "Michigan": "MI",
-        "Minnesota": "MN",
-        "Mississippi": "MS",
-        "Missouri": "MO",
-        "Montana": "MT",
-        "Nebraska": "NE",
-        "Nevada": "NV",
-        "New Hampshire": "NH",
-        "New Jersey": "NJ",
-        "New Mexico": "NM",
-        "New York": "NY",
-        "North Carolina": "NC",
-        "North Dakota": "ND",
-        "Ohio": "OH",
-        "Oklahoma": "OK",
-        "Oregon": "OR",
-        "Pennsylvania": "PA",
-        "Rhode Island": "RI",
-        "South Carolina": "SC",
-        "South Dakota": "SD",
-        "Tennessee": "TN",
-        "Texas": "TX",
-        "Utah": "UT",
-        "Vermont": "VT",
-        "Virginia": "VA",
-        "Washington": "WA",
-        "District of Columbia": "DC",
-        "West Virginia": "WV",
-        "Wisconsin": "WI",
-        "Wyoming": "WY",
-        "Puerto Rico": "PR",
-        "District Of Columbia": "DC",
-    }
-
-    def to_state_code(val):
-        if not val:
-            return None
-        s = str(val).strip()
-        if not s:
-            return None
-        if len(s) == 2:
-            return s.upper()
-        return STATE_NAME_TO_CODE.get(s.title(), s.upper())
-
-    alloc_doctor_states = defaultdict(set)  # doctor_id -> set(state_code)
-    week_certifications = []
-    if week_doctor_ids:
-        cert_all = (
-            supabase.table("certifications")
-            .select("radiologist_id,state")
-            .in_("radiologist_id", week_doctor_ids)
-            .execute()
-        )
-        week_certifications = cert_all.data or []
-        for c in week_certifications:
-            rid = c.get("radiologist_id")
-            st = to_state_code(c.get("state"))
-            if rid is not None and st:
-                alloc_doctor_states[rid].add(st)
-
-    # Modality weights: attempt common table names; fall back to empty
-    modality_weights = {}
-    if week_doctor_ids:
-
-        def try_fetch_weights(table_name):
-            try:
-                res = (
-                    supabase.table(table_name)
-                    .select("radiologist_id,modality_weights")
-                    .in_("radiologist_id", week_doctor_ids)
-                    .execute()
-                )
-                return res.data or []
-            except Exception:
-                return []
-
-        weight_rows = []
-        for t in (
-            "radiologist_modality_weights",
-            "modality_weights",
-            "rad_modality_weights",
-        ):
-            if not weight_rows:
-                weight_rows = try_fetch_weights(t)
-        for row in weight_rows:
-            rid = row.get("radiologist_id")
-            if rid is None:
-                continue
-            parsed = extract_modality_weights(row)
-            if parsed:
-                modality_weights[rid] = parsed
-    mark_timing(
-        f"doctor lookups doctors={len(week_doctor_ids)} certs={len(week_certifications)}"
-    )
-
-    # Helper: allocate supply for a given slot
-    def compute_effective_supply(slot_dt):
-        # Demand groups for same day+hour
-        prev_date_str, prev_hour_int = get_prev_week_same_day_and_hour(slot_dt)
-        historical_rvu = None
-        if prev_date_str is not None:
-            historical_rvu = historical_rvu_lookup.get((prev_date_str, prev_hour_int))
-        demand_rows = breakdown_by_date_hour.get((prev_date_str, prev_hour_int), [])
-        scale_factor = 1.0
-        if not demand_rows:
-            # nearest hour on same date fallback
-            day_rows = breakdown_by_date.get(prev_date_str, [])
-            if day_rows:
-                by_hour = defaultdict(list)
-                for r in day_rows:
-                    ph = parse_hour(r.get("hour"))
-                    if ph is None:
-                        continue
-                    by_hour[ph].append(r)
-                if by_hour:
-                    hours_available = sorted(by_hour.keys())
-                    nearest_hour = min(
-                        hours_available, key=lambda h: abs(h - prev_hour_int)
-                    )
-                    demand_rows = by_hour.get(nearest_hour, [])
-                    # scale distribution to expected total for target hour
-                    hist_total = historical_rvu_lookup.get(
-                        (prev_date_str, prev_hour_int)
-                    )
-                    sum_nearest = sum(
-                        float(x.get("total_rvus") or 0) for x in demand_rows
-                    )
-                    if hist_total is not None and sum_nearest > 0:
-                        scale_factor = float(hist_total) / float(sum_nearest)
-
-        # Build group list: (state_code, modality, base_demand, remaining_demand)
-        groups = []
-        for r in demand_rows:
-            mod = (r.get("modality") or "").upper() or None
-            dem = float(r.get("total_rvus") or 0) * scale_factor
-            st = to_state_code(r.get("state"))
-            if dem <= 0:
-                continue
-            groups.append(
-                {
-                    "state": st,
-                    "mod": mod,
-                    # Keep the original demand as base for proportional distribution,
-                    # even if we allow overfilling beyond historical demand.
-                    "base": dem,
-                    "remaining": dem,
-                }
-            )
-
-        # Prepare doctor list for this slot
-        slot_doctors = doctors_by_hour.get(slot_dt, [])
-
-        # Per-doctor RVU base from monthly averages
-        demand_modality_weights = derive_demand_modality_weights(demand_rows)
-        uniform_weights = uniform_modality_weights()
-
-        def doc_rvu(did):
-            rr = metrics_rows.get(did, {})
-            try:
-                base_rvu = float(rr.get("rvu") or 0)
-            except Exception:
-                base_rvu = 0.0
-            try:
-                volatility = float(rr.get("volatility") or 0)
-            except Exception:
-                volatility = 0.0
-            conversion_weights = get_doc_modality_weights(
-                modality_weights, did, slot_dt
-            )
-            if not conversion_weights:
-                conversion_weights = demand_modality_weights or uniform_weights
-            return adjusted_rvu_from_metrics(
-                base_rvu, volatility, conversion_weights, distribution_mode
-            )
-
-        # Multi-pass allocation with rebalancing across modalities
-        matched_supply = 0.0
-        if not groups or not slot_doctors:
-            return historical_rvu, 0.0
-
-        # Index groups by modality for quick access and initialize per-group gap
-        groups_by_mod = defaultdict(list)
-        for g in groups:
-            g["gap"] = float(g.get("base", 0.0))
-            groups_by_mod[g["mod"]].append(g)
-
-        EPS = 1e-6
-
-        for d in slot_doctors:
-            did = d.get("id")
-            if did is None:
-                continue
-            base = float(doc_rvu(did))
-            if base <= 0:
-                continue
-
-            remaining_cap = base
-
-            # Determine licensed states
-            lic_states = alloc_doctor_states.get(did, set())
-
-            # Doctor modality distribution; if missing, spread uniformly over present modalities
-            base_weights = get_doc_modality_weights(modality_weights, did, slot_dt)
-            if not base_weights:
-                mods_present = {g["mod"] for g in groups if g["mod"]}
-                if mods_present:
-                    w = 1.0 / len(mods_present)
-                    base_weights = {m: w for m in mods_present}
-                else:
-                    base_weights = {}
-
-            # PASS 1: coverage-first with soft modality preferences.
-            # Prefer modalities with higher doctor weight; fall back if none fit.
-            while remaining_cap > EPS:
-                # Build total gap per modality limited to whole chunks and eligibility
-                gap_by_mod = {}
-                for mod, lst in groups_by_mod.items():
-                    ch = modality_chunk(mod)
-                    if ch <= EPS:
-                        continue
-                    gap_sum = 0.0
-                    for g in lst:
-                        if not g["state"] or g["state"] in lic_states:
-                            gap = float(g.get("gap", 0.0))
-                            if gap + EPS >= ch:
-                                gap_sum += gap
-                    if gap_sum > EPS:
-                        gap_by_mod[mod] = gap_sum
-                if not gap_by_mod:
-                    break
-
-                # pick modality using weighted score (gap * weight),
-                # preferring weights >= SOFT_WEIGHT_THRESHOLD first
-                def pick_mod(prefer_threshold=True):
-                    candidates = list(gap_by_mod.keys())
-                    if prefer_threshold:
-                        preferred = [
-                            m
-                            for m in candidates
-                            if (base_weights.get(m, 0.0) >= SOFT_WEIGHT_THRESHOLD)
-                        ]
-                        if preferred:
-                            candidates = preferred
-
-                    # score: gap * max(weight, tiny)
-                    def score(m):
-                        w = base_weights.get(m, 0.0)
-                        return gap_by_mod[m] * (w if w > 0 else 1e-9)
-
-                    return max(candidates, key=score)
-
-                try:
-                    sel_mod = pick_mod(True)
-                except ValueError:
-                    # no candidates after thresholding; fall back to any
-                    sel_mod = pick_mod(False)
-                ch = modality_chunk(sel_mod)
-                if remaining_cap + EPS < ch:
-                    break
-                # choose group with max gap within modality that fits a chunk
-                candidates = [
-                    g
-                    for g in groups_by_mod.get(sel_mod, [])
-                    if (not g["state"] or g["state"] in lic_states)
-                    and (float(g.get("gap", 0.0)) + EPS >= ch)
-                ]
-                if not candidates:
-                    # nothing fits in this modality; remove and continue
-                    del gap_by_mod[sel_mod]
-                    if not gap_by_mod:
-                        break
-                    continue
-                best = max(candidates, key=lambda gg: float(gg.get("gap", 0.0)))
-                best["gap"] = max(0.0, float(best.get("gap", 0.0)) - ch)
-                matched_supply += ch
-                remaining_cap -= ch
-
-            # PASS 2: overflow with coverage-aware round-robin and soft preferences
-            if remaining_cap > EPS:
-                OVERFILL_CAP_R = 1.5  # do not overflow a group beyond 150% coverage
-                # track per-doctor per-group chunk count to avoid spamming one target
-                per_group_chunks = {}
-                MAX_CHUNKS_PER_GROUP_PER_DOC = 3
-                while remaining_cap > EPS:
-                    # gather candidates across all modalities the doctor is eligible for and that fit a chunk
-                    def pick_overflow(allow_low_weight: bool):
-                        best = (None, None, None)
-                        best_score = None
-                        for mod, lst in groups_by_mod.items():
-                            w = base_weights.get(mod, 0.0)
-                            if (w < SOFT_WEIGHT_THRESHOLD) and not allow_low_weight:
-                                continue
-                            ch = modality_chunk(mod)
-                            if remaining_cap + EPS < ch:
-                                continue
-                            for g in lst:
-                                if g.get("state") and g.get("state") not in lic_states:
-                                    continue
-                                base_val = float(g.get("base", 0.0))
-                                if base_val <= EPS:
-                                    continue
-                                over = float(g.get("overfill", 0.0))
-                                gap = float(g.get("gap", 0.0))
-                                covered = max(0.0, base_val - gap) + over
-                                R = covered / max(base_val, EPS)
-                                if R >= OVERFILL_CAP_R - 1e-9:
-                                    continue
-                                key = (g["state"], mod)
-                                if (
-                                    per_group_chunks.get(key, 0)
-                                    >= MAX_CHUNKS_PER_GROUP_PER_DOC
-                                ):
-                                    continue
-                                # Prefer lower coverage; tie-break by weight (higher is better)
-                                score = (R, -w)
-                                if best_score is None or score < best_score:
-                                    best_score = score
-                                    best = (g, mod, ch)
-                        return best
-
-                    g = mod = None
-                    # First try with weight threshold
-                    g, mod, best_ch = pick_overflow(False)
-                    if g is None:
-                        # Fallback: allow low-weight modalities as last resort
-                        g, mod, best_ch = pick_overflow(True)
-                    if g is None:
-                        break
-                    g["overfill"] = float(g.get("overfill", 0.0)) + best_ch
-                    # Also reduce gap if any remains (keeps coverage monotonic up)
-                    if g.get("gap", 0.0) > 0:
-                        g["gap"] = max(0.0, float(g.get("gap", 0.0)) - best_ch)
-                    matched_supply += best_ch
-                    remaining_cap -= best_ch
-                    key = (g["state"], mod)
-                    per_group_chunks[key] = per_group_chunks.get(key, 0) + 1
-
-        return historical_rvu, matched_supply
-
-    # Compute per-slot historical expected and new current (effective supply)
+    # Compute per-slot historical expected and stored doctor capacity
     hourly_rvu_stats = {}
+
     for slot in all_hour_slots:
         slot_dt = slot["datetime"]
-        hist, eff = compute_effective_supply(slot_dt)
         prev_d, prev_h = get_prev_week_same_day_and_hour(slot_dt)
+
+        hist = historical_rvu_lookup.get((prev_d, prev_h)) if prev_d else None
+        eff = doctor_capacity_lookup.get((prev_d, prev_h), 0.0) if prev_d else 0.0
         tm = trickle_multiplier_lookup.get((prev_d, prev_h), 1.0) if prev_d else 1.0
         bl = backlog_lookup.get((prev_d, prev_h), 0.0) if prev_d else 0.0
+
         hourly_rvu_stats[slot_dt] = {
             "historical": hist,
             "current": eff,
             "trickle_multiplier": tm,
             "backlog": bl,
         }
-    mark_timing("effective_supply")
+
+    mark_timing("stored_effective_supply")
 
     # Debug: per-day coverage summary
     if dbg and str(dbg).lower() in ("1", "true", "yes"):
